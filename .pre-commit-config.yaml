@@ -1,0 +1,77 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+default_stages: [commit]
+repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v2.3.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: 'v0.1.8'
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black-jupyter
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.5
+    hooks:
+      - id: docformatter
+        additional_dependencies: [tomli]
+        args: ["--in-place", "--config", "./pyproject.toml"]
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.4.1
+    hooks:
+      - id: mypy
+        additional_dependencies: ['types-requests', 'types-six']
+  - repo: https://github.com/pdm-project/pdm
+    rev: 2.10.1
+    hooks:
+      - id: pdm-lock-check
+      - id: pdm-export
+        args: ["-o", "requirements.txt", "--without-hashes", "-d", "-G", "all"]
+        files: ^pdm.lock$
+        stages: [manual]
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+      - id: nbstripout
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-toml
+      - id: check-yaml
+        exclude: mkdocs.yml # See https://github.com/readthedocs/readthedocs.org/issues/6889
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: detect-private-key
+  - repo: https://github.com/dosisod/refurb
+    rev: v1.23.0
+    hooks:
+      - id: refurb
+        args: ["--python-version", "3.9"]
+        language: python
+        language_version: python3.10
+        stages: [manual]
+  - repo: https://github.com/FHPythonUtils/LicenseCheck
+    rev: "2023.1.4"
+    hooks:
+      - id: licensecheck
+        stages: [manual]
+
+ci:
+  autofix_commit_msg: |
+    fix(pre-commit.ci): auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "build(pre-commit.ci): pre-commit autoupdate"
+  autoupdate_schedule: monthly
+  skip: []
+  submodules: false

@@ -1,0 +1,72 @@
+[project]
+name = "QuackOSM"
+version = "0.1.0"
+description = "An open-source tool for reading OpenStreetMap PBF files using DuckDB"
+authors = [
+    { name = "Kamil Raczycki", email = "kraczycki@kraina.ai" },
+]
+dependencies = [
+    "geopandas",
+    "shapely",
+    "pyarrow>=13.0.0",
+    "duckdb>=0.9.2",
+    "geoarrow-pyarrow @ git+https://github.com/geoarrow/geoarrow-python.git@0a95d5ff3180c20e89f4572ac38d255f58e13396#subdirectory=geoarrow-pyarrow"
+]
+requires-python = ">=3.9"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[tool]
+[tool.pdm]
+[tool.pdm.dev-dependencies]
+# pdm add -d <library>
+dev = ["bumpver", "types-requests"]
+# pdm add -dG lint <library>
+lint = ["pre-commit", "mypy", "docformatter[tomli]", "ruff"]
+# pdm add -dG test <library>
+test = [
+    "pytest",
+    "tox-pdm",
+    "pytest-mock",
+    "requests-mock",
+    "pytest-check",
+    "pytest-parametrization",
+    "pytest-xdist",
+    "pyogrio",
+    "srai"
+]
+# pdm add -dG docs <library>
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-mermaid2-plugin",
+    "mkdocstrings[python]",
+    "mkdocs-jupyter",
+    "ipykernel",
+    "mkdocs-gen-files",
+    "mkdocs-awesome-pages-plugin",
+    "mike",
+]
+license = ["licensecheck"]
+
+[tool.pdm.scripts]
+post_install = "pre-commit install"
