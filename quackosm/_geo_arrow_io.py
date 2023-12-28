@@ -18,7 +18,7 @@ from geoarrow.pyarrow._compute import ensure_storage
 def read_geoparquet_table(*args, **kwargs):
     """Read GeoParquet using PyArrow."""
     tab = _pq.read_table(*args, **kwargs)
-    tab_metadata = tab.schema.metadata if tab.schema.metadata else {}
+    tab_metadata = tab.schema.metadata or {}
     if b"geo" in tab_metadata:
         geo_meta = json.loads(tab_metadata[b"geo"])
     else:
@@ -72,7 +72,7 @@ def write_geoparquet_table(
                 ),
             )
 
-    metadata = table.schema.metadata if table.schema.metadata else {}
+    metadata = table.schema.metadata or {}
     metadata["geo"] = json.dumps(geo_meta)
     table = table.replace_schema_metadata(metadata)
     return _pq.write_table(table, *args, **kwargs)
