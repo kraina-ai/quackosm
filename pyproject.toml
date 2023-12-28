@@ -2,15 +2,14 @@
 name = "QuackOSM"
 version = "0.1.0"
 description = "An open-source tool for reading OpenStreetMap PBF files using DuckDB"
-authors = [
-    { name = "Kamil Raczycki", email = "kraczycki@kraina.ai" },
-]
+authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
     "geopandas",
     "shapely",
     "pyarrow>=13.0.0",
     "duckdb>=0.9.2",
-    "geoarrow-pyarrow @ git+https://github.com/geoarrow/geoarrow-python.git@0a95d5ff3180c20e89f4572ac38d255f58e13396#subdirectory=geoarrow-pyarrow"
+    "geoarrow-pyarrow @ git+https://github.com/geoarrow/geoarrow-python.git@0a95d5ff3180c20e89f4572ac38d255f58e13396#subdirectory=geoarrow-pyarrow",
+    "typeguard",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -52,7 +51,7 @@ test = [
     "pytest-parametrization",
     "pytest-xdist",
     "pyogrio",
-    "srai"
+    "srai>=0.6.2",
 ]
 # pdm add -dG docs <library>
 docs = [
@@ -65,8 +64,94 @@ docs = [
     "mkdocs-gen-files",
     "mkdocs-awesome-pages-plugin",
     "mike",
+    "black",
+    "osmnx",
+    "matplotlib",
 ]
 license = ["licensecheck"]
 
 [tool.pdm.scripts]
 post_install = "pre-commit install"
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311"]
+preview = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+select = [
+    "E",
+    "W",   # pycodestyle
+    "F",   # pyflakes
+    "UP",  # pyupgrade
+    "D",   # pydocstyle
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "NPY", # NumPy
+    "YTT", # flake8-2020
+    "Q",   # flake8-quotes
+    "PLE",
+    "PLW", # pylint (add "PLR" in the future)
+    "PIE", # misc lints
+    "TID", # tidy imports
+    "ISC", # implicit string concatenation
+    "TCH", # type-checking imports
+    # "N",            # pep8-naming
+    # "ANN",          # flake8-annotations
+]
+ignore = ["D212"]
+extend-exclude = ["old"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.pycodestyle]
+max-doc-length = 100
+
+[tool.mypy]
+strict = true
+show_column_numbers = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+check_untyped_defs = true
+warn_return_any = true
+
+[tool.docformatter]
+syntax = 'google'
+black = true
+recursive = true
+wrap-summaries = 100
+wrap-descriptions = 100
+# force-wrap = false # uncomment after https://github.com/PyCQA/docformatter/issues/68 is resolved
+tab-width = 4
+blank = false
+pre-summary-newline = true
+close-quotes-on-newline = true
+wrap-one-line = true
+
+[tool.bumpver]
+current_version = "0.1.0"
+version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
+commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
+commit = true
+tag = false
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+    '^current_version = "{version}"$',
+    '^version = "{version}"$',
+]
+"quackosm/__init__.py" = ['^__version__ = "{version}"$']
+
+[tool.pytest.ini_options]
+addopts = ["--import-mode=importlib"]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+log_cli = true
+
+[tool.licensecheck]
+using = "requirements"
+zero = false
+ignore_licenses = ["UNKNOWN"]

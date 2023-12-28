@@ -1,0 +1,119 @@
+name: "Build & publish - PROD"
+on:
+  release:
+    types: [released]
+
+jobs:
+  run-tests:
+    name: "Run tests job"
+    uses: ./.github/workflows/_tests.yml
+
+  build-n-publish:
+    name: Build and publish Python 🐍 distributions 📦 to PyPI
+    needs: [run-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+      - uses: pdm-project/setup-pdm@v3
+        name: Setup PDM
+        with:
+          python-version: 3.11
+          architecture: x64
+          enable-pep582: true
+          cache: true
+          cache-dependency-path: "**/pdm.lock"
+      - name: Publish distribution 📦 to PyPI
+        run: pdm publish --repository pypi --username __token__ --password ${{ secrets.PYPI_API_TOKEN }} --verbose
+
+  generate-docs:
+    name: Generate latest library 📚 documentation 📄
+    needs: [run-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    env:
+      MKDOCS_EXECUTE_JUPYTER: false # execution is done before rendering documentation
+      MKDOCS_DEV: false
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.CICD_PAT_TOKEN }}
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-prod-${{ hashFiles('**/pdm.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-prod-
+      - name: Install pdm
+        run: pip install pdm
+      - name: Generate requirements.txt
+        run: pdm export --no-default -G docs -G visualization -f requirements -o requirements.txt
+      - name: Install dependencies
+        run: pip install --no-deps -r requirements.txt
+      - name: Install nbconvert dependency
+        run: pip install jupyter nbconvert nbformat black
+      - name: Install quackosm
+        run: |
+          pdm build -v -d dist
+          pip install 'quackosm @ file://'"$(pwd)/$(find dist -name '*.whl')"
+      - name: Configure Git user
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      - name: Cache Overpass data
+        uses: actions/cache@v3
+        with:
+          path: "**/cache"
+          key: mkdocs-overpass-dev-cache-${{ runner.os }}
+      - name: Execute jupyter notebooks
+        run: |
+          jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
+      - uses: jannekem/run-python-script-action@v1
+        name: Replace copyright date
+        with:
+          script: |
+            import time
+            file_name = "mkdocs.yml"
+            with open(file_name) as f:
+                data = f.read().replace('{current_year}', time.strftime("%Y"))
+            with open(file_name, "w") as f:
+                f.write(data)
+      - name: Create remote for quackosm-docs repository
+        run: git remote add origin-quackosm-docs https://github.com/kraina-ai/quackosm-docs
+      - name: Fetch gh-pages branch
+        run: git fetch origin-quackosm-docs gh-pages --depth=1
+      - name: Publish latest documentation
+        run: mike deploy --remote origin-quackosm-docs --rebase --push --update-aliases ${{github.ref_name}} latest
+
+  deploy-docs:
+    name: Deploy documentation 📄 to Github Pages 🌐
+    needs: [generate-docs]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: 'kraina-ai/quackosm-docs'
+          ref: 'gh-pages'
+          token: ${{ secrets.CICD_PAT_TOKEN }}
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          # Upload entire repository
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2

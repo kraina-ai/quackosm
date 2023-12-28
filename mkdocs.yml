@@ -1,0 +1,138 @@
+site_name: QuackOSM
+site_url: null
+
+repo_url: https://github.com/kraina-ai/quackosm
+repo_name: kraina-ai/quackosm
+
+edit_uri: "edit/main/docs/"
+
+watch:
+  - examples
+
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - navigation.indexes
+    - navigation.path
+    - toc.follow
+    - content.code.annotate
+    - content.action.edit
+    - content.action.view
+    - content.code.copy
+  favicon: assets/logos/favicon.ico
+  logo: assets/logos/quackosm_logo.png
+  icon:
+    repo: material/github
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+extra:
+  consent:
+    title: Cookie consent
+    description: >-
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+    cookies:
+      github:
+        name: Github
+        checked: true
+    actions:
+      - accept
+      - manage
+  version:
+    provider: mike
+
+extra_css:
+  - assets/css/docstrings.css
+  - assets/css/font.css
+  - assets/css/palette.css
+  - assets/css/jupyter.css
+  - assets/css/logo.css
+
+extra_javascript:
+  - javascripts/copy_to_clipboard_patch.js
+
+copyright: >
+  Copyright &copy; 2022 - {current_year} Kraina AI –
+  <a href="#__consent">Change cookie settings</a>
+
+plugins:
+  - mike:
+      canonical_version: "latest"
+      version_selector: true
+  - gen-files:
+      scripts:
+        - docs/copy_readme.py
+        - docs/copy_examples.py
+        - docs/gen_ref_pages.py
+  - search
+  - mkdocstrings:
+      custom_templates: docs/templates
+      handlers:
+        python:
+          paths: [quackosm]
+          options:
+            show_source: true
+            show_root_heading: false
+            show_root_toc_entry: false
+            docstring_section_style: "spacy"
+            show_signature: true
+            show_signature_annotations: false
+            line_length: 60
+            members_order: "source"
+            docstring_options:
+              ignore_init_summary: true
+            merge_init_into_class: true
+            inherited_members: true
+            show_root_full_path: true
+            show_root_members_full_path: false
+            show_object_full_path: false
+  - mkdocs-jupyter:
+      include: ["*.ipynb"]
+      ignore_h1_titles: true
+      execute: !ENV [MKDOCS_EXECUTE_JUPYTER, false]
+      include_source: false
+      allow_errors: false
+  - mermaid2
+  - awesome-pages
+
+markdown_extensions:
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.magiclink
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format

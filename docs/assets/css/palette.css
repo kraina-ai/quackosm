@@ -1,0 +1,7 @@
+:root > * {
+  --quackosm-brand-color: #00509d;
+  --quackosm-text-color: #ffd500;
+  --md-primary-fg-color: var(--quackosm-brand-color);
+  --md-primary-fg-color--light: var(--quackosm-brand-color);
+  --md-primary-fg-color--dark: var(--quackosm-brand-color);
+}
