@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test"]
 strategy = ["cross_platform"]
 lock_version = "4.4"
-content_hash = "sha256:b239054b4424cbc9b0c2d707d313065fbf7607e78f1bf2ca8cd6675dc2a8020f"
+content_hash = "sha256:16f3f112c6aa701f9f7e10cb2693e03716480330f1dacf0de7639a7208a82af8"
 
 [[package]]
 name = "appnope"
@@ -790,17 +790,16 @@ files = [
 
 [[package]]
 name = "geoarrow-pyarrow"
-version = "0.1.2.dev7+g0a95d5f"
+version = "0.1.1"
 requires_python = ">=3.8"
-subdirectory = "geoarrow-pyarrow"
-git = "https://github.com/geoarrow/geoarrow-python.git"
-ref = "0a95d5ff3180c20e89f4572ac38d255f58e13396"
-revision = "0a95d5ff3180c20e89f4572ac38d255f58e13396"
 summary = ""
 dependencies = [
     "geoarrow-c",
     "pyarrow",
-    "pyarrow-hotfix",
+]
+files = [
+    {file = "geoarrow-pyarrow-0.1.1.tar.gz", hash = "sha256:dec429fac397f6d3616e224b9cae6229dfcc1be3c279bbe304da55bbd26e0407"},
+    {file = "geoarrow_pyarrow-0.1.1-py3-none-any.whl", hash = "sha256:83f0f17af59e0fdaa060f2a11aaa957d88a6788755fd688b9892a0ad66e5c8cf"},
 ]
 
 [[package]]
