@@ -138,8 +138,8 @@ class PbfFileReader:
             file_paths (Union[str, Path, Iterable[Union[str, Path]]]):
                 Path or list of paths of `*.osm.pbf` files to be parsed.
             explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
-                If `None`, will be set based on tags_filter parameter.
-                If no tags filter is provided, then explode_tags will set to `False`,
+                If `None`, will be set based on `tags_filter` parameter.
+                If no tags filter is provided, then `explode_tags` will set to `False`,
                 if there is tags filter it will set to `True`. Defaults to `None`.
             ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
@@ -198,8 +198,8 @@ class PbfFileReader:
                 the geoparquet file. If not provided, will be generated based on hashes
                 from provided tags filter and geometry filter. Defaults to `None`.
             explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
-                If `None`, will be set based on tags_filter parameter.
-                If no tags filter is provided, then explode_tags will set to `False`,
+                If `None`, will be set based on `tags_filter` parameter.
+                If no tags filter is provided, then `explode_tags` will set to `False`,
                 if there is tags filter it will set to `True`. Defaults to `None`.
             ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
@@ -1438,8 +1438,7 @@ class PbfFileReader:
 
         Args:
             features_relation (duckdb.DuckDBPyRelation): Generated features from the loader.
-            explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
-                Defaults to True.
+            explode_tags (bool): Whether to split tags into columns based on OSM tag keys.
 
         Returns:
             duckdb.DuckDBPyRelation: Parsed features_relation.

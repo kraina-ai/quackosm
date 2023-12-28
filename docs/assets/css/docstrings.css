@@ -53,9 +53,16 @@ a.autorefs-external:hover::after {
 
 table.highlighttable td.linenos,
 span.linenos,
-.highlight .gp, .highlight .go {
+.highlight .gp,
+.highlight .go {
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+.highlight code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace, SFMono-Regular, Consolas, Menlo,
+    monospace;
 }
