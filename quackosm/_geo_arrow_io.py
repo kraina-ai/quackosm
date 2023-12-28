@@ -1,4 +1,5 @@
 # type: ignore
+# pragma: no cover
 """
 GeoArrow IO helper module.
 
