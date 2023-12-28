@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test"]
 strategy = ["cross_platform"]
 lock_version = "4.4"
-content_hash = "sha256:1f9ff663384a9d72847cf8a5b920dc5bba48999dd5d1ac4b1e01202b6995ae15"
+content_hash = "sha256:b239054b4424cbc9b0c2d707d313065fbf7607e78f1bf2ca8cd6675dc2a8020f"
 
 [[package]]
 name = "appnope"
@@ -2324,6 +2324,21 @@ dependencies = [
 files = [
     {file = "pytest_check-2.2.2-py3-none-any.whl", hash = "sha256:c51dd795e3a054734f6f779c5a3691985bd455007f9643eff0c2e743aff36552"},
     {file = "pytest_check-2.2.2.tar.gz", hash = "sha256:7ae7e99e90f127d3d02d29c02a8b2d95b5a87db3d30dccd169e9fd66c44fdbe8"},
+]
+
+[[package]]
+name = "pytest-doctestplus"
+version = "1.1.0"
+requires_python = ">=3.8"
+summary = "Pytest plugin with advanced doctest features."
+dependencies = [
+    "packaging>=17.0",
+    "pytest>=4.6",
+    "setuptools>=30.3.0",
+]
+files = [
+    {file = "pytest-doctestplus-1.1.0.tar.gz", hash = "sha256:ea0a710f1b6a3571ed971fb6d6e5db05a2ae6b91b0fbcafe30fb5ea40e9987c4"},
+    {file = "pytest_doctestplus-1.1.0-py3-none-any.whl", hash = "sha256:b98d95b4956a03256c638f1f9f72200160e9885ab1cd40f35c4453bc1d2e32b2"},
 ]
 
 [[package]]

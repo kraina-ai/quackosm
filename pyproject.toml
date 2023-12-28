@@ -50,6 +50,7 @@ test = [
     "pytest-check",
     "pytest-parametrization",
     "pytest-xdist",
+    "pytest-doctestplus",
     "pyogrio",
     "srai>=0.6.2",
 ]
@@ -150,6 +151,7 @@ push = false
 addopts = ["--import-mode=importlib"]
 markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
 log_cli = true
+doctest_optionflags = ['ELLIPSIS', 'NORMALIZE_WHITESPACE', 'IGNORE_EXCEPTION_DETAIL']
 
 [tool.licensecheck]
 using = "requirements"
