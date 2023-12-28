@@ -63,8 +63,8 @@ def convert_pbf_to_gpq(
         Tags will be kept in a single column.
         >>> import quackosm as qosm
         >>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
-        >>> str(gpq_path)
-        'files/monaco_nofilter_noclip_compact.geoparquet'
+        >>> gpq_path.as_posix()
+        PosixPath('files/monaco_nofilter_noclip_compact.geoparquet')
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -110,8 +110,8 @@ def convert_pbf_to_gpq(
         ...     monaco_pbf_path,
         ...     tags_filter={"building": True, "amenity": True, "highway": True}
         ... )
-        >>> str(gpq_path)
-        'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.geoparquet'
+        >>> gpq_path.as_posix()
+        PosixPath('files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.geoparquet')
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -163,8 +163,8 @@ def convert_pbf_to_gpq(
         ...         maxy=4.1818121
         ...     )
         ... )
-        >>> str(gpq_path)
-        'files/maldives_nofilter_35532d32333a47a057265be0d7903ce27f6aa6ca3df31fe45f4ce67e4dbb3fb5_compact.geoparquet'
+        >>> gpq_path.as_posix()
+        PosixPath('files/maldives_nofilter_35532d32333a47a057265be0d7903ce27f6aa6ca3df31fe45f4ce67e4dbb3fb5_compact.geoparquet')
 
         Inspect the file with duckdb
         >>> import duckdb
