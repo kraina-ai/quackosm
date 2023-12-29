@@ -85,6 +85,9 @@ docs = [
     "matplotlib",
 ]
 license = ["licensecheck"]
+cli-dev = [
+    "ipywidgets",
+]
 
 [tool.pdm.scripts]
 post_install = "pre-commit install"
