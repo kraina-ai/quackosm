@@ -125,6 +125,7 @@ markdown_extensions:
   - md_in_html
   - toc:
       permalink: true
+  - footnotes
   - pymdownx.magiclink
   - pymdownx.highlight:
       anchor_linenums: true
