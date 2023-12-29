@@ -70,7 +70,7 @@ way/990669429     {'highway': 'secondary', 'jun...  LINESTRING (7.41376 43.73...
 way/990848785     {'addr:city': 'Monaco', 'addr...  POLYGON ((7.41426 43.7339...
 way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 
-[7937 rows x 2 columns]
+[7906 rows x 2 columns]
 ```
 ### Just convert PBF to GeoParquet
 ```python
@@ -114,7 +114,7 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 │ way/990848785    │ {addr:city=Monaco,…  │ POLYGON ((7.4142551 43.7339622, 7.4143113 …  │
 │ way/993121275    │ {building=yes, nam…  │ POLYGON ((7.4321416 43.7481309, 7.4321638 …  │
 ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
-│ 7937 rows (20 shown)                                                         3 columns │
+│ 7906 rows (20 shown)                                                         3 columns │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 ### Use as CLI

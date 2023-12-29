@@ -109,7 +109,7 @@ def convert_pbf_to_gpq(
         │ way/990848785    │ {addr:city=Monaco,…  │ POLYGON ((7.4142551 43.7339622, 7.4143113 …  │
         │ way/993121275    │ {building=yes, nam…  │ POLYGON ((7.4321416 43.7481309, 7.4321638 …  │
         ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
-        │ 7937 rows (20 shown)                                                         3 columns │
+        │ 7906 rows (20 shown)                                                         3 columns │
         └────────────────────────────────────────────────────────────────────────────────────────┘
 
         Get only buildings, amenities and highways from a PBF file.
@@ -297,7 +297,7 @@ def get_features_gdf(
         way/990848785     {'addr:city': 'Monaco', 'addr...  POLYGON ((7.41426 43.7339...
         way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
         <BLANKLINE>
-        [7937 rows x 2 columns]
+        [7906 rows x 2 columns]
 
         Get only buildings from a PBF file.
 
