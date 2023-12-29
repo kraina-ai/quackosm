@@ -156,7 +156,7 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
 
     assert result.exit_code == 0
     assert (
-        expected_result if platform.system() != "Windows" else expected_result.replace("/", r"\\")
+        expected_result if platform.system() != "Windows" else expected_result.replace("/", "\\")
     ) in result.stdout
 
 
