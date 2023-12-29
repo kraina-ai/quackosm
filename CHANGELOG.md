@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2023-12-29
+
 ### Added
 
 - CLI based on Typer for converting PBF files into GeoParquet
@@ -18,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.1.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.2.0...HEAD
+
+[0.2.0]: https://github.com/kraina-ai/quackosm/compare/0.1.0...0.2.0
 
 [0.1.0]: https://github.com/kraina-ai/quackosm/releases/tag/0.1.0
