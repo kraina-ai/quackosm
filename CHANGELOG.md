@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2023-12-29
+
 ### Added
 
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/HEAD...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.1.0...HEAD
+
+[0.1.0]: https://github.com/kraina-ai/quackosm/releases/tag/0.1.0
