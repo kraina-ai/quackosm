@@ -1,6 +1,7 @@
 """Tests for CLI."""
 
 import json
+import platform
 from pathlib import Path
 
 import pytest
@@ -154,7 +155,9 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
     print(result.stdout)
 
     assert result.exit_code == 0
-    assert expected_result in result.stdout
+    assert (
+        expected_result if platform.system() != "Windows" else expected_result.replace("/", r"\\")
+    ) in result.stdout
 
 
 @P.parameters("args")  # type: ignore
