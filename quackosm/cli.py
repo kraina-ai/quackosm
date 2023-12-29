@@ -57,9 +57,13 @@ def _geojson_callback(value: str) -> BaseGeometry:
         raise typer.BadParameter("Cannot parse provided GeoJSON") from None
 
 
-def _geo_file_callback(value: pathlib.Path) -> BaseGeometry:
+def _geo_file_callback(value: str) -> BaseGeometry:
     if not value:
         return None
+
+    if not pathlib.Path(value).exists():
+        raise typer.BadParameter("Cannot parse provided geo file")
+
     try:
         gdf = gpd.read_file(value)
         return gdf.unary_union
@@ -120,7 +124,7 @@ def main(
                 " [bold dark_orange]geom-filter-geojson[/bold dark_orange] or"
                 " [bold dark_orange]geom-filter-file[/bold dark_orange]."
             ),
-            callback=_wkt_callback,
+            parser=_wkt_callback,
         ),
     ] = None,
     geom_filter_geojson: Annotated[
@@ -132,11 +136,11 @@ def main(
                 " [bold dark_orange]geom-filter-wkt[/bold dark_orange] or"
                 " [bold dark_orange]geom-filter-file[/bold dark_orange]."
             ),
-            callback=_geojson_callback,
+            parser=_geojson_callback,
         ),
     ] = None,
     geom_filter_file: Annotated[
-        Optional[pathlib.Path],
+        Optional[str],
         typer.Option(
             help=(
                 "Geometry to use as filter in [bold green]file[/bold green] format - any that can"
@@ -145,7 +149,7 @@ def main(
                 " [bold dark_orange]geom-filter-wkt[/bold dark_orange] or"
                 " [bold dark_orange]geom-filter-geojson[/bold dark_orange]."
             ),
-            callback=_geo_file_callback,
+            parser=_geo_file_callback,
         ),
     ] = None,
     explode_tags: Annotated[
@@ -189,8 +193,10 @@ def main(
         typer.Option(
             "--working-directory",
             "--work-dir",
-            help="Directory where to save the parsed parquet and geoparquet files.",
-            callback=_path_callback,
+            help=(
+                "Directory where to save the parsed parquet and geoparquet files."
+                " Will be created if doesn't exist."
+            ),
         ),
     ] = "files",  # type: ignore
     osm_way_polygon_features_config: Annotated[
@@ -200,6 +206,10 @@ def main(
             help=(
                 "Config where alternative OSM way polygon features config is defined."
                 " Will determine how to parse way features based on tags."
+                " Option is intended for experienced users. It's recommended to disable"
+                " cache ([bold dark_orange]no-cache[/bold dark_orange]) when using this option,"
+                " since file names don't contain information what config file has been used"
+                " for file generation."
             ),
             callback=_empty_path_callback,
         ),
@@ -238,8 +248,6 @@ def main(
     )
     if more_than_one_geometry_provided:
         raise typer.BadParameter("Provided more than one geometry for filtering")
-
-    print("filter_osm_ids", filter_osm_ids)
 
     geoparquet_path = convert_pbf_to_gpq(
         pbf_path=pbf_file,
