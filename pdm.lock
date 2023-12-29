@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test"]
 strategy = ["cross_platform"]
 lock_version = "4.4"
-content_hash = "sha256:16f3f112c6aa701f9f7e10cb2693e03716480330f1dacf0de7639a7208a82af8"
+content_hash = "sha256:bb65e34218f1f99c314535a8eb1809c40b21b70b6298b52125a741e2588c0390"
 
 [[package]]
 name = "appnope"
@@ -1406,20 +1406,17 @@ files = [
 
 [[package]]
 name = "mike"
-version = "2.0.0"
+version = "1.1.2"
 summary = "Manage multiple versions of your MkDocs-powered documentation"
 dependencies = [
-    "importlib-metadata",
-    "importlib-resources",
-    "jinja2>=2.7",
+    "jinja2",
     "mkdocs>=1.0",
-    "pyparsing>=3.0",
     "pyyaml>=5.1",
     "verspec",
 ]
 files = [
-    {file = "mike-2.0.0-py3-none-any.whl", hash = "sha256:87f496a65900f93ba92d72940242b65c86f3f2f82871bc60ebdcffc91fad1d9e"},
-    {file = "mike-2.0.0.tar.gz", hash = "sha256:566f1cab1a58cc50b106fb79ea2f1f56e7bfc8b25a051e95e6eaee9fba0922de"},
+    {file = "mike-1.1.2-py3-none-any.whl", hash = "sha256:4c307c28769834d78df10f834f57f810f04ca27d248f80a75f49c6fa2d1527ca"},
+    {file = "mike-1.1.2.tar.gz", hash = "sha256:56c3f1794c2d0b5fdccfa9b9487beb013ca813de2e3ad0744724e9d34d40b77b"},
 ]
 
 [[package]]
