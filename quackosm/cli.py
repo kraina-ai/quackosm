@@ -234,9 +234,9 @@ def main(
     ] = None,
 ) -> None:
     """
-    Main CLI function.
+    QuackOSM CLI.
 
-    Wraps convert_pbf_to_gpq funcion and returns final path.
+    Wraps convert_pbf_to_gpq function and print final path to the saved geoparquet file at the end.
     """
     more_than_one_geometry_provided = (
         sum(geom is not None for geom in (geom_filter_wkt, geom_filter_geojson, geom_filter_file))

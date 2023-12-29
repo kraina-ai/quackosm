@@ -7,8 +7,9 @@ __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
 
 class TaskProgressSpinner:
-    def __init__(self, step_name: str):
+    def __init__(self, step_name: str, step_number: str):
         self.step_name = step_name
+        self.step_number = step_number
         self.progress = None
 
     def __enter__(self):
@@ -17,6 +18,7 @@ class TaskProgressSpinner:
 
             self.progress = Progress(
                 SpinnerColumn(),
+                TextColumn(f"[{self.step_number: >4}/18]"),
                 TextColumn("[progress.description]{task.description}"),
                 TextColumn("•"),
                 TimeElapsedColumn(),
@@ -37,8 +39,9 @@ class TaskProgressSpinner:
 
 
 class TaskProgressBar:
-    def __init__(self, step_name: str):
+    def __init__(self, step_name: str, step_number: str):
         self.step_name = step_name
+        self.step_number = step_number
         self.progress = None
 
     def __enter__(self):
@@ -55,6 +58,7 @@ class TaskProgressBar:
 
             self.progress = Progress(
                 SpinnerColumn(),
+                TextColumn(f"[{self.step_number: >4}/18]"),
                 TextColumn(
                     "[progress.description]{task.description}"
                     " [progress.percentage]{task.percentage:>3.0f}%"
