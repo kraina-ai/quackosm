@@ -84,11 +84,7 @@ def parse_tags_filter(value: str) -> Optional[Union[OsmTagsFilter, GroupedOsmTag
 
 def _filter_osm_ids_callback(value: list[str]) -> list[str]:
     for osm_id in value:
-        if (
-            not osm_id.startswith("node/")
-            and not osm_id.startswith("way/")
-            and not osm_id.startswith("relation/")
-        ):
+        if not osm_id.startswith(("node/", "way/", "relation/")):
             raise typer.BadParameter(f"Cannot parse provided OSM id: {osm_id}") from None
 
     return value
