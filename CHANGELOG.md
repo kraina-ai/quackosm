@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CLI based on Typer for converting PBF files into GeoParquet
+
 ## [0.1.0] - 2023-12-29
 
 ### Added

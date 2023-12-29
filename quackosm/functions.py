@@ -6,12 +6,13 @@ This module contains helper functions to simplify the usage.
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
+from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
 from quackosm.pbf_file_reader import PbfFileReader
 
 
@@ -23,6 +24,8 @@ def convert_pbf_to_gpq(
     explode_tags: Optional[bool] = None,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
 ) -> Path:
     """
     Convert PBF file to GeoParquet file.
@@ -53,6 +56,12 @@ def convert_pbf_to_gpq(
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
             Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
             Defaults to an empty list.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -203,7 +212,12 @@ def convert_pbf_to_gpq(
         │ 2140 rows (20 shown)                                                         3 columns │
         └────────────────────────────────────────────────────────────────────────────────────────┘
     """
-    reader = PbfFileReader(tags_filter=tags_filter, geometry_filter=geometry_filter)
+    reader = PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+    )
     return reader.convert_pbf_to_gpq(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -220,6 +234,8 @@ def get_features_gdf(
     explode_tags: Optional[bool] = None,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame from a PBF file or list of PBF files.
@@ -251,6 +267,12 @@ def get_features_gdf(
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
             Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
             Defaults to an empty list.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -364,7 +386,12 @@ def get_features_gdf(
         <BLANKLINE>
         [3109 rows x 2 columns]
     """
-    reader = PbfFileReader(tags_filter=tags_filter, geometry_filter=geometry_filter)
+    reader = PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+    )
     return reader.get_features_gdf(
         file_paths=file_paths,
         explode_tags=explode_tags,
