@@ -73,7 +73,7 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     result = runner.invoke(cli.app, [monaco_pbf_file_path])
 
     assert result.exit_code == 0
-    assert "files/monaco_nofilter_noclip_compact.geoparquet" in result.stdout
+    assert str(Path("files/monaco_nofilter_noclip_compact.geoparquet")) in result.stdout
 
 
 @P.parameters("args", "expected_result")  # type: ignore
