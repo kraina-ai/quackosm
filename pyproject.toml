@@ -65,7 +65,7 @@ docs = [
     "ipykernel",
     "mkdocs-gen-files",
     "mkdocs-awesome-pages-plugin",
-    "mike",
+    "mike<2",
     "black",
     "osmnx",
     "matplotlib",
