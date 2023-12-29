@@ -31,6 +31,20 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
 ]
 
+[project.urls]
+Homepage = "https://kraina-ai.github.io/quackosm"
+Repository = "https://github.com/kraina-ai/quackosm"
+Documentation = "https://kraina-ai.github.io/quackosm"
+Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+cli = [
+    "typer[all]",
+]
+
+[project.scripts]
+quackosm = "quackosm.__main__:main"
+
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
