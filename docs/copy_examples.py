@@ -22,7 +22,7 @@ def write_file(file_path: Path) -> None:
 
 banned_directories = ["cache", "files", "example_files", "__pycache__", "lightning_logs"]
 for i in EXAMPLES_DIRECTORY_PATH.glob("**/*"):
-    if i.is_file():
+    if i.is_file() and i.suffix == ".ipynb":
         should_copy = True
         for banned_directory in banned_directories:
             if banned_directory in i.parts:
