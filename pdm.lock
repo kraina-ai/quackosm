@@ -3,8 +3,9 @@
 
 [metadata]
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
-strategy = ["cross_platform"]
-lock_version = "4.4"
+cross_platform = true
+static_urls = false
+lock_version = "4.3"
 content_hash = "sha256:eac2ad81a7700f5d1257f51451388c3813c5309544b0a97c4c8c99edd83296ab"
 
 [[package]]
@@ -2939,7 +2940,7 @@ files = [
 [[package]]
 name = "topojson"
 version = "1.7"
-summary = "topojson - a powerful library to encode geographic data as topology in Python!ğŸŒ�"
+summary = "topojson - a powerful library to encode geographic data as topology in Python!🌍"
 dependencies = [
     "numpy",
     "packaging",

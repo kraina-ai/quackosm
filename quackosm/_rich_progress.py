@@ -5,6 +5,7 @@ from collections.abc import Iterable
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
+TOTAL_STEPS = 34
 
 class TaskProgressSpinner:
     def __init__(self, step_name: str, step_number: str):
@@ -18,7 +19,7 @@ class TaskProgressSpinner:
 
             self.progress = Progress(
                 SpinnerColumn(),
-                TextColumn(f"[{self.step_number: >4}/18]"),
+                TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
                 TextColumn("[progress.description]{task.description}"),
                 TextColumn("•"),
                 TimeElapsedColumn(),
@@ -58,7 +59,7 @@ class TaskProgressBar:
 
             self.progress = Progress(
                 SpinnerColumn(),
-                TextColumn(f"[{self.step_number: >4}/18]"),
+                TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
                 TextColumn(
                     "[progress.description]{task.description}"
                     " [progress.percentage]{task.percentage:>3.0f}%"
@@ -87,7 +88,7 @@ class TaskProgressBar:
 
     def track(self, iterable: Iterable):
         if self.progress is not None:
-            for i in self.progress.track(iterable, description=self.step_name):
+            for i in self.progress.track(list(iterable), description=self.step_name):
                 yield i
         else:
             for i in iterable:
