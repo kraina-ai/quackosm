@@ -11,6 +11,7 @@ dependencies = [
     "geoarrow-pyarrow>=0.1.1",
     "typeguard",
     "pyarrow-hotfix",
+    "psutil",
 ]
 requires-python = ">=3.9"
 readme = "README.md"

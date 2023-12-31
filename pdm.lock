@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:510c6b6e1d1fbdffac370eed9eec537c86194698626cd40fb6892c4dd03c172a"
+content_hash = "sha256:5c8e358448272f2aac4b827d4f34289566f2ff7cb95fbf23ee45a4a148189e10"
 
 [[package]]
 name = "appnope"

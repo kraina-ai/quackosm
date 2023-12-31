@@ -17,6 +17,7 @@ from typing import Any, Literal, NamedTuple, Optional, Union, cast
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
+import psutil
 import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
@@ -114,7 +115,13 @@ class PbfFileReader:
         self.working_directory = Path(working_directory)
         self.working_directory.mkdir(parents=True, exist_ok=True)
         self.connection: duckdb.DuckDBPyConnection = None
+
         self.rows_per_bucket = 1_000_000
+        memory = psutil.virtual_memory()
+        # If less than 16 GB total memory, reduce number of rows per group
+        if memory.total < (16 * (1024 ** 3)):
+            self.rows_per_bucket = 100_000
+
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
             # 1. https://github.com/tyrasd/osm-polygon-features/blob/v0.9.2/polygon-features.json
