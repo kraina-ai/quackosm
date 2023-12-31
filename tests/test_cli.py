@@ -1,12 +1,11 @@
 """Tests for CLI."""
 
-import json
 from pathlib import Path
 
 import pytest
 from parametrization import Parametrization as P
-from shapely import to_wkt
-from shapely.geometry import Polygon, box, mapping
+from shapely import to_geojson, to_wkt
+from shapely.geometry import Polygon, box
 from typer.testing import CliRunner
 
 from quackosm import __app_name__, __version__, cli
@@ -37,7 +36,7 @@ def geometry_wkt() -> str:
 
 def geometry_geojson() -> str:
     """Geometry box in GeoJSON form."""
-    return json.dumps(mapping(geometry_box()))
+    return str(to_geojson(geometry_box()))
 
 
 def geometry_boundary_file_path() -> str:

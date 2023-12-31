@@ -51,7 +51,7 @@ def _geojson_callback(value: str) -> BaseGeometry:
     if not value:
         return None
     try:
-        return from_geojson(json.loads(value))
+        return from_geojson(value)
     except Exception:
         raise typer.BadParameter("Cannot parse provided GeoJSON") from None
 
