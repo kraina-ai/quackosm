@@ -10,10 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Automatic scaling for grouping operations when working in the environment with less than 16GB of memory
+- More detailed steps names
 
 ### Changed
 
-- More detailed steps names
 - Locked minimal Shapely version
 - Modified ways grouping logic to be faster
 - Split filtered and required ways to be parsed separately
