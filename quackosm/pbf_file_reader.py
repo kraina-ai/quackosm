@@ -223,9 +223,9 @@ class PbfFileReader:
         if explode_tags is None:
             explode_tags = self.tags_filter is not None
 
-        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name_2:
-            tmp_dir_name = tmp_dir_name_2
-            tmp_dir_name = "files/xd"
+        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
+            # tmp_dir_name = tmp_dir_name_2
+            # tmp_dir_name = "files/xd"
             try:
                 self._set_up_duckdb_connection(tmp_dir_name)
                 result_file_path = result_file_path or self._generate_geoparquet_result_file_path(
