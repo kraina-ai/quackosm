@@ -3,10 +3,9 @@
 
 [metadata]
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
-cross_platform = true
-static_urls = false
-lock_version = "4.3"
-content_hash = "sha256:eac2ad81a7700f5d1257f51451388c3813c5309544b0a97c4c8c99edd83296ab"
+strategy = ["cross_platform"]
+lock_version = "4.4.1"
+content_hash = "sha256:510c6b6e1d1fbdffac370eed9eec537c86194698626cd40fb6892c4dd03c172a"
 
 [[package]]
 name = "appnope"

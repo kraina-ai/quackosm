@@ -6,8 +6,7 @@ from typing import Annotated, Optional, Union, cast
 
 import geopandas as gpd
 import typer
-from shapely import from_wkt
-from shapely.geometry import shape
+from shapely import from_geojson, from_wkt
 from shapely.geometry.base import BaseGeometry
 
 from quackosm import __app_name__, __version__
@@ -52,7 +51,7 @@ def _geojson_callback(value: str) -> BaseGeometry:
     if not value:
         return None
     try:
-        return shape(json.loads(value))
+        return from_geojson(json.loads(value))
     except Exception:
         raise typer.BadParameter("Cannot parse provided GeoJSON") from None
 

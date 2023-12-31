@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- More detailed steps names
+- Locked minimal Shapely version
+- Modified ways grouping logic to be faster
+
+### Fixed
+
 ## [0.2.0] - 2023-12-29
 
 ### Added

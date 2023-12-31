@@ -311,7 +311,7 @@ class PbfFileReader:
             self._delete_directories(
                 tmp_dir_name,
                 [
-                    "ways_required_ids_grouped",
+                    "ways_required_grouped",
                     "ways_required_ids",
                     "ways_with_unnested_nodes_refs",
                     "required_nodes_with_points",
@@ -857,7 +857,7 @@ class PbfFileReader:
         nodes_parquet = self._save_parquet_file_with_geometry(
             relation=nodes_with_geometry,
             file_path=Path(tmp_dir_name) / "filtered_nodes_with_geometry",
-            step_name="Saving nodes with geometries",
+            step_name="Saving filtered nodes with geometries",
             step_number="22",
         )
         return nodes_parquet
@@ -874,7 +874,7 @@ class PbfFileReader:
             FROM ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
             SEMI JOIN ({osm_parquet_files.nodes_required_ids.sql_query()}) rn ON n.id = rn.id
         """)
-        with TaskProgressSpinner("Saving filtered nodes with structs", "23"):
+        with TaskProgressSpinner("Saving required nodes with structs", "23"):
             nodes_parquet = self._save_parquet_file(
                 relation=nodes_with_structs,
                 file_path=Path(tmp_dir_name) / "required_nodes_with_points",
@@ -904,7 +904,7 @@ class PbfFileReader:
                 return self.connection.read_parquet(empty_file_path)
 
             groups = floor(total_required_ways / self.rows_per_bucket)
-            grouped_required_ways_ids_path = Path(tmp_dir_name) / "ways_required_ids_grouped"
+            grouped_required_ways_path = Path(tmp_dir_name) / "ways_required_grouped"
 
             self.connection.sql(f"""
                 COPY (
@@ -922,22 +922,22 @@ class PbfFileReader:
                     ON w.id = rw.id
                     JOIN ({required_nodes_with_structs.sql_query()}) n
                     ON n.id = w.ref
-                ) TO '{grouped_required_ways_ids_path}'
+                ) TO '{grouped_required_ways_path}'
                 (FORMAT 'parquet', PARTITION_BY ("group"), ROW_GROUP_SIZE 25000)
             """)
 
         with TaskProgressBar("Saving required ways with linestrings", "25") as bar:
             for group in bar.track(range(groups + 1)):
-                current_required_ways_ids_group_path = (
-                    grouped_required_ways_ids_path / f"group={group}"
+                current_required_ways_group_path = (
+                    grouped_required_ways_path / f"group={group}"
                 )
-                current_required_ways_ids_group_relation = self.connection.sql(f"""
-                    SELECT * FROM read_parquet('{current_required_ways_ids_group_path}/**')
+                current_required_ways_group_relation = self.connection.sql(f"""
+                    SELECT * FROM read_parquet('{current_required_ways_group_path}/**')
                 """)
 
                 ways_with_linestrings = self.connection.sql(f"""
                     SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
-                    FROM ({current_required_ways_ids_group_relation.sql_query()})
+                    FROM ({current_required_ways_group_relation.sql_query()})
                     GROUP BY id
                 """)
                 self._save_parquet_file(
@@ -1025,7 +1025,7 @@ class PbfFileReader:
         ways_parquet = self._save_parquet_file_with_geometry(
             relation=ways_with_proper_geometry,
             file_path=Path(tmp_dir_name) / "filtered_ways_with_geometry",
-            step_name="Saving ways with geometries",
+            step_name="Saving filtered ways with geometries",
             step_number="26",
         )
         return ways_parquet
@@ -1174,7 +1174,7 @@ class PbfFileReader:
         relations_parquet = self._save_parquet_file_with_geometry(
             relation=relations_with_geometry,
             file_path=Path(tmp_dir_name) / "filtered_relations_with_geometry",
-            step_name="Saving relations with geometries",
+            step_name="Saving filtered relations with geometries",
             step_number="32",
         )
         return relations_parquet
