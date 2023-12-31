@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Increased speed estimation period for Rich time progress
+
 ## [0.2.0] - 2023-12-29
 
 ### Added
