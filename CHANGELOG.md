@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - More detailed steps names
 - Locked minimal Shapely version
 - Modified ways grouping logic to be faster
+- Split filtered and required ways to be parsed separately
 
 ### Fixed
 
