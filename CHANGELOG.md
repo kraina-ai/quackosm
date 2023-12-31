@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatic scaling for grouping operations when working in the environment with less than 16GB of memory
+
 ### Changed
 
 - More detailed steps names
