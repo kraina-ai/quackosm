@@ -5,7 +5,7 @@ from collections.abc import Iterable
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
-TOTAL_STEPS = 34
+TOTAL_STEPS = 36
 
 class TaskProgressSpinner:
     def __init__(self, step_name: str, step_number: str):
