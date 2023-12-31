@@ -71,6 +71,7 @@ class TaskProgressBar:
                 TextColumn("•"),
                 TimeRemainingColumn(),
                 transient=False,
+                speed_estimate_period=1800,
             )
 
             self.progress.__enter__()
