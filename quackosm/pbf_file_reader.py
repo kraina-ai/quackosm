@@ -1156,7 +1156,7 @@ class PbfFileReader:
         fix_geometries: bool = False,
     ) -> "duckdb.DuckDBPyRelation":
         if not fix_geometries:
-            with TaskProgressSpinner(step_name, f"{step_number}"):
+            with TaskProgressSpinner(step_name, str(step_number)):
                 self.connection.sql(f"""
                     COPY (
                         SELECT
@@ -1306,8 +1306,7 @@ class PbfFileReader:
 
         valid_features_parquet_table = valid_features_parquet_table.append_column(
             GEOMETRY_COLUMN, geometry_column
-        )
-        valid_features_parquet_table = valid_features_parquet_table.drop("geometry_wkb")
+        ).drop("geometry_wkb")
 
         parquet_tables = [valid_features_parquet_table]
 

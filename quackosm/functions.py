@@ -212,13 +212,12 @@ def convert_pbf_to_gpq(
         │ 2140 rows (20 shown)                                                         3 columns │
         └────────────────────────────────────────────────────────────────────────────────────────┘
     """
-    reader = PbfFileReader(
+    return PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
-    )
-    return reader.convert_pbf_to_gpq(
+    ).convert_pbf_to_gpq(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
         explode_tags=explode_tags,
@@ -386,13 +385,12 @@ def get_features_gdf(
         <BLANKLINE>
         [3109 rows x 2 columns]
     """
-    reader = PbfFileReader(
+    return PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
-    )
-    return reader.get_features_gdf(
+    ).get_features_gdf(
         file_paths=file_paths,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
