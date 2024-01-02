@@ -1156,7 +1156,7 @@ class PbfFileReader:
         fix_geometries: bool = False,
     ) -> "duckdb.DuckDBPyRelation":
         if not fix_geometries:
-            with TaskProgressSpinner(step_name, str(step_number)):
+            with TaskProgressSpinner(step_name, step_number):
                 self.connection.sql(f"""
                     COPY (
                         SELECT
