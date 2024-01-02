@@ -945,7 +945,7 @@ class PbfFileReader:
 
         with TaskProgressSpinner("Grouping required ways", "26"):
             groups = self._group_ways_ids(
-                ways_ids=osm_parquet_files.ways_filtered_ids,
+                ways_ids=osm_parquet_files.ways_required_ids,
                 destination_dir_path=destination_dir_path,
                 grouped_ways_ids_path=grouped_ways_ids_path,
             )
@@ -1015,7 +1015,7 @@ class PbfFileReader:
                 SELECT * FROM read_parquet('{current_ways_ids_group_path}/**')
             """)
 
-            current_ways_group_relation = self.connection.sql(f"""
+            current_ways_ids_group_with_nodes_relation = self.connection.sql(f"""
                 SELECT
                     w.id, n.point, w.ref_idx
                 FROM ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w
@@ -1025,7 +1025,7 @@ class PbfFileReader:
                 ON n.id = w.ref
             """)
             current_ways_group_relation = self._save_parquet_file(
-                relation=current_ways_group_relation,
+                relation=current_ways_ids_group_with_nodes_relation,
                 file_path=grouped_ways_path / f"group={group}",
             )
 
