@@ -4,8 +4,8 @@
 [metadata]
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
-lock_version = "4.4"
-content_hash = "sha256:eac2ad81a7700f5d1257f51451388c3813c5309544b0a97c4c8c99edd83296ab"
+lock_version = "4.4.1"
+content_hash = "sha256:5c8e358448272f2aac4b827d4f34289566f2ff7cb95fbf23ee45a4a148189e10"
 
 [[package]]
 name = "appnope"
@@ -2939,7 +2939,7 @@ files = [
 [[package]]
 name = "topojson"
 version = "1.7"
-summary = "topojson - a powerful library to encode geographic data as topology in Python!ğŸŒ�"
+summary = "topojson - a powerful library to encode geographic data as topology in Python!🌍"
 dependencies = [
     "numpy",
     "packaging",

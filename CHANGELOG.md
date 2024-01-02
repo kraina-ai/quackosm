@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatic scaling for grouping operations when working in the environment with less than 16GB of memory
+- More detailed steps names
+
+### Changed
+
+- Locked minimal Shapely version
+- Modified ways grouping logic to be faster
+- Split filtered and required ways to be parsed separately
+
+### Fixed
+
+- Increased speed estimation period for Rich time progress
+
 ## [0.2.0] - 2023-12-29
 
 ### Added
