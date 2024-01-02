@@ -108,6 +108,38 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
     assert len(features_gdf) == 0
 
 
+@pytest.mark.parametrize(  # type: ignore
+    "filter_osm_ids,expected_result_length",
+    [
+        (
+            [
+                "way/1101364465",
+                "way/1031859267",
+                "node/10187594406",
+                "way/248632173",
+                "node/7573557755",
+                "way/183199499",
+                "way/171570637",
+                "way/1113528087",
+                "way/1113528092",
+                "way/259888097",
+            ],
+            10,
+        ),
+        (["way/-1", "node/-1", "relation/-1"], 0),
+    ],
+)
+def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_result_length: int):
+    """Test proper features ids filtering in `PbfFileReader`."""
+    file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
+    features_gdf = PbfFileReader().get_features_gdf(
+        file_paths=[Path(__file__).parent / "test_files" / file_name],
+        ignore_cache=True,
+        filter_osm_ids=filter_osm_ids,
+    )
+    assert len(features_gdf) == expected_result_length
+
+
 # Copyright (C) 2011 by Hong Minhee <http://dahlia.kr/>,
 #                       Robert Kajic <http://github.com/kajic>
 # Copyright (C) 2020 by Salesforce.com, Inc
