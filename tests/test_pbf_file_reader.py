@@ -81,8 +81,7 @@ def test_pbf_reader(
     expected_features_columns_length: int,
 ):
     """Test proper files loading in `PbfFileReader`."""
-    handler = PbfFileReader(tags_filter=query)
-    features_gdf = handler.get_features_gdf(
+    features_gdf = PbfFileReader(tags_filter=query).get_features_gdf(
         file_paths=[Path(__file__).parent / "test_files" / test_file_name],
         explode_tags=True,
         ignore_cache=True,
@@ -99,10 +98,9 @@ def test_pbf_reader(
 def test_pbf_reader_geometry_filtering():  # type: ignore
     """Test proper spatial data filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
-    handler = PbfFileReader(
+    features_gdf = PbfFileReader(
         tags_filter=HEX2VEC_FILTER, geometry_filter=Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
-    )
-    features_gdf = handler.get_features_gdf(
+    ).get_features_gdf(
         file_paths=[Path(__file__).parent / "test_files" / file_name],
         explode_tags=True,
         ignore_cache=True,
