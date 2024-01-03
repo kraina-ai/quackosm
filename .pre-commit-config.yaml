@@ -50,7 +50,7 @@ repos:
     rev: v1.26.0
     hooks:
       - id: refurb
-        args: ["--python-version", "3.9"]
+        args: ["--python-version", "3.9", "--format", "github"]
         language: python
         language_version: python3.10
         stages: [manual]
