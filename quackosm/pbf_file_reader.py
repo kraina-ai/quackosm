@@ -118,9 +118,11 @@ class PbfFileReader:
 
         self.rows_per_bucket = 1_000_000
         memory = psutil.virtual_memory()
-        # If less than 16 GB total memory, reduce number of rows per group
-        if memory.total < (16 * (1024**3)):
+        # If less than 8 / 16 GB total memory, reduce number of rows per group
+        if memory.total < (8 * (1024**3)):
             self.rows_per_bucket = 100_000
+        elif memory.total < (16 * (1024**3)):
+            self.rows_per_bucket = 500_000
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
