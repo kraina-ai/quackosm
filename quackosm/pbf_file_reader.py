@@ -1009,10 +1009,12 @@ class PbfFileReader:
 
         ways_with_nodes_refs_relation = self.connection.sql(f"""
             SELECT
-                w.id, w.ref, w.ref_idx, rw."group"
+                w.id, n.point, w.ref_idx, rw."group"
             FROM ({ways_ids_grouped_relation_parquet.sql_query()}) rw
             JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w
             ON rw.id = w.id
+            JOIN ({required_nodes_with_structs.sql_query()}) n
+            ON n.id = w.ref
         """)
         grouped_ways_ids_with_refs_path = grouped_ways_tmp_path / "ids_with_refs"
         ways_with_nodes_refs_relation_parquet = self._save_parquet_file(
@@ -1022,10 +1024,8 @@ class PbfFileReader:
         self.connection.sql(f"""
             COPY (
                 SELECT
-                    w.id, n.point, w.ref_idx, w."group"
+                    id, point, ref_idx, "group"
                 FROM ({ways_with_nodes_refs_relation_parquet.sql_query()}) w
-                JOIN ({required_nodes_with_structs.sql_query()}) n
-                ON n.id = w.ref
             ) TO '{grouped_ways_path}'
             (FORMAT 'parquet', PARTITION_BY ("group"), ROW_GROUP_SIZE 25000)
         """)
