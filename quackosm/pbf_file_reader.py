@@ -254,7 +254,10 @@ class PbfFileReader:
                     self.connection = None
 
     def _set_up_duckdb_connection(self, tmp_dir_name: str) -> None:
-        self.connection = duckdb.connect(database=str(Path(tmp_dir_name) / "db.duckdb"))
+        self.connection = duckdb.connect(
+            database=str(Path(tmp_dir_name) / "db.duckdb"),
+            config=dict(preserve_insertion_order=False),
+        )
         for extension_name in ("parquet", "spatial"):
             self.connection.install_extension(extension_name)
             self.connection.load_extension(extension_name)
@@ -911,20 +914,20 @@ class PbfFileReader:
         destination_dir_path = Path(tmp_dir_name) / "filtered_ways_with_linestrings"
 
         with TaskProgressSpinner("Grouping filtered ways", "24"):
-            groups = self._group_ways_ids(
+            groups = self._group_ways(
                 ways_ids=osm_parquet_files.ways_filtered_ids,
                 destination_dir_path=destination_dir_path,
                 grouped_ways_ids_path=grouped_ways_ids_path,
+                grouped_ways_path=grouped_ways_path,
+                osm_parquet_files=osm_parquet_files,
+                required_nodes_with_structs=required_nodes_with_structs,
             )
 
         with TaskProgressBar("Saving filtered ways with linestrings", "25") as bar:
             self._construct_ways_linestrings(
                 bar=bar,
                 groups=groups,
-                osm_parquet_files=osm_parquet_files,
-                required_nodes_with_structs=required_nodes_with_structs,
                 destination_dir_path=destination_dir_path,
-                grouped_ways_ids_path=grouped_ways_ids_path,
                 grouped_ways_path=grouped_ways_path,
             )
 
@@ -944,20 +947,20 @@ class PbfFileReader:
         destination_dir_path = Path(tmp_dir_name) / "required_ways_with_linestrings"
 
         with TaskProgressSpinner("Grouping required ways", "26"):
-            groups = self._group_ways_ids(
+            groups = self._group_ways(
                 ways_ids=osm_parquet_files.ways_required_ids,
                 destination_dir_path=destination_dir_path,
                 grouped_ways_ids_path=grouped_ways_ids_path,
+                grouped_ways_path=grouped_ways_path,
+                osm_parquet_files=osm_parquet_files,
+                required_nodes_with_structs=required_nodes_with_structs,
             )
 
         with TaskProgressBar("Saving required ways with linestrings", "27") as bar:
             self._construct_ways_linestrings(
                 bar=bar,
                 groups=groups,
-                osm_parquet_files=osm_parquet_files,
-                required_nodes_with_structs=required_nodes_with_structs,
                 destination_dir_path=destination_dir_path,
-                grouped_ways_ids_path=grouped_ways_ids_path,
                 grouped_ways_path=grouped_ways_path,
             )
 
@@ -966,11 +969,14 @@ class PbfFileReader:
         """)
         return ways_parquet
 
-    def _group_ways_ids(
+    def _group_ways(
         self,
         ways_ids: "duckdb.DuckDBPyRelation",
+        osm_parquet_files: ConvertedOSMParquetFiles,
+        required_nodes_with_structs: "duckdb.DuckDBPyRelation",
         destination_dir_path: Path,
         grouped_ways_ids_path: Path,
+        grouped_ways_path: Path,
     ) -> int:
         total_required_ways = ways_ids.count("id").fetchone()[0]
 
@@ -984,14 +990,28 @@ class PbfFileReader:
 
         groups = int(floor(total_required_ways / self.rows_per_bucket))
 
+        ways_ids_grouped_relation = self.connection.sql(f"""
+            SELECT id,
+                floor(
+                    row_number() OVER () / {self.rows_per_bucket}
+                )::INTEGER as "group",
+            FROM ({ways_ids.sql_query()})
+        """)
+
+        ways_ids_grouped_relation_parquet = self._save_parquet_file(
+            relation=ways_ids_grouped_relation, file_path=grouped_ways_ids_path
+        )
+
         self.connection.sql(f"""
             COPY (
-                SELECT id,
-                    floor(
-                        row_number() OVER () / {self.rows_per_bucket}
-                    )::INTEGER as "group",
-                FROM ({ways_ids.sql_query()})
-            ) TO '{grouped_ways_ids_path}'
+                SELECT
+                    w.id, n.point, w.ref_idx, rw."group"
+                FROM ({ways_ids_grouped_relation_parquet.sql_query()}) rw
+                JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w
+                ON rw.id = w.id
+                JOIN ({required_nodes_with_structs.sql_query()}) n
+                ON n.id = w.ref
+            ) TO '{grouped_ways_path}'
             (FORMAT 'parquet', PARTITION_BY ("group"), ROW_GROUP_SIZE 25000)
         """)
 
@@ -1001,33 +1021,16 @@ class PbfFileReader:
         self,
         bar: TaskProgressBar,
         groups: int,
-        osm_parquet_files: ConvertedOSMParquetFiles,
-        required_nodes_with_structs: "duckdb.DuckDBPyRelation",
         destination_dir_path: Path,
-        grouped_ways_ids_path: Path,
         grouped_ways_path: Path,
     ) -> None:
         grouped_ways_path.mkdir(parents=True, exist_ok=True)
 
         for group in bar.track(range(groups + 1)):
-            current_ways_ids_group_path = grouped_ways_ids_path / f"group={group}"
-            current_ways_ids_group_relation = self.connection.sql(f"""
-                SELECT * FROM read_parquet('{current_ways_ids_group_path}/**')
+            current_ways_group_path = grouped_ways_path / f"group={group}"
+            current_ways_group_relation = self.connection.sql(f"""
+                SELECT * FROM read_parquet('{current_ways_group_path}/**')
             """)
-
-            current_ways_ids_group_with_nodes_relation = self.connection.sql(f"""
-                SELECT
-                    w.id, n.point, w.ref_idx
-                FROM ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w
-                SEMI JOIN ({current_ways_ids_group_relation.sql_query()}) rw
-                ON w.id = rw.id
-                JOIN ({required_nodes_with_structs.sql_query()}) n
-                ON n.id = w.ref
-            """)
-            current_ways_group_relation = self._save_parquet_file(
-                relation=current_ways_ids_group_with_nodes_relation,
-                file_path=grouped_ways_path / f"group={group}",
-            )
 
             ways_with_linestrings = self.connection.sql(f"""
                 SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
