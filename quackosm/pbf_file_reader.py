@@ -58,7 +58,6 @@ class PbfFileReader:
         """List of parquet files read from the `*.osm.pbf` file."""
 
         nodes_valid_with_tags: "duckdb.DuckDBPyRelation"
-        nodes_required_ids: "duckdb.DuckDBPyRelation"
         nodes_filtered_ids: "duckdb.DuckDBPyRelation"
 
         ways_all_with_tags: "duckdb.DuckDBPyRelation"
@@ -316,7 +315,6 @@ class PbfFileReader:
                 tmp_dir_name,
                 [
                     "nodes_valid_with_tags",
-                    "nodes_required_ids",
                 ],
             )
 
@@ -713,41 +711,8 @@ class PbfFileReader:
                 ways_prepared_ids_path, Path(tmp_dir_name) / "ways_required_ids"
             )
 
-        nodes_prepared_ids_path = Path(tmp_dir_name) / "nodes_prepared_ids"
-        nodes_prepared_ids_path.mkdir(parents=True, exist_ok=True)
-
-        with TaskProgressSpinner("Loading required nodes - by relations", "19"):
-            # NODES - REQUIRED (WR)
-            # - required - all IDs from NF
-            #   + all needed to construct ways from WR
-            #   + and needed to construct ways from WF
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT ref as id
-                FROM ({ways_with_unnested_nodes_refs.sql_query()}) uwr
-                SEMI JOIN ({ways_required_ids.sql_query()}) rwi ON rwi.id = uwr.id
-                """,
-                file_path=nodes_prepared_ids_path / "required_by_relations",
-            )
-
-        with TaskProgressSpinner("Loading required nodes - by ways", "20"):
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT ref as id
-                FROM ({ways_with_unnested_nodes_refs.sql_query()}) uwr
-                SEMI JOIN ({ways_filtered_ids.sql_query()}) fwi ON fwi.id = uwr.id
-                """,
-                file_path=nodes_prepared_ids_path / "required_by_ways",
-            )
-
-        with TaskProgressSpinner("Calculating distinct required nodes ids", "21"):
-            nodes_required_ids = self._calculate_unique_ids_to_parquet(
-                nodes_prepared_ids_path, Path(tmp_dir_name) / "nodes_required_ids"
-            )
-
         return PbfFileReader.ConvertedOSMParquetFiles(
             nodes_valid_with_tags=nodes_valid_with_tags,
-            nodes_required_ids=nodes_required_ids,
             nodes_filtered_ids=nodes_filtered_ids,
             ways_all_with_tags=ways_all_with_tags,
             ways_with_unnested_nodes_refs=ways_with_unnested_nodes_refs,
@@ -919,7 +884,6 @@ class PbfFileReader:
                 w.ref_idx,
                 struct_pack(x := round(n.lon, 7), y := round(n.lat, 7))::POINT_2D point
             FROM ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
-            SEMI JOIN ({osm_parquet_files.nodes_required_ids.sql_query()}) rn ON n.id = rn.id
             JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w ON w.ref = n.id
         """
         )
