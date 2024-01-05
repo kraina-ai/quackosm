@@ -7,6 +7,7 @@ __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
 TOTAL_STEPS = 36
 
+
 class TaskProgressSpinner:
     def __init__(self, step_name: str, step_number: str):
         self.step_name = step_name
@@ -51,11 +52,23 @@ class TaskProgressBar:
                 BarColumn,
                 MofNCompleteColumn,
                 Progress,
+                ProgressColumn,
                 SpinnerColumn,
+                Task,
+                Text,
                 TextColumn,
                 TimeElapsedColumn,
                 TimeRemainingColumn,
             )
+
+            class SpeedColumn(ProgressColumn):
+                def render(self, task: "Task") -> Text:
+                    if task.speed is None:
+                        return Text("")
+                    elif task.speed > 1:
+                        return Text(f"{task.speed:.2f} it/s")
+                    else:
+                        return Text(f"{1/task.speed:.2f} s/it")
 
             self.progress = Progress(
                 SpinnerColumn(),
@@ -68,8 +81,10 @@ class TaskProgressBar:
                 MofNCompleteColumn(),
                 TextColumn("•"),
                 TimeElapsedColumn(),
-                TextColumn("•"),
+                TextColumn("<"),
                 TimeRemainingColumn(),
+                TextColumn("•"),
+                SpeedColumn(),
                 transient=False,
                 speed_estimate_period=1800,
             )
