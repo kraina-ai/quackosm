@@ -867,7 +867,7 @@ class PbfFileReader:
             relation=nodes_with_geometry,
             file_path=Path(tmp_dir_name) / "filtered_nodes_with_geometry",
             step_name="Saving filtered nodes with geometries",
-            step_number="22",
+            step_number="19",
         )
         return nodes_parquet
 
@@ -887,7 +887,7 @@ class PbfFileReader:
             JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w ON w.ref = n.id
         """
         )
-        with TaskProgressSpinner("Saving required nodes with structs", "23"):
+        with TaskProgressSpinner("Saving required nodes with structs", "20"):
             ways_refs_parquet = self._save_parquet_file(
                 relation=ways_refs_with_nodes_structs,
                 file_path=Path(tmp_dir_name) / "ways_refs_with_nodes_structs",
@@ -904,7 +904,7 @@ class PbfFileReader:
         grouped_ways_tmp_path = Path(tmp_dir_name) / "filtered_ways_tmp"
         destination_dir_path = Path(tmp_dir_name) / "filtered_ways_with_linestrings"
 
-        with TaskProgressSpinner("Grouping filtered ways", "24"):
+        with TaskProgressSpinner("Grouping filtered ways", "21"):
             groups = self._group_ways(
                 ways_ids=osm_parquet_files.ways_filtered_ids,
                 destination_dir_path=destination_dir_path,
@@ -913,7 +913,7 @@ class PbfFileReader:
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
             )
 
-        with TaskProgressBar("Saving filtered ways with linestrings", "25") as bar:
+        with TaskProgressBar("Saving filtered ways with linestrings", "22") as bar:
             self._construct_ways_linestrings(
                 bar=bar,
                 groups=groups,
@@ -938,7 +938,7 @@ class PbfFileReader:
         grouped_ways_tmp_path = Path(tmp_dir_name) / "required_ways_tmp"
         destination_dir_path = Path(tmp_dir_name) / "required_ways_with_linestrings"
 
-        with TaskProgressSpinner("Grouping required ways", "26"):
+        with TaskProgressSpinner("Grouping required ways", "23"):
             groups = self._group_ways(
                 ways_ids=osm_parquet_files.ways_required_ids,
                 destination_dir_path=destination_dir_path,
@@ -947,7 +947,7 @@ class PbfFileReader:
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
             )
 
-        with TaskProgressBar("Saving required ways with linestrings", "27") as bar:
+        with TaskProgressBar("Saving required ways with linestrings", "24") as bar:
             self._construct_ways_linestrings(
                 bar=bar,
                 groups=groups,
@@ -1132,7 +1132,7 @@ class PbfFileReader:
             relation=ways_with_proper_geometry,
             file_path=Path(tmp_dir_name) / "filtered_ways_with_geometry",
             step_name="Saving filtered ways with geometries",
-            step_number="28",
+            step_number="25",
         )
         return ways_parquet
 
@@ -1204,7 +1204,7 @@ class PbfFileReader:
             relation=valid_relation_parts,
             file_path=Path(tmp_dir_name) / "valid_relation_parts",
             step_name="Saving valid relations parts",
-            step_number="29",
+            step_number="26",
         )
         relation_inner_parts = self.connection.sql(
             f"""
@@ -1218,7 +1218,7 @@ class PbfFileReader:
             file_path=Path(tmp_dir_name) / "relation_inner_parts",
             fix_geometries=True,
             step_name="Saving relations inner parts",
-            step_number="30",
+            step_number="27",
         )
         relation_outer_parts = self.connection.sql(
             f"""
@@ -1232,7 +1232,7 @@ class PbfFileReader:
             file_path=Path(tmp_dir_name) / "relation_outer_parts",
             fix_geometries=True,
             step_name="Saving relations outer parts",
-            step_number="31",
+            step_number="28",
         )
         relation_outer_parts_with_holes = self.connection.sql(
             f"""
@@ -1250,7 +1250,7 @@ class PbfFileReader:
             relation=relation_outer_parts_with_holes,
             file_path=Path(tmp_dir_name) / "relation_outer_parts_with_holes",
             step_name="Saving relations outer parts with holes",
-            step_number="32",
+            step_number="29",
         )
         relation_outer_parts_without_holes = self.connection.sql(
             f"""
@@ -1267,7 +1267,7 @@ class PbfFileReader:
             relation=relation_outer_parts_without_holes,
             file_path=Path(tmp_dir_name) / "relation_outer_parts_without_holes",
             step_name="Saving relations outer parts without holes",
-            step_number="33",
+            step_number="30",
         )
         relations_with_geometry = self.connection.sql(
             f"""
@@ -1293,7 +1293,7 @@ class PbfFileReader:
             relation=relations_with_geometry,
             file_path=Path(tmp_dir_name) / "filtered_relations_with_geometry",
             step_name="Saving filtered relations with geometries",
-            step_number="34",
+            step_number="31",
         )
         return relations_parquet
 
@@ -1452,7 +1452,7 @@ class PbfFileReader:
             valid_features_full_relation,
             valid_features_parquet_path,
             step_name="Saving valid features",
-            step_number="35.1",
+            step_number="32.1",
         )
 
         valid_features_parquet_table = pq.read_table(valid_features_parquet_path)
@@ -1490,7 +1490,7 @@ class PbfFileReader:
         invalid_features = total_features - valid_features
 
         if invalid_features > 0:
-            with TaskProgressSpinner("Grouping invalid features", "35.2"):
+            with TaskProgressSpinner("Grouping invalid features", "32.2"):
                 groups = floor(invalid_features / self.rows_per_bucket)
                 grouped_invalid_features_result_parquet = (
                     Path(tmp_dir_name) / "osm_invalid_elements_grouped"
@@ -1509,7 +1509,7 @@ class PbfFileReader:
                 """
                 )
 
-            with TaskProgressBar("Fixing invalid features", "35.3") as bar:
+            with TaskProgressBar("Fixing invalid features", "32.3") as bar:
                 for group in bar.track(range(groups + 1)):
                     current_invalid_features_group_path = (
                         grouped_invalid_features_result_parquet / f"group={group}"
@@ -1555,7 +1555,7 @@ class PbfFileReader:
         if empty_columns:
             joined_parquet_table = joined_parquet_table.drop(empty_columns)
 
-        with TaskProgressSpinner("Saving final geoparquet file", "36"):
+        with TaskProgressSpinner("Saving final geoparquet file", "33"):
             io.write_geoparquet_table(  # type: ignore
                 joined_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
             )
