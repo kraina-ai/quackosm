@@ -63,12 +63,12 @@ class TaskProgressBar:
 
             class SpeedColumn(ProgressColumn):
                 def render(self, task: "Task") -> Text:
-                    if task.speed is None:
-                        return Text("")
-                    elif task.speed > 1:
+                    if task.speed >= 1:
                         return Text(f"{task.speed:.2f} it/s")
-                    else:
+                    elif task.speed < 1:
                         return Text(f"{1/task.speed:.2f} s/it")
+
+                    return Text("")
 
             self.progress = Progress(
                 SpinnerColumn(),
