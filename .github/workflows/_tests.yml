@@ -44,11 +44,6 @@ jobs:
           cache-dependency-path: "**/pdm.lock"
       - name: Install dependencies
         run: pdm install -d -G test --skip=post_install
-      - name: Cache Overpass data
-        uses: actions/cache@v3
-        with:
-          path: cache
-          key: overpass-cache-${{ matrix.os }}-${{ matrix.python-version }}
       - name: Cache tox runner
         uses: actions/cache@v3
         with:
