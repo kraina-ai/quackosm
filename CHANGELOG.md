@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Speed column for Rich progress bar
+
 ### Changed
 
 - Simplified ways grouping logic by removing some steps
