@@ -17,5 +17,6 @@ def test_big_file(extract_name: str) -> None:
     file_name = f"{extract_name}.osm.pbf"
     download_file(f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf", file_name)
 
-    PbfFileReader().convert_pbf_to_gpq(pbf_path=file_name, ignore_cache=True)
+    gpq_file_path = PbfFileReader().convert_pbf_to_gpq(pbf_path=file_name, ignore_cache=True)
     Path(file_name).unlink()
+    gpq_file_path.unlink()
