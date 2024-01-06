@@ -69,13 +69,6 @@ class PbfFileReader:
         relations_with_unnested_way_refs: "duckdb.DuckDBPyRelation"
         relations_filtered_ids: "duckdb.DuckDBPyRelation"
 
-    class ParsedOSMFeatures(NamedTuple):
-        """Final list of parsed features from the `*.osm.pbf` file."""
-
-        nodes: "duckdb.DuckDBPyRelation"
-        ways: "duckdb.DuckDBPyRelation"
-        relations: "duckdb.DuckDBPyRelation"
-
     def __init__(
         self,
         tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -299,7 +292,7 @@ class PbfFileReader:
                 ],
             )
 
-            filtered_nodes_with_geometry = self._get_filtered_nodes_with_geometry(
+            filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
                 converted_osm_parquet_files, tmp_dir_name
             )
             self._delete_directories(tmp_dir_name, "nodes_filtered_ids")
@@ -340,7 +333,7 @@ class PbfFileReader:
                 ],
             )
 
-            filtered_ways_with_proper_geometry = self._get_filtered_ways_with_proper_geometry(
+            filtered_ways_with_proper_geometry_path = self._get_filtered_ways_with_proper_geometry(
                 converted_osm_parquet_files, filtered_ways_with_linestrings, tmp_dir_name
             )
             self._delete_directories(
@@ -353,7 +346,7 @@ class PbfFileReader:
                 ],
             )
 
-            filtered_relations_with_geometry = self._get_filtered_relations_with_geometry(
+            filtered_relations_with_geometry_path = self._get_filtered_relations_with_geometry(
                 converted_osm_parquet_files, required_ways_with_linestrings, tmp_dir_name
             )
             self._delete_directories(
@@ -371,12 +364,16 @@ class PbfFileReader:
                 ],
             )
 
+            parsed_geometries = self.connection.sql(f"""
+                SELECT * FROM read_parquet([
+                    '{filtered_nodes_with_geometry_path}/**',
+                    '{filtered_ways_with_proper_geometry_path}/**',
+                    '{filtered_relations_with_geometry_path}/**'
+                ]);
+            """)
+
             self._concatenate_results_to_geoparquet(
-                PbfFileReader.ParsedOSMFeatures(
-                    nodes=filtered_nodes_with_geometry,
-                    ways=filtered_ways_with_proper_geometry,
-                    relations=filtered_relations_with_geometry,
-                ),
+                parsed_geometries=parsed_geometries,
                 tmp_dir_name=tmp_dir_name,
                 save_file_path=result_file_path,
                 explode_tags=explode_tags,
@@ -836,22 +833,23 @@ class PbfFileReader:
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
         tmp_dir_name: str,
-    ) -> "duckdb.DuckDBPyRelation":
+    ) -> Path:
         nodes_with_geometry = self.connection.sql(f"""
             SELECT
-                n.id,
+                'node/' || n.id as feature_id,
                 n.tags,
                 ST_Point(round(n.lon, 7), round(n.lat, 7)) geometry
             FROM ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
             SEMI JOIN ({osm_parquet_files.nodes_filtered_ids.sql_query()}) fn ON n.id = fn.id
         """)
-        nodes_parquet = self._save_parquet_file_with_geometry(
+        result_path = Path(tmp_dir_name) / "filtered_nodes_with_geometry"
+        self._save_parquet_file_with_geometry(
             relation=nodes_with_geometry,
-            file_path=Path(tmp_dir_name) / "filtered_nodes_with_geometry",
+            file_path=result_path,
             step_name="Saving filtered nodes with geometries",
             step_number="19",
         )
-        return nodes_parquet
+        return result_path
 
     def _get_ways_refs_with_nodes_structs(
         self,
@@ -1090,22 +1088,23 @@ class PbfFileReader:
                 FROM
                     required_ways_with_linestrings w
             )
-            SELECT id, tags, geometry FROM proper_geometries
+            SELECT 'way/' || id as feature_id, tags, geometry FROM proper_geometries
         """)
-        ways_parquet = self._save_parquet_file_with_geometry(
+        result_path = Path(tmp_dir_name) / "filtered_ways_with_geometry"
+        self._save_parquet_file_with_geometry(
             relation=ways_with_proper_geometry,
-            file_path=Path(tmp_dir_name) / "filtered_ways_with_geometry",
+            file_path=result_path,
             step_name="Saving filtered ways with geometries",
             step_number="25",
         )
-        return ways_parquet
+        return result_path
 
     def _get_filtered_relations_with_geometry(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
         required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
         tmp_dir_name: str,
-    ) -> "duckdb.DuckDBPyRelation":
+    ) -> Path:
         valid_relation_parts = self.connection.sql(f"""
             WITH unnested_relations AS (
                 SELECT
@@ -1236,18 +1235,20 @@ class PbfFileReader:
                 FROM unioned_outer_geometries
                 GROUP BY id
             )
-            SELECT r_g.id, r.tags, r_g.geometry
+            SELECT 'relation/' || r_g.id as feature_id, r.tags, r_g.geometry
             FROM final_geometries r_g
             JOIN ({osm_parquet_files.relations_all_with_tags.sql_query()}) r
             ON r.id = r_g.id
         """)
-        relations_parquet = self._save_parquet_file_with_geometry(
+
+        result_path = Path(tmp_dir_name) / "filtered_relations_with_geometry"
+        self._save_parquet_file_with_geometry(
             relation=relations_with_geometry,
-            file_path=Path(tmp_dir_name) / "filtered_relations_with_geometry",
+            file_path=result_path,
             step_name="Saving filtered relations with geometries",
             step_number="31",
         )
-        return relations_parquet
+        return result_path
 
     def _save_parquet_file_with_geometry(
         self,
@@ -1355,29 +1356,19 @@ class PbfFileReader:
 
     def _concatenate_results_to_geoparquet(
         self,
-        parsed_data: ParsedOSMFeatures,
+        parsed_geometries: "duckdb.DuckDBPyRelation",
         tmp_dir_name: str,
         save_file_path: Path,
         explode_tags: bool,
     ) -> None:
-        select_clauses = [
-            *self._generate_osm_tags_sql_select(parsed_data, explode_tags),
-            "geometry",
-        ]
-
-        node_select_clauses = ["'node/' || id as feature_id", *select_clauses]
-        way_select_clauses = ["'way/' || id as feature_id", *select_clauses]
-        relation_select_clauses = ["'relation/' || id as feature_id", *select_clauses]
+        select_clauses = self._generate_osm_tags_sql_select(parsed_geometries, explode_tags)
 
         unioned_features = self.connection.sql(f"""
-            SELECT {', '.join(node_select_clauses)}
-            FROM ({parsed_data.nodes.sql_query()}) n
-            UNION ALL
-            SELECT {', '.join(way_select_clauses)}
-            FROM ({parsed_data.ways.sql_query()}) w
-            UNION ALL
-            SELECT {', '.join(relation_select_clauses)}
-            FROM ({parsed_data.relations.sql_query()}) r
+            SELECT
+                feature_id,
+                {', '.join(select_clauses)},
+                ST_GeomFromWKB(geometry_wkb) geometry
+            FROM ({parsed_geometries.sql_query()})
         """)
 
         grouped_features = self._parse_features_relation_to_groups(unioned_features, explode_tags)
@@ -1418,10 +1409,7 @@ class PbfFileReader:
             ON a.feature_id = b.feature_id
         """)
 
-        total_nodes = parsed_data.nodes.count("id").fetchone()[0]
-        total_ways = parsed_data.ways.count("id").fetchone()[0]
-        total_relations = parsed_data.relations.count("id").fetchone()[0]
-        total_features = total_nodes + total_ways + total_relations
+        total_features = parsed_geometries.count("feature_id").fetchone()[0]
 
         valid_features = valid_features_parquet_relation.count("feature_id").fetchone()[0]
 
@@ -1497,7 +1485,7 @@ class PbfFileReader:
             )
 
     def _generate_osm_tags_sql_select(
-        self, parsed_data: ParsedOSMFeatures, explode_tags: bool
+        self, parsed_geometries: "duckdb.DuckDBPyRelation", explode_tags: bool
     ) -> list[str]:
         """Prepare features filter clauses based on tags filter."""
         osm_tag_keys_select_clauses = []
@@ -1507,16 +1495,11 @@ class PbfFileReader:
             osm_tag_keys_select_clauses = ["tags"]
         elif not self.merged_tags_filter and explode_tags:
             osm_tag_keys = set()
-            for elements in (
-                parsed_data.nodes,
-                parsed_data.ways,
-                parsed_data.relations,
-            ):
-                found_tag_keys = [row[0] for row in self.connection.sql(f"""
-                        SELECT DISTINCT UNNEST(map_keys(tags)) tag_key
-                        FROM ({elements.sql_query()})
-                    """).fetchall()]
-                osm_tag_keys.update(found_tag_keys)
+            found_tag_keys = [row[0] for row in self.connection.sql(f"""
+                SELECT DISTINCT UNNEST(map_keys(tags)) tag_key
+                FROM ({parsed_geometries.sql_query()})
+            """).fetchall()]
+            osm_tag_keys.update(found_tag_keys)
             osm_tag_keys_select_clauses = [
                 f"list_extract(map_extract(tags, '{osm_tag_key}'), 1) as \"{osm_tag_key}\""
                 for osm_tag_key in sorted(list(osm_tag_keys))
