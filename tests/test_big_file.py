@@ -1,4 +1,5 @@
 """Test big file pipeline."""
+import shutil
 from pathlib import Path
 
 from parametrization import Parametrization as P
@@ -14,9 +15,13 @@ from quackosm.pbf_file_reader import PbfFileReader
 @P.case("Poland", "poland")  # type: ignore
 def test_big_file(extract_name: str) -> None:
     """Test if big file is working in a low memory environment."""
-    file_name = f"{extract_name}.osm.pbf"
-    download_file(f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf", file_name)
+    files_dir = Path("files")
+    shutil.rmtree(files_dir)
+    file_name = files_dir / f"{extract_name}.osm.pbf"
+    download_file(
+        f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf", str(file_name)
+    )
 
-    gpq_file_path = PbfFileReader().convert_pbf_to_gpq(pbf_path=file_name, ignore_cache=True)
-    Path(file_name).unlink()
-    gpq_file_path.unlink()
+    PbfFileReader(working_directory=files_dir).convert_pbf_to_gpq(
+        pbf_path=file_name, ignore_cache=True
+    )
