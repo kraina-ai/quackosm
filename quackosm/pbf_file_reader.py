@@ -1000,6 +1000,7 @@ class PbfFileReader:
         destination_dir_path: Path,
         grouped_ways_path: Path,
     ) -> None:
+        # TODO: check grouping in smaller and bigger groups (100k vs 1mil)
         grouped_ways_path.mkdir(parents=True, exist_ok=True)
 
         for group in bar.track(range(groups + 1)):
@@ -1361,13 +1362,14 @@ class PbfFileReader:
         save_file_path: Path,
         explode_tags: bool,
     ) -> None:
-        select_clauses = self._generate_osm_tags_sql_select(parsed_geometries, explode_tags)
+        select_clauses = [
+            "feature_id",
+            *self._generate_osm_tags_sql_select(parsed_geometries, explode_tags),
+            "ST_GeomFromWKB(geometry_wkb) AS geometry",
+        ]
 
         unioned_features = self.connection.sql(f"""
-            SELECT
-                feature_id,
-                {', '.join(select_clauses)},
-                ST_GeomFromWKB(geometry_wkb) geometry
+            SELECT {', '.join(select_clauses)}
             FROM ({parsed_geometries.sql_query()})
         """)
 
