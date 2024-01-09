@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass `parquet_compression` parameter to DuckDB
+- Bigger PBF parsing test as a benchmark
+
+### Changed
+
+- Increased number of rows per group for environments with more than 24 GB of memory
+- Simplified temporal directory path propagation within `PbfFileReader` class
+- Reduced disk spillage by removing more files during operation
+- Optimized final geometries concatenation by removing `UNION` operation
+- Tests execution order
+
 ## [0.3.1] - 2024-01-06
 
 ### Added
