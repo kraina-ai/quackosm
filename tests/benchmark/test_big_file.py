@@ -9,8 +9,7 @@ from quackosm.pbf_file_reader import PbfFileReader
 
 
 @P.parameters("extract_name")  # type: ignore
-@P.case("Czech Republic", "czech-republic")  # type: ignore
-@P.case("Poland", "poland")  # type: ignore
+@P.case("Spain", "spain")  # type: ignore
 def test_big_file(extract_name: str) -> None:
     """Test if big file is working in a low memory environment."""
     files_dir = Path("files")
