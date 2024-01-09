@@ -82,7 +82,7 @@ def test_pbf_reader(
 ):
     """Test proper files loading in `PbfFileReader`."""
     features_gdf = PbfFileReader(tags_filter=query).get_features_gdf(
-        file_paths=[Path(__file__).parent / "test_files" / test_file_name],
+        file_paths=[Path(__file__).parent.parent / "test_files" / test_file_name],
         explode_tags=True,
         ignore_cache=True,
     )
@@ -101,7 +101,7 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
     features_gdf = PbfFileReader(
         tags_filter=HEX2VEC_FILTER, geometry_filter=Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
     ).get_features_gdf(
-        file_paths=[Path(__file__).parent / "test_files" / file_name],
+        file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
         explode_tags=True,
         ignore_cache=True,
     )
@@ -133,7 +133,7 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
     """Test proper features ids filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
     features_gdf = PbfFileReader().get_features_gdf(
-        file_paths=[Path(__file__).parent / "test_files" / file_name],
+        file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
         ignore_cache=True,
         filter_osm_ids=filter_osm_ids,
     )
@@ -223,9 +223,9 @@ def parse_hstore_tags(tags: str) -> dict[str, Optional[str]]:
 
 def transform_pbf_to_gpkg(extract_name: str, layer_name: str) -> Path:
     """Uses GDAL ogr2ogr to transform PBF file into GPKG."""
-    input_file = Path(__file__).parent / "files" / f"{extract_name}.osm.pbf"
-    output_file = Path(__file__).parent / "files" / f"{extract_name}_{layer_name}.gpkg"
-    config_file = Path(__file__).parent / "test_files" / "osmconf.ini"
+    input_file = Path(__file__).parent.parent / "files" / f"{extract_name}.osm.pbf"
+    output_file = Path(__file__).parent.parent / "files" / f"{extract_name}_{layer_name}.gpkg"
+    config_file = Path(__file__).parent.parent / "test_files" / "osmconf.ini"
     args = [
         "ogr2ogr" if platform.system() != "Windows" else "ogr2ogr.exe",
         str(output_file),
@@ -459,7 +459,7 @@ def extract_polygons_from_geometry(geometry: BaseGeometry) -> list[Union[Polygon
 def test_gdal_parity(extract_name: str) -> None:
     """Test if loaded data is similar to GDAL results."""
     pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
-    pbf_file_path = Path(__file__).parent / "files" / f"{extract_name}.osm.pbf"
+    pbf_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.osm.pbf"
     download_file(pbf_file_download_url, str(pbf_file_path), force_download=True)
 
     reader = PbfFileReader()
