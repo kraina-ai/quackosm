@@ -197,6 +197,7 @@ Library contains a logic to construct geometries (points, linestrings, polygons)
 ### Memory usage
 
 DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk.
+
 QuackOSM has been roughly tuned to different workloads. The `rows_per_bucket` variable is set based on an available memory in the system:
 
 | Memory     | Rows per group |
@@ -211,21 +212,27 @@ QuackOSM has been roughly tuned to different workloads. The `rows_per_bucket` va
 ### Disk usage
 
 The algorithm depends on saving intermediate `.parquet` files between queries.
-As a rule of thumb, when parsing a full file without filtering, you should have at least 10x more free space on disk than the base file has (100MB pbf file -> 1GB free space to parse it).
+As a rule of thumb, when parsing a full file without filtering, you should have at least 10x more free space on disk than the base file size (100MB pbf file -> 1GB free space to parse it).
 
 Below you can see the chart of disk usage during operation. Generated on a machine with Intel i7-4790 CPU with 32 GB of RAM. Red dotted line represents the size of the base file.
 
 #### Monaco
-PBF file size 525KB
+PBF file size: 525 KB
+
 [Geofabrik link](https://download.geofabrik.de/europe/monaco.html)
+
 ![Monaco PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/monaco_disk_spillage.png)
 
 #### Estonia
-PBF file size 100MB
+PBF file size: 100 MB
+
 [Geofabrik link](https://download.geofabrik.de/europe/estonia.html)
+
 ![Estonia PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/estonia_disk_spillage.png)
 
 #### Poland
-PBF file size 1.7GB
+PBF file size: 1.7 GB
+
 [Geofabrik link](https://download.geofabrik.de/europe/poland.html)
+
 ![Poland PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_disk_spillage.png)
