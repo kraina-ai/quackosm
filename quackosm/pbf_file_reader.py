@@ -12,6 +12,7 @@ import warnings
 from collections.abc import Iterable
 from math import floor
 from pathlib import Path
+from time import sleep
 from typing import Any, Literal, NamedTuple, Optional, Union, cast
 
 import duckdb
@@ -720,9 +721,16 @@ class PbfFileReader:
                 directory_path = directory
             else:
                 directory_path = self.tmp_dir_path / directory
-            if not directory_path.exists():
-                continue
-            shutil.rmtree(directory_path)
+            tries = 100
+            while directory_path.exists() and tries > 0:
+                try:
+                    shutil.rmtree(directory_path)
+                except Exception as ex:
+                    if tries == 0:
+                        raise ex
+                    sleep(0.5)
+                finally:
+                    tries -= 1
 
     def _generate_osm_tags_sql_filter(self) -> str:
         """Prepare features filter clauses based on tags filter."""
