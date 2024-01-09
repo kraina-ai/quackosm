@@ -920,6 +920,7 @@ class PbfFileReader:
                 grouped_ways_path=grouped_ways_path,
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
             )
+            self._delete_directories(grouped_ways_tmp_path)
 
         with TaskProgressBar("Saving filtered ways with linestrings", "22") as bar:
             self._construct_ways_linestrings(
@@ -953,6 +954,7 @@ class PbfFileReader:
                 grouped_ways_path=grouped_ways_path,
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
             )
+            self._delete_directories(grouped_ways_tmp_path)
 
         with TaskProgressBar("Saving required ways with linestrings", "24") as bar:
             self._construct_ways_linestrings(
@@ -1019,8 +1021,6 @@ class PbfFileReader:
             relation=ways_with_nodes_points_relation, file_path=grouped_ways_ids_with_points_path
         )
 
-        self._delete_directories(grouped_ways_ids_with_group_path)
-
         self.connection.sql(
             f"""
             COPY (
@@ -1035,8 +1035,6 @@ class PbfFileReader:
             )
         """
         )
-
-        self._delete_directories(grouped_ways_tmp_path)
 
         return groups
 
