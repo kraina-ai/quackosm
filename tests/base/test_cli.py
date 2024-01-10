@@ -16,7 +16,7 @@ runner = CliRunner()
 @pytest.fixture()  # type: ignore
 def monaco_pbf_file_path() -> str:
     """Monaco PBF file path fixture."""
-    return str(Path(__file__).parent / "test_files" / "monaco.osm.pbf")
+    return str(Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf")
 
 
 def geometry_box() -> Polygon:
@@ -41,12 +41,12 @@ def geometry_geojson() -> str:
 
 def geometry_boundary_file_path() -> str:
     """Geometry Monaco boundary file path."""
-    return str(Path(__file__).parent / "test_files" / "monaco_boundary.geojson")
+    return str(Path(__file__).parent.parent / "test_files" / "monaco_boundary.geojson")
 
 
 def osm_way_config_file_path() -> str:
     """OSM way features config file path."""
-    return str(Path(__file__).parent.parent / "quackosm" / "osm_way_polygon_features.json")
+    return str(Path(__file__).parent.parent.parent / "quackosm" / "osm_way_polygon_features.json")
 
 
 def test_version() -> None:

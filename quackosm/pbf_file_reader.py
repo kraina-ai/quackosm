@@ -12,6 +12,7 @@ import warnings
 from collections.abc import Iterable
 from math import floor
 from pathlib import Path
+from time import sleep
 from typing import Any, Literal, NamedTuple, Optional, Union, cast
 
 import duckdb
@@ -69,13 +70,6 @@ class PbfFileReader:
         relations_with_unnested_way_refs: "duckdb.DuckDBPyRelation"
         relations_filtered_ids: "duckdb.DuckDBPyRelation"
 
-    class ParsedOSMFeatures(NamedTuple):
-        """Final list of parsed features from the `*.osm.pbf` file."""
-
-        nodes: "duckdb.DuckDBPyRelation"
-        ways: "duckdb.DuckDBPyRelation"
-        relations: "duckdb.DuckDBPyRelation"
-
     def __init__(
         self,
         tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -84,6 +78,7 @@ class PbfFileReader:
         osm_way_polygon_features_config: Optional[
             Union[OsmWayPolygonConfig, dict[str, Any]]
         ] = None,
+        parquet_compression: str = "snappy",
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -107,6 +102,9 @@ class PbfFileReader:
                 Config used to determine which closed way features are polygons.
                 Modifications to this config left are left for experienced OSM users.
                 Defaults to predefined "osm_way_polygon_features.json".
+            parquet_compression (str): Compression of intermediate parquet files.
+                Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+                Defaults to "snappy".
         """
         self.tags_filter = tags_filter
         self.merged_tags_filter = merge_osm_tags_filter(tags_filter) if tags_filter else None
@@ -115,13 +113,17 @@ class PbfFileReader:
         self.working_directory.mkdir(parents=True, exist_ok=True)
         self.connection: duckdb.DuckDBPyConnection = None
 
-        self.rows_per_bucket = 1_000_000
+        self.rows_per_bucket = 5_000_000
         memory = psutil.virtual_memory()
-        # If less than 8 / 16 GB total memory, reduce number of rows per group
+        # If less than 8 / 16 / 24 GB total memory, reduce number of rows per group
         if memory.total < (8 * (1024**3)):
             self.rows_per_bucket = 100_000
         elif memory.total < (16 * (1024**3)):
             self.rows_per_bucket = 500_000
+        elif memory.total < (24 * (1024**3)):
+            self.rows_per_bucket = 1_000_000
+
+        self.parquet_compression = parquet_compression
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
@@ -232,9 +234,10 @@ class PbfFileReader:
         if explode_tags is None:
             explode_tags = self.tags_filter is not None
 
-        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
+        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
+            self.tmp_dir_path = Path(self.tmp_dir_name)
             try:
-                self._set_up_duckdb_connection(tmp_dir_name)
+                self._set_up_duckdb_connection()
                 result_file_path = result_file_path or self._generate_geoparquet_result_file_path(
                     pbf_path,
                     filter_osm_ids=filter_osm_ids,
@@ -242,7 +245,6 @@ class PbfFileReader:
                 )
                 parsed_geoparquet_file = self._parse_pbf_file(
                     pbf_path=pbf_path,
-                    tmp_dir_name=tmp_dir_name,
                     result_file_path=Path(result_file_path),
                     filter_osm_ids=filter_osm_ids,
                     explode_tags=explode_tags,
@@ -254,9 +256,9 @@ class PbfFileReader:
                     self.connection.close()
                     self.connection = None
 
-    def _set_up_duckdb_connection(self, tmp_dir_name: str) -> None:
+    def _set_up_duckdb_connection(self) -> None:
         self.connection = duckdb.connect(
-            database=str(Path(tmp_dir_name) / "db.duckdb"),
+            database=str(self.tmp_dir_path / "db.duckdb"),
             config=dict(preserve_insertion_order=False),
         )
         for extension_name in ("parquet", "spatial"):
@@ -275,7 +277,6 @@ class PbfFileReader:
     def _parse_pbf_file(
         self,
         pbf_path: Union[str, Path],
-        tmp_dir_name: str,
         result_file_path: Path,
         filter_osm_ids: list[str],
         explode_tags: bool = True,
@@ -283,12 +284,9 @@ class PbfFileReader:
     ) -> Path:
         if not result_file_path.exists() or ignore_cache:
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
-            converted_osm_parquet_files = self._prefilter_elements_ids(
-                elements, tmp_dir_name, filter_osm_ids
-            )
+            converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
             self._delete_directories(
-                tmp_dir_name,
                 [
                     "nodes_filtered_non_distinct_ids",
                     "nodes_prepared_ids",
@@ -299,16 +297,15 @@ class PbfFileReader:
                 ],
             )
 
-            filtered_nodes_with_geometry = self._get_filtered_nodes_with_geometry(
-                converted_osm_parquet_files, tmp_dir_name
+            filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
+                converted_osm_parquet_files
             )
-            self._delete_directories(tmp_dir_name, "nodes_filtered_ids")
+            self._delete_directories("nodes_filtered_ids")
 
             ways_refs_with_nodes_structs = self._get_ways_refs_with_nodes_structs(
-                converted_osm_parquet_files, tmp_dir_name
+                converted_osm_parquet_files
             )
             self._delete_directories(
-                tmp_dir_name,
                 [
                     "nodes_valid_with_tags",
                 ],
@@ -317,15 +314,12 @@ class PbfFileReader:
             filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
                 osm_parquet_files=converted_osm_parquet_files,
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
-                tmp_dir_name=tmp_dir_name,
             )
             required_ways_with_linestrings = self._get_required_ways_with_linestrings(
                 osm_parquet_files=converted_osm_parquet_files,
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
-                tmp_dir_name=tmp_dir_name,
             )
             self._delete_directories(
-                tmp_dir_name,
                 [
                     "ways_required_grouped",
                     "ways_required_ids",
@@ -340,11 +334,10 @@ class PbfFileReader:
                 ],
             )
 
-            filtered_ways_with_proper_geometry = self._get_filtered_ways_with_proper_geometry(
-                converted_osm_parquet_files, filtered_ways_with_linestrings, tmp_dir_name
+            filtered_ways_with_proper_geometry_path = self._get_filtered_ways_with_proper_geometry(
+                converted_osm_parquet_files, filtered_ways_with_linestrings
             )
             self._delete_directories(
-                tmp_dir_name,
                 [
                     "ways_prepared_ids",
                     "ways_filtered_ids",
@@ -353,11 +346,10 @@ class PbfFileReader:
                 ],
             )
 
-            filtered_relations_with_geometry = self._get_filtered_relations_with_geometry(
-                converted_osm_parquet_files, required_ways_with_linestrings, tmp_dir_name
+            filtered_relations_with_geometry_path = self._get_filtered_relations_with_geometry(
+                converted_osm_parquet_files, required_ways_with_linestrings
             )
             self._delete_directories(
-                tmp_dir_name,
                 [
                     "relations_all_with_tags",
                     "relations_with_unnested_way_refs",
@@ -371,13 +363,16 @@ class PbfFileReader:
                 ],
             )
 
+            parsed_geometries = self.connection.sql(f"""
+                SELECT * FROM read_parquet([
+                    '{filtered_nodes_with_geometry_path}/**',
+                    '{filtered_ways_with_proper_geometry_path}/**',
+                    '{filtered_relations_with_geometry_path}/**'
+                ]);
+            """)
+
             self._concatenate_results_to_geoparquet(
-                PbfFileReader.ParsedOSMFeatures(
-                    nodes=filtered_nodes_with_geometry,
-                    ways=filtered_ways_with_proper_geometry,
-                    relations=filtered_relations_with_geometry,
-                ),
-                tmp_dir_name=tmp_dir_name,
+                parsed_geometries=parsed_geometries,
                 save_file_path=result_file_path,
                 explode_tags=explode_tags,
             )
@@ -419,7 +414,7 @@ class PbfFileReader:
         return Path(self.working_directory) / result_file_name
 
     def _prefilter_elements_ids(
-        self, elements: "duckdb.DuckDBPyRelation", tmp_dir_name: str, filter_osm_ids: list[str]
+        self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
     ) -> ConvertedOSMParquetFiles:
         sql_filter = self._generate_osm_tags_sql_filter()
         filtered_tags_clause = self._generate_filtered_tags_clause()
@@ -441,7 +436,7 @@ class PbfFileReader:
                 WHERE kind = 'node'
                 AND lat IS NOT NULL AND lon IS NOT NULL
                 """,
-                file_path=Path(tmp_dir_name) / "nodes_valid_with_tags",
+                file_path=self.tmp_dir_path / "nodes_valid_with_tags",
             )
         # NODES - INTERSECTING (NI)
         # - select all from NV which intersect given geometry filter
@@ -457,7 +452,7 @@ class PbfFileReader:
                     SELECT DISTINCT id FROM ({nodes_valid_with_tags.sql_query()}) n
                     WHERE {intersection_filter} = true
                     """,
-                    file_path=Path(tmp_dir_name) / "nodes_intersecting_ids",
+                    file_path=self.tmp_dir_path / "nodes_intersecting_ids",
                 )
             with TaskProgressSpinner("Filtering nodes - tags", "3"):
                 self._sql_to_parquet_file(
@@ -467,7 +462,7 @@ class PbfFileReader:
                     WHERE tags IS NOT NULL AND cardinality(tags) > 0 AND ({sql_filter})
                     AND ({filter_osm_node_ids_filter})
                     """,
-                    file_path=Path(tmp_dir_name) / "nodes_filtered_non_distinct_ids",
+                    file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
                 )
         else:
             with TaskProgressSpinner("Filtering nodes - intersection", "2"):
@@ -480,12 +475,12 @@ class PbfFileReader:
                     WHERE tags IS NOT NULL AND cardinality(tags) > 0 AND ({sql_filter})
                     AND ({filter_osm_node_ids_filter})
                     """,
-                    file_path=Path(tmp_dir_name) / "nodes_filtered_non_distinct_ids",
+                    file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
                 )
         with TaskProgressSpinner("Calculating distinct filtered nodes ids", "4"):
             nodes_filtered_ids = self._calculate_unique_ids_to_parquet(
-                Path(tmp_dir_name) / "nodes_filtered_non_distinct_ids",
-                Path(tmp_dir_name) / "nodes_filtered_ids",
+                self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
+                self.tmp_dir_path / "nodes_filtered_ids",
             )
 
         with TaskProgressSpinner("Reading ways", "5"):
@@ -510,7 +505,7 @@ class PbfFileReader:
                 FROM filtered_tags
                 WHERE tags IS NOT NULL AND cardinality(tags) > 0
                 """,
-                file_path=Path(tmp_dir_name) / "ways_all_with_tags",
+                file_path=self.tmp_dir_path / "ways_all_with_tags",
             )
         with TaskProgressSpinner("Unnesting ways", "6"):
             ways_with_unnested_nodes_refs = self._sql_to_parquet_file(
@@ -518,7 +513,7 @@ class PbfFileReader:
                 SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
                 FROM ways w
                 """,
-                file_path=Path(tmp_dir_name) / "ways_with_unnested_nodes_refs",
+                file_path=self.tmp_dir_path / "ways_with_unnested_nodes_refs",
             )
         with TaskProgressSpinner("Filtering ways - valid refs", "7"):
             ways_valid_ids = self._sql_to_parquet_file(
@@ -538,7 +533,7 @@ class PbfFileReader:
                 SELECT DISTINCT id
                 FROM unmatched_ways_with_nodes_refs
                 """,
-                file_path=Path(tmp_dir_name) / "ways_valid_ids",
+                file_path=self.tmp_dir_path / "ways_valid_ids",
             )
 
         with TaskProgressSpinner("Filtering ways - intersection", "8"):
@@ -552,7 +547,7 @@ class PbfFileReader:
                     SEMI JOIN ({ways_valid_ids.sql_query()}) wv ON uwr.id = wv.id
                     SEMI JOIN ({nodes_intersecting_ids.sql_query()}) n ON n.id = uwr.ref
                     """,
-                    file_path=Path(tmp_dir_name) / "ways_intersecting_ids",
+                    file_path=self.tmp_dir_path / "ways_intersecting_ids",
                 )
             else:
                 ways_intersecting_ids = ways_valid_ids
@@ -566,13 +561,13 @@ class PbfFileReader:
                 SEMI JOIN ({ways_intersecting_ids.sql_query()}) wi ON w.id = wi.id
                 WHERE ({sql_filter}) AND ({filter_osm_way_ids_filter})
                 """,
-                file_path=Path(tmp_dir_name) / "ways_filtered_non_distinct_ids",
+                file_path=self.tmp_dir_path / "ways_filtered_non_distinct_ids",
             )
 
         with TaskProgressSpinner("Calculating distinct filtered ways ids", "10"):
             ways_filtered_ids = self._calculate_unique_ids_to_parquet(
-                Path(tmp_dir_name) / "ways_filtered_non_distinct_ids",
-                Path(tmp_dir_name) / "ways_filtered_ids",
+                self.tmp_dir_path / "ways_filtered_non_distinct_ids",
+                self.tmp_dir_path / "ways_filtered_ids",
             )
 
         with TaskProgressSpinner("Reading relations", "11"):
@@ -600,7 +595,7 @@ class PbfFileReader:
                 FROM filtered_tags
                 WHERE tags IS NOT NULL AND cardinality(tags) > 0
                 """,
-                file_path=Path(tmp_dir_name) / "relations_all_with_tags",
+                file_path=self.tmp_dir_path / "relations_all_with_tags",
             )
 
         with TaskProgressSpinner("Unnesting relations", "12"):
@@ -619,7 +614,7 @@ class PbfFileReader:
                 FROM unnested_relation_refs
                 WHERE ref_type = 'way'
                 """,
-                file_path=Path(tmp_dir_name) / "relations_with_unnested_way_refs",
+                file_path=self.tmp_dir_path / "relations_with_unnested_way_refs",
             )
 
         with TaskProgressSpinner("Filtering relations - valid refs", "13"):
@@ -640,7 +635,7 @@ class PbfFileReader:
                 SELECT DISTINCT id
                 FROM unmatched_relation_refs
                 """,
-                file_path=Path(tmp_dir_name) / "relations_valid_ids",
+                file_path=self.tmp_dir_path / "relations_valid_ids",
             )
 
         with TaskProgressSpinner("Filtering relations - intersection", "14"):
@@ -654,7 +649,7 @@ class PbfFileReader:
                     SEMI JOIN ({relations_valid_ids.sql_query()}) rv ON frr.id = rv.id
                     SEMI JOIN ({ways_intersecting_ids.sql_query()}) wi ON wi.id = frr.ref
                     """,
-                    file_path=Path(tmp_dir_name) / "relations_intersecting_ids",
+                    file_path=self.tmp_dir_path / "relations_intersecting_ids",
                 )
             else:
                 relations_intersecting_ids = relations_valid_ids
@@ -666,7 +661,7 @@ class PbfFileReader:
                 filter_osm_ids, "relation"
             )
 
-            relations_ids_path = Path(tmp_dir_name) / "relations_ids"
+            relations_ids_path = self.tmp_dir_path / "relations_ids"
             relations_ids_path.mkdir(parents=True, exist_ok=True)
             self._sql_to_parquet_file(
                 sql_query=f"""
@@ -679,10 +674,10 @@ class PbfFileReader:
 
         with TaskProgressSpinner("Calculating distinct filtered relations ids", "16"):
             relations_filtered_ids = self._calculate_unique_ids_to_parquet(
-                relations_ids_path / "filtered", Path(tmp_dir_name) / "relations_filtered_ids"
+                relations_ids_path / "filtered", self.tmp_dir_path / "relations_filtered_ids"
             )
 
-        ways_prepared_ids_path = Path(tmp_dir_name) / "ways_prepared_ids"
+        ways_prepared_ids_path = self.tmp_dir_path / "ways_prepared_ids"
         ways_prepared_ids_path.mkdir(parents=True, exist_ok=True)
 
         with TaskProgressSpinner("Loading required ways - by relations", "17"):
@@ -700,7 +695,7 @@ class PbfFileReader:
 
         with TaskProgressSpinner("Calculating distinct required ways ids", "18"):
             ways_required_ids = self._calculate_unique_ids_to_parquet(
-                ways_prepared_ids_path, Path(tmp_dir_name) / "ways_required_ids"
+                ways_prepared_ids_path, self.tmp_dir_path / "ways_required_ids"
             )
 
         return PbfFileReader.ConvertedOSMParquetFiles(
@@ -715,16 +710,27 @@ class PbfFileReader:
             relations_filtered_ids=relations_filtered_ids,
         )
 
-    def _delete_directories(
-        self, tmp_dir_name: Union[Path, str], directories: Union[str, list[str]]
-    ) -> None:
-        if isinstance(directories, str):
-            directories = [directories]
-        for directory in directories:
-            directory_path = Path(tmp_dir_name) / directory
-            if not directory_path.exists():
-                continue
-            shutil.rmtree(directory_path)
+    def _delete_directories(self, directories: Union[str, Path, list[Union[str, Path]]]) -> None:
+        _directories = []
+        if isinstance(directories, (str, Path)):
+            _directories = [directories]
+        else:
+            _directories = directories
+        for directory in _directories:
+            if isinstance(directory, Path):
+                directory_path = directory
+            else:
+                directory_path = self.tmp_dir_path / directory
+            tries = 100
+            while directory_path.exists() and tries > 0:
+                try:
+                    shutil.rmtree(directory_path)
+                except Exception as ex:
+                    if tries == 0:
+                        raise ex
+                    sleep(0.5)
+                finally:
+                    tries -= 1
 
     def _generate_osm_tags_sql_filter(self) -> str:
         """Prepare features filter clauses based on tags filter."""
@@ -810,7 +816,12 @@ class PbfFileReader:
         self.connection.sql(f"""
             COPY (
                 SELECT * FROM ({relation.sql_query()})
-            ) TO '{file_path}' (FORMAT 'parquet', PER_THREAD_OUTPUT true, ROW_GROUP_SIZE 25000)
+            ) TO '{file_path}' (
+                FORMAT 'parquet',
+                PER_THREAD_OUTPUT true,
+                ROW_GROUP_SIZE 25000,
+                COMPRESSION '{self.parquet_compression}'
+            )
         """)
         return self.connection.sql(f"""
             SELECT * FROM read_parquet('{file_path}/**')
@@ -825,7 +836,12 @@ class PbfFileReader:
         self.connection.sql(f"""
             COPY (
                 SELECT id FROM read_parquet('{file_path}/**') GROUP BY id
-            ) TO '{result_path}' (FORMAT 'parquet', PER_THREAD_OUTPUT true, ROW_GROUP_SIZE 25000)
+            ) TO '{result_path}' (
+                FORMAT 'parquet',
+                PER_THREAD_OUTPUT true,
+                ROW_GROUP_SIZE 25000,
+                COMPRESSION '{self.parquet_compression}'
+            )
         """)
 
         return self.connection.sql(f"""
@@ -835,28 +851,27 @@ class PbfFileReader:
     def _get_filtered_nodes_with_geometry(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
-        tmp_dir_name: str,
-    ) -> "duckdb.DuckDBPyRelation":
+    ) -> Path:
         nodes_with_geometry = self.connection.sql(f"""
             SELECT
-                n.id,
+                'node/' || n.id as feature_id,
                 n.tags,
                 ST_Point(round(n.lon, 7), round(n.lat, 7)) geometry
             FROM ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
             SEMI JOIN ({osm_parquet_files.nodes_filtered_ids.sql_query()}) fn ON n.id = fn.id
         """)
-        nodes_parquet = self._save_parquet_file_with_geometry(
+        result_path = self.tmp_dir_path / "filtered_nodes_with_geometry"
+        self._save_parquet_file_with_geometry(
             relation=nodes_with_geometry,
-            file_path=Path(tmp_dir_name) / "filtered_nodes_with_geometry",
+            file_path=result_path,
             step_name="Saving filtered nodes with geometries",
             step_number="19",
         )
-        return nodes_parquet
+        return result_path
 
     def _get_ways_refs_with_nodes_structs(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
-        tmp_dir_name: str,
     ) -> "duckdb.DuckDBPyRelation":
         ways_refs_with_nodes_structs = self.connection.sql(f"""
             SELECT
@@ -870,7 +885,7 @@ class PbfFileReader:
         with TaskProgressSpinner("Saving required nodes with structs", "20"):
             ways_refs_parquet = self._save_parquet_file(
                 relation=ways_refs_with_nodes_structs,
-                file_path=Path(tmp_dir_name) / "ways_refs_with_nodes_structs",
+                file_path=self.tmp_dir_path / "ways_refs_with_nodes_structs",
             )
         return ways_refs_parquet
 
@@ -878,11 +893,10 @@ class PbfFileReader:
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
         ways_refs_with_nodes_structs: "duckdb.DuckDBPyRelation",
-        tmp_dir_name: str,
     ) -> "duckdb.DuckDBPyRelation":
-        grouped_ways_path = Path(tmp_dir_name) / "filtered_ways_grouped"
-        grouped_ways_tmp_path = Path(tmp_dir_name) / "filtered_ways_tmp"
-        destination_dir_path = Path(tmp_dir_name) / "filtered_ways_with_linestrings"
+        grouped_ways_path = self.tmp_dir_path / "filtered_ways_grouped"
+        grouped_ways_tmp_path = self.tmp_dir_path / "filtered_ways_tmp"
+        destination_dir_path = self.tmp_dir_path / "filtered_ways_with_linestrings"
 
         with TaskProgressSpinner("Grouping filtered ways", "21"):
             groups = self._group_ways(
@@ -892,6 +906,7 @@ class PbfFileReader:
                 grouped_ways_path=grouped_ways_path,
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
             )
+            self._delete_directories(grouped_ways_tmp_path)
 
         with TaskProgressBar("Saving filtered ways with linestrings", "22") as bar:
             self._construct_ways_linestrings(
@@ -910,11 +925,10 @@ class PbfFileReader:
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
         ways_refs_with_nodes_structs: "duckdb.DuckDBPyRelation",
-        tmp_dir_name: str,
     ) -> "duckdb.DuckDBPyRelation":
-        grouped_ways_path = Path(tmp_dir_name) / "required_ways_grouped"
-        grouped_ways_tmp_path = Path(tmp_dir_name) / "required_ways_tmp"
-        destination_dir_path = Path(tmp_dir_name) / "required_ways_with_linestrings"
+        grouped_ways_path = self.tmp_dir_path / "required_ways_grouped"
+        grouped_ways_tmp_path = self.tmp_dir_path / "required_ways_tmp"
+        destination_dir_path = self.tmp_dir_path / "required_ways_with_linestrings"
 
         with TaskProgressSpinner("Grouping required ways", "23"):
             groups = self._group_ways(
@@ -924,6 +938,7 @@ class PbfFileReader:
                 grouped_ways_path=grouped_ways_path,
                 ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
             )
+            self._delete_directories(grouped_ways_tmp_path)
 
         with TaskProgressBar("Saving required ways with linestrings", "24") as bar:
             self._construct_ways_linestrings(
@@ -989,8 +1004,12 @@ class PbfFileReader:
                 SELECT
                     id, point, ref_idx, "group"
                 FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
-            ) TO '{grouped_ways_path}'
-            (FORMAT 'parquet', PARTITION_BY ("group"), ROW_GROUP_SIZE 25000)
+            ) TO '{grouped_ways_path}' (
+                FORMAT 'parquet',
+                PARTITION_BY ("group"),
+                ROW_GROUP_SIZE 25000,
+                COMPRESSION '{self.parquet_compression}'
+            )
         """)
 
         return groups
@@ -1019,12 +1038,12 @@ class PbfFileReader:
                 relation=ways_with_linestrings,
                 file_path=destination_dir_path / f"group={group}",
             )
+            self._delete_directories(current_ways_group_path)
 
     def _get_filtered_ways_with_proper_geometry(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
         required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
-        tmp_dir_name: str,
     ) -> "duckdb.DuckDBPyRelation":
         osm_way_polygon_features_filter_clauses = [
             "list_contains(map_keys(raw_tags), 'area') AND "
@@ -1090,22 +1109,22 @@ class PbfFileReader:
                 FROM
                     required_ways_with_linestrings w
             )
-            SELECT id, tags, geometry FROM proper_geometries
+            SELECT 'way/' || id as feature_id, tags, geometry FROM proper_geometries
         """)
-        ways_parquet = self._save_parquet_file_with_geometry(
+        result_path = self.tmp_dir_path / "filtered_ways_with_geometry"
+        self._save_parquet_file_with_geometry(
             relation=ways_with_proper_geometry,
-            file_path=Path(tmp_dir_name) / "filtered_ways_with_geometry",
+            file_path=result_path,
             step_name="Saving filtered ways with geometries",
             step_number="25",
         )
-        return ways_parquet
+        return result_path
 
     def _get_filtered_relations_with_geometry(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
         required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
-        tmp_dir_name: str,
-    ) -> "duckdb.DuckDBPyRelation":
+    ) -> Path:
         valid_relation_parts = self.connection.sql(f"""
             WITH unnested_relations AS (
                 SELECT
@@ -1164,7 +1183,7 @@ class PbfFileReader:
         """)
         valid_relation_parts_parquet = self._save_parquet_file_with_geometry(
             relation=valid_relation_parts,
-            file_path=Path(tmp_dir_name) / "valid_relation_parts",
+            file_path=self.tmp_dir_path / "valid_relation_parts",
             step_name="Saving valid relations parts",
             step_number="26",
         )
@@ -1175,7 +1194,7 @@ class PbfFileReader:
         """)
         relation_inner_parts_parquet = self._save_parquet_file_with_geometry(
             relation=relation_inner_parts,
-            file_path=Path(tmp_dir_name) / "relation_inner_parts",
+            file_path=self.tmp_dir_path / "relation_inner_parts",
             fix_geometries=True,
             step_name="Saving relations inner parts",
             step_number="27",
@@ -1187,7 +1206,7 @@ class PbfFileReader:
         """)
         relation_outer_parts_parquet = self._save_parquet_file_with_geometry(
             relation=relation_outer_parts,
-            file_path=Path(tmp_dir_name) / "relation_outer_parts",
+            file_path=self.tmp_dir_path / "relation_outer_parts",
             fix_geometries=True,
             step_name="Saving relations outer parts",
             step_number="28",
@@ -1204,7 +1223,7 @@ class PbfFileReader:
         """)
         relation_outer_parts_with_holes_parquet = self._save_parquet_file_with_geometry(
             relation=relation_outer_parts_with_holes,
-            file_path=Path(tmp_dir_name) / "relation_outer_parts_with_holes",
+            file_path=self.tmp_dir_path / "relation_outer_parts_with_holes",
             step_name="Saving relations outer parts with holes",
             step_number="29",
         )
@@ -1219,7 +1238,7 @@ class PbfFileReader:
         """)
         relation_outer_parts_without_holes_parquet = self._save_parquet_file_with_geometry(
             relation=relation_outer_parts_without_holes,
-            file_path=Path(tmp_dir_name) / "relation_outer_parts_without_holes",
+            file_path=self.tmp_dir_path / "relation_outer_parts_without_holes",
             step_name="Saving relations outer parts without holes",
             step_number="30",
         )
@@ -1236,18 +1255,20 @@ class PbfFileReader:
                 FROM unioned_outer_geometries
                 GROUP BY id
             )
-            SELECT r_g.id, r.tags, r_g.geometry
+            SELECT 'relation/' || r_g.id as feature_id, r.tags, r_g.geometry
             FROM final_geometries r_g
             JOIN ({osm_parquet_files.relations_all_with_tags.sql_query()}) r
             ON r.id = r_g.id
         """)
-        relations_parquet = self._save_parquet_file_with_geometry(
+
+        result_path = self.tmp_dir_path / "filtered_relations_with_geometry"
+        self._save_parquet_file_with_geometry(
             relation=relations_with_geometry,
-            file_path=Path(tmp_dir_name) / "filtered_relations_with_geometry",
+            file_path=result_path,
             step_name="Saving filtered relations with geometries",
             step_number="31",
         )
-        return relations_parquet
+        return result_path
 
     def _save_parquet_file_with_geometry(
         self,
@@ -1267,7 +1288,8 @@ class PbfFileReader:
                     ) TO '{file_path}' (
                         FORMAT 'parquet',
                         PER_THREAD_OUTPUT true,
-                        ROW_GROUP_SIZE 25000
+                        ROW_GROUP_SIZE 25000,
+                        COMPRESSION '{self.parquet_compression}'
                     )
                 """)
         else:
@@ -1290,7 +1312,8 @@ class PbfFileReader:
                     ) TO '{valid_path}' (
                         FORMAT 'parquet',
                         PER_THREAD_OUTPUT true,
-                        ROW_GROUP_SIZE 25000
+                        ROW_GROUP_SIZE 25000,
+                        COMPRESSION '{self.parquet_compression}'
                     )
                 """)
 
@@ -1306,7 +1329,10 @@ class PbfFileReader:
                         FROM ({relation.sql_query()})
                         WHERE NOT ST_IsValid(geometry)
                     ) TO '{invalid_path}' (
-                        FORMAT 'parquet', PARTITION_BY ("group"), ROW_GROUP_SIZE 25000
+                        FORMAT 'parquet',
+                        PARTITION_BY ("group"),
+                        ROW_GROUP_SIZE 25000,
+                        COMPRESSION '{self.parquet_compression}'
                     )
                 """)
 
@@ -1346,7 +1372,7 @@ class PbfFileReader:
                             fixed_path / f"data_{group_id}.parquet",
                         )
 
-            self._delete_directories(invalid_path.parent, ["invalid"])
+            self._delete_directories(invalid_path)
 
         return self.connection.sql(f"""
             SELECT * EXCLUDE (geometry_wkb), ST_GeomFromWKB(geometry_wkb) geometry
@@ -1355,29 +1381,19 @@ class PbfFileReader:
 
     def _concatenate_results_to_geoparquet(
         self,
-        parsed_data: ParsedOSMFeatures,
-        tmp_dir_name: str,
+        parsed_geometries: "duckdb.DuckDBPyRelation",
         save_file_path: Path,
         explode_tags: bool,
     ) -> None:
         select_clauses = [
-            *self._generate_osm_tags_sql_select(parsed_data, explode_tags),
-            "geometry",
+            "feature_id",
+            *self._generate_osm_tags_sql_select(parsed_geometries, explode_tags),
+            "ST_GeomFromWKB(geometry_wkb) AS geometry",
         ]
 
-        node_select_clauses = ["'node/' || id as feature_id", *select_clauses]
-        way_select_clauses = ["'way/' || id as feature_id", *select_clauses]
-        relation_select_clauses = ["'relation/' || id as feature_id", *select_clauses]
-
         unioned_features = self.connection.sql(f"""
-            SELECT {', '.join(node_select_clauses)}
-            FROM ({parsed_data.nodes.sql_query()}) n
-            UNION ALL
-            SELECT {', '.join(way_select_clauses)}
-            FROM ({parsed_data.ways.sql_query()}) w
-            UNION ALL
-            SELECT {', '.join(relation_select_clauses)}
-            FROM ({parsed_data.relations.sql_query()}) r
+            SELECT {', '.join(select_clauses)}
+            FROM ({parsed_geometries.sql_query()})
         """)
 
         grouped_features = self._parse_features_relation_to_groups(unioned_features, explode_tags)
@@ -1387,7 +1403,7 @@ class PbfFileReader:
             WHERE ST_IsValid(geometry)
         """)
 
-        valid_features_parquet_path = Path(tmp_dir_name) / "osm_valid_elements"
+        valid_features_parquet_path = self.tmp_dir_path / "osm_valid_elements"
         valid_features_parquet_relation = self._save_parquet_file_with_geometry(
             valid_features_full_relation,
             valid_features_parquet_path,
@@ -1418,10 +1434,7 @@ class PbfFileReader:
             ON a.feature_id = b.feature_id
         """)
 
-        total_nodes = parsed_data.nodes.count("id").fetchone()[0]
-        total_ways = parsed_data.ways.count("id").fetchone()[0]
-        total_relations = parsed_data.relations.count("id").fetchone()[0]
-        total_features = total_nodes + total_ways + total_relations
+        total_features = parsed_geometries.count("feature_id").fetchone()[0]
 
         valid_features = valid_features_parquet_relation.count("feature_id").fetchone()[0]
 
@@ -1431,7 +1444,7 @@ class PbfFileReader:
             with TaskProgressSpinner("Grouping invalid features", "32.2"):
                 groups = floor(invalid_features / self.rows_per_bucket)
                 grouped_invalid_features_result_parquet = (
-                    Path(tmp_dir_name) / "osm_invalid_elements_grouped"
+                    self.tmp_dir_path / "osm_invalid_elements_grouped"
                 )
                 self.connection.sql(f"""
                     COPY (
@@ -1441,8 +1454,12 @@ class PbfFileReader:
                                 row_number() OVER () / {self.rows_per_bucket}
                             )::INTEGER as "group",
                         FROM ({invalid_features_full_relation.sql_query()})
-                    ) TO '{grouped_invalid_features_result_parquet}'
-                    (FORMAT 'parquet', PARTITION_BY ("group"), ROW_GROUP_SIZE 25000)
+                    ) TO '{grouped_invalid_features_result_parquet}' (
+                        FORMAT 'parquet',
+                        PARTITION_BY ("group"),
+                        ROW_GROUP_SIZE 25000,
+                        COMPRESSION '{self.parquet_compression}'
+                    )
                 """)
 
             with TaskProgressBar("Fixing invalid features", "32.3") as bar:
@@ -1497,7 +1514,7 @@ class PbfFileReader:
             )
 
     def _generate_osm_tags_sql_select(
-        self, parsed_data: ParsedOSMFeatures, explode_tags: bool
+        self, parsed_geometries: "duckdb.DuckDBPyRelation", explode_tags: bool
     ) -> list[str]:
         """Prepare features filter clauses based on tags filter."""
         osm_tag_keys_select_clauses = []
@@ -1507,16 +1524,11 @@ class PbfFileReader:
             osm_tag_keys_select_clauses = ["tags"]
         elif not self.merged_tags_filter and explode_tags:
             osm_tag_keys = set()
-            for elements in (
-                parsed_data.nodes,
-                parsed_data.ways,
-                parsed_data.relations,
-            ):
-                found_tag_keys = [row[0] for row in self.connection.sql(f"""
-                        SELECT DISTINCT UNNEST(map_keys(tags)) tag_key
-                        FROM ({elements.sql_query()})
-                    """).fetchall()]
-                osm_tag_keys.update(found_tag_keys)
+            found_tag_keys = [row[0] for row in self.connection.sql(f"""
+                SELECT DISTINCT UNNEST(map_keys(tags)) tag_key
+                FROM ({parsed_geometries.sql_query()})
+            """).fetchall()]
+            osm_tag_keys.update(found_tag_keys)
             osm_tag_keys_select_clauses = [
                 f"list_extract(map_extract(tags, '{osm_tag_key}'), 1) as \"{osm_tag_key}\""
                 for osm_tag_key in sorted(list(osm_tag_keys))

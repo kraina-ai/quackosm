@@ -45,7 +45,7 @@ Required:
 - pyarrow (>=13.0.0)
 - geoarrow-pyarrow (>=0.1.1)
 - geopandas
-- shapely
+- shapely (>=2.0)
 - typeguard
 
 Optional:
@@ -120,27 +120,119 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 ### Use as CLI
 ```console
 $ quackosm monaco.osm.pbf
-⠹ [   1/18] Filtering nodes • 0:00:00
-⠧ [   2/18] Filtering ways • 0:00:00
-⠴ [   3/18] Filtering relations • 0:00:00
-⠹ [   4/18] Loading required ways • 0:00:00
-⠼ [   5/18] Loading required nodes • 0:00:00
-⠙ [   6/18] Saving nodes with geometries • 0:00:00
-⠙ [   7/18] Saving filtered nodes with structs • 0:00:00
-⠋ [   8/18] Grouping required ways • 0:00:00
-  [   9/18] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 • 0:00:00
-⠹ [  10/18] Saving ways with geometries • 0:00:00
-⠸ [  11/18] Saving valid relation parts • 0:00:00
-⠋ [12.1/18] Saving relation inner parts - valid geometries • 0:00:00
-⠋ [12.2/18] Saving relation inner parts - invalid geometries • 0:00:00
-⠋ [13.1/18] Saving relation outer parts - valid geometries • 0:00:00
-⠋ [13.2/18] Saving relation outer parts - invalid geometries • 0:00:00
-⠋ [  14/18] Saving relation outer parts with holes • 0:00:00
-⠋ [  15/18] Saving relation outer parts without holes • 0:00:00
-⠙ [  16/18] Saving relation with geometries • 0:00:00
-⠹ [17.1/18] Saving valid features • 0:00:00
-⠋ [  18/18] Saving final geoparquet file • 0:00:00
+⠏ [   1/33] Reading nodes • 0:00:00
+⠋ [   2/33] Filtering nodes - intersection • 0:00:00
+⠋ [   3/33] Filtering nodes - tags • 0:00:00
+⠋ [   4/33] Calculating distinct filtered nodes ids • 0:00:00
+⠸ [   5/33] Reading ways • 0:00:00
+⠙ [   6/33] Unnesting ways • 0:00:00
+⠋ [   7/33] Filtering ways - valid refs • 0:00:00
+⠋ [   8/33] Filtering ways - intersection • 0:00:00
+⠋ [   9/33] Filtering ways - tags • 0:00:00
+⠋ [  10/33] Calculating distinct filtered ways ids • 0:00:00
+⠋ [  11/33] Reading relations • 0:00:00
+⠋ [  12/33] Unnesting relations • 0:00:00
+⠋ [  13/33] Filtering relations - valid refs • 0:00:00
+⠋ [  14/33] Filtering relations - intersection • 0:00:00
+⠋ [  15/33] Filtering relations - tags • 0:00:00
+⠋ [  16/33] Calculating distinct filtered relations ids • 0:00:00
+⠋ [  17/33] Loading required ways - by relations • 0:00:00
+⠋ [  18/33] Calculating distinct required ways ids • 0:00:00
+⠙ [  19/33] Saving filtered nodes with geometries • 0:00:00
+⠸ [  20/33] Saving required nodes with structs • 0:00:00
+⠼ [  21/33] Grouping filtered ways • 0:00:00
+  [  22/33] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
+⠙ [  23/33] Grouping required ways • 0:00:00
+  [  24/33] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
+⠴ [  25/33] Saving filtered ways with geometries • 0:00:00
+⠹ [  26/33] Saving valid relations parts • 0:00:00
+⠋ [27.1/33] Saving relations inner parts - valid geometries • 0:00:00
+⠋ [27.2/33] Saving relations inner parts - invalid geometries • 0:00:00
+⠋ [28.1/33] Saving relations outer parts - valid geometries • 0:00:00
+⠋ [28.2/33] Saving relations outer parts - invalid geometries • 0:00:00
+⠋ [  29/33] Saving relations outer parts with holes • 0:00:00
+⠋ [  30/33] Saving relations outer parts without holes • 0:00:00
+⠋ [  31/33] Saving filtered relations with geometries • 0:00:00
+⠸ [32.1/33] Saving valid features • 0:00:00
+⠙ [  33/33] Saving final geoparquet file • 0:00:00
 files/monaco_nofilter_noclip_compact.geoparquet
 ```
+CLI Help output:
+![CLI Help output](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/cli_help.png)
 
 You can find full API + more examples in the [docs](https://kraina-ai.github.io/quackosm/).
+
+## How does it work?
+
+### Basic logic
+
+QuackOSM utilizes `ST_ReadOSM` function from `DuckDB`'s `Spatial` extension to read raw data from the PBF file:
+- **Nodes** with coordinates and tags;
+- **Ways** with nodes refs and tags;
+- **Relations** with nodes and ways refs, ref roles and tags.
+
+Library contains a logic to construct geometries (points, linestrings, polygons) from those raw features.
+
+1. Read nodes from the PBF file, save them to the parquet file.
+   1. (Optional) Filter nodes based on geometry filter
+   2. (Optional) Filter nodes based on tags filter
+2. Read ways from the PBF file, save them to the parquet file.
+   1. Select all nodes refs and join them with previously read nodes.
+   2. (Optional) Filter ways based on geometry filter - join intersecting nodes
+   3. (Optional) Filter ways based on tags filter
+3. Read relations from the PBF file, save them to the parquet file.
+   1. Select all ways refs and join them with previously read ways.
+   2. (Optional) Filter relations based on geometry filter - join intersecting ways
+   3. (Optional) Filter relations based on tags filter
+4. Select ways required by filtered relations
+5. Select nodes required by filtered and required ways
+6. Save filtered nodes with point geometries
+7. Group ways with nodes geometries and contruct linestrings
+8. Save filtered ways with linestrings and polygon geometries (depending on tags values)
+9. Divide relation parts into inner and outer polygons
+10. Group relation parts into full (multi)polygons and save them
+11. Fix invalid geometries
+12. Return final GeoParquet file
+
+### Memory usage
+
+DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk.
+
+QuackOSM has been roughly tuned to different workloads. The `rows_per_bucket` variable is set based on an available memory in the system:
+
+| Memory     | Rows per group |
+|-----------:|---------------:|
+|     < 8 GB |        100 000 |
+|  8 - 16 GB |        500 000 |
+| 16 - 24 GB |      1 000 000 |
+|    > 24 GB |      5 000 000 |
+
+> WSL usage: sometimes code can break since DuckDB is trying to use all available memory, that can be occupied by Windows.
+
+### Disk usage
+
+The algorithm depends on saving intermediate `.parquet` files between queries.
+As a rule of thumb, when parsing a full file without filtering, you should have at least 10x more free space on disk than the base file size (100MB pbf file -> 1GB free space to parse it).
+
+Below you can see the chart of disk usage during operation. Generated on a machine with Intel i7-4790 CPU with 32 GB of RAM. Red dotted line represents the size of the base file.
+
+#### Monaco
+PBF file size: 525 KB
+
+[Geofabrik link](https://download.geofabrik.de/europe/monaco.html)
+
+![Monaco PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/monaco_disk_spillage.png)
+
+#### Estonia
+PBF file size: 100 MB
+
+[Geofabrik link](https://download.geofabrik.de/europe/estonia.html)
+
+![Estonia PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/estonia_disk_spillage.png)
+
+#### Poland
+PBF file size: 1.7 GB
+
+[Geofabrik link](https://download.geofabrik.de/europe/poland.html)
+
+![Poland PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_disk_spillage.png)
