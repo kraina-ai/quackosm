@@ -152,24 +152,28 @@ def main(
         Optional[str],
         typer.Option(
             help=(
-                "OSM tags used to filter the data. Can the the form of flat or grouped dict "
+                "OSM tags used to filter the data in the "
+                "[bold dark_orange]JSON text[/bold dark_orange] form."
+                " Can take the form of a flat or grouped dict "
                 "(look: [bold green]OsmTagsFilter[/bold green]"
                 " and [bold green]GroupedOsmTagsFilter[/bold green])."
                 " Cannot be used together with"
-                " [bold dark_orange]osm-tags-filter-json[/bold dark_orange]."
+                " [bold bright_cyan]osm-tags-filter-file[/bold bright_cyan]."
             ),
             click_type=OsmTagsFilterJsonParser(),
         ),
     ] = None,
-    osm_tags_filter_json: Annotated[
+    osm_tags_filter_file: Annotated[
         Optional[str],
         typer.Option(
             help=(
-                "OSM tags used to filter the data. Can the the form of flat or grouped dict "
+                "OSM tags used to filter the data in the "
+                "[bold dark_orange]JSON file[/bold dark_orange] form."
+                " Can take the form of a flat or grouped dict "
                 "(look: [bold green]OsmTagsFilter[/bold green]"
                 " and [bold green]GroupedOsmTagsFilter[/bold green])."
                 " Cannot be used together with"
-                " [bold dark_orange]osm-tags-filter[/bold dark_orange]."
+                " [bold bright_cyan]osm-tags-filter[/bold bright_cyan]."
             ),
             click_type=OsmTagsFilterFileParser(),
         ),
@@ -178,10 +182,11 @@ def main(
         Optional[str],
         typer.Option(
             help=(
-                "Geometry to use as filter in [bold green]WKT[/bold green] format."
+                "Geometry to use as a filter in the [bold dark_orange]WKT[/bold dark_orange]"
+                " format."
                 " Cannot be used together with"
-                " [bold dark_orange]geom-filter-geojson[/bold dark_orange] or"
-                " [bold dark_orange]geom-filter-file[/bold dark_orange]."
+                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-file[/bold bright_cyan]."
             ),
             click_type=WktGeometryParser(),
         ),
@@ -190,10 +195,11 @@ def main(
         Optional[str],
         typer.Option(
             help=(
-                "Geometry to use as filter in [bold green]GeoJSON[/bold green] format."
+                "Geometry to use as a filter in the [bold dark_orange]GeoJSON[/bold dark_orange]"
+                " format."
                 " Cannot be used used together with"
-                " [bold dark_orange]geom-filter-wkt[/bold dark_orange] or"
-                " [bold dark_orange]geom-filter-file[/bold dark_orange]."
+                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-file[/bold bright_cyan]."
             ),
             click_type=GeoJsonGeometryParser(),
         ),
@@ -202,11 +208,12 @@ def main(
         Optional[str],
         typer.Option(
             help=(
-                "Geometry to use as filter in [bold green]file[/bold green] format - any that can"
-                " be opened by GeoPandas. Fill return unary_union of the file."
+                "Geometry to use as a filter in the"
+                " [bold dark_orange]file[/bold dark_orange] format - any that can be opened by"
+                " GeoPandas. Will return the unary union of the geometries in the file."
                 " Cannot be used together with"
-                " [bold dark_orange]geom-filter-wkt[/bold dark_orange] or"
-                " [bold dark_orange]geom-filter-geojson[/bold dark_orange]."
+                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan]."
             ),
             click_type=GeoFileGeometryParser(),
         ),
@@ -217,12 +224,13 @@ def main(
             "--explode-tags/--compact-tags",
             "--explode/--compact",
             help=(
-                "Whether to split tags into columns based on OSM tag keys. "
-                "If [bold violet]None[/bold violet], will be set based on "
-                "[bold dark_orange]osm-tags-filter[/bold dark_orange] parameter. "
-                "If no tags filter is provided, then explode_tags will set to [bold"
-                " red]False[/bold red], "
-                "if there is tags filter it will set to [bold green]True[/bold green]."
+                "Whether to split tags into columns based on the OSM tag keys."
+                " If [bold violet]None[/bold violet], it will be set based on"
+                " the [bold bright_cyan]osm-tags-filter[/bold bright_cyan] parameter."
+                " If no tags filter is provided, then"
+                " [bold bright_cyan]explode_tags[/bold bright_cyan] will be set to"
+                " [bold red]False[/bold red], if there is a tags filter it will be set to"
+                " [bold green]True[/bold green]."
             ),
             show_default=None,
         ),
@@ -233,8 +241,8 @@ def main(
             "--output",
             "-o",
             help=(
-                "Path where to save final geoparquet file. If not provided, will be generated"
-                " automatically based on input pbf file name."
+                "Path where to save final geoparquet file. If not provided, it will be generated"
+                " automatically based on the input pbf file name."
             ),
         ),
     ] = None,
@@ -266,7 +274,7 @@ def main(
                 "Config where alternative OSM way polygon features config is defined."
                 " Will determine how to parse way features based on tags."
                 " Option is intended for experienced users. It's recommended to disable"
-                " cache ([bold dark_orange]no-cache[/bold dark_orange]) when using this option,"
+                " cache ([bold bright_cyan]no-cache[/bold bright_cyan]) when using this option,"
                 " since file names don't contain information what config file has been used"
                 " for file generation."
             ),
@@ -279,8 +287,8 @@ def main(
             "--filter-osm-id",
             "--filter",
             help=(
-                "List of OSM features ids to read from the file."
-                "Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'."
+                "List of OSM features IDs to read from the file."
+                " Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'."
             ),
             callback=_filter_osm_ids_callback,
         ),
@@ -308,12 +316,12 @@ def main(
     if more_than_one_geometry_provided:
         raise typer.BadParameter("Provided more than one geometry for filtering")
 
-    if osm_tags_filter is not None and osm_tags_filter_json is not None:
+    if osm_tags_filter is not None and osm_tags_filter_file is not None:
         raise typer.BadParameter("Provided more than one osm tags filter parameter")
 
     geoparquet_path = convert_pbf_to_gpq(
         pbf_path=pbf_file,
-        tags_filter=osm_tags_filter or osm_tags_filter_json,  # type: ignore
+        tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
         geometry_filter=geom_filter_wkt or geom_filter_geojson or geom_filter_file,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,

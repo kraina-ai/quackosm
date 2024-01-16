@@ -123,7 +123,7 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
 @P.case(
     "OSM tags filter file",
     [
-        "--osm-tags-filter-json",
+        "--osm-tags-filter-file",
         osm_tags_filter_file_path(),
     ],
     "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet",
@@ -131,7 +131,7 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
 @P.case(
     "OSM tags filter file compact",
     [
-        "--osm-tags-filter-json",
+        "--osm-tags-filter-file",
         osm_tags_filter_file_path(),
         "--compact",
     ],
@@ -205,13 +205,13 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
     [
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
-        "--osm-tags-filter-json",
+        "--osm-tags-filter-file",
         osm_tags_filter_file_path(),
     ],
 )  # type: ignore
 @P.case(
     "OSM tags nonexistent file filter",
-    ["--osm-tags-filter-json", "nonexistent_json_file.json"],
+    ["--osm-tags-filter-file", "nonexistent_json_file.json"],
 )  # type: ignore
 @P.case("Geometry WKT filter with GeoJSON", ["--geom-filter-wkt", geometry_geojson()])  # type: ignore
 @P.case("Geometry GeoJSON filter with WKT", ["--geom-filter-geojson", geometry_wkt()])  # type: ignore
