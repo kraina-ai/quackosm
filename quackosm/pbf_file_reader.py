@@ -180,12 +180,13 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None
+            explode_tags = self.tags_filter is not None and not keep_all_tags
 
         parsed_geoparquet_files = []
         for file_path in file_paths:
             parsed_geoparquet_file = self.convert_pbf_to_gpq(
                 file_path,
+                keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
                 ignore_cache=ignore_cache,
                 filter_osm_ids=filter_osm_ids,
@@ -242,7 +243,7 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None
+            explode_tags = self.tags_filter is not None and not keep_all_tags
 
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
@@ -251,12 +252,14 @@ class PbfFileReader:
                 result_file_path = result_file_path or self._generate_geoparquet_result_file_path(
                     pbf_path,
                     filter_osm_ids=filter_osm_ids,
+                    keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
                 )
                 parsed_geoparquet_file = self._parse_pbf_file(
                     pbf_path=pbf_path,
                     result_file_path=Path(result_file_path),
                     filter_osm_ids=filter_osm_ids,
+                    keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
                     ignore_cache=ignore_cache,
                 )
@@ -289,6 +292,7 @@ class PbfFileReader:
         pbf_path: Union[str, Path],
         result_file_path: Path,
         filter_osm_ids: list[str],
+        keep_all_tags: bool = False,
         explode_tags: bool = True,
         ignore_cache: bool = False,
     ) -> Path:
@@ -384,6 +388,7 @@ class PbfFileReader:
             self._concatenate_results_to_geoparquet(
                 parsed_geometries=parsed_geometries,
                 save_file_path=result_file_path,
+                keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
             )
 
@@ -392,6 +397,7 @@ class PbfFileReader:
     def _generate_geoparquet_result_file_path(
         self,
         pbf_file_path: Union[str, Path],
+        keep_all_tags: bool,
         explode_tags: bool,
         filter_osm_ids: list[str],
     ) -> Path:
@@ -399,9 +405,10 @@ class PbfFileReader:
 
         osm_filter_tags_hash_part = "nofilter"
         if self.tags_filter is not None:
+            keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
             h.update(json.dumps(self.tags_filter).encode())
-            osm_filter_tags_hash_part = h.hexdigest()
+            osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = "noclip"
         if self.geometry_filter is not None:
@@ -1393,11 +1400,14 @@ class PbfFileReader:
         self,
         parsed_geometries: "duckdb.DuckDBPyRelation",
         save_file_path: Path,
+        keep_all_tags: bool,
         explode_tags: bool,
     ) -> None:
         select_clauses = [
             "feature_id",
-            *self._generate_osm_tags_sql_select(parsed_geometries, explode_tags),
+            *self._generate_osm_tags_sql_select(
+                parsed_geometries, keep_all_tags=keep_all_tags, explode_tags=explode_tags
+            ),
             "ST_GeomFromWKB(geometry_wkb) AS geometry",
         ]
 
@@ -1524,15 +1534,20 @@ class PbfFileReader:
             )
 
     def _generate_osm_tags_sql_select(
-        self, parsed_geometries: "duckdb.DuckDBPyRelation", explode_tags: bool
+        self, parsed_geometries: "duckdb.DuckDBPyRelation", keep_all_tags: bool, explode_tags: bool
     ) -> list[str]:
         """Prepare features filter clauses based on tags filter."""
         osm_tag_keys_select_clauses = []
 
-        # TODO: elif keep other tags
-        if not self.merged_tags_filter and not explode_tags:
+        no_tags_filter = not self.merged_tags_filter
+        tags_filter_and_keep_all_tags = self.merged_tags_filter and keep_all_tags
+        keep_tags_compact = not explode_tags
+
+        if (no_tags_filter and keep_tags_compact) or (
+            tags_filter_and_keep_all_tags and keep_tags_compact
+        ):
             osm_tag_keys_select_clauses = ["tags"]
-        elif not self.merged_tags_filter and explode_tags:
+        elif (no_tags_filter and explode_tags) or (tags_filter_and_keep_all_tags and explode_tags):
             osm_tag_keys = set()
             found_tag_keys = [row[0] for row in self.connection.sql(f"""
                 SELECT DISTINCT UNNEST(map_keys(tags)) tag_key
@@ -1543,7 +1558,7 @@ class PbfFileReader:
                 f"list_extract(map_extract(tags, '{osm_tag_key}'), 1) as \"{osm_tag_key}\""
                 for osm_tag_key in sorted(list(osm_tag_keys))
             ]
-        elif self.merged_tags_filter and not explode_tags:
+        elif self.merged_tags_filter and keep_tags_compact:
             filter_tag_clauses = []
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
                 if isinstance(filter_tag_value, bool) and filter_tag_value:

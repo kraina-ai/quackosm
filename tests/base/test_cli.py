@@ -182,6 +182,42 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     "files/monaco_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet",
 )  # type: ignore
 @P.case(
+    "Keep all tags",
+    [
+        "--keep-all-tags",
+    ],
+    "files/monaco_nofilter_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter with keep all tags",
+    [
+        "--keep-all-tags",
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter with keep all tags compact",
+    [
+        "--keep-all-tags",
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+        "--compact",
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter with keep all tags exploded",
+    [
+        "--keep-all-tags",
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+        "--explode",
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_exploded.geoparquet",
+)  # type: ignore
+@P.case(
     "OSM way polygon config",
     ["--osm-way-polygon-config", osm_way_config_file_path()],
     "files/monaco_nofilter_noclip_compact.geoparquet",

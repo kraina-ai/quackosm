@@ -343,6 +343,7 @@ def main(
     geoparquet_path = convert_pbf_to_gpq(
         pbf_path=pbf_file,
         tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+        keep_all_tags=keep_all_tags,
         geometry_filter=geom_filter_wkt or geom_filter_geojson or geom_filter_file,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
