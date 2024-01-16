@@ -158,6 +158,17 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
                 "building:levels",
             ],
         ),
+        ("way/627022271", {"leisure": "garden"}, False, ["leisure"]),
+        (
+            "way/627022271",
+            {"leisure": "garden"},
+            True,
+            [
+                "addr:country",
+                "leisure",
+                "name",
+            ],
+        ),
     ],
 )
 def test_pbf_reader_proper_tags_reading(
@@ -166,7 +177,7 @@ def test_pbf_reader_proper_tags_reading(
     keep_all_tags: bool,
     expected_tags_keys: list[str],
 ):
-    """Test proper tags tags reading in `PbfFileReader`."""
+    """Test proper tags reading with filtering in `PbfFileReader`."""
     file_name = "monaco.osm.pbf"
     features_gdf = PbfFileReader(tags_filter=osm_tags_filter).get_features_gdf(
         file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
