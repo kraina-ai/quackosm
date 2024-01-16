@@ -21,6 +21,7 @@ def convert_pbf_to_gpq(
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     result_file_path: Optional[Union[str, Path]] = None,
+    keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -47,10 +48,14 @@ def convert_pbf_to_gpq(
         result_file_path (Union[str, Path], optional): Where to save
             the geoparquet file. If not provided, will be generated based on hashes
             from provided tags filter and geometry filter. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
         explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
-            If `None`, will be set based on `tags_filter` parameter. If no tags filter is provided,
-            then `explode_tags` will set to `False`, if there is tags filter it will set to `True`.
-            Defaults to `None`.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -220,6 +225,7 @@ def convert_pbf_to_gpq(
     ).convert_pbf_to_gpq(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
+        keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
@@ -230,6 +236,7 @@ def get_features_gdf(
     file_paths: Union[str, Path, Iterable[Union[str, Path]]],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
+    keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -257,10 +264,14 @@ def get_features_gdf(
             If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
         geometry_filter (BaseGeometry, optional): Region which can be used to filter only
             intersecting OSM objects. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
         explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
-            If `None`, will be set based on `tags_filter` parameter. If no tags filter is provided,
-            then `explode_tags` will set to `False`, if there is tags filter it will set to `True`.
-            Defaults to `None`.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -392,6 +403,7 @@ def get_features_gdf(
         osm_way_polygon_features_config=osm_way_polygon_features_config,
     ).get_features_gdf(
         file_paths=file_paths,
+        keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,

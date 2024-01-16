@@ -44,6 +44,11 @@ def geometry_boundary_file_path() -> str:
     return str(Path(__file__).parent.parent / "test_files" / "monaco_boundary.geojson")
 
 
+def osm_tags_filter_file_path() -> str:
+    """OSM tags filter file path."""
+    return str(Path(__file__).parent.parent / "test_files" / "osm_tags_filter.json")
+
+
 def osm_way_config_file_path() -> str:
     """OSM way features config file path."""
     return str(Path(__file__).parent.parent.parent / "quackosm" / "osm_way_polygon_features.json")
@@ -116,6 +121,40 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.geoparquet",
 )  # type: ignore
 @P.case(
+    "OSM tags filter file",
+    [
+        "--osm-tags-filter-file",
+        osm_tags_filter_file_path(),
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter file compact",
+    [
+        "--osm-tags-filter-file",
+        osm_tags_filter_file_path(),
+        "--compact",
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter grouped",
+    [
+        "--osm-tags-filter",
+        '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
+    ],
+    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_exploded.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter grouped compact",
+    [
+        "--osm-tags-filter",
+        '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
+        "--compact",
+    ],
+    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
     "files/monaco_nofilter_430020b6b1ba7bef8ea919b2fb4472dab2972c70a2abae253760a56c29f449c4_compact.geoparquet",
@@ -143,6 +182,42 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     "files/monaco_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet",
 )  # type: ignore
 @P.case(
+    "Keep all tags",
+    [
+        "--keep-all-tags",
+    ],
+    "files/monaco_nofilter_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter with keep all tags",
+    [
+        "--keep-all-tags",
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter with keep all tags compact",
+    [
+        "--keep-all-tags",
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+        "--compact",
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter with keep all tags exploded",
+    [
+        "--keep-all-tags",
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+        "--explode",
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_exploded.geoparquet",
+)  # type: ignore
+@P.case(
     "OSM way polygon config",
     ["--osm-way-polygon-config", osm_way_config_file_path()],
     "files/monaco_nofilter_noclip_compact.geoparquet",
@@ -158,25 +233,55 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
 
 @P.parameters("args")  # type: ignore
 @P.case(
-    "OSM tags filter",
+    "OSM tags filter malfunctioned JSON",
     [
         "--osm-tags-filter",
         '{"building": True, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
 )  # type: ignore
 @P.case(
-    "OSM tags filter",
+    "OSM tags filter malfunctioned JSON",
     [
         "--osm-tags-filter",
         '{"building": true, highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
 )  # type: ignore
 @P.case(
-    "OSM tags filter",
+    "OSM tags filter malfunctioned JSON",
     [
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"',
     ],
+)  # type: ignore
+@P.case(
+    "OSM tags filter wrong type",
+    [
+        "--osm-tags-filter",
+        (
+            '{"super_group": {"group": {"building": true, "highway": ["primary", "secondary"],'
+            ' "amenity": "bench"} } }'
+        ),
+    ],
+)  # type: ignore
+@P.case(
+    "OSM tags filter wrong type",
+    [
+        "--osm-tags-filter",
+        '{"group": [{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}] }',
+    ],
+)  # type: ignore
+@P.case(
+    "OSM tags two filters",
+    [
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+        "--osm-tags-filter-file",
+        osm_tags_filter_file_path(),
+    ],
+)  # type: ignore
+@P.case(
+    "OSM tags nonexistent file filter",
+    ["--osm-tags-filter-file", "nonexistent_json_file.json"],
 )  # type: ignore
 @P.case("Geometry WKT filter with GeoJSON", ["--geom-filter-wkt", geometry_geojson()])  # type: ignore
 @P.case("Geometry GeoJSON filter with WKT", ["--geom-filter-geojson", geometry_wkt()])  # type: ignore
@@ -187,6 +292,10 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
 @P.case(
     "Geometry nonexistent file filter",
     ["--geom-filter-file", "nonexistent_geojson_file.geojson"],
+)  # type: ignore
+@P.case(
+    "Geometry wrong file filter",
+    ["--geom-filter-file", osm_tags_filter_file_path()],
 )  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-id", "124"])  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-id", "w/124"])  # type: ignore
@@ -199,8 +308,12 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
 @P.case("Filter OSM", ["--filter-osm-id", "r124"])  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-id", "relation124"])  # type: ignore
 @P.case("OSM way polygon config", ["--osm-way-polygon-config", "nonexistent_json_file.json"])  # type: ignore
-def test_wrong_args(monaco_pbf_file_path: str, args: list[str]) -> None:
+def test_wrong_args(
+    monaco_pbf_file_path: str, args: list[str], capsys: pytest.CaptureFixture
+) -> None:
     """Test if doesn't run properly with options."""
-    result = runner.invoke(cli.app, [monaco_pbf_file_path, *args])
-
-    assert result.exit_code != 0
+    # Fix for the I/O error from the Click repository
+    # https://github.com/pallets/click/issues/824#issuecomment-1583293065
+    with capsys.disabled():
+        result = runner.invoke(cli.app, [monaco_pbf_file_path, *args])
+        assert result.exit_code != 0

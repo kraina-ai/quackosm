@@ -1,0 +1,8 @@
+{
+    "building": true,
+    "highway": [
+        "primary",
+        "secondary"
+    ],
+    "amenity": "bench"
+}
