@@ -4,13 +4,14 @@ import json
 import pathlib
 from typing import Annotated, Optional, Union, cast
 
+import click
 import geopandas as gpd
 import typer
 from shapely import from_geojson, from_wkt
-from shapely.geometry.base import BaseGeometry
 
 from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
+from quackosm._typing import is_expected_type
 from quackosm.functions import convert_pbf_to_gpq
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -38,47 +39,95 @@ def _empty_path_callback(ctx: typer.Context, value: pathlib.Path) -> Optional[pa
     return value
 
 
-def _wkt_callback(value: str) -> BaseGeometry:
-    if not value:
-        return None
-    try:
-        return from_wkt(value)
-    except Exception:
-        raise typer.BadParameter("Cannot parse provided WKT") from None
+class WktGeometryParser(click.ParamType):  # type: ignore
+    """Parser for geometry in WKT form."""
+
+    name = "TEXT (WKT)"
+
+    def convert(self, value, param, ctx):  # type: ignore
+        """Convert parameter value."""
+        if not value:
+            return None
+        try:
+            return from_wkt(value)
+        except Exception:
+            raise typer.BadParameter("Cannot parse provided WKT") from None
 
 
-def _geojson_callback(value: str) -> BaseGeometry:
-    if not value:
-        return None
-    try:
-        return from_geojson(value)
-    except Exception:
-        raise typer.BadParameter("Cannot parse provided GeoJSON") from None
+class GeoJsonGeometryParser(click.ParamType):  # type: ignore
+    """Parser for geometry in GeoJSON form."""
+
+    name = "TEXT (GeoJSON)"
+
+    def convert(self, value, param, ctx):  # type: ignore
+        """Convert parameter value."""
+        if not value:
+            return None
+        try:
+            return from_geojson(value)
+        except Exception:
+            raise typer.BadParameter("Cannot parse provided GeoJSON") from None
 
 
-def _geo_file_callback(value: str) -> BaseGeometry:
-    if not value:
-        return None
+class GeoFileGeometryParser(click.ParamType):  # type: ignore
+    """Parser for geometry in geo file form."""
 
-    if not pathlib.Path(value).exists():
-        raise typer.BadParameter("Cannot parse provided geo file")
+    name = "PATH"
 
-    try:
-        gdf = gpd.read_file(value)
-        return gdf.unary_union
-    except Exception:
-        raise typer.BadParameter("Cannot parse provided geo file") from None
+    def convert(self, value, param, ctx):  # type: ignore
+        """Convert parameter value."""
+        if not value:
+            return None
+
+        if not pathlib.Path(value).exists():
+            raise typer.BadParameter("Cannot parse provided geo file")
+
+        try:
+            gdf = gpd.read_file(value)
+            return gdf.unary_union
+        except Exception:
+            raise typer.BadParameter("Cannot parse provided geo file") from None
 
 
-def parse_tags_filter(value: str) -> Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]]:
-    """Parse provided cli agrument to tags filter."""
-    if not value:
-        return None
-    try:
-        parsed_dict = json.loads(value)
-        return cast(Union[OsmTagsFilter, GroupedOsmTagsFilter], parsed_dict)
-    except Exception:
-        raise typer.BadParameter("Cannot parse provided OSM tags filter") from None
+class OsmTagsFilterJsonParser(click.ParamType):  # type: ignore
+    """Parser for OSM tags filter in JSON form."""
+
+    name = "TEXT (JSON)"
+
+    def convert(self, value, param, ctx):  # type: ignore
+        """Convert parameter value."""
+        if not value:
+            return None
+        try:
+            parsed_dict = json.loads(value)
+            if not is_expected_type(parsed_dict, OsmTagsFilter) and not is_expected_type(
+                parsed_dict, GroupedOsmTagsFilter
+            ):
+                raise typer.BadParameter(
+                    "Provided OSM tags filter is not in a required format."
+                ) from None
+
+            return cast(Union[OsmTagsFilter, GroupedOsmTagsFilter], parsed_dict)
+        except Exception:
+            raise typer.BadParameter("Cannot parse provided OSM tags filter") from None
+
+
+class OsmTagsFilterFileParser(OsmTagsFilterJsonParser):
+    """Parser for OSM tags filter in file form."""
+
+    name = "PATH"
+
+    def convert(self, value, param, ctx):  # type: ignore
+        """Convert parameter value."""
+        if not value:
+            return None
+
+        file_path = pathlib.Path(value)
+
+        if not file_path.exists():
+            raise typer.BadParameter("Cannot parse provided OSM tags filter file")
+
+        return super().convert(file_path.read_text(), param, ctx)  # type: ignore
 
 
 def _filter_osm_ids_callback(value: list[str]) -> list[str]:
@@ -102,12 +151,27 @@ def main(
     osm_tags_filter: Annotated[
         Optional[str],
         typer.Option(
-            parser=parse_tags_filter,
             help=(
                 "OSM tags used to filter the data. Can the the form of flat or grouped dict "
                 "(look: [bold green]OsmTagsFilter[/bold green]"
                 " and [bold green]GroupedOsmTagsFilter[/bold green])."
+                " Cannot be used together with"
+                " [bold dark_orange]osm-tags-filter-json[/bold dark_orange]."
             ),
+            click_type=OsmTagsFilterJsonParser(),
+        ),
+    ] = None,
+    osm_tags_filter_json: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "OSM tags used to filter the data. Can the the form of flat or grouped dict "
+                "(look: [bold green]OsmTagsFilter[/bold green]"
+                " and [bold green]GroupedOsmTagsFilter[/bold green])."
+                " Cannot be used together with"
+                " [bold dark_orange]osm-tags-filter[/bold dark_orange]."
+            ),
+            click_type=OsmTagsFilterFileParser(),
         ),
     ] = None,
     geom_filter_wkt: Annotated[
@@ -119,7 +183,7 @@ def main(
                 " [bold dark_orange]geom-filter-geojson[/bold dark_orange] or"
                 " [bold dark_orange]geom-filter-file[/bold dark_orange]."
             ),
-            parser=_wkt_callback,
+            click_type=WktGeometryParser(),
         ),
     ] = None,
     geom_filter_geojson: Annotated[
@@ -131,7 +195,7 @@ def main(
                 " [bold dark_orange]geom-filter-wkt[/bold dark_orange] or"
                 " [bold dark_orange]geom-filter-file[/bold dark_orange]."
             ),
-            parser=_geojson_callback,
+            click_type=GeoJsonGeometryParser(),
         ),
     ] = None,
     geom_filter_file: Annotated[
@@ -144,7 +208,7 @@ def main(
                 " [bold dark_orange]geom-filter-wkt[/bold dark_orange] or"
                 " [bold dark_orange]geom-filter-geojson[/bold dark_orange]."
             ),
-            parser=_geo_file_callback,
+            click_type=GeoFileGeometryParser(),
         ),
     ] = None,
     explode_tags: Annotated[
@@ -244,9 +308,12 @@ def main(
     if more_than_one_geometry_provided:
         raise typer.BadParameter("Provided more than one geometry for filtering")
 
+    if osm_tags_filter is not None and osm_tags_filter_json is not None:
+        raise typer.BadParameter("Provided more than one osm tags filter parameter")
+
     geoparquet_path = convert_pbf_to_gpq(
         pbf_path=pbf_file,
-        tags_filter=osm_tags_filter,  # type: ignore
+        tags_filter=osm_tags_filter or osm_tags_filter_json,  # type: ignore
         geometry_filter=geom_filter_wkt or geom_filter_geojson or geom_filter_file,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,

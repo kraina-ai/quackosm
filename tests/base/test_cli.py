@@ -44,6 +44,11 @@ def geometry_boundary_file_path() -> str:
     return str(Path(__file__).parent.parent / "test_files" / "monaco_boundary.geojson")
 
 
+def osm_tags_filter_file_path() -> str:
+    """OSM tags filter file path."""
+    return str(Path(__file__).parent.parent / "test_files" / "osm_tags_filter.json")
+
+
 def osm_way_config_file_path() -> str:
     """OSM way features config file path."""
     return str(Path(__file__).parent.parent.parent / "quackosm" / "osm_way_polygon_features.json")
@@ -116,6 +121,23 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.geoparquet",
 )  # type: ignore
 @P.case(
+    "OSM tags filter file",
+    [
+        "--osm-tags-filter-json",
+        osm_tags_filter_file_path(),
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter file compact",
+    [
+        "--osm-tags-filter-json",
+        osm_tags_filter_file_path(),
+        "--compact",
+    ],
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
     "files/monaco_nofilter_430020b6b1ba7bef8ea919b2fb4472dab2972c70a2abae253760a56c29f449c4_compact.geoparquet",
@@ -177,6 +199,19 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"',
     ],
+)  # type: ignore
+@P.case(
+    "OSM tags two filters",
+    [
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+        "--osm-tags-filter-json",
+        osm_tags_filter_file_path(),
+    ],
+)  # type: ignore
+@P.case(
+    "OSM tags nonexistent file filter",
+    ["--osm-tags-filter-json", "nonexistent_json_file.json"],
 )  # type: ignore
 @P.case("Geometry WKT filter with GeoJSON", ["--geom-filter-wkt", geometry_geojson()])  # type: ignore
 @P.case("Geometry GeoJSON filter with WKT", ["--geom-filter-geojson", geometry_wkt()])  # type: ignore
