@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2024-01-16
+
 ### Added
 
 - Option to pass OSM tags filter in the form of JSON file to the CLI
@@ -75,7 +77,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.3.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.3.3...HEAD
+
+[0.3.3]: https://github.com/kraina-ai/quackosm/compare/0.3.2...0.3.3
 
 [0.3.2]: https://github.com/kraina-ai/quackosm/compare/0.3.1...0.3.2
 
