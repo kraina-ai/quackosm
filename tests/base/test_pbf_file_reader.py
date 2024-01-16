@@ -25,7 +25,7 @@ from srai.loaders.download import download_file
 from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm._constants import FEATURES_INDEX
-from quackosm._osm_tags_filters import OsmTagsFilter
+from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.pbf_file_reader import PbfFileReader
 
 ut = TestCase()
@@ -138,6 +138,46 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
         filter_osm_ids=filter_osm_ids,
     )
     assert len(features_gdf) == expected_result_length
+
+
+@pytest.mark.parametrize(  # type: ignore
+    "filter_osm_id,osm_tags_filter,keep_all_tags,expected_tags_keys",
+    [
+        ("way/389888402", {"building": "apartments"}, False, ["building"]),
+        (
+            "way/389888402",
+            {"building": "apartments"},
+            True,
+            [
+                "addr:city",
+                "addr:country",
+                "addr:housenumber",
+                "addr:postcode",
+                "addr:street",
+                "building",
+                "building:levels",
+            ],
+        ),
+    ],
+)
+def test_pbf_reader_proper_tags_reading(
+    filter_osm_id: str,
+    osm_tags_filter: Union[OsmTagsFilter, GroupedOsmTagsFilter],
+    keep_all_tags: bool,
+    expected_tags_keys: list[str],
+):
+    """Test proper tags tags reading in `PbfFileReader`."""
+    file_name = "monaco.osm.pbf"
+    features_gdf = PbfFileReader(tags_filter=osm_tags_filter).get_features_gdf(
+        file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
+        ignore_cache=True,
+        filter_osm_ids=[filter_osm_id],
+        explode_tags=False,
+        keep_all_tags=keep_all_tags,
+    )
+    assert len(features_gdf) == 1
+    returned_tags_keys = list(features_gdf.iloc[0].tags.keys())
+    ut.assertListEqual(returned_tags_keys, expected_tags_keys)
 
 
 # Copyright (C) 2011 by Hong Minhee <http://dahlia.kr/>,
