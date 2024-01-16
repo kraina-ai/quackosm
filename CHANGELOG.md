@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass OSM tags filter in the form of JSON file to the CLI
+- Option to keep all tags when filtering with the OSM tags [#25](https://github.com/kraina-ai/quackosm/issues/25)
+
+### Changed
+
+- Logic for `explode_tags` parameter when filtering based on tags, but still keeping them all
+
+### Fixed
+
+- Typos in the CLI docs
+
 ## [0.3.2] - 2024-01-10
 
 ### Added
