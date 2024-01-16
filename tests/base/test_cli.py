@@ -138,6 +138,23 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.geoparquet",
 )  # type: ignore
 @P.case(
+    "OSM tags filter grouped",
+    [
+        "--osm-tags-filter",
+        '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
+    ],
+    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_exploded.geoparquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter grouped compact",
+    [
+        "--osm-tags-filter",
+        '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
+        "--compact",
+    ],
+    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_compact.geoparquet",
+)  # type: ignore
+@P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
     "files/monaco_nofilter_430020b6b1ba7bef8ea919b2fb4472dab2972c70a2abae253760a56c29f449c4_compact.geoparquet",
@@ -180,24 +197,41 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
 
 @P.parameters("args")  # type: ignore
 @P.case(
-    "OSM tags filter",
+    "OSM tags filter malfunctioned JSON",
     [
         "--osm-tags-filter",
         '{"building": True, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
 )  # type: ignore
 @P.case(
-    "OSM tags filter",
+    "OSM tags filter malfunctioned JSON",
     [
         "--osm-tags-filter",
         '{"building": true, highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
 )  # type: ignore
 @P.case(
-    "OSM tags filter",
+    "OSM tags filter malfunctioned JSON",
     [
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"',
+    ],
+)  # type: ignore
+@P.case(
+    "OSM tags filter wrong type",
+    [
+        "--osm-tags-filter",
+        (
+            '{"super_group": {"group": {"building": true, "highway": ["primary", "secondary"],'
+            ' "amenity": "bench"} } }'
+        ),
+    ],
+)  # type: ignore
+@P.case(
+    "OSM tags filter wrong type",
+    [
+        "--osm-tags-filter",
+        '{"group": [{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}] }',
     ],
 )  # type: ignore
 @P.case(

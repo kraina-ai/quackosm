@@ -100,16 +100,17 @@ class OsmTagsFilterJsonParser(click.ParamType):  # type: ignore
             return None
         try:
             parsed_dict = json.loads(value)
-            if not is_expected_type(parsed_dict, OsmTagsFilter) and not is_expected_type(
-                parsed_dict, GroupedOsmTagsFilter
-            ):
-                raise typer.BadParameter(
-                    "Provided OSM tags filter is not in a required format."
-                ) from None
-
-            return cast(Union[OsmTagsFilter, GroupedOsmTagsFilter], parsed_dict)
         except Exception:
             raise typer.BadParameter("Cannot parse provided OSM tags filter") from None
+
+        if not is_expected_type(parsed_dict, OsmTagsFilter) and not is_expected_type(
+            parsed_dict, GroupedOsmTagsFilter
+        ):
+            raise typer.BadParameter(
+                "Provided OSM tags filter is not in a required format."
+            ) from None
+
+        return cast(Union[OsmTagsFilter, GroupedOsmTagsFilter], parsed_dict)
 
 
 class OsmTagsFilterFileParser(OsmTagsFilterJsonParser):
@@ -178,6 +179,22 @@ def main(
             click_type=OsmTagsFilterFileParser(),
         ),
     ] = None,
+    keep_all_tags: Annotated[
+        bool,
+        typer.Option(
+            "--keep-all-tags/",
+            "--all-tags/",
+            help=(
+                "Whether to keep all tags while filtering with OSM tags."
+                " Doesn't work when there is no OSM tags filter applied"
+                " ([bold bright_cyan]osm-tags-filter[/bold bright_cyan]"
+                " or [bold bright_cyan]osm-tags-filter-file[/bold bright_cyan])."
+                " Will override grouping if [bold green]GroupedOsmTagsFilter[/bold green]"
+                " has been passed as a filter."
+            ),
+            show_default=False,
+        ),
+    ] = False,
     geom_filter_wkt: Annotated[
         Optional[str],
         typer.Option(
@@ -226,11 +243,15 @@ def main(
             help=(
                 "Whether to split tags into columns based on the OSM tag keys."
                 " If [bold violet]None[/bold violet], it will be set based on"
-                " the [bold bright_cyan]osm-tags-filter[/bold bright_cyan] parameter."
-                " If no tags filter is provided, then"
-                " [bold bright_cyan]explode_tags[/bold bright_cyan] will be set to"
-                " [bold red]False[/bold red], if there is a tags filter it will be set to"
-                " [bold green]True[/bold green]."
+                " the [bold bright_cyan]osm-tags-filter[/bold bright_cyan]"
+                "/[bold bright_cyan]osm-tags-filter-file[/bold bright_cyan]"
+                " and [bold bright_cyan]keep-all-tags[/bold bright_cyan] parameters."
+                " If there is a tags filter applied without"
+                " [bold bright_cyan]keep-all-tags[/bold bright_cyan] then it'll be set to"
+                " [bold bright_cyan]explode-tags[/bold bright_cyan]"
+                " ([bold green]True[/bold green])."
+                " Otherwise it'll be set to [bold magenta]compact-tags[/bold magenta]"
+                " ([bold red]False[/bold red])."
             ),
             show_default=None,
         ),
