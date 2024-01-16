@@ -79,8 +79,7 @@ class GeoFileGeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        if not pathlib.Path(value).exists():
-            raise typer.BadParameter("Cannot parse provided geo file")
+        value = _path_callback(ctx=ctx, value=value)
 
         try:
             gdf = gpd.read_file(value)
@@ -123,12 +122,9 @@ class OsmTagsFilterFileParser(OsmTagsFilterJsonParser):
         if not value:
             return None
 
-        file_path = pathlib.Path(value)
+        value = _path_callback(ctx=ctx, value=value)
 
-        if not file_path.exists():
-            raise typer.BadParameter("Cannot parse provided OSM tags filter file")
-
-        return super().convert(file_path.read_text(), param, ctx)  # type: ignore
+        return super().convert(pathlib.Path(value).read_text(), param, ctx)  # type: ignore
 
 
 def _filter_osm_ids_callback(value: list[str]) -> list[str]:

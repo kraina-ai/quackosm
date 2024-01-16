@@ -293,6 +293,10 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
     "Geometry nonexistent file filter",
     ["--geom-filter-file", "nonexistent_geojson_file.geojson"],
 )  # type: ignore
+@P.case(
+    "Geometry wrong file filter",
+    ["--geom-filter-file", osm_tags_filter_file_path()],
+)  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-id", "124"])  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-id", "w/124"])  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-id", "w124"])  # type: ignore
@@ -304,8 +308,12 @@ def test_proper_args(monaco_pbf_file_path: str, args: list[str], expected_result
 @P.case("Filter OSM", ["--filter-osm-id", "r124"])  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-id", "relation124"])  # type: ignore
 @P.case("OSM way polygon config", ["--osm-way-polygon-config", "nonexistent_json_file.json"])  # type: ignore
-def test_wrong_args(monaco_pbf_file_path: str, args: list[str]) -> None:
+def test_wrong_args(
+    monaco_pbf_file_path: str, args: list[str], capsys: pytest.CaptureFixture
+) -> None:
     """Test if doesn't run properly with options."""
-    result = runner.invoke(cli.app, [monaco_pbf_file_path, *args])
-
-    assert result.exit_code != 0
+    # Fix for the I/O error from the Click repository
+    # https://github.com/pallets/click/issues/824#issuecomment-1583293065
+    with capsys.disabled():
+        result = runner.invoke(cli.app, [monaco_pbf_file_path, *args])
+        assert result.exit_code != 0
