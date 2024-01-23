@@ -236,3 +236,10 @@ PBF file size: 1.7 GB
 [Geofabrik link](https://download.geofabrik.de/europe/poland.html)
 
 ![Poland PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_disk_spillage.png)
+
+
+## License
+
+The library is distributed under Apache-2.0 License.
+
+The free [OpenStreetMap](https://www.openstreetmap.org/) data, which is used for the development of QuackOSM, is licensed under the [Open Data Commons Open Database License](https://opendatacommons.org/licenses/odbl/) (ODbL) by the [OpenStreetMap Foundation](https://osmfoundation.org/) (OSMF).
