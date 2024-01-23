@@ -194,6 +194,42 @@ Library contains a logic to construct geometries (points, linestrings, polygons)
 11. Fix invalid geometries
 12. Return final GeoParquet file
 
+### Geometry validation
+
+You might ask a question: _How do I know that these geometries are reconstructed correctly?_
+
+To answer this question, the `QuackOSM` has implemented dedicated tests that validate the results of `GDAL` geometries vs `QuackOSM`.
+This might come as a surprise, but since OSM geometries aren't always perfectly defined (especially relations), the `QuackOSM` can even fix geometries that are loaded with weird artefacts by `GDAL`.
+
+You can inspect the comparison algorithm in the `test_gdal_parity` function from `tests/base/test_pbf_file_reader.py` file.
+
+### Caching
+
+Library utilizes caching system to reduce repeatable computations.
+
+By default, the library is saving results in the `files` directory created in the working directory. Result file name is generated based on the original `*.osm.pbf` file name.
+
+Original file name to be converted: `example.osm.pbf`.
+
+Default output without any filtering: `example_nofilter_noclip_compact.geoparquet`.
+
+The nofilter part can be replaced by the hash of OSM tags provided for filtering.
+`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet`
+
+The noclip part can be replaced by the hash of geometry used for filtering.
+`example_nofilter_430020b6b1ba7bef8ea919b2fb4472dab2972c70a2abae253760a56c29f449c4_compact.geoparquet`
+
+The `compact` part can also take the form of `exploded`, it represents the form of OSM tags - either kept together in a single dictionary or split into columns.
+
+When filtering by selecting individual features IDs, an additional hash based on those IDs is appended to the file.
+`example_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet`
+
+When the `keep_all_tags` parameter is passed while filtering by OSM tags, and additional `alltags` component is added after the osm filter hash part.
+`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet`
+
+General schema of multiple segments that are concatenated together:
+`pbf_file_name`\_(`osm_filter_tags_hash_part`/`nofilter`)(\_`alltags`)\_(`clipping_geometry_hash_part`/`noclip`)\_(`compact`/`exploded`)(\_`filter_osm_ids_hash_part`).geoparquet
+
 ### Memory usage
 
 DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk.
