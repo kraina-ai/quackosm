@@ -199,7 +199,7 @@ Library contains a logic to construct geometries (points, linestrings, polygons)
 You might ask a question: _How do I know that these geometries are reconstructed correctly?_
 
 To answer this question, the `QuackOSM` has implemented dedicated tests that validate the results of `GDAL` geometries vs `QuackOSM`.
-This might come as a surprise, but since OSM geometries aren't always perfectly defined (especially relations), the `QuackOSM` can even fix geometries that are loaded with weird artefacts by `GDAL`.
+This might come as a surprise, but since OSM geometries aren't always perfectly defined (especially relations), the `QuackOSM` can even fix geometries that are loaded with weird artifacts by `GDAL`.
 
 You can inspect the comparison algorithm in the `test_gdal_parity` function from `tests/base/test_pbf_file_reader.py` file.
 
