@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:5c8e358448272f2aac4b827d4f34289566f2ff7cb95fbf23ee45a4a148189e10"
+content_hash = "sha256:6171ae14cdb3e0764393158f14570c5fa592888fff640826acf11b8ddebd426e"
 
 [[package]]
 name = "appnope"
@@ -1838,7 +1838,7 @@ files = [
 
 [[package]]
 name = "osmnx"
-version = "1.8.0"
+version = "1.8.1"
 requires_python = ">=3.8"
 summary = "Download, model, analyze, and visualize street networks and other geospatial features from OpenStreetMap"
 dependencies = [
@@ -1850,8 +1850,8 @@ dependencies = [
     "shapely>=2.0",
 ]
 files = [
-    {file = "osmnx-1.8.0-py3-none-any.whl", hash = "sha256:b1a7c29feb8a4360f7e0b5044798f3b186879ac0a0e4b9f0ad9cff97cfd01dac"},
-    {file = "osmnx-1.8.0.tar.gz", hash = "sha256:1d6ec9c1114cce2572c4b88e7b2dfb8d0ca5c6591b08e45301dc7f32967c76cf"},
+    {file = "osmnx-1.8.1-py3-none-any.whl", hash = "sha256:a27be5f0e0a55b0255513a26a62f125becabbb87ca2bb9afd5e5116247982e62"},
+    {file = "osmnx-1.8.1.tar.gz", hash = "sha256:6ed40ec8f7262a8ccb8f27ef068f91f79417f068c0bcf2cddf36f7289b188846"},
 ]
 
 [[package]]
@@ -2939,7 +2939,7 @@ files = [
 [[package]]
 name = "topojson"
 version = "1.7"
-summary = "topojson - a powerful library to encode geographic data as topology in Python!🌍"
+summary = "topojson - a powerful library to encode geographic data as topology in Python!ğŸŒ�"
 dependencies = [
     "numpy",
     "packaging",

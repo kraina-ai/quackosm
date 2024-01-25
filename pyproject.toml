@@ -41,6 +41,7 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 cli = [
     "typer[all]",
+    "osmnx",
 ]
 
 [project.scripts]
