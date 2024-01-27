@@ -1,7 +1,6 @@
 """CLI module for parsing pbf file to geoparquet."""
 
 import json
-from enum import Enum
 from pathlib import Path
 from typing import Annotated, Optional, Union, cast
 
@@ -17,17 +16,9 @@ from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
 from quackosm.functions import convert_pbf_to_gpq
+from quackosm.osm_extracts import OsmExtractSource
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
-
-
-class OsmExtractSource(str, Enum):
-    """Enum of available OSM extract sources."""
-
-    any = "any"
-    geofabrik = "Geofabrik"
-    osm_fr = "osmfr"
-    bbbike = "BBBike"
 
 
 def _version_callback(value: bool) -> None:
@@ -45,9 +36,7 @@ def _path_callback(ctx: typer.Context, value: Path) -> Path:
 def _empty_path_callback(ctx: typer.Context, value: Path) -> Optional[Path]:
     if not value:
         return None
-    if not Path(value).exists():
-        raise typer.BadParameter(f"File not found error: {value}")
-    return value
+    return _path_callback(ctx, value)
 
 
 class WktGeometryParser(click.ParamType):  # type: ignore
