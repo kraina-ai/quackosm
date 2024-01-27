@@ -12,6 +12,10 @@ dependencies = [
     "typeguard",
     "pyarrow-hotfix",
     "psutil",
+    "pooch",
+    "tqdm",
+    "beautifulsoup4",
+    "pyarrow-ops",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
