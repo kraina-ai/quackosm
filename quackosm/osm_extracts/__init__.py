@@ -6,12 +6,15 @@ repositories.
 """
 
 from collections.abc import Iterable
+from enum import Enum
 from functools import partial
 from math import ceil
 from multiprocessing import cpu_count
+from pathlib import Path
 from typing import Optional, Union
 
 import geopandas as gpd
+from pooch import retrieve
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
@@ -20,6 +23,65 @@ from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
+
+__all__ = [
+    "download_extracts_pbf_files",
+    "find_smallest_containing_extracts_total",
+    "find_smallest_containing_geofabrik_extracts",
+    "find_smallest_containing_openstreetmap_fr_extracts",
+    "find_smallest_containing_bbbike_extracts",
+    "OsmExtractSource",
+]
+
+
+class OsmExtractSource(str, Enum):
+    """Enum of available OSM extract sources."""
+
+    any = "any"
+    geofabrik = "Geofabrik"
+    osm_fr = "osmfr"
+    bbbike = "BBBike"
+
+
+def download_extracts_pbf_files(
+    extracts: list[OpenStreetMapExtract], download_directory: Path
+) -> list[Path]:
+    """
+    Download OSM extracts as PBF files.
+
+    Args:
+        extracts (list[OpenStreetMapExtract]): List of extracts to download.
+        download_directory (Path): Directory where PBF files should be saved.
+
+    Returns:
+        list[Path]: List of downloaded file paths.
+    """
+    downloaded_extracts_paths = []
+    for extract in extracts:
+        file_path = retrieve(
+            extract.url,
+            fname=f"{extract.id}.osm.pbf",
+            path=download_directory,
+            progressbar=True,
+            known_hash=None,
+        )
+        downloaded_extracts_paths.append(Path(file_path))
+    return downloaded_extracts_paths
+
+
+def find_smallest_containing_extract(
+    geometry: Union[BaseGeometry, BaseMultipartGeometry], source: OsmExtractSource
+) -> list[OpenStreetMapExtract]:
+    if source == OsmExtractSource.any:
+        return find_smallest_containing_extracts_total(geometry)
+    elif source == OsmExtractSource.bbbike:
+        return find_smallest_containing_bbbike_extracts(geometry)
+    elif source == OsmExtractSource.geofabrik:
+        return find_smallest_containing_geofabrik_extracts(geometry)
+    elif source == OsmExtractSource.osm_fr:
+        return find_smallest_containing_openstreetmap_fr_extracts(geometry)
+    else:
+        raise ValueError(f"Unknown OSM extracts source: {source}.")
 
 
 def find_smallest_containing_extracts_total(
@@ -192,7 +254,10 @@ def _find_smallest_containing_extracts_for_single_geometry(
         raise RuntimeError("Extracts index is empty.")
 
     extracts_ids: set[str] = set()
-    geometry_to_cover = geometry.buffer(0)
+    if geometry.geom_type == "Polygon":
+        geometry_to_cover = geometry.buffer(0)
+    else:
+        geometry_to_cover = geometry.buffer(1e-6)
 
     exactly_matching_geometry = polygons_index_gdf[
         polygons_index_gdf.geometry.geom_almost_equals(geometry)
@@ -312,18 +377,21 @@ def _filter_extracts_for_single_geometry(
     Returns:
         Set[str]: Selected extract index string values.
     """
-    polygon_to_cover = geometry.buffer(0)
     filtered_extracts_ids: set[str] = set()
 
-    polygon_to_cover = geometry.buffer(0)
+    if geometry.geom_type == "Polygon":
+        geometry_to_cover = geometry.buffer(0)
+    else:
+        geometry_to_cover = geometry.buffer(1e-6)
+
     for _, extract_row in sorted_extracts_gdf.iterrows():
-        if polygon_to_cover.is_empty:
+        if geometry_to_cover.is_empty:
             break
 
-        if extract_row.geometry.disjoint(polygon_to_cover):
+        if extract_row.geometry.disjoint(geometry_to_cover):
             continue
 
-        polygon_to_cover = polygon_to_cover.difference(extract_row.geometry)
+        geometry_to_cover = geometry_to_cover.difference(extract_row.geometry)
         filtered_extracts_ids.add(extract_row.id)
 
     return filtered_extracts_ids
