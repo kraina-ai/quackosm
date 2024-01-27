@@ -83,9 +83,8 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:
         for extract_href in soup.select("tr.d > td > a")
         if extract_href.text != ".."
     ]
-    print(extract_names)
 
-    for extract_name in tqdm(extract_names):
+    for extract_name in tqdm(extract_names, desc="Iterating BBBike index"):
         poly_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.poly"
         polygon = parse_polygon_file(poly_url)
         if polygon is None:
@@ -93,7 +92,7 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:
         pbf_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.osm.pbf"
         extracts.append(
             OpenStreetMapExtract(
-                id=extract_name,
+                id=f"BBBike_{extract_name}",
                 url=pbf_url,
                 geometry=polygon,
             )
