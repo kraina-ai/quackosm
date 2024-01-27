@@ -22,6 +22,7 @@ import psutil
 import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
+from pyarrow_ops import drop_duplicates
 from shapely.geometry.base import BaseGeometry
 
 import quackosm._geo_arrow_io as io
@@ -33,6 +34,11 @@ from quackosm._rich_progress import (  # type: ignore[attr-defined]
     TaskProgressSpinner,
 )
 from quackosm._typing import is_expected_type
+from quackosm.osm_extracts import (
+    OsmExtractSource,
+    download_extracts_pbf_files,
+    find_smallest_containing_extract,
+)
 
 __all__ = [
     "PbfFileReader",
@@ -79,6 +85,7 @@ class PbfFileReader:
             Union[OsmWayPolygonConfig, dict[str, Any]]
         ] = None,
         parquet_compression: str = "snappy",
+        osm_extract_source: OsmExtractSource = OsmExtractSource.any,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -105,10 +112,13 @@ class PbfFileReader:
             parquet_compression (str): Compression of intermediate parquet files.
                 Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
                 Defaults to "snappy".
+            osm_extract_source (OsmExtractSource): A source for automatic downloading of
+                OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
         """
         self.tags_filter = tags_filter
         self.merged_tags_filter = merge_osm_tags_filter(tags_filter) if tags_filter else None
         self.geometry_filter = geometry_filter
+        self.osm_extract_source = osm_extract_source
         self.working_directory = Path(working_directory)
         self.working_directory.mkdir(parents=True, exist_ok=True)
         self.connection: duckdb.DuckDBPyConnection = None
@@ -193,11 +203,9 @@ class PbfFileReader:
             )
             parsed_geoparquet_files.append(parsed_geoparquet_file)
 
-        parquet_tables = [
-            io.read_geoparquet_table(parsed_parquet_file)  # type: ignore
-            for parsed_parquet_file in parsed_geoparquet_files
-        ]
-        joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables)
+        joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
+            parsed_geoparquet_files
+        )
         gdf_parquet = gpd.GeoDataFrame(
             data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
             geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
@@ -268,6 +276,100 @@ class PbfFileReader:
                 if self.connection is not None:
                     self.connection.close()
                     self.connection = None
+
+    def convert_geometry_filter_to_gpq(
+        self,
+        result_file_path: Optional[Union[str, Path]] = None,
+        keep_all_tags: bool = False,
+        explode_tags: Optional[bool] = None,
+        ignore_cache: bool = False,
+        filter_osm_ids: Optional[list[str]] = None,
+    ) -> Path:
+        """
+        Convert geometry to GeoParquet file.
+
+        Will automatically find and download OSM extracts covering a given geometry
+        and convert them to a single GeoParquet file.
+
+        Args:
+            result_file_path (Union[str, Path], optional): Where to save
+                the geoparquet file. If not provided, will be generated based on hashes
+                from provided tags filter and geometry filter. Defaults to `None`.
+            keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+                Whether to keep all tags related to the element, or return only those defined
+                in the `tags_filter`. When `True`, will override the optional grouping defined
+                in the `tags_filter`. Defaults to `False`.
+            explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+                If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+                If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+                be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+            ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
+                Defaults to False.
+            filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+                Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+                Defaults to an empty list.
+
+        Returns:
+            Path: Path to the generated GeoParquet file.
+        """
+        if self.geometry_filter is None:
+            raise AttributeError(
+                "Cannot find matching OSM extracts without geometry filter. Please configure"
+                " geometry_filter first: PbfFileReader(geometry_filter=..., **kwargs)."
+            )
+
+        if filter_osm_ids is None:
+            filter_osm_ids = []
+
+        if explode_tags is None:
+            explode_tags = self.tags_filter is not None and not keep_all_tags
+
+        result_file_path = (
+            result_file_path
+            or self._generate_geoparquet_result_file_path_from_geometry(
+                filter_osm_ids=filter_osm_ids,
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags,
+            )
+        )
+
+        matching_extracts = find_smallest_containing_extract(
+            self.geometry_filter, self.osm_extract_source
+        )
+        pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
+
+        parsed_geoparquet_files = []
+        for file_path in pbf_files:
+            parsed_geoparquet_file = self.convert_pbf_to_gpq(
+                file_path,
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                filter_osm_ids=filter_osm_ids,
+            )
+            parsed_geoparquet_files.append(parsed_geoparquet_file)
+
+        joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
+            parsed_geoparquet_files
+        )
+        io.write_geoparquet_table(  # type: ignore
+            joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
+        )
+
+        return Path(result_file_path)
+
+    def _drop_duplicates_features_in_pyarrow_table(
+        self, parsed_geoparquet_files: list[Path]
+    ) -> pa.Table:
+        parquet_tables = [
+            io.read_geoparquet_table(parsed_parquet_file)  # type: ignore
+            for parsed_parquet_file in parsed_geoparquet_files
+        ]
+        joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables)
+        joined_parquet_table = drop_duplicates(
+            joined_parquet_table, on=["feature_id"], keep="first"
+        )
+        return joined_parquet_table
 
     def _set_up_duckdb_connection(self) -> None:
         self.connection = duckdb.connect(
@@ -427,6 +529,36 @@ class PbfFileReader:
         result_file_name = (
             f"{pbf_file_name}_{osm_filter_tags_hash_part}"
             f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+        )
+        return Path(self.working_directory) / result_file_name
+
+    def _generate_geoparquet_result_file_path_from_geometry(
+        self, keep_all_tags: bool, explode_tags: bool, filter_osm_ids: list[str]
+    ) -> Path:
+        osm_filter_tags_hash_part = "nofilter"
+        if self.tags_filter is not None:
+            keep_all_tags_part = "" if not keep_all_tags else "_alltags"
+            h = hashlib.new("sha256")
+            h.update(json.dumps(self.tags_filter).encode())
+            osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
+
+        clipping_geometry_hash_part = "noclip"
+        if self.geometry_filter is not None:
+            h = hashlib.new("sha256")
+            h.update(wktlib.dumps(self.geometry_filter).encode())
+            clipping_geometry_hash_part = h.hexdigest()
+
+        exploded_tags_part = "exploded" if explode_tags else "compact"
+
+        filter_osm_ids_hash_part = ""
+        if filter_osm_ids:
+            h = hashlib.new("sha256")
+            h.update(json.dumps(sorted(set(filter_osm_ids))).encode())
+            filter_osm_ids_hash_part = f"_{h.hexdigest()}"
+
+        result_file_name = (
+            f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
+            f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
         )
         return Path(self.working_directory) / result_file_name
 
