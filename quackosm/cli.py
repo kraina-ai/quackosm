@@ -1,14 +1,16 @@
 """CLI module for parsing pbf file to geoparquet."""
 
 import json
-import pathlib
 from enum import Enum
+from pathlib import Path
 from typing import Annotated, Optional, Union, cast
 
 import click
 import geopandas as gpd
 import osmnx as ox
 import typer
+from click import Argument
+from click.exceptions import MissingParameter
 from shapely import from_geojson, from_wkt
 
 from quackosm import __app_name__, __version__
@@ -34,18 +36,16 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
-def _path_callback(ctx: typer.Context, value: pathlib.Path) -> pathlib.Path:
-    if ctx.resilient_parsing:
-        return value
-    if not pathlib.Path(value).exists():
+def _path_callback(ctx: typer.Context, value: Path) -> Path:
+    if not Path(value).exists():
         raise typer.BadParameter(f"File not found error: {value}")
     return value
 
 
-def _empty_path_callback(ctx: typer.Context, value: pathlib.Path) -> Optional[pathlib.Path]:
+def _empty_path_callback(ctx: typer.Context, value: Path) -> Optional[Path]:
     if not value:
         return None
-    if not pathlib.Path(value).exists():
+    if not Path(value).exists():
         raise typer.BadParameter(f"File not found error: {value}")
     return value
 
@@ -152,7 +152,7 @@ class OsmTagsFilterFileParser(OsmTagsFilterJsonParser):
 
         value = _path_callback(ctx=ctx, value=value)
 
-        return super().convert(pathlib.Path(value).read_text(), param, ctx)  # type: ignore
+        return super().convert(Path(value).read_text(), param, ctx)  # type: ignore
 
 
 def _filter_osm_ids_callback(value: list[str]) -> list[str]:
@@ -166,11 +166,11 @@ def _filter_osm_ids_callback(value: list[str]) -> list[str]:
 @app.command()  # type: ignore
 def main(
     pbf_file: Annotated[
-        Optional[pathlib.Path],
+        Optional[Path],
         typer.Argument(
             help="PBF file to convert into GeoParquet",
             metavar="PBF file path",
-            callback=_path_callback,
+            callback=_empty_path_callback,
         ),
     ] = None,
     osm_tags_filter: Annotated[
@@ -219,34 +219,6 @@ def main(
             show_default=False,
         ),
     ] = False,
-    geom_filter_wkt: Annotated[
-        Optional[str],
-        typer.Option(
-            help=(
-                "Geometry to use as a filter in the [bold dark_orange]WKT[/bold dark_orange]"
-                " format."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan]."
-            ),
-            click_type=WktGeometryParser(),
-        ),
-    ] = None,
-    geom_filter_geojson: Annotated[
-        Optional[str],
-        typer.Option(
-            help=(
-                "Geometry to use as a filter in the [bold dark_orange]GeoJSON[/bold dark_orange]"
-                " format."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan]."
-            ),
-            click_type=GeoJsonGeometryParser(),
-        ),
-    ] = None,
     geom_filter_file: Annotated[
         Optional[str],
         typer.Option(
@@ -255,9 +227,9 @@ def main(
                 " [bold dark_orange]file[/bold dark_orange] format - any that can be opened by"
                 " GeoPandas. Will return the unary union of the geometries in the file."
                 " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
                 " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan]."
+                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
             ),
             click_type=GeoFileGeometryParser(),
         ),
@@ -270,11 +242,39 @@ def main(
                 " [bold dark_orange]string to geocode[/bold dark_orange] format - it will be"
                 " geocoded to the geometry using Nominatim API (OSMnx library)."
                 " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
                 " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan]."
+                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
             ),
             click_type=GeocodeGeometryParser(),
+        ),
+    ] = None,
+    geom_filter_geojson: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "Geometry to use as a filter in the [bold dark_orange]GeoJSON[/bold dark_orange]"
+                " format."
+                " Cannot be used used together with"
+                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+            ),
+            click_type=GeoJsonGeometryParser(),
+        ),
+    ] = None,
+    geom_filter_wkt: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "Geometry to use as a filter in the [bold dark_orange]WKT[/bold dark_orange]"
+                " format."
+                " Cannot be used together with"
+                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
+                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan]."
+            ),
+            click_type=WktGeometryParser(),
         ),
     ] = None,
     pbf_download_source: Annotated[
@@ -312,7 +312,7 @@ def main(
         ),
     ] = None,
     result_file_path: Annotated[
-        Optional[pathlib.Path],
+        Optional[Path],
         typer.Option(
             "--output",
             "-o",
@@ -332,7 +332,7 @@ def main(
         ),
     ] = False,
     working_directory: Annotated[
-        pathlib.Path,
+        Path,
         typer.Option(
             "--working-directory",
             "--work-dir",
@@ -343,7 +343,7 @@ def main(
         ),
     ] = "files",  # type: ignore
     osm_way_polygon_features_config: Annotated[
-        Optional[pathlib.Path],
+        Optional[Path],
         typer.Option(
             "--osm-way-polygon-config",
             help=(
@@ -384,20 +384,28 @@ def main(
 
     Wraps convert_pbf_to_gpq function and print final path to the saved geoparquet file at the end.
     """
-    more_than_one_geometry_provided = (
-        sum(
-            geom is not None
-            for geom in (
-                geom_filter_wkt,
-                geom_filter_geojson,
-                geom_filter_file,
-                geom_filter_geocode,
-            )
+    number_of_geometries_provided = sum(
+        geom is not None
+        for geom in (
+            geom_filter_file,
+            geom_filter_geocode,
+            geom_filter_geojson,
+            geom_filter_wkt,
         )
-        > 1
     )
-    if more_than_one_geometry_provided:
+    if number_of_geometries_provided > 1:
         raise typer.BadParameter("Provided more than one geometry for filtering")
+
+    if pbf_file is None and number_of_geometries_provided == 0:
+        raise MissingParameter(
+            message=(
+                "QuackOSM requires either the path to the pbf file or a geometry filter"
+                " (one of --geom-filter-file, --geom-filter-geocode,"
+                " --geom-filter-geojson, --geom-filter-wkt)"
+                " to download the file automatically. Both cannot be empty at once."
+            ),
+            param=Argument(["pbf_file"], type=Path),
+        )
 
     if osm_tags_filter is not None and osm_tags_filter_file is not None:
         raise typer.BadParameter("Provided more than one osm tags filter parameter")
@@ -407,14 +415,14 @@ def main(
         tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
         keep_all_tags=keep_all_tags,
         geometry_filter=(
-            geom_filter_wkt or geom_filter_geojson or geom_filter_file or geom_filter_geocode
+            geom_filter_file or geom_filter_geocode or geom_filter_geojson or geom_filter_wkt
         ),
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
         working_directory=working_directory,
         result_file_path=result_file_path,
         osm_way_polygon_features_config=(
-            json.loads(pathlib.Path(osm_way_polygon_features_config).read_text())
+            json.loads(Path(osm_way_polygon_features_config).read_text())
             if osm_way_polygon_features_config
             else None
         ),
