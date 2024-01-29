@@ -42,6 +42,14 @@ class OsmExtractSource(str, Enum):
     osm_fr = "osmfr"
     bbbike = "BBBike"
 
+    @classmethod
+    def _missing_(cls, value): # type: ignore
+        value = value.lower()
+        for member in cls:
+            if member.lower() == value:
+                return member
+        return None
+
 
 def download_extracts_pbf_files(
     extracts: list[OpenStreetMapExtract], download_directory: Path
@@ -67,21 +75,6 @@ def download_extracts_pbf_files(
         )
         downloaded_extracts_paths.append(Path(file_path))
     return downloaded_extracts_paths
-
-
-def find_smallest_containing_extract(
-    geometry: Union[BaseGeometry, BaseMultipartGeometry], source: OsmExtractSource
-) -> list[OpenStreetMapExtract]:
-    if source == OsmExtractSource.any:
-        return find_smallest_containing_extracts_total(geometry)
-    elif source == OsmExtractSource.bbbike:
-        return find_smallest_containing_bbbike_extracts(geometry)
-    elif source == OsmExtractSource.geofabrik:
-        return find_smallest_containing_geofabrik_extracts(geometry)
-    elif source == OsmExtractSource.osm_fr:
-        return find_smallest_containing_openstreetmap_fr_extracts(geometry)
-    else:
-        raise ValueError(f"Unknown OSM extracts source: {source}.")
 
 
 def find_smallest_containing_extracts_total(
@@ -153,6 +146,24 @@ def find_smallest_containing_bbbike_extracts(
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
     return _find_smallest_containing_extracts(geometry, _get_bbbike_index())
+
+
+OSM_EXTRACT_SOURCE_MATCHING_FUNCTION = {
+    OsmExtractSource.any: find_smallest_containing_extracts_total,
+    OsmExtractSource.bbbike: find_smallest_containing_bbbike_extracts,
+    OsmExtractSource.geofabrik: find_smallest_containing_geofabrik_extracts,
+    OsmExtractSource.osm_fr: find_smallest_containing_openstreetmap_fr_extracts,
+}
+
+
+def find_smallest_containing_extract(
+    geometry: Union[BaseGeometry, BaseMultipartGeometry], source: OsmExtractSource
+) -> list[OpenStreetMapExtract]:
+    try:
+        source_enum = OsmExtractSource(source)
+        return OSM_EXTRACT_SOURCE_MATCHING_FUNCTION[source_enum](geometry)
+    except ValueError as ex:
+        raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
 
 
 def _find_smallest_containing_extracts(
