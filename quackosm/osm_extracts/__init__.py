@@ -94,6 +94,7 @@ def find_smallest_containing_extracts_total(
     indexes = gpd.pd.concat(
         [_get_bbbike_index(), _get_geofabrik_index(), _get_openstreetmap_fr_index()]
     )
+    indexes.sort_values(by="area", ignore_index=True, inplace=True)
     return _find_smallest_containing_extracts(geometry, indexes)
 
 
