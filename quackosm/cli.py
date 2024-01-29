@@ -1,6 +1,7 @@
 """CLI module for parsing pbf file to geoparquet."""
 
 import json
+import re
 from pathlib import Path
 from typing import Annotated, Optional, Union, cast
 
@@ -144,12 +145,22 @@ class OsmTagsFilterFileParser(OsmTagsFilterJsonParser):
         return super().convert(Path(value).read_text(), param, ctx)  # type: ignore
 
 
-def _filter_osm_ids_callback(value: list[str]) -> list[str]:
-    for osm_id in value:
-        if not osm_id.startswith(("node/", "way/", "relation/")):
-            raise typer.BadParameter(f"Cannot parse provided OSM id: {osm_id}") from None
+def _filter_osm_ids_callback(value: str) -> Optional[list[str]]:
+    if not value:
+        return None
 
-    return value
+    osm_ids = value.split(",")
+    matcher = re.compile(r"^(node|way|relation)\/\d*$")
+    parsed_osm_ids = []
+    for osm_id in osm_ids:
+        stripped_osm_id = osm_id.strip()
+        if not stripped_osm_id.startswith(("node/", "way/", "relation/")) or not matcher.match(
+            stripped_osm_id
+        ):
+            raise typer.BadParameter(f"Cannot parse provided OSM id: {stripped_osm_id}") from None
+        parsed_osm_ids.append(stripped_osm_id)
+
+    return parsed_osm_ids
 
 
 @app.command()  # type: ignore
@@ -347,12 +358,13 @@ def main(
         ),
     ] = None,
     filter_osm_ids: Annotated[
-        Optional[list[str]],
+        Optional[str],
         typer.Option(
             "--filter-osm-ids",
             help=(
                 "List of OSM features IDs to read from the file."
                 " Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'."
+                " Separate the values with a comma."
             ),
             callback=_filter_osm_ids_callback,
         ),
@@ -393,7 +405,7 @@ def main(
                 " --geom-filter-geojson, --geom-filter-wkt)"
                 " to download the file automatically. Both cannot be empty at once."
             ),
-            param=Argument(["pbf_file"], type=Path),
+            param=Argument(["pbf_file"], type=Path, metavar="PBF file path"),
         )
 
     if osm_tags_filter is not None and osm_tags_filter_file is not None:
@@ -416,7 +428,7 @@ def main(
                 if osm_way_polygon_features_config
                 else None
             ),
-            filter_osm_ids=filter_osm_ids,
+            filter_osm_ids=filter_osm_ids,  # type: ignore
         )
     else:
         geoparquet_path = convert_geometry_to_gpq(
@@ -435,6 +447,6 @@ def main(
                 if osm_way_polygon_features_config
                 else None
             ),
-            filter_osm_ids=filter_osm_ids,
+            filter_osm_ids=filter_osm_ids,  # type: ignore
         )
     typer.secho(geoparquet_path, fg="green")
