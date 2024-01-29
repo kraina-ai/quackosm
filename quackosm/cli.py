@@ -15,7 +15,7 @@ from shapely import from_geojson, from_wkt
 from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
-from quackosm.functions import convert_pbf_to_gpq
+from quackosm.functions import convert_geometry_to_gpq, convert_pbf_to_gpq
 from quackosm.osm_extracts import OsmExtractSource
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -266,11 +266,11 @@ def main(
             click_type=WktGeometryParser(),
         ),
     ] = None,
-    pbf_download_source: Annotated[
+    osm_extract_source: Annotated[
         OsmExtractSource,
         typer.Option(
-            "--pbf-download-source",
             "--osm-extract-source",
+            "--pbf-download-source",
             help=(
                 "Source where to download the PBF file from."
                 " Can be Geofabrik, BBBike, OpenStreetMap.fr or any."
@@ -399,22 +399,42 @@ def main(
     if osm_tags_filter is not None and osm_tags_filter_file is not None:
         raise typer.BadParameter("Provided more than one osm tags filter parameter")
 
-    geoparquet_path = convert_pbf_to_gpq(
-        pbf_path=pbf_file or "",  # FIXME: change
-        tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
-        keep_all_tags=keep_all_tags,
-        geometry_filter=(
-            geom_filter_file or geom_filter_geocode or geom_filter_geojson or geom_filter_wkt
-        ),
-        explode_tags=explode_tags,
-        ignore_cache=ignore_cache,
-        working_directory=working_directory,
-        result_file_path=result_file_path,
-        osm_way_polygon_features_config=(
-            json.loads(Path(osm_way_polygon_features_config).read_text())
-            if osm_way_polygon_features_config
-            else None
-        ),
-        filter_osm_ids=filter_osm_ids,
-    )
+    if pbf_file:
+        geoparquet_path = convert_pbf_to_gpq(
+            pbf_path=pbf_file,
+            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+            keep_all_tags=keep_all_tags,
+            geometry_filter=(
+                geom_filter_file or geom_filter_geocode or geom_filter_geojson or geom_filter_wkt
+            ),
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            working_directory=working_directory,
+            result_file_path=result_file_path,
+            osm_way_polygon_features_config=(
+                json.loads(Path(osm_way_polygon_features_config).read_text())
+                if osm_way_polygon_features_config
+                else None
+            ),
+            filter_osm_ids=filter_osm_ids,
+        )
+    else:
+        geoparquet_path = convert_geometry_to_gpq(
+            geometry_filter=(
+                geom_filter_file or geom_filter_geocode or geom_filter_geojson or geom_filter_wkt
+            ),
+            osm_extract_source=osm_extract_source,
+            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            working_directory=working_directory,
+            result_file_path=result_file_path,
+            osm_way_polygon_features_config=(
+                json.loads(Path(osm_way_polygon_features_config).read_text())
+                if osm_way_polygon_features_config
+                else None
+            ),
+            filter_osm_ids=filter_osm_ids,
+        )
     typer.secho(geoparquet_path, fg="green")
