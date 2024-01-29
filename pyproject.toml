@@ -46,6 +46,10 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 cli = [
     "typer[all]",
     "osmnx",
+    "h3",
+    "h3ronpy",
+    "s2",
+    "python-geohash",
 ]
 
 [project.scripts]
@@ -93,6 +97,9 @@ docs = [
 license = ["licensecheck"]
 cli-dev = [
     "ipywidgets",
+    "folium",
+    "matplotlib",
+    "mapclassify",
 ]
 
 [tool.pdm.scripts]

@@ -1,5 +1,6 @@
 """Tests for CLI."""
 
+import uuid
 from pathlib import Path
 
 import pytest
@@ -52,6 +53,10 @@ def osm_tags_filter_file_path() -> str:
 def osm_way_config_file_path() -> str:
     """OSM way features config file path."""
     return str(Path(__file__).parent.parent.parent / "quackosm" / "osm_way_polygon_features.json")
+
+def random_str() -> str:
+    """Return random string."""
+    return str(uuid.uuid4())
 
 
 def test_version() -> None:
@@ -175,11 +180,38 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     "files/monaco_nofilter_e7f0b78a0fdc16c4db31c9767fa4e639eadaa8e83a9b90e07b521f4925cdf4b3_compact.geoparquet",
 )  # type: ignore
 @P.case(
+    "Geometry Geohash filter",
+    ["--geom-filter-index-geohash", "spv2bc"],
+    "files/monaco_nofilter_e60d2ad835a289272a17d58deaa5b01238cdb6ef30895f550c66a2f54cbe663a_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry Geohash filter multiple",
+    ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
+    "files/monaco_nofilter_87a73bb5abc026719ea5cb6fa2a97f46c94da8be2fe20a6d1fb981ea55bde719_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry H3 filter",
+    ["--geom-filter-index-h3", "8a3969a40ac7fff"],
+    "files/monaco_nofilter_c38795b1ac3a909317ef8c1f0c5e0d85015998843caa1216a4957d719113fbf0_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry H3 filter multiple",
+    ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
+    "files/monaco_nofilter_249ae1dabf9b88c7d3d68d943c0179289f1e38c645429a959dabd7c64308d64e_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry S2 filter",
+    ["--geom-filter-index-s2", "12cdc28bc"],
+    "files/monaco_nofilter_03d2f71601164201e02dc205202db3fc58d5b6636ace06237fa797b5c6d47191_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry S2 filter multiple",
+    ["--geom-filter-index-s2", "12cdc28bc,12cdc28f"],
+    "files/monaco_nofilter_f1af8e03a1d2a26713a48745f635e63ca43b20eb233166c54b16f522899e2849_compact.geoparquet",
+)  # type: ignore
+@P.case(
     "Filter OSM features IDs",
-    [
-        "--filter-osm-ids",
-        "way/94399646,node/3617982224,relation/36990"
-    ],
+    ["--filter-osm-ids", "way/94399646,node/3617982224,relation/36990"],
     "files/monaco_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet",
 )  # type: ignore
 @P.case(
@@ -249,6 +281,36 @@ def test_proper_args_with_pbf(
     "Geometry geocode filter",
     ["--geom-filter-geocode", "Monaco-Ville, Monaco"],
     "files/e7f0b78a0fdc16c4db31c9767fa4e639eadaa8e83a9b90e07b521f4925cdf4b3_nofilter_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry Geohash filter",
+    ["--geom-filter-index-geohash", "spv2bc"],
+    "files/e60d2ad835a289272a17d58deaa5b01238cdb6ef30895f550c66a2f54cbe663a_nofilter_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry Geohash filter multiple",
+    ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
+    "files/87a73bb5abc026719ea5cb6fa2a97f46c94da8be2fe20a6d1fb981ea55bde719_nofilter_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry H3 filter",
+    ["--geom-filter-index-h3", "8a3969a40ac7fff"],
+    "files/c38795b1ac3a909317ef8c1f0c5e0d85015998843caa1216a4957d719113fbf0_nofilter_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry H3 filter multiple",
+    ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
+    "files/249ae1dabf9b88c7d3d68d943c0179289f1e38c645429a959dabd7c64308d64e_nofilter_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry S2 filter",
+    ["--geom-filter-index-s2", "12cdc28bc"],
+    "files/03d2f71601164201e02dc205202db3fc58d5b6636ace06237fa797b5c6d47191_nofilter_compact.geoparquet",
+)  # type: ignore
+@P.case(
+    "Geometry S2 filter multiple",
+    ["--geom-filter-index-s2", "12cdc28bc,12cdc28f"],
+    "files/f1af8e03a1d2a26713a48745f635e63ca43b20eb233166c54b16f522899e2849_nofilter_compact.geoparquet",
 )  # type: ignore
 @P.case(
     "Geometry file filter with different OSM source",
@@ -507,6 +569,11 @@ def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
 )  # type: ignore
 @P.case("Geometry WKT filter with GeoJSON", ["--geom-filter-wkt", geometry_geojson()])  # type: ignore
 @P.case("Geometry GeoJSON filter with WKT", ["--geom-filter-geojson", geometry_wkt()])  # type: ignore
+@P.case("Geometry Geohash filter with random string", ["--geom-filter-index-geohash", random_str()])  # type: ignore
+@P.case("Geometry H3 filter with Geohash", ["--geom-filter-index-h3", "spv2bc"])  # type: ignore
+@P.case("Geometry H3 filter with S2", ["--geom-filter-index-h3", "12cdc28bc"])  # type: ignore
+@P.case("Geometry H3 filter with random string", ["--geom-filter-index-h3", random_str()])  # type: ignore
+@P.case("Geometry S2 filter with random string", ["--geom-filter-index-s2", random_str()])  # type: ignore
 @P.case(
     "Geometry two filters",
     ["--geom-filter-geojson", geometry_geojson(), "--geom-filter-wkt", geometry_wkt()],
