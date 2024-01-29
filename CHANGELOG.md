@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Option to automatically download PBF files for geometries.
+- Option to automatically download PBF files for geometries [#32](https://github.com/kraina-ai/quackosm/issues/32)
+- Filtering data using 3 global grid systems: Geohash, H3 and S2 [#30](https://github.com/kraina-ai/quackosm/issues/30)
 
 ### Changed
 
-- Filter OSM IDs are now expected to be passed after comma instead of repeating `--filter-osm-id` every time.
+- Filter OSM IDs are now expected to be passed after comma instead of repeating `--filter-osm-id` every time [#30](https://github.com/kraina-ai/quackosm/issues/30)
 
 ## [0.3.3] - 2024-01-16
 
