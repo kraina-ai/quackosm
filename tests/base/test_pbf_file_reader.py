@@ -108,6 +108,21 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
     assert len(features_gdf) == 0
 
 
+def test_unique_osm_ids():  # type: ignore
+    """Test if function returns results without duplicated features."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result_gdf = PbfFileReader().get_features_gdf(
+        file_paths=[monaco_file_path, monaco_file_path], ignore_cache=True
+    )
+
+    single_result_gdf = PbfFileReader().get_features_gdf(
+        file_paths=[monaco_file_path], ignore_cache=True
+    )
+
+    assert result_gdf.index.is_unique
+    assert len(result_gdf.index) == len(single_result_gdf.index)
+
+
 @pytest.mark.parametrize(  # type: ignore
     "filter_osm_ids,expected_result_length",
     [
@@ -126,7 +141,7 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
             ],
             10,
         ),
-        (["way/-1", "node/-1", "relation/-1"], 0),
+        (["way/0", "node/0", "relation/0"], 0),
     ],
 )
 def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_result_length: int):

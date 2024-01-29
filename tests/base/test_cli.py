@@ -54,6 +54,7 @@ def osm_way_config_file_path() -> str:
     """OSM way features config file path."""
     return str(Path(__file__).parent.parent.parent / "quackosm" / "osm_way_polygon_features.json")
 
+
 def random_str() -> str:
     """Return random string."""
     return str(uuid.uuid4())
