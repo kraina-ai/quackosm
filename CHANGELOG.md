@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Filter OSM IDs are now expected to be passed after comma instead of repeating `--filter-osm-id` every time [#30](https://github.com/kraina-ai/quackosm/issues/30)
 
+### Fixed
+
+- Remove duplicated features when parsing multiple PBF files
+
 ## [0.3.3] - 2024-01-16
 
 ### Added
