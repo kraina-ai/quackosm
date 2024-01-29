@@ -48,7 +48,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: cache
-          key: overpass-cache-${{ matrix.os }}-${{ matrix.python-version }}
+          key: osm-cache-${{ matrix.os }}-${{ matrix.python-version }}
       - name: Cache tox runner
         uses: actions/cache@v3
         with:

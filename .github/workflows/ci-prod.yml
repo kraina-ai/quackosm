@@ -74,7 +74,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "**/cache"
-          key: mkdocs-overpass-dev-cache-${{ runner.os }}
+          key: mkdocs-osm-dev-cache-${{ runner.os }}
       - name: Execute jupyter notebooks
         run: |
           jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
