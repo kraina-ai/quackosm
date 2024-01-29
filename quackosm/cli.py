@@ -161,7 +161,7 @@ class S2GeometryParser(click.ParamType):  # type: ignore
             return None
 
         try:
-            geometries = []
+            geometries = []  # noqa: FURB138
             for s2_index in value.split(","):
                 geometries.append(
                     Polygon(s2.s2_to_geo_boundary(s2_index.strip(), geo_json_conformant=True))
@@ -539,7 +539,7 @@ def main(
         or geom_filter_wkt
     )
 
-    if pbf_file is None and geometry_filter_value is None:
+    if pbf_file is None and geometry_filter_value is None:  # noqa: FURB124
         raise MissingParameter(
             message=(
                 "QuackOSM requires either the path to the pbf file or a geometry filter"
