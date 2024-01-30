@@ -17,7 +17,7 @@ import pytest
 import six
 from parametrization import Parametrization as P
 from shapely import from_wkt, hausdorff_distance
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import MultiPolygon, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 from srai.geometry import remove_interiors
@@ -26,6 +26,12 @@ from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm._constants import FEATURES_INDEX
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
+from quackosm.cli import (
+    GeocodeGeometryParser,
+    GeohashGeometryParser,
+    H3GeometryParser,
+    S2GeometryParser,
+)
 from quackosm.pbf_file_reader import PbfFileReader
 
 ut = TestCase()
@@ -218,6 +224,29 @@ def test_pbf_reader_proper_tags_reading(
     assert len(features_gdf) == 1
     returned_tags_keys = list(features_gdf.iloc[0].tags.keys())
     ut.assertListEqual(returned_tags_keys, expected_tags_keys)
+
+
+@pytest.mark.parametrize(  # type: ignore
+    "geometry",
+    [
+        box(
+            minx=7.416486207767861,
+            miny=43.7310867041912,
+            maxx=7.421931388477276,
+            maxy=43.73370705597216,
+        ),
+        GeohashGeometryParser().convert("spv2bc", None, None),  # type: ignore
+        GeohashGeometryParser().convert("spv2bc,spv2bfr", None, None),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff", None, None),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff,893969a4037ffff", None, None),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc", None, None),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc,12cdc28f", None, None),  # type: ignore
+        GeocodeGeometryParser().convert("Monaco-Ville, Monaco", None, None),  # type: ignore
+    ],
+)
+def test_geometry_orienting(geometry: BaseGeometry):
+    """Test if geometry orienting works properly."""
+    assert geometry.equals(PbfFileReader(geometry_filter=geometry)._get_oriented_geometry_filter())
 
 
 # Copyright (C) 2011 by Hong Minhee <http://dahlia.kr/>,

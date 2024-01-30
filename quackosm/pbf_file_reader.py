@@ -5,6 +5,7 @@ This module contains a reader capable of parsing a PBF file into a GeoDataFrame.
 """
 
 import hashlib
+import itertools
 import json
 import shutil
 import tempfile
@@ -23,7 +24,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from pyarrow_ops import drop_duplicates
-from shapely.geometry.base import BaseGeometry
+from shapely.geometry import LinearRing, Polygon
+from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 import quackosm._geo_arrow_io as io
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
@@ -558,11 +560,7 @@ class PbfFileReader:
             h.update(json.dumps(self.tags_filter).encode())
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
-        clipping_geometry_hash_part = "noclip"
-        if self.geometry_filter is not None:
-            h = hashlib.new("sha256")
-            h.update(wktlib.dumps(self.geometry_filter).encode())
-            clipping_geometry_hash_part = h.hexdigest()
+        clipping_geometry_hash_part = self._generate_geometry_hash()
 
         exploded_tags_part = "exploded" if explode_tags else "compact"
 
@@ -588,11 +586,7 @@ class PbfFileReader:
             h.update(json.dumps(self.tags_filter).encode())
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
-        clipping_geometry_hash_part = "noclip"
-        if self.geometry_filter is not None:
-            h = hashlib.new("sha256")
-            h.update(wktlib.dumps(self.geometry_filter).encode())
-            clipping_geometry_hash_part = h.hexdigest()
+        clipping_geometry_hash_part = self._generate_geometry_hash()
 
         exploded_tags_part = "exploded" if explode_tags else "compact"
 
@@ -607,6 +601,60 @@ class PbfFileReader:
             f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
         )
         return Path(self.working_directory) / result_file_name
+
+    def _generate_geometry_hash(self) -> str:
+        clipping_geometry_hash_part = "noclip"
+        oriented_geometry = self._get_oriented_geometry_filter()
+        if oriented_geometry is not None:
+            h = hashlib.new("sha256")
+            h.update(wktlib.dumps(oriented_geometry).encode())
+            clipping_geometry_hash_part = h.hexdigest()
+
+        return clipping_geometry_hash_part
+
+    def _get_oriented_geometry_filter(
+        self,
+        geometry: Optional[BaseGeometry] = None,
+    ) -> Optional[BaseGeometry]:
+        if self.geometry_filter is None:
+            return None
+
+        if geometry is None:
+            geometry = self.geometry_filter
+
+        if isinstance(geometry, LinearRing):
+            # https://stackoverflow.com/a/73073112/7766101
+            new_coords = []
+            perimeter = list(geometry.coords)
+            smallest_point = sorted(perimeter)[0]
+            double_iteration = itertools.chain(perimeter[:-1], perimeter)
+            for point in double_iteration:
+                if point == smallest_point:
+                    new_coords.append(point)
+                    while len(new_coords) < len(perimeter):
+                        new_coords.append(next(double_iteration))
+                    break
+            return LinearRing(new_coords)
+        if isinstance(geometry, Polygon):
+            oriented_exterior = self._get_oriented_geometry_filter(geometry.exterior)
+            oriented_interiors = [
+                cast(BaseGeometry, self._get_oriented_geometry_filter(interior))
+                for interior in geometry.interiors
+            ]
+            return Polygon(
+                oriented_exterior,
+                sorted(oriented_interiors, key=lambda geom: (geom.centroid.x, geom.centroid.y)),
+            )
+        elif isinstance(geometry, BaseMultipartGeometry):
+            oriented_geoms = [
+                cast(BaseGeometry, self._get_oriented_geometry_filter(geom))
+                for geom in geometry.geoms
+            ]
+            return geometry.__class__(
+                sorted(oriented_geoms, key=lambda geom: (geom.centroid.x, geom.centroid.y))
+            )
+        else:
+            return geometry
 
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
