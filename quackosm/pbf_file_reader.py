@@ -149,70 +149,6 @@ class PbfFileReader:
             else parse_dict_to_config_object(osm_way_polygon_features_config)
         )
 
-    def get_features_gdf(
-        self,
-        file_paths: Union[str, Path, Iterable[Union[str, Path]]],
-        keep_all_tags: bool = False,
-        explode_tags: Optional[bool] = None,
-        ignore_cache: bool = False,
-        filter_osm_ids: Optional[list[str]] = None,
-    ) -> gpd.GeoDataFrame:
-        """
-        Get features GeoDataFrame from a list of PBF files.
-
-        Function parses multiple PBF files and returns a single GeoDataFrame with parsed
-        OSM objects.
-
-        Args:
-            file_paths (Union[str, Path, Iterable[Union[str, Path]]]):
-                Path or list of paths of `*.osm.pbf` files to be parsed.
-            keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
-                Whether to keep all tags related to the element, or return only those defined
-                in the `tags_filter`. When `True`, will override the optional grouping defined
-                in the `tags_filter`. Defaults to `False`.
-            explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
-                If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
-                If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
-                be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
-            ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
-                Defaults to False.
-            filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
-                Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
-                Defaults to an empty list.
-
-        Returns:
-            gpd.GeoDataFrame: GeoDataFrame with OSM features.
-        """
-        if isinstance(file_paths, (str, Path)):
-            file_paths = [file_paths]
-
-        if filter_osm_ids is None:
-            filter_osm_ids = []
-
-        if explode_tags is None:
-            explode_tags = self.tags_filter is not None and not keep_all_tags
-
-        parsed_geoparquet_files = []
-        for file_path in file_paths:
-            parsed_geoparquet_file = self.convert_pbf_to_gpq(
-                file_path,
-                keep_all_tags=keep_all_tags,
-                explode_tags=explode_tags,
-                ignore_cache=ignore_cache,
-                filter_osm_ids=filter_osm_ids,
-            )
-            parsed_geoparquet_files.append(parsed_geoparquet_file)
-
-        joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
-            parsed_geoparquet_files
-        )
-        gdf_parquet = gpd.GeoDataFrame(
-            data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
-            geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
-        ).set_index(FEATURES_INDEX)
-
-        return gdf_parquet
-
     def convert_pbf_to_gpq(
         self,
         pbf_path: Union[str, Path],
@@ -324,7 +260,7 @@ class PbfFileReader:
         if explode_tags is None:
             explode_tags = self.tags_filter is not None and not keep_all_tags
 
-        result_file_path = (
+        result_file_path = Path(
             result_file_path
             or self._generate_geoparquet_result_file_path_from_geometry(
                 filter_osm_ids=filter_osm_ids,
@@ -332,14 +268,77 @@ class PbfFileReader:
                 explode_tags=explode_tags,
             )
         )
+        if not result_file_path.exists() or ignore_cache:
+            matching_extracts = find_smallest_containing_extract(
+                self.geometry_filter, self.osm_extract_source
+            )
+            pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
 
-        matching_extracts = find_smallest_containing_extract(
-            self.geometry_filter, self.osm_extract_source
-        )
-        pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
+            parsed_geoparquet_files = []
+            for file_path in pbf_files:
+                parsed_geoparquet_file = self.convert_pbf_to_gpq(
+                    file_path,
+                    keep_all_tags=keep_all_tags,
+                    explode_tags=explode_tags,
+                    ignore_cache=ignore_cache,
+                    filter_osm_ids=filter_osm_ids,
+                )
+                parsed_geoparquet_files.append(parsed_geoparquet_file)
+
+            joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
+                parsed_geoparquet_files
+            )
+            io.write_geoparquet_table(  # type: ignore
+                joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
+            )
+
+        return Path(result_file_path)
+
+    def get_features_gdf(
+        self,
+        file_paths: Union[str, Path, Iterable[Union[str, Path]]],
+        keep_all_tags: bool = False,
+        explode_tags: Optional[bool] = None,
+        ignore_cache: bool = False,
+        filter_osm_ids: Optional[list[str]] = None,
+    ) -> gpd.GeoDataFrame:
+        """
+        Get features GeoDataFrame from a list of PBF files.
+
+        Function parses multiple PBF files and returns a single GeoDataFrame with parsed
+        OSM objects.
+
+        Args:
+            file_paths (Union[str, Path, Iterable[Union[str, Path]]]):
+                Path or list of paths of `*.osm.pbf` files to be parsed.
+            keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+                Whether to keep all tags related to the element, or return only those defined
+                in the `tags_filter`. When `True`, will override the optional grouping defined
+                in the `tags_filter`. Defaults to `False`.
+            explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+                If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+                If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+                be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+            ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
+                Defaults to False.
+            filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+                Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+                Defaults to an empty list.
+
+        Returns:
+            gpd.GeoDataFrame: GeoDataFrame with OSM features.
+        """
+        if isinstance(file_paths, (str, Path)):
+            file_paths = [file_paths]
+
+        if filter_osm_ids is None:
+            filter_osm_ids = []
+
+        if explode_tags is None:
+            explode_tags = self.tags_filter is not None and not keep_all_tags
 
         parsed_geoparquet_files = []
-        for file_path in pbf_files:
+        for file_path in file_paths:
             parsed_geoparquet_file = self.convert_pbf_to_gpq(
                 file_path,
                 keep_all_tags=keep_all_tags,
@@ -352,11 +351,57 @@ class PbfFileReader:
         joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
             parsed_geoparquet_files
         )
-        io.write_geoparquet_table(  # type: ignore
-            joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
-        )
+        gdf_parquet = gpd.GeoDataFrame(
+            data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
+            geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
+        ).set_index(FEATURES_INDEX)
 
-        return Path(result_file_path)
+        return gdf_parquet
+
+    def get_features_gdf_from_geometry(
+        self,
+        keep_all_tags: bool = False,
+        explode_tags: Optional[bool] = None,
+        ignore_cache: bool = False,
+        filter_osm_ids: Optional[list[str]] = None,
+    ) -> gpd.GeoDataFrame:
+        """
+        Get features GeoDataFrame from a provided geometry filter.
+
+        Will automatically find and download OSM extracts covering a given geometry
+        and return a single GeoDataFrame with parsed OSM objects.
+
+        Args:
+            keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+                Whether to keep all tags related to the element, or return only those defined
+                in the `tags_filter`. When `True`, will override the optional grouping defined
+                in the `tags_filter`. Defaults to `False`.
+            explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+                If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+                If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+                be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+            ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
+                Defaults to False.
+            filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+                Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+                Defaults to an empty list.
+
+        Returns:
+            gpd.GeoDataFrame: GeoDataFrame with OSM features.
+        """
+        parsed_geoparquet_file = self.convert_geometry_filter_to_gpq(
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            filter_osm_ids=filter_osm_ids,
+        )
+        joined_parquet_table = io.read_geoparquet_table(parsed_geoparquet_file)  # type: ignore
+        gdf_parquet = gpd.GeoDataFrame(
+            data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
+            geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
+        ).set_index(FEATURES_INDEX)
+
+        return gdf_parquet
 
     def _drop_duplicates_features_in_pyarrow_table(
         self, parsed_geoparquet_files: list[Path]
