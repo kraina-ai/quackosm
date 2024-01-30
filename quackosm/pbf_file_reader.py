@@ -653,8 +653,8 @@ class PbfFileReader:
             return geometry.__class__(
                 sorted(oriented_geoms, key=lambda geom: (geom.centroid.x, geom.centroid.y))
             )
-        else:
-            return geometry
+
+        return geometry
 
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
