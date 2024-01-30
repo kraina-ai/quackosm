@@ -43,7 +43,7 @@ class OsmExtractSource(str, Enum):
     bbbike = "BBBike"
 
     @classmethod
-    def _missing_(cls, value): # type: ignore
+    def _missing_(cls, value):  # type: ignore
         value = value.lower()
         for member in cls:
             if member.lower() == value:
@@ -158,7 +158,7 @@ OSM_EXTRACT_SOURCE_MATCHING_FUNCTION = {
 
 
 def find_smallest_containing_extract(
-    geometry: Union[BaseGeometry, BaseMultipartGeometry], source: OsmExtractSource
+    geometry: Union[BaseGeometry, BaseMultipartGeometry], source: Union[OsmExtractSource, str]
 ) -> list[OpenStreetMapExtract]:
     try:
         source_enum = OsmExtractSource(source)
