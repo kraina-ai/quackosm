@@ -177,7 +177,7 @@ def convert_pbf_to_gpq(
         ...     )
         ... )
         >>> gpq_path.as_posix()
-        'files/maldives_nofilter_35532d32333a47a057265be0d7903ce27f6aa6ca3df31fe45f4ce67e4dbb3fb5_compact.geoparquet'
+        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.geoparquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(
@@ -298,7 +298,7 @@ def convert_geometry_to_gpq(
         ... )
         >>> gpq_path = qosm.convert_geometry_to_gpq(from_wkt(wkt))
         >>> gpq_path.as_posix()
-        'files/00c25ee28cb0ab6e5ec802fb73db43961a0003e390e0e9b8fdea07276fa3b041_nofilter_compact.geoparquet'
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -345,7 +345,7 @@ def convert_geometry_to_gpq(
         ...     ignore_cache=True,
         ... )
         >>> gpq_path.as_posix()
-        'files/00c25ee28cb0ab6e5ec802fb73db43961a0003e390e0e9b8fdea07276fa3b041_nofilter_compact.geoparquet'
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(
