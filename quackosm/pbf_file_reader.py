@@ -630,9 +630,10 @@ class PbfFileReader:
             double_iteration = itertools.chain(perimeter[:-1], perimeter)
             for point in double_iteration:
                 if point == smallest_point:
-                    new_coords.append(point)
+                    new_coords.append((round(point[0], 7), round(point[1], 7)))
                     while len(new_coords) < len(perimeter):
-                        new_coords.append(next(double_iteration))
+                        next_point = next(double_iteration)
+                        new_coords.append((round(next_point[0], 7), round(next_point[1], 7)))
                     break
             return LinearRing(new_coords)
         if isinstance(geometry, Polygon):

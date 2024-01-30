@@ -246,7 +246,12 @@ def test_pbf_reader_proper_tags_reading(
 )
 def test_geometry_orienting(geometry: BaseGeometry):
     """Test if geometry orienting works properly."""
-    assert geometry.equals(PbfFileReader(geometry_filter=geometry)._get_oriented_geometry_filter())
+    oriented_geometry = cast(
+        BaseGeometry, PbfFileReader(geometry_filter=geometry)._get_oriented_geometry_filter()
+    )
+    intersection_area = geometry.intersection(oriented_geometry).area
+    iou = intersection_area / (geometry.area + oriented_geometry.area - intersection_area)
+    ut.assertAlmostEqual(iou, 1, delta=1e-4)
 
 
 # Copyright (C) 2011 by Hong Minhee <http://dahlia.kr/>,
