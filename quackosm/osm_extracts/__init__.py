@@ -16,7 +16,6 @@ from typing import Optional, Union
 import geopandas as gpd
 from pooch import retrieve
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
-from tqdm import tqdm
 from tqdm.contrib.concurrent import process_map
 
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
@@ -227,7 +226,7 @@ def _find_smallest_containing_extracts(
         ):
             unique_extracts_ids.update(extract_ids_list)
     else:
-        for sub_geometry in tqdm(geometries, desc="Finding matching extracts"):
+        for sub_geometry in geometries:
             unique_extracts_ids.update(
                 _find_smallest_containing_extracts_for_single_geometry(
                     sub_geometry, polygons_index_gdf
@@ -351,7 +350,7 @@ def _filter_extracts(
         ):
             filtered_extracts_ids.update(extract_ids_list)
     else:
-        for sub_geometry in tqdm(geometries, desc="Filtering extracts"):
+        for sub_geometry in geometries:
             filtered_extracts_ids.update(
                 _filter_extracts_for_single_geometry(sub_geometry, sorted_extracts_gdf)
             )
