@@ -15,7 +15,7 @@ from tqdm import tqdm
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import OpenStreetMapExtract
 
-BBBIKE_EXTRACTS_INDEX_URL = "https://download.bbbike.org/osm/bbbike/"
+BBBIKE_EXTRACTS_INDEX_URL = "https://download.bbbike.org/osm/bbbike"
 BBBIKE_INDEX_GDF: Optional[gpd.GeoDataFrame] = None
 
 __all__ = ["_get_bbbike_index"]
