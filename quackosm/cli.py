@@ -1,7 +1,9 @@
 """CLI module for parsing pbf file to geoparquet."""
 
 import json
+import logging
 import re
+import warnings
 from pathlib import Path
 from typing import Annotated, Optional, Union, cast
 
@@ -554,38 +556,41 @@ def main(
     if osm_tags_filter is not None and osm_tags_filter_file is not None:
         raise typer.BadParameter("Provided more than one osm tags filter parameter")
 
-    if pbf_file:
-        geoparquet_path = convert_pbf_to_gpq(
-            pbf_path=pbf_file,
-            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
-            keep_all_tags=keep_all_tags,
-            geometry_filter=geometry_filter_value,
-            explode_tags=explode_tags,
-            ignore_cache=ignore_cache,
-            working_directory=working_directory,
-            result_file_path=result_file_path,
-            osm_way_polygon_features_config=(
-                json.loads(Path(osm_way_polygon_features_config).read_text())
-                if osm_way_polygon_features_config
-                else None
-            ),
-            filter_osm_ids=filter_osm_ids,  # type: ignore
-        )
-    else:
-        geoparquet_path = convert_geometry_to_gpq(
-            geometry_filter=geometry_filter_value,
-            osm_extract_source=osm_extract_source,
-            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
-            keep_all_tags=keep_all_tags,
-            explode_tags=explode_tags,
-            ignore_cache=ignore_cache,
-            working_directory=working_directory,
-            result_file_path=result_file_path,
-            osm_way_polygon_features_config=(
-                json.loads(Path(osm_way_polygon_features_config).read_text())
-                if osm_way_polygon_features_config
-                else None
-            ),
-            filter_osm_ids=filter_osm_ids,  # type: ignore
-        )
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        logging.disable(logging.CRITICAL)
+        if pbf_file:
+            geoparquet_path = convert_pbf_to_gpq(
+                pbf_path=pbf_file,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                geometry_filter=geometry_filter_value,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+            )
+        else:
+            geoparquet_path = convert_geometry_to_gpq(
+                geometry_filter=geometry_filter_value,
+                osm_extract_source=osm_extract_source,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+            )
     typer.secho(geoparquet_path, fg="green")
