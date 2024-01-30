@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Remove duplicated features when parsing multiple PBF files
+- Geometry orienting to eliminate hash differences between operating systems and different equal versions of the same geometry
 
 ## [0.3.3] - 2024-01-16
 
