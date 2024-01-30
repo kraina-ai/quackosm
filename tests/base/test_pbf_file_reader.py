@@ -16,7 +16,7 @@ import pyogrio
 import pytest
 import six
 from parametrization import Parametrization as P
-from shapely import hausdorff_distance
+from shapely import from_wkt, hausdorff_distance
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
@@ -108,7 +108,7 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
     assert len(features_gdf) == 0
 
 
-def test_unique_osm_ids():  # type: ignore
+def test_unique_osm_ids_duplicated_file():  # type: ignore
     """Test if function returns results without duplicated features."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     result_gdf = PbfFileReader().get_features_gdf(
@@ -121,6 +121,20 @@ def test_unique_osm_ids():  # type: ignore
 
     assert result_gdf.index.is_unique
     assert len(result_gdf.index) == len(single_result_gdf.index)
+
+
+def test_unique_osm_ids_real_example():  # type: ignore
+    """Test if function returns results without duplicated features."""
+    andorra_geometry = from_wkt(
+        "POLYGON ((1.382599544073372 42.67676873293743, 1.382599544073372 42.40065303248514,"
+        " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
+        " 1.382599544073372 42.67676873293743))"
+    )
+    result_gdf = PbfFileReader(geometry_filter=andorra_geometry).get_features_gdf_from_geometry(
+        ignore_cache=True
+    )
+
+    assert result_gdf.index.is_unique
 
 
 @pytest.mark.parametrize(  # type: ignore
