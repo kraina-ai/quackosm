@@ -342,7 +342,6 @@ def convert_geometry_to_gpq(
         >>> gpq_path = qosm.convert_geometry_to_gpq(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
-        ...     ignore_cache=True,
         ... )
         >>> gpq_path.as_posix()
         'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
@@ -660,7 +659,6 @@ def get_features_gdf_from_geometry(
         >>> qosm.get_features_gdf_from_geometry(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
-        ...     ignore_cache=True,
         ... ).sort_index()
                                                   tags                                      geometry
         feature_id
