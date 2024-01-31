@@ -262,6 +262,15 @@ class PbfFileReader:
         if explode_tags is None:
             explode_tags = self.tags_filter is not None and not keep_all_tags
 
+        result_file_path = Path(
+            result_file_path
+            or self._generate_geoparquet_result_file_path_from_geometry(
+                filter_osm_ids=filter_osm_ids,
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags,
+            )
+        )
+
         matching_extracts = find_smallest_containing_extract(
             self.geometry_filter, self.osm_extract_source
         )
@@ -270,20 +279,13 @@ class PbfFileReader:
             pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
             return self.convert_pbf_to_gpq(
                 pbf_files[0],
+                result_file_path=result_file_path,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
                 ignore_cache=ignore_cache,
                 filter_osm_ids=filter_osm_ids,
             )
         else:
-            result_file_path = Path(
-                result_file_path
-                or self._generate_geoparquet_result_file_path_from_geometry(
-                    filter_osm_ids=filter_osm_ids,
-                    keep_all_tags=keep_all_tags,
-                    explode_tags=explode_tags,
-                )
-            )
             if not result_file_path.exists() or ignore_cache:
                 matching_extracts = find_smallest_containing_extract(
                     self.geometry_filter, self.osm_extract_source
