@@ -262,37 +262,51 @@ class PbfFileReader:
         if explode_tags is None:
             explode_tags = self.tags_filter is not None and not keep_all_tags
 
-        result_file_path = Path(
-            result_file_path
-            or self._generate_geoparquet_result_file_path_from_geometry(
-                filter_osm_ids=filter_osm_ids,
+        matching_extracts = find_smallest_containing_extract(
+            self.geometry_filter, self.osm_extract_source
+        )
+
+        if len(matching_extracts) == 1:
+            pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
+            return self.convert_pbf_to_gpq(
+                pbf_files[0],
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                filter_osm_ids=filter_osm_ids,
             )
-        )
-        if not result_file_path.exists() or ignore_cache:
-            matching_extracts = find_smallest_containing_extract(
-                self.geometry_filter, self.osm_extract_source
-            )
-            pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
-
-            parsed_geoparquet_files = []
-            for file_path in pbf_files:
-                parsed_geoparquet_file = self.convert_pbf_to_gpq(
-                    file_path,
+        else:
+            result_file_path = Path(
+                result_file_path
+                or self._generate_geoparquet_result_file_path_from_geometry(
+                    filter_osm_ids=filter_osm_ids,
                     keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
-                    ignore_cache=ignore_cache,
-                    filter_osm_ids=filter_osm_ids,
                 )
-                parsed_geoparquet_files.append(parsed_geoparquet_file)
+            )
+            if not result_file_path.exists() or ignore_cache:
+                matching_extracts = find_smallest_containing_extract(
+                    self.geometry_filter, self.osm_extract_source
+                )
+                pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
 
-            joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
-                parsed_geoparquet_files
-            )
-            io.write_geoparquet_table(  # type: ignore
-                joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
-            )
+                parsed_geoparquet_files = []
+                for file_path in pbf_files:
+                    parsed_geoparquet_file = self.convert_pbf_to_gpq(
+                        file_path,
+                        keep_all_tags=keep_all_tags,
+                        explode_tags=explode_tags,
+                        ignore_cache=ignore_cache,
+                        filter_osm_ids=filter_osm_ids,
+                    )
+                    parsed_geoparquet_files.append(parsed_geoparquet_file)
+
+                joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
+                    parsed_geoparquet_files
+                )
+                io.write_geoparquet_table(  # type: ignore
+                    joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
+                )
 
         return Path(result_file_path)
 
