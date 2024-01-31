@@ -16,8 +16,8 @@ import pyogrio
 import pytest
 import six
 from parametrization import Parametrization as P
-from shapely import hausdorff_distance
-from shapely.geometry import MultiPolygon, Polygon
+from shapely import from_wkt, hausdorff_distance
+from shapely.geometry import MultiPolygon, Polygon, box
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 from srai.geometry import remove_interiors
@@ -26,6 +26,12 @@ from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm._constants import FEATURES_INDEX
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
+from quackosm.cli import (
+    GeocodeGeometryParser,
+    GeohashGeometryParser,
+    H3GeometryParser,
+    S2GeometryParser,
+)
 from quackosm.pbf_file_reader import PbfFileReader
 
 ut = TestCase()
@@ -108,6 +114,35 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
     assert len(features_gdf) == 0
 
 
+def test_unique_osm_ids_duplicated_file():  # type: ignore
+    """Test if function returns results without duplicated features."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result_gdf = PbfFileReader().get_features_gdf(
+        file_paths=[monaco_file_path, monaco_file_path], ignore_cache=True
+    )
+
+    single_result_gdf = PbfFileReader().get_features_gdf(
+        file_paths=[monaco_file_path], ignore_cache=True
+    )
+
+    assert result_gdf.index.is_unique
+    assert len(result_gdf.index) == len(single_result_gdf.index)
+
+
+def test_unique_osm_ids_real_example():  # type: ignore
+    """Test if function returns results without duplicated features."""
+    andorra_geometry = from_wkt(
+        "POLYGON ((1.382599544073372 42.67676873293743, 1.382599544073372 42.40065303248514,"
+        " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
+        " 1.382599544073372 42.67676873293743))"
+    )
+    result_gdf = PbfFileReader(geometry_filter=andorra_geometry).get_features_gdf_from_geometry(
+        ignore_cache=True
+    )
+
+    assert result_gdf.index.is_unique
+
+
 @pytest.mark.parametrize(  # type: ignore
     "filter_osm_ids,expected_result_length",
     [
@@ -126,7 +161,7 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
             ],
             10,
         ),
-        (["way/-1", "node/-1", "relation/-1"], 0),
+        (["way/0", "node/0", "relation/0"], 0),
     ],
 )
 def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_result_length: int):
@@ -189,6 +224,34 @@ def test_pbf_reader_proper_tags_reading(
     assert len(features_gdf) == 1
     returned_tags_keys = list(features_gdf.iloc[0].tags.keys())
     ut.assertListEqual(returned_tags_keys, expected_tags_keys)
+
+
+@pytest.mark.parametrize(  # type: ignore
+    "geometry",
+    [
+        box(
+            minx=7.416486207767861,
+            miny=43.7310867041912,
+            maxx=7.421931388477276,
+            maxy=43.73370705597216,
+        ),
+        GeohashGeometryParser().convert("spv2bc", None, None),  # type: ignore
+        GeohashGeometryParser().convert("spv2bc,spv2bfr", None, None),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff", None, None),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff,893969a4037ffff", None, None),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc", None, None),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc,12cdc28f", None, None),  # type: ignore
+        GeocodeGeometryParser().convert("Monaco-Ville, Monaco", None, None),  # type: ignore
+    ],
+)
+def test_geometry_orienting(geometry: BaseGeometry):
+    """Test if geometry orienting works properly."""
+    oriented_geometry = cast(
+        BaseGeometry, PbfFileReader(geometry_filter=geometry)._get_oriented_geometry_filter()
+    )
+    intersection_area = geometry.intersection(oriented_geometry).area
+    iou = intersection_area / (geometry.area + oriented_geometry.area - intersection_area)
+    ut.assertAlmostEqual(iou, 1, delta=1e-4)
 
 
 # Copyright (C) 2011 by Hong Minhee <http://dahlia.kr/>,

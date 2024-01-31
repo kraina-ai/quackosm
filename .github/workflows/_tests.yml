@@ -44,6 +44,11 @@ jobs:
           cache-dependency-path: "**/pdm.lock"
       - name: Install dependencies
         run: pdm install -d -G test --skip=post_install
+      - name: Cache OSM data
+        uses: actions/cache@v3
+        with:
+          path: cache
+          key: osm-cache-${{ matrix.os }}-${{ matrix.python-version }}
       - name: Cache tox runner
         uses: actions/cache@v3
         with:

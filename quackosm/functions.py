@@ -13,6 +13,7 @@ from shapely.geometry.base import BaseGeometry
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
+from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
 
 
@@ -128,8 +129,6 @@ def convert_pbf_to_gpq(
         'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.geoparquet'
 
         Inspect the file with duckdb
-        >>> import duckdb
-        >>> duckdb.load_extension('spatial')
         >>> duckdb.read_parquet(str(gpq_path)).project(
         ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
         ... ).order("feature_id") # doctest: +SKIP
@@ -178,11 +177,9 @@ def convert_pbf_to_gpq(
         ...     )
         ... )
         >>> gpq_path.as_posix()
-        'files/maldives_nofilter_35532d32333a47a057265be0d7903ce27f6aa6ca3df31fe45f4ce67e4dbb3fb5_compact.geoparquet'
+        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.geoparquet'
 
         Inspect the file with duckdb
-        >>> import duckdb
-        >>> duckdb.load_extension('spatial')
         >>> duckdb.read_parquet(str(gpq_path)).project(
         ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
         ... ).order("feature_id") # doctest: +SKIP
@@ -224,6 +221,173 @@ def convert_pbf_to_gpq(
         osm_way_polygon_features_config=osm_way_polygon_features_config,
     ).convert_pbf_to_gpq(
         pbf_path=pbf_path,
+        result_file_path=result_file_path,
+        keep_all_tags=keep_all_tags,
+        explode_tags=explode_tags,
+        ignore_cache=ignore_cache,
+        filter_osm_ids=filter_osm_ids,
+    )
+
+
+def convert_geometry_to_gpq(
+    geometry_filter: BaseGeometry = None,
+    osm_extract_source: OsmExtractSource = OsmExtractSource.any,
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    keep_all_tags: bool = False,
+    explode_tags: Optional[bool] = None,
+    ignore_cache: bool = False,
+    filter_osm_ids: Optional[list[str]] = None,
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+) -> Path:
+    """
+    Get a GeoParquet file with OpenStreetMap features within given geometry.
+
+    Automatically downloads matching OSM extracts from different sources and returns a single file
+    as a result.
+
+    Args:
+        geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
+        osm_extract_source (OsmExtractSource): A source for automatic downloading of
+            OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
+        tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
+            specifying which tags to download.
+            The keys should be OSM tags (e.g. `building`, `amenity`).
+            The values should either be `True` for retrieving all objects with the tag,
+            string for retrieving a single tag-value pair
+            or list of strings for retrieving all values specified in the list.
+            `tags={'leisure': 'park}` would return parks from the area.
+            `tags={'leisure': 'park, 'amenity': True, 'shop': ['bakery', 'bicycle']}`
+            would return parks, all amenity types, bakeries and bicycle shops.
+            If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
+        result_file_path (Union[str, Path], optional): Where to save
+            the geoparquet file. If not provided, will be generated based on hashes
+            from provided tags filter and geometry filter. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
+        explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+            Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+            Defaults to an empty list.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
+
+    Returns:
+        Path: Path to the generated GeoParquet file.
+
+    Examples:
+        Get OSM data from the center of Monaco.
+
+        >>> import quackosm as qosm
+        >>> from shapely import from_wkt
+        >>> wkt = (
+        ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
+        ...     " 7.42378 43.73598, 7.41644 43.73598))"
+        ... )
+        >>> gpq_path = qosm.convert_geometry_to_gpq(from_wkt(wkt))
+        >>> gpq_path.as_posix()
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
+
+        Inspect the file with duckdb
+        >>> import duckdb
+        >>> duckdb.load_extension('spatial')
+        >>> duckdb.read_parquet(str(gpq_path)).project(
+        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
+        ... ).order("feature_id") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10068880335 │ {amenity=bench, ma…  │ POINT (7.4186855 43.7321515)                 │
+        │ node/10196648824 │ {contact:city=Mona…  │ POINT (7.4193805 43.7337539)                 │
+        │ node/10601158089 │ {addr:city=Monaco,…  │ POINT (7.4213086 43.7336187)                 │
+        │ node/10672624925 │ {addr:city=Monaco,…  │ POINT (7.4215683 43.7351727)                 │
+        │ node/10674256605 │ {amenity=bar, name…  │ POINT (7.4213558 43.7336317)                 │
+        │ node/1074584632  │ {crossing=marked, …  │ POINT (7.4188525 43.7323654)                 │
+        │ node/1074584650  │ {crossing=marked, …  │ POINT (7.4174145 43.7341601)                 │
+        │ node/1079045434  │ {addr:country=MC, …  │ POINT (7.4173175 43.7320823)                 │
+        │ node/1079045443  │ {highway=traffic_s…  │ POINT (7.4182804 43.7319223)                 │
+        │ node/10862390705 │ {amenity=drinking_…  │ POINT (7.4219582 43.7355272)                 │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │ way/952068828    │ {attraction=water_…  │ LINESTRING (7.4221787 43.7343579, 7.422176…  │
+        │ way/952068829    │ {attraction=water_…  │ LINESTRING (7.4220996 43.7343719, 7.422131…  │
+        │ way/952068830    │ {attraction=water_…  │ LINESTRING (7.4221161 43.7343595, 7.422119…  │
+        │ way/952068831    │ {attraction=water_…  │ LINESTRING (7.4221421 43.7343773, 7.422159…  │
+        │ way/952068832    │ {attraction=water_…  │ LINESTRING (7.4221748 43.7343815, 7.422173…  │
+        │ way/952419569    │ {highway=primary, …  │ LINESTRING (7.4171229 43.7316079, 7.417117…  │
+        │ way/952419570    │ {highway=primary, …  │ LINESTRING (7.4171473 43.7315034, 7.417166…  │
+        │ way/952419571    │ {highway=primary, …  │ LINESTRING (7.4171671 43.731656, 7.4171486…  │
+        │ way/952419572    │ {highway=primary, …  │ LINESTRING (7.4173054 43.7316813, 7.417276…  │
+        │ way/952419573    │ {highway=primary, …  │ LINESTRING (7.4173897 43.7316435, 7.417372…  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 1388 rows (20 shown)                                                                   │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+
+        Making sure that you are using specific OSM extract source - here Geofabrik.
+
+        >>> gpq_path = qosm.convert_geometry_to_gpq(
+        ...     from_wkt(wkt),
+        ...     osm_extract_source='Geofabrik',
+        ... )
+        >>> gpq_path.as_posix()
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
+
+        Inspect the file with duckdb
+        >>> duckdb.read_parquet(str(gpq_path)).project(
+        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
+        ... ).order("feature_id") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10068880335 │ {amenity=bench, ma…  │ POINT (7.4186855 43.7321515)                 │
+        │ node/10196648824 │ {contact:city=Mona…  │ POINT (7.4193805 43.7337539)                 │
+        │ node/10601158089 │ {addr:city=Monaco,…  │ POINT (7.4213086 43.7336187)                 │
+        │ node/10672624925 │ {addr:city=Monaco,…  │ POINT (7.4215683 43.7351727)                 │
+        │ node/10674256605 │ {amenity=bar, name…  │ POINT (7.4213558 43.7336317)                 │
+        │ node/1074584632  │ {crossing=marked, …  │ POINT (7.4188525 43.7323654)                 │
+        │ node/1074584650  │ {crossing=marked, …  │ POINT (7.4174145 43.7341601)                 │
+        │ node/1079045434  │ {addr:country=MC, …  │ POINT (7.4173175 43.7320823)                 │
+        │ node/1079045443  │ {highway=traffic_s…  │ POINT (7.4182804 43.7319223)                 │
+        │ node/10862390705 │ {amenity=drinking_…  │ POINT (7.4219582 43.7355272)                 │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │ way/952068828    │ {attraction=water_…  │ LINESTRING (7.4221787 43.7343579, 7.422176…  │
+        │ way/952068829    │ {attraction=water_…  │ LINESTRING (7.4220996 43.7343719, 7.422131…  │
+        │ way/952068830    │ {attraction=water_…  │ LINESTRING (7.4221161 43.7343595, 7.422119…  │
+        │ way/952068831    │ {attraction=water_…  │ LINESTRING (7.4221421 43.7343773, 7.422159…  │
+        │ way/952068832    │ {attraction=water_…  │ LINESTRING (7.4221748 43.7343815, 7.422173…  │
+        │ way/952419569    │ {highway=primary, …  │ LINESTRING (7.4171229 43.7316079, 7.417117…  │
+        │ way/952419570    │ {highway=primary, …  │ LINESTRING (7.4171473 43.7315034, 7.417166…  │
+        │ way/952419571    │ {highway=primary, …  │ LINESTRING (7.4171671 43.731656, 7.4171486…  │
+        │ way/952419572    │ {highway=primary, …  │ LINESTRING (7.4173054 43.7316813, 7.417276…  │
+        │ way/952419573    │ {highway=primary, …  │ LINESTRING (7.4173897 43.7316435, 7.417372…  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 1388 rows (20 shown)                                                                   │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+    """
+    return PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+        osm_extract_source=osm_extract_source,
+    ).convert_geometry_filter_to_gpq(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
@@ -403,6 +567,122 @@ def get_features_gdf(
         osm_way_polygon_features_config=osm_way_polygon_features_config,
     ).get_features_gdf(
         file_paths=file_paths,
+        keep_all_tags=keep_all_tags,
+        explode_tags=explode_tags,
+        ignore_cache=ignore_cache,
+        filter_osm_ids=filter_osm_ids,
+    )
+
+
+def get_features_gdf_from_geometry(
+    geometry_filter: BaseGeometry = None,
+    osm_extract_source: OsmExtractSource = OsmExtractSource.any,
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
+    keep_all_tags: bool = False,
+    explode_tags: Optional[bool] = None,
+    ignore_cache: bool = False,
+    filter_osm_ids: Optional[list[str]] = None,
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+) -> gpd.GeoDataFrame:
+    """
+    Get a GeoParquet file with OpenStreetMap features within given geometry.
+
+    Automatically downloads matching OSM extracts from different sources and returns a single file
+    as a result.
+
+    Args:
+        geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
+        osm_extract_source (OsmExtractSource): A source for automatic downloading of
+            OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
+        tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
+            specifying which tags to download.
+            The keys should be OSM tags (e.g. `building`, `amenity`).
+            The values should either be `True` for retrieving all objects with the tag,
+            string for retrieving a single tag-value pair
+            or list of strings for retrieving all values specified in the list.
+            `tags={'leisure': 'park}` would return parks from the area.
+            `tags={'leisure': 'park, 'amenity': True, 'shop': ['bakery', 'bicycle']}`
+            would return parks, all amenity types, bakeries and bicycle shops.
+            If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
+        explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+            Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+            Defaults to an empty list.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
+
+    Returns:
+        gpd.GeoDataFrame: GeoDataFrame with OSM features.
+
+    Examples:
+        Get OSM data from the center of Monaco.
+
+        >>> import quackosm as qosm
+        >>> from shapely import from_wkt
+        >>> wkt = (
+        ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
+        ...     " 7.42378 43.73598, 7.41644 43.73598))"
+        ... )
+        >>> qosm.get_features_gdf_from_geometry(from_wkt(wkt)).sort_index()
+                                                  tags                                      geometry
+        feature_id
+        node/10068880335     {'amenity': 'bench', '...                      POINT (7.41869 43.73215)
+        node/10196648824  {'contact:city': 'Monaco'...                      POINT (7.41938 43.73375)
+        node/10601158089  {'addr:city': 'Monaco', '...                      POINT (7.42131 43.73362)
+        node/10672624925  {'addr:city': 'Monaco', '...                      POINT (7.42157 43.73517)
+        node/10674256605         {'amenity': 'bar',...                      POINT (7.42136 43.73363)
+        ...                                        ...                                           ...
+        way/952419569     {'highway': 'primary', 'j...  LINESTRING (7.41712 43.73161, 7.41712 43....
+        way/952419570     {'highway': 'primary', 'j...  LINESTRING (7.41715 43.73150, 7.41717 43....
+        way/952419571     {'highway': 'primary', 'j...  LINESTRING (7.41717 43.73166, 7.41715 43....
+        way/952419572     {'highway': 'primary', 'j...  LINESTRING (7.41731 43.73168, 7.41728 43....
+        way/952419573     {'highway': 'primary', 'j...  LINESTRING (7.41739 43.73164, 7.41737 43....
+        <BLANKLINE>
+        [1388 rows x 2 columns]
+
+        Making sure that you are using specific OSM extract source - here Geofabrik.
+
+        >>> qosm.get_features_gdf_from_geometry(
+        ...     from_wkt(wkt),
+        ...     osm_extract_source='Geofabrik',
+        ... ).sort_index()
+                                                  tags                                      geometry
+        feature_id
+        node/10068880335       {'amenity': 'bench',...                      POINT (7.41869 43.73215)
+        node/10196648824  {'contact:city': 'Monaco'...                      POINT (7.41938 43.73375)
+        node/10601158089    {'addr:city': 'Monaco',...                      POINT (7.42131 43.73362)
+        node/10672624925    {'addr:city': 'Monaco',...                      POINT (7.42157 43.73517)
+        node/10674256605         {'amenity': 'bar',...                      POINT (7.42136 43.73363)
+        ...                                        ...                                           ...
+        way/952419569     {'highway': 'primary', 'j...   LINESTRING (7.41712 43.73161, 7.41712 43...
+        way/952419570     {'highway': 'primary', 'j...   LINESTRING (7.41715 43.73150, 7.41717 43...
+        way/952419571     {'highway': 'primary', 'j...   LINESTRING (7.41717 43.73166, 7.41715 43...
+        way/952419572     {'highway': 'primary', 'j...   LINESTRING (7.41731 43.73168, 7.41728 43...
+        way/952419573     {'highway': 'primary', 'j...   LINESTRING (7.41739 43.73164, 7.41737 43...
+        <BLANKLINE>
+        [1388 rows x 2 columns]
+    """
+    return PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+        osm_extract_source=osm_extract_source,
+    ).get_features_gdf_from_geometry(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,

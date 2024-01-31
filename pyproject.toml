@@ -12,6 +12,10 @@ dependencies = [
     "typeguard",
     "pyarrow-hotfix",
     "psutil",
+    "pooch",
+    "tqdm",
+    "beautifulsoup4",
+    "pyarrow-ops",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -41,6 +45,11 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 cli = [
     "typer[all]",
+    "osmnx",
+    "h3",
+    "h3ronpy",
+    "s2",
+    "python-geohash",
 ]
 
 [project.scripts]
@@ -88,6 +97,9 @@ docs = [
 license = ["licensecheck"]
 cli-dev = [
     "ipywidgets",
+    "folium",
+    "matplotlib",
+    "mapclassify",
 ]
 
 [tool.pdm.scripts]

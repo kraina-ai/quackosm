@@ -52,7 +52,10 @@ Optional:
 - typer[all] (click, colorama, rich, shellingham)
 
 ## Usage
-### Load data as a GeoDataFrame
+
+### If you already have downloaded the PBF file 📁🗺️
+
+#### Load data as a GeoDataFrame
 ```python
 >>> import quackosm as qosm
 >>> qosm.get_features_gdf(monaco_pbf_path)
@@ -72,14 +75,14 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 
 [7906 rows x 2 columns]
 ```
-### Just convert PBF to GeoParquet
+#### Just convert PBF to GeoParquet
 ```python
 >>> import quackosm as qosm
 >>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
 >>> gpq_path.as_posix()
 'files/monaco_nofilter_noclip_compact.geoparquet'
 ```
-### Inspect the file with duckdb
+#### Inspect the file with duckdb
 ```python
 >>> import duckdb
 >>> duckdb.load_extension('spatial')
@@ -117,7 +120,7 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 │ 7906 rows (20 shown)                                                         3 columns │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
-### Use as CLI
+#### Use as CLI
 ```console
 $ quackosm monaco.osm.pbf
 ⠏ [   1/33] Reading nodes • 0:00:00
@@ -157,7 +160,122 @@ $ quackosm monaco.osm.pbf
 ⠙ [  33/33] Saving final geoparquet file • 0:00:00
 files/monaco_nofilter_noclip_compact.geoparquet
 ```
-CLI Help output:
+
+### Let the QuackOSM automatically download the required OSM PBF files for you 🔎🌍
+
+#### Load data as a GeoDataFrame
+```python
+>>> import quackosm as qosm
+>>> import osmnx as ox
+>>> geometry = ox.geocode_to_gdf("Vatican City").unary_union
+>>> qosm.get_features_gdf_from_geometry(geometry)
+                                              tags                      geometry
+feature_id
+node/10253371713   {'crossing': 'uncontrolled',...     POINT (12.45603 41.90454)
+node/10253371714               {'highway': 'stop'}     POINT (12.45705 41.90400)
+node/10253371715               {'highway': 'stop'}     POINT (12.45242 41.90164)
+node/10253371720     {'artwork_type': 'statue',...     POINT (12.45147 41.90484)
+node/10253371738               {'natural': 'tree'}     POINT (12.45595 41.90609)
+...                                            ...                           ...
+way/983015528     {'barrier': 'hedge', 'height'...  POLYGON ((12.45027 41.901...
+way/983015529     {'barrier': 'hedge', 'height'...  POLYGON ((12.45028 41.901...
+way/983015530     {'barrier': 'hedge', 'height'...  POLYGON ((12.45023 41.901...
+way/998561138     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45821 41.9...
+way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
+
+[3286 rows x 2 columns]
+```
+#### Just convert geometry to GeoParquet
+```python
+>>> import quackosm as qosm
+>>> from shapely import from_wkt
+>>> geometry = from_wkt(
+...     "POLYGON ((14.4861 35.9107, 14.4861 35.8811, 14.5331 35.8811, 14.5331 35.9107, 14.4861 35.9107))"
+... )
+>>> gpq_path = qosm.convert_geometry_to_gpq(geometry)
+>>> gpq_path.as_posix()
+'files/4b2967088a8fe31cdc15401e29bff9b7b882565cd8143e90443f39f2dc5fe6de_nofilter_compact.geoparquet'
+```
+#### Inspect the file with duckdb
+```python
+>>> import duckdb
+>>> duckdb.load_extension('spatial')
+>>> duckdb.read_parquet(str(gpq_path)).project(
+...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
+... ).order("feature_id")
+┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+│    feature_id    │         tags         │                   geometry                   │
+│     varchar      │ map(varchar, varch…  │                   geometry                   │
+├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+│ node/10001388317 │ {amenity=bench, ba…  │ POINT (14.5093988 35.8936881)                │
+│ node/10001388417 │ {amenity=bench, ba…  │ POINT (14.5094635 35.8937135)                │
+│ node/10001388517 │ {amenity=bench, ba…  │ POINT (14.5095215 35.8937305)                │
+│ node/10018287160 │ {opening_hours=Mo-…  │ POINT (14.5184916 35.8915925)                │
+│ node/10018287161 │ {defensive_works=b…  │ POINT (14.5190093 35.8909471)                │
+│ node/10018287162 │ {defensive_works=h…  │ POINT (14.5250094 35.8883199)                │
+│ node/10018742746 │ {defibrillator:loc…  │ POINT (14.5094082 35.8965151)                │
+│ node/10018742747 │ {amenity=bank, nam…  │ POINT (14.51329 35.8991614)                  │
+│ node/10032244899 │ {amenity=restauran…  │ POINT (14.4946298 35.8986226)                │
+│ node/10034853491 │ {amenity=pharmacy}   │ POINT (14.4945884 35.9012758)                │
+│       ·          │         ·            │               ·                              │
+│       ·          │         ·            │               ·                              │
+│       ·          │         ·            │               ·                              │
+│ way/884730763    │ {highway=footway, …  │ LINESTRING (14.5218277 35.8896022, 14.5218…  │
+│ way/884730764    │ {bridge=yes, highw…  │ LINESTRING (14.5218054 35.8896015, 14.5218…  │
+│ way/884730765    │ {highway=footway, …  │ LINESTRING (14.5204069 35.889924, 14.52044…  │
+│ way/884730766    │ {handrail=yes, hig…  │ LINESTRING (14.5204375 35.8898663, 14.5204…  │
+│ way/884730767    │ {access=yes, handr…  │ LINESTRING (14.5196113 35.8906142, 14.5196…  │
+│ way/884730768    │ {highway=steps, la…  │ LINESTRING (14.5197226 35.890676, 14.51972…  │
+│ way/884730769    │ {access=yes, handr…  │ LINESTRING (14.5197184 35.8906707, 14.5197…  │
+│ way/884738591    │ {highway=pedestria…  │ LINESTRING (14.5204163 35.8897296, 14.5204…  │
+│ way/884744870    │ {highway=residenti…  │ LINESTRING (14.5218931 35.8864046, 14.5221…  │
+│ way/884744871    │ {access=yes, handr…  │ LINESTRING (14.5221083 35.8864287, 14.5221…  │
+├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+│ ? rows (>9999 rows, 20 shown)                                                3 columns │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+#### Use as CLI
+```console
+$ quackosm --geom-filter-geocode "Shibuya, Tokyo"
+100%|██████████████████████████████████████| 45.7M/45.7M [00:00<00:00, 259GB/s]
+⠹ [   1/33] Reading nodes • 0:00:03
+⠇ [   2/33] Filtering nodes - intersection • 0:00:01
+⠇ [   3/33] Filtering nodes - tags • 0:00:01
+⠙ [   4/33] Calculating distinct filtered nodes ids • 0:00:00
+⠋ [   5/33] Reading ways • 0:00:04
+⠧ [   6/33] Unnesting ways • 0:00:02
+⠹ [   7/33] Filtering ways - valid refs • 0:00:03
+⠴ [   8/33] Filtering ways - intersection • 0:00:02
+⠼ [   9/33] Filtering ways - tags • 0:00:00
+⠋ [  10/33] Calculating distinct filtered ways ids • 0:00:00
+⠦ [  11/33] Reading relations • 0:00:00
+⠴ [  12/33] Unnesting relations • 0:00:00
+⠼ [  13/33] Filtering relations - valid refs • 0:00:00
+⠸ [  14/33] Filtering relations - intersection • 0:00:00
+⠙ [  15/33] Filtering relations - tags • 0:00:00
+⠋ [  16/33] Calculating distinct filtered relations ids • 0:00:00
+⠹ [  17/33] Loading required ways - by relations • 0:00:00
+⠋ [  18/33] Calculating distinct required ways ids • 0:00:00
+⠇ [  19/33] Saving filtered nodes with geometries • 0:00:02
+⠋ [  20/33] Saving required nodes with structs • 0:00:05
+⠧ [  21/33] Grouping filtered ways • 0:00:03
+  [  22/33] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
+⠴ [  23/33] Grouping required ways • 0:00:02
+  [  24/33] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
+⠹ [  25/33] Saving filtered ways with geometries • 0:00:01
+⠦ [  26/33] Saving valid relations parts • 0:00:00
+⠙ [27.1/33] Saving relations inner parts - valid geometries • 0:00:00
+⠙ [27.2/33] Saving relations inner parts - invalid geometries • 0:00:00
+⠙ [28.1/33] Saving relations outer parts - valid geometries • 0:00:00
+⠙ [28.2/33] Saving relations outer parts - invalid geometries • 0:00:00
+⠋ [  29/33] Saving relations outer parts with holes • 0:00:00
+⠙ [  30/33] Saving relations outer parts without holes • 0:00:00
+⠙ [  31/33] Saving filtered relations with geometries • 0:00:00
+⠼ [32.1/33] Saving valid features • 0:00:00
+⠋ [  33/33] Saving final geoparquet file • 0:00:00
+files/9ae2b160eb7556991148f5a2693aaf4b38bbb225c3700a6bfe9e5e54f48b987e_nofilter_compact.geoparquet
+```
+CLI Help output (`QuackOSM -h`):
 ![CLI Help output](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/cli_help.png)
 
 You can find full API + more examples in the [docs](https://kraina-ai.github.io/quackosm/).
@@ -193,6 +311,42 @@ Library contains a logic to construct geometries (points, linestrings, polygons)
 10. Group relation parts into full (multi)polygons and save them
 11. Fix invalid geometries
 12. Return final GeoParquet file
+
+### Geometry validation
+
+You might ask a question: _How do I know that these geometries are reconstructed correctly?_
+
+To answer this question, the `QuackOSM` has implemented dedicated tests that validate the results of `GDAL` geometries vs `QuackOSM`.
+This might come as a surprise, but since OSM geometries aren't always perfectly defined (especially relations), the `QuackOSM` can even fix geometries that are loaded with weird artifacts by `GDAL`.
+
+You can inspect the comparison algorithm in the `test_gdal_parity` function from `tests/base/test_pbf_file_reader.py` file.
+
+### Caching
+
+Library utilizes caching system to reduce repeatable computations.
+
+By default, the library is saving results in the `files` directory created in the working directory. Result file name is generated based on the original `*.osm.pbf` file name.
+
+Original file name to be converted: `example.osm.pbf`.
+
+Default output without any filtering: `example_nofilter_noclip_compact.geoparquet`.
+
+The nofilter part can be replaced by the hash of OSM tags provided for filtering.
+`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet`
+
+The noclip part can be replaced by the hash of geometry used for filtering.
+`example_nofilter_430020b6b1ba7bef8ea919b2fb4472dab2972c70a2abae253760a56c29f449c4_compact.geoparquet`
+
+The `compact` part can also take the form of `exploded`, it represents the form of OSM tags - either kept together in a single dictionary or split into columns.
+
+When filtering by selecting individual features IDs, an additional hash based on those IDs is appended to the file.
+`example_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet`
+
+When the `keep_all_tags` parameter is passed while filtering by OSM tags, and additional `alltags` component is added after the osm filter hash part.
+`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet`
+
+General schema of multiple segments that are concatenated together:
+`pbf_file_name`\_(`osm_filter_tags_hash_part`/`nofilter`)(\_`alltags`)\_(`clipping_geometry_hash_part`/`noclip`)\_(`compact`/`exploded`)(\_`filter_osm_ids_hash_part`).geoparquet
 
 ### Memory usage
 
@@ -236,3 +390,10 @@ PBF file size: 1.7 GB
 [Geofabrik link](https://download.geofabrik.de/europe/poland.html)
 
 ![Poland PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_disk_spillage.png)
+
+
+## License
+
+The library is distributed under Apache-2.0 License.
+
+The free [OpenStreetMap](https://www.openstreetmap.org/) data, which is used for the development of QuackOSM, is licensed under the [Open Data Commons Open Database License](https://opendatacommons.org/licenses/odbl/) (ODbL) by the [OpenStreetMap Foundation](https://osmfoundation.org/) (OSMF).
