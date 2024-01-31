@@ -41,15 +41,26 @@ QuackOSM supports **Python >= 3.9**
 ### Dependencies
 
 Required:
-- duckdb (>=0.9.2)
-- pyarrow (>=13.0.0)
-- geoarrow-pyarrow (>=0.1.1)
-- geopandas
-- shapely (>=2.0)
-- typeguard
+- duckdb (>=0.9.2) - For all DuckDB operations on PBF files
+- pyarrow (>=13.0.0) - For parquet files wrangling
+- pyarrow-ops - For easy removal of duplicated features in parquet files
+- geoarrow-pyarrow (>=0.1.1) - For GeoParquet IO operations
+- geopandas - For returning GeoDataFrames and reading Geo files
+- shapely (>=2.0) - For parsing WKT and GeoJSON strings and fixing geometries
+- typeguard - For internal validation of types
+- psutil - For automatic scaling of parameters based on available resources
+- pooch - For downloading `*.osm.pbf` files
+- tqdm - For showing progress bars
+- requests - For iterating OSM PBF files services
+- beautifulsoup4 - For parsing HTML files and scraping required information
 
 Optional:
-- typer[all] (click, colorama, rich, shellingham)
+- typer[all] (click, colorama, rich, shellingham) - For CLI
+- osmnx - For geocoding of strings in CLI
+- h3 - For reading H3 strings in CLI
+- h3ronpy - For transforming H3 indexes into geometries
+- s2 - For transforming S2 indexes into geometries
+- python-geohash - For transforming GeoHash indexes into geometries
 
 ## Usage
 

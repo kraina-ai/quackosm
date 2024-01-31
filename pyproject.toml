@@ -16,6 +16,7 @@ dependencies = [
     "tqdm",
     "beautifulsoup4",
     "pyarrow-ops",
+    "requests",
 ]
 requires-python = ">=3.9"
 readme = "README.md"

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed additional redundancy of GeoParquet result files when only one extract covers whole area [#35](https://github.com/kraina-ai/quackosm/issues/35)
+
+### Fixed
+
+- Added missing `requests` dependency
+
 ## [0.4.0] - 2024-01-31
 
 ### Added
