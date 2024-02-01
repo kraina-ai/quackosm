@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2024-01-31
+
 ### Changed
 
 - Removed additional redundancy of GeoParquet result files when only one extract covers whole area [#35](https://github.com/kraina-ai/quackosm/issues/35)
@@ -101,7 +103,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.4.1...HEAD
+
+[0.4.1]: https://github.com/kraina-ai/quackosm/compare/0.4.0...0.4.1
 
 [0.4.0]: https://github.com/kraina-ai/quackosm/compare/0.3.3...0.4.0
 
