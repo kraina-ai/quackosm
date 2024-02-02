@@ -16,6 +16,7 @@ GEOFABRIK_INDEX_GDF: Optional[gpd.GeoDataFrame] = None
 
 __all__ = ["_get_geofabrik_index"]
 
+
 def _get_geofabrik_index() -> gpd.GeoDataFrame:
     global GEOFABRIK_INDEX_GDF  # noqa: PLW0603
 
@@ -39,7 +40,9 @@ def _load_geofabrik_index() -> gpd.GeoDataFrame:
     else:
         result = requests.get(
             GEOFABRIK_INDEX_URL,
-            headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
+            headers={
+                "User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"
+            },
         )
         parsed_data = json.loads(result.text)
         gdf = gpd.GeoDataFrame.from_features(parsed_data["features"])

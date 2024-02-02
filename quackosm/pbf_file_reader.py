@@ -1659,7 +1659,9 @@ class PbfFileReader:
             FROM ({parsed_geometries.sql_query()})
         """)
 
-        grouped_features = self._parse_features_relation_to_groups(unioned_features, explode_tags)
+        grouped_features = self._parse_features_relation_to_groups(
+            unioned_features, keep_all_tags=keep_all_tags, explode_tags=explode_tags
+        )
 
         valid_features_full_relation = self.connection.sql(f"""
             SELECT * FROM ({grouped_features.sql_query()})
@@ -1870,6 +1872,7 @@ class PbfFileReader:
         self,
         features_relation: "duckdb.DuckDBPyRelation",
         explode_tags: bool,
+        keep_all_tags: bool,
     ) -> "duckdb.DuckDBPyRelation":
         """
         Optionally group raw OSM features into groups defined in `GroupedOsmTagsFilter`.
@@ -1883,11 +1886,19 @@ class PbfFileReader:
         Args:
             features_relation (duckdb.DuckDBPyRelation): Generated features from the loader.
             explode_tags (bool): Whether to split tags into columns based on OSM tag keys.
+            keep_all_tags (bool): Works only with the `tags_filter` parameter.
+                Whether to keep all tags related to the element, or return only those defined
+                in the `tags_filter`. When `True`, will override the optional grouping defined
+                in the `tags_filter`. Defaults to `False`.
 
         Returns:
             duckdb.DuckDBPyRelation: Parsed features_relation.
         """
-        if not self.tags_filter or not is_expected_type(self.tags_filter, GroupedOsmTagsFilter):
+        if (
+            not self.tags_filter
+            or not is_expected_type(self.tags_filter, GroupedOsmTagsFilter)
+            or keep_all_tags
+        ):
             return features_relation
 
         grouped_features_relation: "duckdb.DuckDBPyRelation"

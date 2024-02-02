@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed last grouping step when using `keep_all_tags` parameter with `GroupedOsmTagsFilter` filter
+
 ## [0.4.1] - 2024-01-31
 
 ### Changed
