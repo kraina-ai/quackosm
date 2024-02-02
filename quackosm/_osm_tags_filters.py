@@ -52,14 +52,12 @@ def merge_osm_tags_filter(
     elif is_expected_type(osm_tags_filter, GroupedOsmTagsFilter):
         return _merge_grouped_osm_tags_filter(cast(GroupedOsmTagsFilter, osm_tags_filter))
     elif is_expected_type(osm_tags_filter, Iterable):
-        return _merge_multiple_osm_tags_filters(
-            [
-                merge_osm_tags_filter(
-                    cast(Union[OsmTagsFilter, GroupedOsmTagsFilter], sub_osm_tags_filter)
-                )
-                for sub_osm_tags_filter in osm_tags_filter
-            ]
-        )
+        return _merge_multiple_osm_tags_filters([
+            merge_osm_tags_filter(
+                cast(Union[OsmTagsFilter, GroupedOsmTagsFilter], sub_osm_tags_filter)
+            )
+            for sub_osm_tags_filter in osm_tags_filter
+        ])
 
     raise AttributeError(
         "Provided tags don't match required type definitions"

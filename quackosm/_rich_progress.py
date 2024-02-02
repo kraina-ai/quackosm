@@ -68,7 +68,7 @@ class TaskProgressBar:
                     elif task.speed >= 1:
                         return Text(f"{task.speed:.2f} it/s")
                     else:
-                        return Text(f"{1/task.speed:.2f} s/it") # noqa: FURB126
+                        return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
 
             self.progress = Progress(
                 SpinnerColumn(),
