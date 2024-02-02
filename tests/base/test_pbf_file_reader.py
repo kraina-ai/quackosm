@@ -101,6 +101,24 @@ def test_pbf_reader(
     )
 
 
+@pytest.mark.parametrize("tags_filter", [None, HEX2VEC_FILTER, GEOFABRIK_LAYERS])  # type: ignore
+@pytest.mark.parametrize("explode_tags", [None, True, False])  # type: ignore
+@pytest.mark.parametrize("keep_all_tags", [True, False])  # type: ignore
+def test_pbf_to_geoparquet_parsing(
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]],
+    explode_tags: Optional[bool],
+    keep_all_tags: bool,
+):
+    """Test if pbf to geoparquet conversion works."""
+    pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    PbfFileReader(tags_filter=tags_filter).get_features_gdf(
+        file_paths=pbf_file,
+        ignore_cache=True,
+        explode_tags=explode_tags,
+        keep_all_tags=keep_all_tags,
+    )
+
+
 def test_pbf_reader_geometry_filtering():  # type: ignore
     """Test proper spatial data filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
