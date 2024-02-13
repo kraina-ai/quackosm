@@ -32,6 +32,7 @@ from quackosm.cli import (
     H3GeometryParser,
     S2GeometryParser,
 )
+from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
 
 ut = TestCase()
@@ -158,6 +159,20 @@ def test_unique_osm_ids_real_example():  # type: ignore
         ignore_cache=True
     )
 
+    assert result_gdf.index.is_unique
+
+
+def test_schema_unification_real_example():  # type: ignore
+    """
+    Test if function returns results with unified schema without errors.
+
+    Extracted from issue https://github.com/kraina-ai/quackosm/issues/42
+    """
+    geo = box(minx=-85.904275, miny=38.056361, maxx=-85.502994, maxy=38.383253)
+    tags: OsmTagsFilter = {"military": ["airfield"], "leisure": ["park"]}
+    result_gdf = PbfFileReader(
+        tags_filter=tags, geometry_filter=geo, osm_extract_source=OsmExtractSource.geofabrik
+    ).get_features_gdf_from_geometry(explode_tags=True)
     assert result_gdf.index.is_unique
 
 
