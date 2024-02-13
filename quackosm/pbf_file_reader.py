@@ -23,11 +23,11 @@ import psutil
 import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
+from geoarrow.pyarrow import io
 from pyarrow_ops import drop_duplicates
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
-import quackosm._geo_arrow_io as io
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter, merge_osm_tags_filter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig, parse_dict_to_config_object
@@ -306,7 +306,7 @@ class PbfFileReader:
                 joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
                     parsed_geoparquet_files
                 )
-                io.write_geoparquet_table(  # type: ignore
+                io.write_geoparquet_table(
                     joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
                 )
 
@@ -413,7 +413,7 @@ class PbfFileReader:
             ignore_cache=ignore_cache,
             filter_osm_ids=filter_osm_ids,
         )
-        joined_parquet_table = io.read_geoparquet_table(parsed_geoparquet_file)  # type: ignore
+        joined_parquet_table = io.read_geoparquet_table(parsed_geoparquet_file)
         gdf_parquet = gpd.GeoDataFrame(
             data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
             geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
@@ -425,7 +425,7 @@ class PbfFileReader:
         self, parsed_geoparquet_files: list[Path]
     ) -> pa.Table:
         parquet_tables = [
-            io.read_geoparquet_table(parsed_parquet_file)  # type: ignore
+            io.read_geoparquet_table(parsed_parquet_file)
             for parsed_parquet_file in parsed_geoparquet_files
         ]
         joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
@@ -1774,7 +1774,7 @@ class PbfFileReader:
             joined_parquet_table = joined_parquet_table.drop(empty_columns)
 
         with TaskProgressSpinner("Saving final geoparquet file", "33"):
-            io.write_geoparquet_table(  # type: ignore
+            io.write_geoparquet_table(
                 joined_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
             )
 
