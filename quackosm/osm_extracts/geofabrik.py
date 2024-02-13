@@ -5,6 +5,7 @@ This module contains wrapper for publically available Geofabrik download server.
 """
 
 import json
+import operator
 from pathlib import Path
 from typing import Optional
 
@@ -48,7 +49,7 @@ def _load_geofabrik_index() -> gpd.GeoDataFrame:
         gdf = gpd.GeoDataFrame.from_features(parsed_data["features"])
         gdf["area"] = gdf.geometry.area
         gdf.sort_values(by="area", ignore_index=True, inplace=True)
-        gdf["url"] = gdf["urls"].apply(lambda d: d["pbf"])
+        gdf["url"] = gdf["urls"].apply(operator.itemgetter("pbf"))
         gdf["id"] = "Geofabrik_" + gdf["id"]
         gdf = gdf[["id", "name", "geometry", "area", "url"]]
 
