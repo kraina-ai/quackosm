@@ -428,7 +428,7 @@ class PbfFileReader:
             io.read_geoparquet_table(parsed_parquet_file)  # type: ignore
             for parsed_parquet_file in parsed_geoparquet_files
         ]
-        joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables)
+        joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
         if joined_parquet_table.num_rows > 0:
             joined_parquet_table = drop_duplicates(
                 joined_parquet_table, on=["feature_id"], keep="first"
