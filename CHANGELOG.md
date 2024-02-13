@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Added parquet schema unification when joining multiple files together [#42](https://github.com/kraina-ai/quackosm/issues/42)
+
 ## [0.4.2] - 2024-02-02
 
 ### Fixed
