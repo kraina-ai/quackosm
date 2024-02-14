@@ -71,7 +71,7 @@ jobs:
       - name: Install dependencies
         run: pip install --no-deps -r requirements.txt
       - name: Install nbconvert dependency
-        run: pip install jupyter nbconvert nbformat black
+        run: pip install jupyter nbconvert nbformat black "notebook<7.1.0"
       - name: Install quackosm
         run: |
           pdm build -v -d dist
