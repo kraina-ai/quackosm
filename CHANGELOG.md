@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Locked DuckDB's version to 0.9.2 to avoid segmentation fault
+
 ## [0.4.3] - 2024-02-13
 
 ### Fixed

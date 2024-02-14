@@ -7,7 +7,7 @@ dependencies = [
     "geopandas",
     "shapely>=2",
     "pyarrow>=13.0.0",
-    "duckdb>=0.9.2",
+    "duckdb==0.9.2",
     "geoarrow-pyarrow>=0.1.2",
     "typeguard",
     "psutil",
