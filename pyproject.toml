@@ -91,6 +91,10 @@ docs = [
     "mkdocs-awesome-pages-plugin",
     "mike<2",
     "black",
+    "jupyter",
+    "nbconvert",
+    "nbformat",
+    "notebook",
     "osmnx",
     "matplotlib",
 ]
