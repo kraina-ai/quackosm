@@ -7,6 +7,7 @@ This module contains a reader capable of parsing a PBF file into a GeoDataFrame.
 import hashlib
 import itertools
 import json
+import secrets
 import shutil
 import tempfile
 import warnings
@@ -1088,11 +1089,7 @@ class PbfFileReader:
                 r.get()
         else:
             self.connection.sql(query)
-        return self.connection.sql(
-            f"""
-            SELECT * FROM read_parquet('{file_path}/**')
-            """
-        )
+        return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
     def _calculate_unique_ids_to_parquet(
         self, file_path: Path, result_path: Optional[Path] = None
@@ -2095,9 +2092,12 @@ class PbfFileReader:
         return grouped_features_relation
 
 
-def _set_up_duckdb_connection(tmp_dir_path: Path) -> "duckdb.DuckDBPyConnection":
+def _set_up_duckdb_connection(
+    tmp_dir_path: Path, is_main_connection: bool = True
+) -> "duckdb.DuckDBPyConnection":
+    local_db_file = "db.duckdb" if is_main_connection else f"{secrets.token_hex(16)}.duckdb"
     connection = duckdb.connect(
-        database=str(tmp_dir_path / "db.duckdb"),
+        database=str(tmp_dir_path / local_db_file),
         config=dict(preserve_insertion_order=False),
     )
     for extension_name in ("parquet", "spatial"):
@@ -2121,5 +2121,6 @@ def _set_up_duckdb_connection(tmp_dir_path: Path) -> "duckdb.DuckDBPyConnection"
 
 
 def _run_query(query: str, tmp_dir_path: Path) -> None:
-    conn = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
+    conn = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path, is_main_connection=False)
     conn.sql(query)
+    conn.close()
