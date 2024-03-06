@@ -117,6 +117,9 @@ preview = true
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+extend-exclude = ["old"]
+
+[tool.ruff.lint]
 select = [
     "E",
     "W",   # pycodestyle
@@ -138,12 +141,11 @@ select = [
     # "ANN",          # flake8-annotations
 ]
 ignore = ["D212"]
-extend-exclude = ["old"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.ruff.pycodestyle]
+[tool.ruff.lint.pycodestyle]
 max-doc-length = 100
 
 [tool.mypy]

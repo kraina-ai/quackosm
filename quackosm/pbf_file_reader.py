@@ -1254,7 +1254,7 @@ class PbfFileReader:
                     )
 
                 finished_operation = True
-            except duckdb.OutOfMemoryException:
+            except (duckdb.OutOfMemoryException, MemoryError):
                 if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
@@ -1370,7 +1370,9 @@ class PbfFileReader:
             self._save_parquet_file(
                 relation=ways_with_linestrings,
                 file_path=destination_dir_path / f"group={group}",
-                run_in_separate_process=self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0],
+                run_in_separate_process=(
+                    self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                ),
             )
             self._delete_directories(current_ways_group_path)
 
