@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Added automatic downscaling of the `rows_per_bucket` parameter for ways grouping operation [#50](https://github.com/kraina-ai/quackosm/issues/50)
+
 ## [0.4.4] - 2024-02-14
 
 ### Fixed
