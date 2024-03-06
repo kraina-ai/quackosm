@@ -12,6 +12,7 @@ import tempfile
 import warnings
 from collections.abc import Iterable
 from math import floor
+from multiprocessing import Pool
 from pathlib import Path
 from time import sleep
 from typing import Any, Literal, NamedTuple, Optional, Union, cast
@@ -19,6 +20,7 @@ from typing import Any, Literal, NamedTuple, Optional, Union, cast
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
+import psutil
 import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
@@ -133,14 +135,13 @@ class PbfFileReader:
         self.connection: duckdb.DuckDBPyConnection = None
 
         self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[24]
-        # self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
-        # acutal_memory = psutil.virtual_memory()
-        # # If less than 8 / 16 / 24 GB total memory, reduce number of rows per group
-        # for memory_gb, rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.items():
-        #     if acutal_memory.total >= (memory_gb * (1024**3)):
-        #         self.rows_per_bucket = rows_per_bucket
-        #     else:
-        #         break
+        acutal_memory = psutil.virtual_memory()
+        # If less than 8 / 16 / 24 GB total memory, reduce number of rows per group
+        for memory_gb, rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.items():
+            if acutal_memory.total >= (memory_gb * (1024**3)):
+                self.rows_per_bucket = rows_per_bucket
+            else:
+                break
 
         self.parquet_compression = parquet_compression
 
@@ -201,7 +202,7 @@ class PbfFileReader:
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
             try:
-                self._set_up_duckdb_connection()
+                self.connection = _set_up_duckdb_connection(tmp_dir_path=self.tmp_dir_path)
                 result_file_path = result_file_path or self._generate_geoparquet_result_file_path(
                     pbf_path,
                     filter_osm_ids=filter_osm_ids,
@@ -441,28 +442,6 @@ class PbfFileReader:
                 joined_parquet_table, on=["feature_id"], keep="first"
             )
         return joined_parquet_table
-
-    def _set_up_duckdb_connection(self) -> None:
-        self.connection = duckdb.connect(
-            database=str(self.tmp_dir_path / "db.duckdb"),
-            config=dict(preserve_insertion_order=False),
-        )
-        for extension_name in ("parquet", "spatial"):
-            self.connection.install_extension(extension_name)
-            self.connection.load_extension(extension_name)
-
-        self.connection.sql(
-            """
-            CREATE OR REPLACE MACRO linestring_to_linestring_wkt(ls) AS
-            'LINESTRING (' || array_to_string([pt.x || ' ' || pt.y for pt in ls], ', ') || ')';
-            """
-        )
-        self.connection.sql(
-            """
-            CREATE OR REPLACE MACRO linestring_to_polygon_wkt(ls) AS
-            'POLYGON ((' || array_to_string([pt.x || ' ' || pt.y for pt in ls], ', ') || '))';
-            """
-        )
 
     def _parse_pbf_file(
         self,
@@ -1088,10 +1067,12 @@ class PbfFileReader:
         return self._save_parquet_file(relation, file_path)
 
     def _save_parquet_file(
-        self, relation: "duckdb.DuckDBPyRelation", file_path: Path
+        self,
+        relation: "duckdb.DuckDBPyRelation",
+        file_path: Path,
+        run_in_separate_process: bool = False,
     ) -> "duckdb.DuckDBPyRelation":
-        self.connection.sql(
-            f"""
+        query = f"""
             COPY (
                 SELECT * FROM ({relation.sql_query()})
             ) TO '{file_path}' (
@@ -1100,8 +1081,13 @@ class PbfFileReader:
                 ROW_GROUP_SIZE 25000,
                 COMPRESSION '{self.parquet_compression}'
             )
-            """
-        )
+        """
+        if run_in_separate_process:
+            with Pool() as pool:
+                r = pool.apply_async(_run_query, args=(query, self.tmp_dir_path))
+                r.get()
+        else:
+            self.connection.sql(query)
         return self.connection.sql(
             f"""
             SELECT * FROM read_parquet('{file_path}/**')
@@ -1378,6 +1364,7 @@ class PbfFileReader:
             self._save_parquet_file(
                 relation=ways_with_linestrings,
                 file_path=destination_dir_path / f"group={group}",
+                run_in_separate_process=True,
             )
             self._delete_directories(current_ways_group_path)
 
@@ -2106,3 +2093,33 @@ class PbfFileReader:
             )
 
         return grouped_features_relation
+
+
+def _set_up_duckdb_connection(tmp_dir_path: Path) -> "duckdb.DuckDBPyConnection":
+    connection = duckdb.connect(
+        database=str(tmp_dir_path / "db.duckdb"),
+        config=dict(preserve_insertion_order=False),
+    )
+    for extension_name in ("parquet", "spatial"):
+        connection.install_extension(extension_name)
+        connection.load_extension(extension_name)
+
+    connection.sql(
+        """
+        CREATE OR REPLACE MACRO linestring_to_linestring_wkt(ls) AS
+        'LINESTRING (' || array_to_string([pt.x || ' ' || pt.y for pt in ls], ', ') || ')';
+        """
+    )
+    connection.sql(
+        """
+        CREATE OR REPLACE MACRO linestring_to_polygon_wkt(ls) AS
+        'POLYGON ((' || array_to_string([pt.x || ' ' || pt.y for pt in ls], ', ') || '))';
+        """
+    )
+
+    return connection
+
+
+def _run_query(query: str, tmp_dir_path: Path) -> None:
+    conn = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
+    conn.sql(query)

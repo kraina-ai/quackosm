@@ -489,7 +489,6 @@ def check_if_relation_in_osm_is_valid_based_on_geometry(pbf_file: str, relation_
                     COALESCE(r.ref_role, 'outer') as ref_role,
                     r.ref,
                 FROM unnested_relation_way_refs r
-                ORDER BY r.id, r.ref_idx
             ),
             unnested_way_refs AS (
                 SELECT
