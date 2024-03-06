@@ -1481,7 +1481,6 @@ class PbfFileReader:
                 ON r.id = fr.id
                 JOIN ({required_ways_with_linestrings.sql_query()}) w
                 ON w.id = r.ref
-                ORDER BY r.id, r.ref_idx
             ),
             any_outer_refs AS (
                 SELECT id, bool_or(ref_role == 'outer') any_outer_refs
