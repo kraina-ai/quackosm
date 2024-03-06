@@ -1089,7 +1089,6 @@ class PbfFileReader:
                 while not r.ready():
                     acutal_memory = psutil.virtual_memory()
                     free_memory_ratio = acutal_memory.free / acutal_memory.total
-                    print(round(free_memory_ratio, 2))
                     if free_memory_ratio < 0.05:
                         # Will automatically call pool.terminate()
                         raise MemoryError()
