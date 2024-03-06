@@ -135,7 +135,7 @@ class PbfFileReader:
         self.working_directory.mkdir(parents=True, exist_ok=True)
         self.connection: duckdb.DuckDBPyConnection = None
 
-        self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[24]
+        self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
         acutal_memory = psutil.virtual_memory()
         # If less than 8 / 16 / 24 GB total memory, reduce number of rows per group
         for memory_gb, rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.items():
