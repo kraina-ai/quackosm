@@ -8,6 +8,15 @@ __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 TOTAL_STEPS = 33
 
 
+def log_message(message: str) -> None:
+    try:  # pragma: no cover
+        from rich import print as rprint
+
+        rprint(message)
+    except ImportError:
+        print(message)
+
+
 class TaskProgressSpinner:
     def __init__(self, step_name: str, step_number: str):
         self.step_name = step_name

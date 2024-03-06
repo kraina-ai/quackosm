@@ -452,7 +452,8 @@ def check_if_relation_in_osm_is_valid_based_on_geometry(pbf_file: str, relation_
     duckdb.load_extension("spatial")
     return cast(
         bool,
-        duckdb.sql(f"""
+        duckdb.sql(
+            f"""
             WITH required_relation AS (
                 SELECT
                     r.id
@@ -561,7 +562,8 @@ def check_if_relation_in_osm_is_valid_based_on_geometry(pbf_file: str, relation_
             )
             SELECT COUNT(*) > 0 AS 'any_valid_outer_geometry'
             FROM valid_relations
-        """).fetchone()[0],
+            """
+        ).fetchone()[0],
     )
 
 
