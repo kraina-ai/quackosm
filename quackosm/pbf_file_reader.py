@@ -1086,6 +1086,15 @@ class PbfFileReader:
         if run_in_separate_process:
             with Pool() as pool:
                 r = pool.apply_async(_run_query, args=(query, self.tmp_dir_path))
+                while not r.ready():
+                    acutal_memory = psutil.virtual_memory()
+                    free_memory_ratio = acutal_memory.free / acutal_memory.total
+                    print(round(free_memory_ratio, 2))
+                    if free_memory_ratio < 0.05:
+                        # Will automatically call pool.terminate()
+                        raise MemoryError()
+                    else:
+                        sleep(0.5)
                 r.get()
         else:
             self.connection.sql(query)
@@ -1189,7 +1198,7 @@ class PbfFileReader:
                     )
 
                 finished_operation = True
-            except duckdb.OutOfMemoryException:
+            except (duckdb.OutOfMemoryException, MemoryError):
                 if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
