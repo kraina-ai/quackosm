@@ -49,6 +49,8 @@ __all__ = [
     "PbfFileReader",
 ]
 
+MEMORY_1GB = 1024**3
+
 
 class PbfFileReader:
     """
@@ -136,10 +138,10 @@ class PbfFileReader:
         self.connection: duckdb.DuckDBPyConnection = None
 
         self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
-        acutal_memory = psutil.virtual_memory()
+        actual_memory = psutil.virtual_memory()
         # If less than 8 / 16 / 24 GB total memory, reduce number of rows per group
         for memory_gb, rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.items():
-            if acutal_memory.total >= (memory_gb * (1024**3)):
+            if actual_memory.total >= (memory_gb * MEMORY_1GB):
                 self.rows_per_bucket = rows_per_bucket
             else:
                 break
@@ -1086,10 +1088,15 @@ class PbfFileReader:
         if run_in_separate_process:
             with Pool() as pool:
                 r = pool.apply_async(_run_query, args=(query, self.tmp_dir_path))
+                actual_memory = psutil.virtual_memory()
+                percentage_threshold = 95
+                if (actual_memory.total * 0.05) > MEMORY_1GB:
+                    percentage_threshold = (
+                        100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+                    )
                 while not r.ready():
-                    acutal_memory = psutil.virtual_memory()
-                    free_memory_ratio = acutal_memory.free / acutal_memory.total
-                    if free_memory_ratio < 0.05:
+                    actual_memory = psutil.virtual_memory()
+                    if actual_memory.percent > percentage_threshold:
                         # Will automatically call pool.terminate()
                         raise MemoryError()
                     else:
