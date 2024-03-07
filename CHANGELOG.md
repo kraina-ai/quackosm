@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2024-03-07
+
 ### Fixed
 
 - Added automatic downscaling of the `rows_per_bucket` parameter for ways grouping operation [#50](https://github.com/kraina-ai/quackosm/issues/50)
@@ -125,7 +127,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.4.4...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.4.5...HEAD
+
+[0.4.5]: https://github.com/kraina-ai/quackosm/compare/0.4.4...0.4.5
 
 [0.4.4]: https://github.com/kraina-ai/quackosm/compare/0.4.3...0.4.4
 
