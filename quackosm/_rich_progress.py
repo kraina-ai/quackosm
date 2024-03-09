@@ -5,7 +5,7 @@ from collections.abc import Iterable
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
-TOTAL_STEPS = 33
+TOTAL_STEPS = 32
 
 
 def log_message(message: str) -> None:
