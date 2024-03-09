@@ -475,29 +475,28 @@ class PbfFileReader:
             )
             self._delete_directories("nodes_filtered_ids")
 
-            ways_refs_with_nodes_structs = self._get_ways_refs_with_nodes_structs(
-                converted_osm_parquet_files
+            # ways_refs_with_nodes_structs = self._get_ways_refs_with_nodes_structs(
+            #     converted_osm_parquet_files
+            # )
+            # self._delete_directories(
+            #     [
+            #         "nodes_valid_with_tags",
+            #     ],
+            # )
+
+            filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
+                osm_parquet_files=converted_osm_parquet_files
+            )
+            required_ways_with_linestrings = self._get_required_ways_with_linestrings(
+                osm_parquet_files=converted_osm_parquet_files
             )
             self._delete_directories(
                 [
                     "nodes_valid_with_tags",
-                ],
-            )
-
-            filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
-                osm_parquet_files=converted_osm_parquet_files,
-                ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
-            )
-            required_ways_with_linestrings = self._get_required_ways_with_linestrings(
-                osm_parquet_files=converted_osm_parquet_files,
-                ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
-            )
-            self._delete_directories(
-                [
                     "ways_required_grouped",
                     "ways_required_ids",
                     "ways_with_unnested_nodes_refs",
-                    "ways_refs_with_nodes_structs",
+                    # "ways_refs_with_nodes_structs",
                     "required_ways_ids_grouped",
                     "required_ways_grouped",
                     "required_ways_tmp",
@@ -1175,83 +1174,82 @@ class PbfFileReader:
     def _get_filtered_ways_with_linestrings(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
-        ways_refs_with_nodes_structs: "duckdb.DuckDBPyRelation",
     ) -> "duckdb.DuckDBPyRelation":
         grouped_ways_path = self.tmp_dir_path / "filtered_ways_grouped"
         grouped_ways_tmp_path = self.tmp_dir_path / "filtered_ways_tmp"
         destination_dir_path = self.tmp_dir_path / "filtered_ways_with_linestrings"
 
-        finished_operation = False
-
-        while not finished_operation:
-            try:
-                with TaskProgressSpinner("Grouping filtered ways", "21"):
-                    groups = self._group_ways(
-                        ways_ids=osm_parquet_files.ways_filtered_ids,
-                        destination_dir_path=destination_dir_path,
-                        grouped_ways_tmp_path=grouped_ways_tmp_path,
-                        grouped_ways_path=grouped_ways_path,
-                        ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
-                    )
-                    self._delete_directories(grouped_ways_tmp_path)
-
-                with TaskProgressBar("Saving filtered ways with linestrings", "22") as bar:
-                    self._construct_ways_linestrings(
-                        bar=bar,
-                        groups=groups,
-                        destination_dir_path=destination_dir_path,
-                        grouped_ways_path=grouped_ways_path,
-                    )
-
-                finished_operation = True
-            except (duckdb.OutOfMemoryException, MemoryError):
-                if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
-                    self._delete_directories(
-                        [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
-                    )
-                    smaller_rows_per_bucket = 0
-                    for rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.values():
-                        if rows_per_bucket < self.rows_per_bucket:
-                            smaller_rows_per_bucket = rows_per_bucket
-                        else:
-                            break
-                    self.rows_per_bucket = smaller_rows_per_bucket
-                    log_message(
-                        "Encountered OutOfMemoryException during operation."
-                        f" Retrying with lower number of rows per group ({self.rows_per_bucket})."
-                    )
-                else:
-                    raise
-
-        ways_parquet = self.connection.sql(
-            f"SELECT * FROM read_parquet('{destination_dir_path}/**')"
+        return self._get_ways_with_linestrings(
+            ways_ids=osm_parquet_files.ways_filtered_ids,
+            mode="filtered",
+            step_number=21,
+            osm_parquet_files=osm_parquet_files,
+            destination_dir_path=destination_dir_path,
+            grouped_ways_path=grouped_ways_path,
+            grouped_ways_tmp_path=grouped_ways_tmp_path,
         )
-        return ways_parquet
 
     def _get_required_ways_with_linestrings(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
-        ways_refs_with_nodes_structs: "duckdb.DuckDBPyRelation",
     ) -> "duckdb.DuckDBPyRelation":
         grouped_ways_path = self.tmp_dir_path / "required_ways_grouped"
         grouped_ways_tmp_path = self.tmp_dir_path / "required_ways_tmp"
         destination_dir_path = self.tmp_dir_path / "required_ways_with_linestrings"
 
+        return self._get_ways_with_linestrings(
+            ways_ids=osm_parquet_files.ways_required_ids,
+            mode="required",
+            step_number=23,
+            osm_parquet_files=osm_parquet_files,
+            destination_dir_path=destination_dir_path,
+            grouped_ways_path=grouped_ways_path,
+            grouped_ways_tmp_path=grouped_ways_tmp_path,
+        )
+
+    def _get_ways_with_linestrings(
+        self,
+        ways_ids: "duckdb.DuckDBPyRelation",
+        mode: Literal["filtered", "required"],
+        step_number: int,
+        osm_parquet_files: ConvertedOSMParquetFiles,
+        destination_dir_path: Path,
+        grouped_ways_tmp_path: Path,
+        grouped_ways_path: Path,
+    ) -> "duckdb.DuckDBPyRelation":
         finished_operation = False
+        failed_at_least_once = False
 
         while not finished_operation:
             try:
-                with TaskProgressSpinner("Grouping required ways", "23"):
-                    groups = self._group_ways(
-                        ways_ids=osm_parquet_files.ways_required_ids,
-                        destination_dir_path=destination_dir_path,
-                        grouped_ways_tmp_path=grouped_ways_tmp_path,
-                        grouped_ways_path=grouped_ways_path,
-                        ways_refs_with_nodes_structs=ways_refs_with_nodes_structs,
-                    )
-                    self._delete_directories(grouped_ways_tmp_path)
+                if not failed_at_least_once:
+                    with TaskProgressSpinner(f"Grouping {mode} ways", f"{step_number}"):
+                        groups = self._group_ways(
+                            ways_ids=ways_ids,
+                            osm_parquet_files=osm_parquet_files,
+                            destination_dir_path=destination_dir_path,
+                            grouped_ways_tmp_path=grouped_ways_tmp_path,
+                            grouped_ways_path=grouped_ways_path,
+                            group_all_at_once=True,
+                        )
 
-                with TaskProgressBar("Saving required ways with linestrings", "24") as bar:
+                else:
+                    with TaskProgressBar(f"Grouping {mode} ways", f"{step_number}") as bar:
+                        groups = self._group_ways(
+                            ways_ids=ways_ids,
+                            osm_parquet_files=osm_parquet_files,
+                            destination_dir_path=destination_dir_path,
+                            grouped_ways_tmp_path=grouped_ways_tmp_path,
+                            grouped_ways_path=grouped_ways_path,
+                            group_all_at_once=False,
+                            bar=bar,
+                        )
+
+                self._delete_directories(grouped_ways_tmp_path)
+
+                with TaskProgressBar(
+                    f"Saving {mode} ways with linestrings", f"{step_number + 1}"
+                ) as bar:
                     self._construct_ways_linestrings(
                         bar=bar,
                         groups=groups,
@@ -1261,6 +1259,7 @@ class PbfFileReader:
 
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError):
+                failed_at_least_once = True
                 if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
@@ -1287,11 +1286,14 @@ class PbfFileReader:
     def _group_ways(
         self,
         ways_ids: "duckdb.DuckDBPyRelation",
-        ways_refs_with_nodes_structs: "duckdb.DuckDBPyRelation",
+        osm_parquet_files: ConvertedOSMParquetFiles,
         destination_dir_path: Path,
         grouped_ways_tmp_path: Path,
         grouped_ways_path: Path,
+        group_all_at_once: bool = True,
+        bar: Optional[TaskProgressBar] = None,
     ) -> int:
+        assert group_all_at_once or bar is not None
         total_required_ways = ways_ids.count("id").fetchone()[0]
 
         destination_dir_path.mkdir(parents=True, exist_ok=True)
@@ -1305,49 +1307,104 @@ class PbfFileReader:
 
         groups = int(floor(total_required_ways / self.rows_per_bucket))
 
-        ways_ids_grouped_relation = self.connection.sql(
-            f"""
-            SELECT id,
-                floor(
-                    row_number() OVER () / {self.rows_per_bucket}
-                )::INTEGER as "group",
-            FROM ({ways_ids.sql_query()})
-            """
-        )
         grouped_ways_ids_with_group_path = grouped_ways_tmp_path / "ids_with_group"
-        ways_ids_grouped_relation_parquet = self._save_parquet_file(
-            relation=ways_ids_grouped_relation, file_path=grouped_ways_ids_with_group_path
-        )
 
-        ways_with_nodes_points_relation = self.connection.sql(
-            f"""
-            SELECT
-                w.id, w.point, w.ref_idx, rw."group"
-            FROM ({ways_ids_grouped_relation_parquet.sql_query()}) rw
-            JOIN ({ways_refs_with_nodes_structs.sql_query()}) w
-            ON rw.id = w.id
-            """
-        )
-
-        grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
-        ways_with_nodes_points_relation_parquet = self._save_parquet_file(
-            relation=ways_with_nodes_points_relation, file_path=grouped_ways_ids_with_points_path
-        )
-
-        self.connection.sql(
-            f"""
-            COPY (
-                SELECT
-                    id, point, ref_idx, "group"
-                FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
-            ) TO '{grouped_ways_path}' (
-                FORMAT 'parquet',
-                PARTITION_BY ("group"),
-                ROW_GROUP_SIZE 25000,
-                COMPRESSION '{self.parquet_compression}'
+        if group_all_at_once:
+            ways_ids_grouped_relation = self.connection.sql(
+                f"""
+                SELECT id,
+                    floor(
+                        row_number() OVER () / {self.rows_per_bucket}
+                    )::INTEGER as "group",
+                FROM ({ways_ids.sql_query()})
+                """
             )
-            """
-        )
+            ways_ids_grouped_relation_parquet = self._save_parquet_file(
+                relation=ways_ids_grouped_relation, file_path=grouped_ways_ids_with_group_path
+            )
+
+            ways_with_nodes_points_relation = self.connection.sql(
+                f"""
+                SELECT
+                    w.id,
+                    struct_pack(x := round(n.lon, 7), y := round(n.lat, 7))::POINT_2D point,
+                    w.ref_idx,
+                    rw."group"
+                FROM ({ways_ids_grouped_relation_parquet.sql_query()}) rw
+                JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w
+                ON rw.id = w.id
+                JOIN ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
+                ON w.ref = n.id
+                """
+            )
+
+            grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
+            ways_with_nodes_points_relation_parquet = self._save_parquet_file(
+                relation=ways_with_nodes_points_relation,
+                file_path=grouped_ways_ids_with_points_path,
+                run_in_separate_process=(
+                    self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                ),
+            )
+
+            self.connection.sql(
+                f"""
+                COPY (
+                    SELECT
+                        id, point, ref_idx, "group"
+                    FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
+                ) TO '{grouped_ways_path}' (
+                    FORMAT 'parquet',
+                    PARTITION_BY ("group"),
+                    ROW_GROUP_SIZE 25000,
+                    COMPRESSION '{self.parquet_compression}'
+                )
+                """
+            )
+        else:
+            self.connection.sql(
+                f"""
+                COPY (
+                    SELECT id,
+                        floor(
+                            row_number() OVER () / {self.rows_per_bucket}
+                        )::INTEGER as "group",
+                    FROM ({ways_ids.sql_query()})
+                ) TO '{grouped_ways_ids_with_group_path}' (
+                    FORMAT 'parquet',
+                    PARTITION_BY ("group"),
+                    ROW_GROUP_SIZE 25000,
+                    COMPRESSION '{self.parquet_compression}'
+                )
+                """
+            )
+            for group in cast(TaskProgressBar, bar).track(range(groups + 1)):
+                current_ways_id_group_path = grouped_ways_ids_with_group_path / f"group={group}"
+                current_ways_group_path = grouped_ways_path / f"group={group}"
+                current_ways_group_path.mkdir(parents=True, exist_ok=True)
+
+                ways_with_nodes_points_relation = self.connection.sql(
+                    f"""
+                    SELECT
+                        w.id,
+                        struct_pack(x := round(n.lon, 7), y := round(n.lat, 7))::POINT_2D point,
+                        w.ref_idx
+                    FROM read_parquet('{current_ways_id_group_path}/**') rw
+                    JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w
+                    ON rw.id = w.id
+                    JOIN ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
+                    ON w.ref = n.id
+                    WHERE rw."group" = {group}
+                    """
+                )
+
+                ways_with_nodes_points_relation_parquet = self._save_parquet_file(
+                    relation=ways_with_nodes_points_relation,
+                    file_path=current_ways_group_path,
+                    run_in_separate_process=(
+                        self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                    ),
+                )
 
         return groups
 
@@ -1358,8 +1415,6 @@ class PbfFileReader:
         destination_dir_path: Path,
         grouped_ways_path: Path,
     ) -> None:
-        grouped_ways_path.mkdir(parents=True, exist_ok=True)
-
         for group in bar.track(range(groups + 1)):
             current_ways_group_path = grouped_ways_path / f"group={group}"
             current_ways_group_relation = self.connection.sql(
