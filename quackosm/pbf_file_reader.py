@@ -1309,6 +1309,9 @@ class PbfFileReader:
 
         grouped_ways_ids_with_group_path = grouped_ways_tmp_path / "ids_with_group"
         grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
+        grouped_ways_with_groups_partitioned_path = (
+            grouped_ways_tmp_path / "ways_with_groups_partitioned"
+        )
 
         with TaskProgressSpinner(f"Grouping {mode} ways - assigning groups", f"{step_number}.1"):
             ways_ids_grouped_relation = self.connection.sql(
@@ -1401,14 +1404,16 @@ class PbfFileReader:
                 f"SELECT * FROM read_parquet('{grouped_ways_ids_with_points_path}/**')"
             )
 
-        with TaskProgressSpinner(f"Grouping {mode} ways - partitioning", f"{step_number}.3"):
+        with TaskProgressSpinner(
+            f"Grouping {mode} ways - partitioning by group", f"{step_number}.3"
+        ):
             self.connection.sql(
                 f"""
                 COPY (
                     SELECT
                         id, point, ref_idx, "group"
                     FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
-                ) TO '{grouped_ways_path}' (
+                ) TO '{grouped_ways_with_groups_partitioned_path}' (
                     FORMAT 'parquet',
                     PARTITION_BY ("group"),
                     ROW_GROUP_SIZE 25000,
@@ -1416,6 +1421,34 @@ class PbfFileReader:
                 )
                 """
             )
+
+        with TaskProgressBar(
+            f"Grouping {mode} ways - partitioning by ref id", f"{step_number}.4"
+        ) as bar:
+            for group in bar.track(range(groups + 1)):
+                current_ways_group_path = (
+                    grouped_ways_with_groups_partitioned_path / f"group={group}"
+                )
+                current_ways_group_relation = self.connection.sql(
+                    f"SELECT * FROM read_parquet('{current_ways_group_path}/**')"
+                )
+                destination_path = grouped_ways_path / f"group={group}"
+                destination_path.mkdir(parents=True, exist_ok=True)
+
+                self.connection.sql(
+                    f"""
+                    COPY (
+                        SELECT
+                            id, point, ref_idx,
+                        FROM ({current_ways_group_relation.sql_query()}) w
+                    ) TO '{destination_path}' (
+                        FORMAT 'parquet',
+                        PARTITION_BY (ref_idx),
+                        ROW_GROUP_SIZE 25000,
+                        COMPRESSION '{self.parquet_compression}'
+                    )
+                    """
+                )
 
         return groups
 
@@ -1429,7 +1462,13 @@ class PbfFileReader:
         for group in bar.track(range(groups + 1)):
             current_ways_group_path = grouped_ways_path / f"group={group}"
             current_ways_group_relation = self.connection.sql(
-                f"SELECT * FROM read_parquet('{current_ways_group_path}/**')"
+                f"""
+                SELECT * FROM read_parquet(
+                    '{current_ways_group_path}/**',
+                    hive_partitioning = true,
+                    hive_types = {{ 'ref_idx': SMALLINT }}
+                )
+                """
             )
 
             ways_with_linestrings = self.connection.sql(
