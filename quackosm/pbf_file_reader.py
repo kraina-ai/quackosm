@@ -1076,7 +1076,7 @@ class PbfFileReader:
     ) -> "duckdb.DuckDBPyRelation":
         query = f"""
             COPY (
-                SELECT * FROM ({relation.sql_query()})
+                {relation.sql_query()}
             ) TO '{file_path}' (
                 FORMAT 'parquet',
                 PER_THREAD_OUTPUT true,
@@ -1429,9 +1429,6 @@ class PbfFileReader:
                 current_ways_group_path = (
                     grouped_ways_with_groups_partitioned_path / f"group={group}"
                 )
-                current_ways_group_relation = self.connection.sql(
-                    f"SELECT * FROM read_parquet('{current_ways_group_path}/**')"
-                )
                 destination_path = grouped_ways_path / f"group={group}"
                 destination_path.mkdir(parents=True, exist_ok=True)
 
@@ -1440,7 +1437,7 @@ class PbfFileReader:
                     COPY (
                         SELECT
                             id, point, ref_idx,
-                        FROM ({current_ways_group_relation.sql_query()}) w
+                        FROM read_parquet('{current_ways_group_path}/**') w
                     ) TO '{destination_path}' (
                         FORMAT 'parquet',
                         PARTITION_BY (ref_idx),
@@ -1461,20 +1458,14 @@ class PbfFileReader:
     ) -> None:
         for group in bar.track(range(groups + 1)):
             current_ways_group_path = grouped_ways_path / f"group={group}"
-            current_ways_group_relation = self.connection.sql(
+            ways_with_linestrings = self.connection.sql(
                 f"""
-                SELECT * FROM read_parquet(
+                SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
+                FROM read_parquet(
                     '{current_ways_group_path}/**',
                     hive_partitioning = true,
                     hive_types = {{ 'ref_idx': SMALLINT }}
                 )
-                """
-            )
-
-            ways_with_linestrings = self.connection.sql(
-                f"""
-                SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
-                FROM ({current_ways_group_relation.sql_query()})
                 GROUP BY id
                 """
             )
