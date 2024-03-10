@@ -1248,7 +1248,7 @@ class PbfFileReader:
                 self._delete_directories(grouped_ways_tmp_path)
 
                 with TaskProgressBar(
-                    f"Saving {mode} ways with linestrings", f"{step_number + 1}"
+                    f"Saving {mode} ways with linestrings", str(step_number + 1)
                 ) as bar:
                     self._construct_ways_linestrings(
                         bar=bar,
