@@ -1076,7 +1076,7 @@ class PbfFileReader:
     ) -> "duckdb.DuckDBPyRelation":
         query = f"""
             COPY (
-                {relation.sql_query()}
+                SELECT * FROM ({relation.sql_query()})
             ) TO '{file_path}' (
                 FORMAT 'parquet',
                 PER_THREAD_OUTPUT true,
