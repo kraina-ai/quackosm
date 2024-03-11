@@ -1267,17 +1267,24 @@ class PbfFileReader:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                     )
-                    smaller_rows_per_bucket = 0
-                    for rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.values():
-                        if rows_per_bucket < self.rows_per_bucket:
-                            smaller_rows_per_bucket = rows_per_bucket
-                        else:
-                            break
-                    self.rows_per_bucket = smaller_rows_per_bucket
-                    log_message(
-                        f"Encountered {ex.__class__.__name__} during operation."
-                        f" Retrying with lower number of rows per group ({self.rows_per_bucket})."
-                    )
+                    if isinstance(ex, TimeoutError):
+                        log_message(
+                            f"Encountered {ex.__class__.__name__} during operation. "
+                            "Retrying query again."
+                        )
+                    else:
+                        smaller_rows_per_bucket = 0
+                        for rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.values():
+                            if rows_per_bucket < self.rows_per_bucket:
+                                smaller_rows_per_bucket = rows_per_bucket
+                            else:
+                                break
+                        self.rows_per_bucket = smaller_rows_per_bucket
+                        log_message(
+                            f"Encountered {ex.__class__.__name__} during operation."
+                            " Retrying with lower number of rows per group"
+                            f" ({self.rows_per_bucket})."
+                        )
                 else:
                     raise
 
@@ -1451,6 +1458,7 @@ class PbfFileReader:
             log_message(query)
 
             tries = 3
+            timeout_seconds = [60, 120, 300]
             finished = False
             while not finished:
                 try:
@@ -1459,7 +1467,7 @@ class PbfFileReader:
                         run_in_separate_process=(
                             self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
                         ),
-                        query_timeout_seconds=300,  # 5 minutes timeout
+                        query_timeout_seconds=timeout_seconds[3 - tries],
                     )
                     finished = True
                 except TimeoutError:
