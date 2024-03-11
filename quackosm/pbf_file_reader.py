@@ -10,6 +10,7 @@ import json
 import secrets
 import shutil
 import tempfile
+import time
 import warnings
 from collections.abc import Iterable
 from math import floor
@@ -1073,10 +1074,16 @@ class PbfFileReader:
         self._run_query(query, run_in_separate_process)
         return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
-    def _run_query(self, sql_query: str, run_in_separate_process: bool = False) -> None:
+    def _run_query(
+        self,
+        sql_query: str,
+        run_in_separate_process: bool = False,
+        query_timeout_seconds: Optional[int] = None,
+    ) -> None:
         if run_in_separate_process:
             with Pool() as pool:
                 r = pool.apply_async(_run_query, args=(sql_query, self.tmp_dir_path))
+                start_time = time.time()
                 actual_memory = psutil.virtual_memory()
                 percentage_threshold = 95
                 if (actual_memory.total * 0.05) > MEMORY_1GB:
@@ -1086,10 +1093,17 @@ class PbfFileReader:
                 while not r.ready():
                     actual_memory = psutil.virtual_memory()
                     if actual_memory.percent > percentage_threshold:
-                        # Will automatically call pool.terminate()
                         raise MemoryError()
-                    else:
-                        sleep(0.5)
+
+                    current_time = time.time()
+                    elapsed_seconds = current_time - start_time
+                    if (
+                        query_timeout_seconds is not None
+                        and elapsed_seconds > query_timeout_seconds
+                    ):
+                        raise TimeoutError()
+
+                    sleep(0.5)
                 r.get()
         else:
             self.connection.sql(sql_query)
@@ -1247,7 +1261,7 @@ class PbfFileReader:
                     )
 
                 finished_operation = True
-            except (duckdb.OutOfMemoryException, MemoryError):
+            except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
                 failed_at_least_once = True
                 if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
                     self._delete_directories(
@@ -1261,7 +1275,7 @@ class PbfFileReader:
                             break
                     self.rows_per_bucket = smaller_rows_per_bucket
                     log_message(
-                        "Encountered OutOfMemoryException during operation."
+                        f"Encountered {ex.__class__.__name__} during operation."
                         f" Retrying with lower number of rows per group ({self.rows_per_bucket})."
                     )
                 else:
@@ -1298,9 +1312,6 @@ class PbfFileReader:
 
         grouped_ways_ids_with_group_path = grouped_ways_tmp_path / "ids_with_group"
         grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
-        grouped_ways_with_groups_partitioned_path = (
-            grouped_ways_tmp_path / "ways_with_groups_partitioned"
-        )
 
         with TaskProgressSpinner(f"Grouping {mode} ways - assigning groups", f"{step_number}.1"):
             ways_ids_grouped_relation = self.connection.sql(
@@ -1402,7 +1413,7 @@ class PbfFileReader:
                     SELECT
                         id, point, ref_idx, "group"
                     FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
-                ) TO '{grouped_ways_with_groups_partitioned_path}' (
+                ) TO '{grouped_ways_path}' (
                     FORMAT 'parquet',
                     PARTITION_BY ("group"),
                     ROW_GROUP_SIZE 25000,
@@ -1410,33 +1421,6 @@ class PbfFileReader:
                 )
                 """
             )
-
-        with TaskProgressBar(
-            f"Grouping {mode} ways - partitioning by ref id", f"{step_number}.4"
-        ) as bar:
-            for group in bar.track(range(groups + 1)):
-                current_ways_group_path = (
-                    grouped_ways_with_groups_partitioned_path / f"group={group}"
-                )
-                destination_path = grouped_ways_path / f"group={group}"
-                destination_path.mkdir(parents=True, exist_ok=True)
-
-                self.connection.sql(
-                    f"""
-                    COPY (
-                        SELECT
-                            id, point, ref_idx,
-                        FROM read_parquet('{current_ways_group_path}/**') w
-                    ) TO '{destination_path}' (
-                        FORMAT 'parquet',
-                        PARTITION_BY (ref_idx),
-                        ROW_GROUP_SIZE 25000,
-                        COMPRESSION '{self.parquet_compression}'
-                    )
-                    """
-                )
-
-                self._delete_directories(current_ways_group_path)
 
         return groups
 
@@ -1454,11 +1438,7 @@ class PbfFileReader:
             query = f"""
                 COPY (
                     SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
-                    FROM read_parquet(
-                        '{current_ways_group_path}/**',
-                        hive_partitioning = TRUE,
-                        hive_types = {{ 'ref_idx': SMALLINT }}
-                    )
+                    FROM read_parquet('{current_ways_group_path}/**')
                     GROUP BY id
                 ) TO '{current_destination_path}' (
                     FORMAT 'parquet',
@@ -1468,12 +1448,29 @@ class PbfFileReader:
                 )
             """
 
-            self._run_query(
-                query,
-                run_in_separate_process=(
-                    self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
-                ),
-            )
+            log_message(query)
+
+            tries = 3
+            finished = False
+            while not finished:
+                try:
+                    self._run_query(
+                        query,
+                        run_in_separate_process=(
+                            self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                        ),
+                        query_timeout_seconds=300,  # 5 minutes timeout
+                    )
+                    finished = True
+                except TimeoutError:
+                    if tries > 0:
+                        tries -= 1
+                        log_message(
+                            "Encountered TimeoutError during operation. Retrying query again."
+                        )
+                        self._delete_directories(current_destination_path)
+                    else:
+                        raise
 
             self._delete_directories(current_ways_group_path)
 
@@ -2212,6 +2209,8 @@ def _set_up_duckdb_connection(
         database=str(tmp_dir_path / local_db_file),
         config=dict(preserve_insertion_order=False),
     )
+    connection.sql("SET enable_progress_bar = false;")
+    connection.sql("SET enable_progress_bar_print = false;")
     for extension_name in ("parquet", "spatial"):
         connection.install_extension(extension_name)
         connection.load_extension(extension_name)
