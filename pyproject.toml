@@ -97,6 +97,7 @@ docs = [
     "notebook",
     "osmnx",
     "matplotlib",
+    "seaborn",
 ]
 license = ["licensecheck"]
 cli-dev = [
