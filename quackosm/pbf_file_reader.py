@@ -1271,24 +1271,18 @@ class PbfFileReader:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                     )
-                    if isinstance(ex, TimeoutError):
-                        log_message(
-                            f"Encountered {ex.__class__.__name__} during operation. "
-                            "Retrying query again."
-                        )
-                    else:
-                        smaller_rows_per_bucket = 0
-                        for rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.values():
-                            if rows_per_bucket < self.rows_per_bucket:
-                                smaller_rows_per_bucket = rows_per_bucket
-                            else:
-                                break
-                        self.rows_per_bucket = smaller_rows_per_bucket
-                        log_message(
-                            f"Encountered {ex.__class__.__name__} during operation."
-                            " Retrying with lower number of rows per group"
-                            f" ({self.rows_per_bucket})."
-                        )
+                    smaller_rows_per_bucket = 0
+                    for rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.values():
+                        if rows_per_bucket < self.rows_per_bucket:
+                            smaller_rows_per_bucket = rows_per_bucket
+                        else:
+                            break
+                    self.rows_per_bucket = smaller_rows_per_bucket
+                    log_message(
+                        f"Encountered {ex.__class__.__name__} during operation."
+                        " Retrying with lower number of rows per group"
+                        f" ({self.rows_per_bucket})."
+                    )
                 else:
                     raise
 
@@ -1484,7 +1478,8 @@ class PbfFileReader:
                     if tries_left > 1:
                         tries_left -= 1
                         log_message(
-                            "Encountered TimeoutError during operation. Retrying query again."
+                            "Encountered TimeoutError during operation."
+                            f" Retrying query again ({timeout_seconds[total_tries - tries_left]}s)."
                         )
                         self._delete_directories(current_destination_path)
                     else:
