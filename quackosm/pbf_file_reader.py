@@ -1076,13 +1076,16 @@ class PbfFileReader:
 
     def _run_query(
         self,
-        sql_query: str,
+        sql_queries: Union[str, list[str]],
         run_in_separate_process: bool = False,
         query_timeout_seconds: Optional[int] = None,
     ) -> None:
+        if isinstance(sql_queries, str):
+            sql_queries = [sql_queries]
+
         if run_in_separate_process:
             with Pool() as pool:
-                r = pool.apply_async(_run_query, args=(sql_query, self.tmp_dir_path))
+                r = pool.apply_async(_run_query, args=(sql_queries, self.tmp_dir_path))
                 start_time = time.time()
                 actual_memory = psutil.virtual_memory()
                 percentage_threshold = 95
@@ -1106,7 +1109,8 @@ class PbfFileReader:
                     sleep(0.5)
                 r.get()
         else:
-            self.connection.sql(sql_query)
+            for sql_query in sql_queries:
+                self.connection.sql(sql_query)
 
     def _calculate_unique_ids_to_parquet(
         self, file_path: Path, result_path: Optional[Path] = None
@@ -1442,10 +1446,15 @@ class PbfFileReader:
             current_ways_group_path = grouped_ways_path / f"group={group}"
             current_destination_path = destination_dir_path / f"group={group}"
 
-            query = f"""
+            temp_table_name = f"tbl{secrets.token_hex(16)}"
+            create_temp_table_query = f"""
+                CREATE OR REPLACE TEMP TABLE {temp_table_name} AS
+                FROM read_parquet('{current_ways_group_path}/**')
+            """
+            group_ways_query = f"""
                 COPY (
                     SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
-                    FROM read_parquet('{current_ways_group_path}/**')
+                    FROM {temp_table_name}
                     GROUP BY id
                 ) TO '{current_destination_path}' (
                     FORMAT 'parquet',
@@ -1454,6 +1463,8 @@ class PbfFileReader:
                     COMPRESSION '{self.parquet_compression}'
                 )
             """
+            drop_table_query = f"DROP TABLE {temp_table_name}"
+            queries = [create_temp_table_query, group_ways_query, drop_table_query]
 
             timeout_seconds = [60, 120, 180, 240, 300]
             total_tries = len(timeout_seconds)
@@ -1462,7 +1473,7 @@ class PbfFileReader:
             while not finished:
                 try:
                     self._run_query(
-                        query,
+                        queries,
                         run_in_separate_process=(
                             self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
                         ),
@@ -2238,7 +2249,10 @@ def _set_up_duckdb_connection(
     return connection
 
 
-def _run_query(query: str, tmp_dir_path: Path) -> None:
+def _run_query(sql_queries: Union[str, list[str]], tmp_dir_path: Path) -> None:
+    if isinstance(sql_queries, str):
+        sql_queries = [sql_queries]
     conn = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path, is_main_connection=False)
-    conn.sql(query)
+    for sql_query in sql_queries:
+        conn.sql(sql_query)
     conn.close()
