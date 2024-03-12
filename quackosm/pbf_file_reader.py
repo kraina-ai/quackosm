@@ -1455,7 +1455,7 @@ class PbfFileReader:
                 )
             """
 
-            timeout_seconds = [60, 90, 120, 150, 180]
+            timeout_seconds = [60, 120, 180, 240, 300]
             total_tries = len(timeout_seconds)
             tries_left = total_tries
             finished = False
@@ -1470,7 +1470,7 @@ class PbfFileReader:
                     )
                     finished = True
                 except TimeoutError:
-                    if tries_left > 0:
+                    if tries_left > 1:
                         tries_left -= 1
                         log_message(
                             "Encountered TimeoutError during operation. Retrying query again."
