@@ -1455,8 +1455,6 @@ class PbfFileReader:
                 )
             """
 
-            log_message(query)
-
             tries = 3
             timeout_seconds = [60, 120, 300]
             finished = False
