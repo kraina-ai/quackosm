@@ -137,6 +137,7 @@ class PbfFileReader:
         self.working_directory = Path(working_directory)
         self.working_directory.mkdir(parents=True, exist_ok=True)
         self.connection: duckdb.DuckDBPyConnection = None
+        self.encountered_query_exception = False
 
         self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
         actual_memory = psutil.virtual_memory()
@@ -206,6 +207,7 @@ class PbfFileReader:
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
             try:
+                self.encountered_query_exception = False
                 self.connection = _set_up_duckdb_connection(tmp_dir_path=self.tmp_dir_path)
                 result_file_path = result_file_path or self._generate_geoparquet_result_file_path(
                     pbf_path,
@@ -1225,11 +1227,10 @@ class PbfFileReader:
         grouped_ways_path: Path,
     ) -> "duckdb.DuckDBPyRelation":
         finished_operation = False
-        failed_at_least_once = False
 
         while not finished_operation:
             try:
-                if not failed_at_least_once:
+                if not self.encountered_query_exception:
                     groups = self._group_ways(
                         ways_ids=ways_ids,
                         mode=mode,
@@ -1266,7 +1267,7 @@ class PbfFileReader:
 
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
-                failed_at_least_once = True
+                self.encountered_query_exception = True
                 if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
@@ -1460,30 +1461,12 @@ class PbfFileReader:
             drop_table_query = f"DROP TABLE {temp_table_name}"
             queries = [create_temp_table_query, group_ways_query, drop_table_query]
 
-            timeout_seconds = [60, 120, 180, 240, 300]
-            total_tries = len(timeout_seconds)
-            tries_left = total_tries
-            finished = False
-            while not finished:
-                try:
-                    self._run_query(
-                        queries,
-                        run_in_separate_process=(
-                            self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
-                        ),
-                        query_timeout_seconds=timeout_seconds[total_tries - tries_left],
-                    )
-                    finished = True
-                except TimeoutError:
-                    if tries_left > 1:
-                        tries_left -= 1
-                        log_message(
-                            "Encountered TimeoutError during operation."
-                            f" Retrying query again ({timeout_seconds[total_tries - tries_left]}s)."
-                        )
-                        self._delete_directories(current_destination_path)
-                    else:
-                        raise
+            self._run_query(
+                queries,
+                run_in_separate_process=(
+                    self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                )
+            )
 
             self._delete_directories(current_ways_group_path)
 
