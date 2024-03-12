@@ -9,8 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Simplified ways grouping process
-- Added automatic retry for hanged DuckDB queries while grouping ways
+- Simplified and improved ways grouping process
 
 ## [0.4.5] - 2024-03-07
 
