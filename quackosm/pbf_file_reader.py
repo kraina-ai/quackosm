@@ -1455,8 +1455,9 @@ class PbfFileReader:
                 )
             """
 
-            tries = 3
-            timeout_seconds = [60, 120, 300]
+            timeout_seconds = [60, 90, 120, 150, 180]
+            total_tries = len(timeout_seconds)
+            tries_left = total_tries
             finished = False
             while not finished:
                 try:
@@ -1465,12 +1466,12 @@ class PbfFileReader:
                         run_in_separate_process=(
                             self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
                         ),
-                        query_timeout_seconds=timeout_seconds[3 - tries],
+                        query_timeout_seconds=timeout_seconds[total_tries - tries_left],
                     )
                     finished = True
                 except TimeoutError:
-                    if tries > 0:
-                        tries -= 1
+                    if tries_left > 0:
+                        tries_left -= 1
                         log_message(
                             "Encountered TimeoutError during operation. Retrying query again."
                         )
