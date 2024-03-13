@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2024-03-13
+
 ### Added
 
 - Option to disable progress reporting with the `--silent` flag and `silent_mode` argument [#14](https://github.com/kraina-ai/quackosm/issues/14)
@@ -139,7 +141,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.4.5...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.0...HEAD
+
+[0.5.0]: https://github.com/kraina-ai/quackosm/compare/0.4.5...0.5.0
 
 [0.4.5]: https://github.com/kraina-ai/quackosm/compare/0.4.4...0.4.5
 
