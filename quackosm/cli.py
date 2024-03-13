@@ -52,7 +52,7 @@ class WktGeometryParser(click.ParamType):  # type: ignore
 
     name = "TEXT (WKT)"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -67,7 +67,7 @@ class GeoJsonGeometryParser(click.ParamType):  # type: ignore
 
     name = "TEXT (GeoJSON)"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -82,7 +82,7 @@ class GeoFileGeometryParser(click.ParamType):  # type: ignore
 
     name = "PATH"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -101,7 +101,7 @@ class GeocodeGeometryParser(click.ParamType):  # type: ignore
 
     name = "TEXT"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -118,7 +118,7 @@ class GeohashGeometryParser(click.ParamType):  # type: ignore
 
     name = "TEXT (Geohash)"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -140,7 +140,7 @@ class H3GeometryParser(click.ParamType):  # type: ignore
 
     name = "TEXT (H3)"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -157,7 +157,7 @@ class S2GeometryParser(click.ParamType):  # type: ignore
 
     name = "TEXT (S2)"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -178,7 +178,7 @@ class OsmTagsFilterJsonParser(click.ParamType):  # type: ignore
 
     name = "TEXT (JSON)"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
@@ -202,7 +202,7 @@ class OsmTagsFilterFileParser(OsmTagsFilterJsonParser):
 
     name = "PATH"
 
-    def convert(self, value, param, ctx):  # type: ignore
+    def convert(self, value, param=None, ctx=None):  # type: ignore
         """Convert parameter value."""
         if not value:
             return None
