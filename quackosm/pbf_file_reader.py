@@ -460,8 +460,7 @@ class PbfFileReader:
         self, parsed_geoparquet_files: list[Path]
     ) -> pa.Table:
         parquet_tables = [
-            io.read_geoparquet_table(parsed_parquet_file)
-            for parsed_parquet_file in parsed_geoparquet_files
+            pq.read_table(parsed_parquet_file) for parsed_parquet_file in parsed_geoparquet_files
         ]
         joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
         if joined_parquet_table.num_rows > 0:
