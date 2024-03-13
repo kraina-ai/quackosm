@@ -38,7 +38,6 @@ class PackageDiscarder:
 
     def find_spec(self, fullname, path, target=None) -> None:  # type: ignore
         """Throws ImportError if matching module."""
-        print(fullname, self.pkgnames)
         if fullname in self.pkgnames:
             raise ImportError()
 
