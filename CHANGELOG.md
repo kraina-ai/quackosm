@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to disable progress reporting with the `--silent` flag and `silent_mode` argument [#14](https://github.com/kraina-ai/quackosm/issues/14)
+
 ### Changed
 
 - Simplified and improved ways grouping process
