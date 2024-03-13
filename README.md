@@ -201,6 +201,7 @@ $ quackosm monaco.osm.pbf
 ⠙ [  30/32] Saving filtered relations with geometries • 0:00:00
 ⠹ [31.1/32] Saving valid features • 0:00:00
 ⠋ [  32/32] Saving final geoparquet file • 0:00:00
+Finished operation in 0:00:06
 files/monaco_nofilter_noclip_compact.geoparquet
 ```
 
@@ -326,6 +327,7 @@ $ quackosm --geom-filter-geocode "Shibuya, Tokyo"
 ⠙ [  30/32] Saving filtered relations with geometries • 0:00:00
 ⠸ [31.1/32] Saving valid features • 0:00:00
 ⠋ [  32/32] Saving final geoparquet file • 0:00:00
+Finished operation in 0:00:39
 files/9ae2b160eb7556991148f5a2693aaf4b38bbb225c3700a6bfe9e5e54f48b987e_nofilter_compact.geoparquet
 ```
 
@@ -409,7 +411,7 @@ General schema of multiple segments that are concatenated together:
 
 DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk.
 
-QuackOSM has been roughly tuned to different workloads. The `rows_per_bucket` variable is set based on an available memory in the system:
+QuackOSM has been roughly tuned to different workloads. The `rows_per_group` variable is set based on an available memory in the system:
 
 |     Memory | Rows per group |
 | ---------: | -------------: |

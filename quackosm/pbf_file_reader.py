@@ -38,6 +38,7 @@ from quackosm._rich_progress import (  # type: ignore[attr-defined]
     TaskProgressBar,
     TaskProgressSpinner,
     log_message,
+    show_total_elapsed_time,
 )
 from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
@@ -84,7 +85,7 @@ class PbfFileReader:
         relations_with_unnested_way_refs: "duckdb.DuckDBPyRelation"
         relations_filtered_ids: "duckdb.DuckDBPyRelation"
 
-    ROWS_PER_BUCKET_MEMORY_CONFIG = {
+    ROWS_PER_GROUP_MEMORY_CONFIG = {
         0: 100_000,
         8: 500_000,
         16: 1_000_000,
@@ -142,12 +143,12 @@ class PbfFileReader:
         self.encountered_query_exception = False
         self.silent_mode = silent_mode
 
-        self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+        self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
         actual_memory = psutil.virtual_memory()
-        # If less than 8 / 16 / 24 GB total memory, reduce number of rows per group
-        for memory_gb, rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.items():
+        # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
+        for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
             if actual_memory.total >= (memory_gb * MEMORY_1GB):
-                self.rows_per_bucket = rows_per_bucket
+                self.rows_per_group = rows_per_group
             else:
                 break
 
@@ -205,6 +206,8 @@ class PbfFileReader:
         Returns:
             Path: Path to the generated GeoParquet file.
         """
+        start_time = time.time()
+
         if filter_osm_ids is None:
             filter_osm_ids = []
 
@@ -232,6 +235,12 @@ class PbfFileReader:
                     ignore_cache=ignore_cache,
                     save_as_wkt=save_as_wkt,
                 )
+
+                if not self.silent_mode:
+                    end_time = time.time()
+                    elapsed_seconds = end_time - start_time
+                    show_total_elapsed_time(elapsed_seconds)
+
                 return parsed_geoparquet_file
             finally:
                 if self.connection is not None:
@@ -1305,21 +1314,21 @@ class PbfFileReader:
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
                 self.encountered_query_exception = True
-                if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
+                if self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                     )
-                    smaller_rows_per_bucket = 0
-                    for rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.values():
-                        if rows_per_bucket < self.rows_per_bucket:
-                            smaller_rows_per_bucket = rows_per_bucket
+                    smaller_rows_per_group = 0
+                    for rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.values():
+                        if rows_per_group < self.rows_per_group:
+                            smaller_rows_per_group = rows_per_group
                         else:
                             break
-                    self.rows_per_bucket = smaller_rows_per_bucket
+                    self.rows_per_group = smaller_rows_per_group
                     log_message(
                         f"Encountered {ex.__class__.__name__} during operation."
                         " Retrying with lower number of rows per group"
-                        f" ({self.rows_per_bucket})."
+                        f" ({self.rows_per_group})."
                     )
                 else:
                     raise
@@ -1351,7 +1360,7 @@ class PbfFileReader:
             self.connection.table("x").to_parquet(empty_file_path)
             return -1
 
-        groups = int(floor(total_required_ways / self.rows_per_bucket))
+        groups = int(floor(total_required_ways / self.rows_per_group))
 
         grouped_ways_ids_with_group_path = grouped_ways_tmp_path / "ids_with_group"
         grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
@@ -1363,7 +1372,7 @@ class PbfFileReader:
                 f"""
                 SELECT id,
                     floor(
-                        row_number() OVER () / {self.rows_per_bucket}
+                        row_number() OVER () / {self.rows_per_group}
                     )::INTEGER as "group",
                 FROM ({ways_ids.sql_query()})
                 """
@@ -1395,7 +1404,7 @@ class PbfFileReader:
                     relation=ways_with_nodes_points_relation,
                     file_path=grouped_ways_ids_with_points_path,
                     run_in_separate_process=(
-                        self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                        self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                     ),
                 )
         else:
@@ -1441,7 +1450,7 @@ class PbfFileReader:
                         relation=ways_with_nodes_points_relation,
                         file_path=current_grouped_ways_ids_with_points_path,
                         run_in_separate_process=(
-                            self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                            self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                         ),
                     )
 
@@ -1503,7 +1512,7 @@ class PbfFileReader:
             self._run_query(
                 queries,
                 run_in_separate_process=(
-                    self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                    self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                 ),
             )
 
@@ -1815,7 +1824,7 @@ class PbfFileReader:
                         SELECT
                             * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb,
                             floor(
-                                row_number() OVER () / {self.rows_per_bucket}
+                                row_number() OVER () / {self.rows_per_group}
                             )::INTEGER as "group",
                         FROM ({relation.sql_query()})
                         WHERE NOT ST_IsValid(geometry)
@@ -1954,7 +1963,7 @@ class PbfFileReader:
 
         if invalid_features > 0:
             with TaskProgressSpinner("Grouping invalid features", "31.2", self.silent_mode):
-                groups = floor(invalid_features / self.rows_per_bucket)
+                groups = floor(invalid_features / self.rows_per_group)
                 grouped_invalid_features_result_parquet = (
                     self.tmp_dir_path / "osm_invalid_elements_grouped"
                 )
@@ -1964,7 +1973,7 @@ class PbfFileReader:
                         SELECT
                             * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb,
                             floor(
-                                row_number() OVER () / {self.rows_per_bucket}
+                                row_number() OVER () / {self.rows_per_group}
                             )::INTEGER as "group",
                         FROM ({invalid_features_full_relation.sql_query()})
                     ) TO '{grouped_invalid_features_result_parquet}' (
