@@ -105,18 +105,21 @@ def test_pbf_reader(
 @pytest.mark.parametrize("tags_filter", [None, HEX2VEC_FILTER, GEOFABRIK_LAYERS])  # type: ignore
 @pytest.mark.parametrize("explode_tags", [None, True, False])  # type: ignore
 @pytest.mark.parametrize("keep_all_tags", [True, False])  # type: ignore
+@pytest.mark.parametrize("save_as_wkt", [True, False])  # type: ignore
 def test_pbf_to_geoparquet_parsing(
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]],
     explode_tags: Optional[bool],
     keep_all_tags: bool,
+    save_as_wkt: bool,
 ):
     """Test if pbf to geoparquet conversion works."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    PbfFileReader(tags_filter=tags_filter).get_features_gdf(
-        file_paths=pbf_file,
+    PbfFileReader(tags_filter=tags_filter).convert_pbf_to_gpq(
+        pbf_path=pbf_file,
         ignore_cache=True,
         explode_tags=explode_tags,
         keep_all_tags=keep_all_tags,
+        save_as_wkt=save_as_wkt,
     )
 
 

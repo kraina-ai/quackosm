@@ -163,41 +163,45 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 
 ```console
 $ quackosm monaco.osm.pbf
-⠏ [   1/33] Reading nodes • 0:00:00
-⠋ [   2/33] Filtering nodes - intersection • 0:00:00
-⠋ [   3/33] Filtering nodes - tags • 0:00:00
-⠋ [   4/33] Calculating distinct filtered nodes ids • 0:00:00
-⠸ [   5/33] Reading ways • 0:00:00
-⠙ [   6/33] Unnesting ways • 0:00:00
-⠋ [   7/33] Filtering ways - valid refs • 0:00:00
-⠋ [   8/33] Filtering ways - intersection • 0:00:00
-⠋ [   9/33] Filtering ways - tags • 0:00:00
-⠋ [  10/33] Calculating distinct filtered ways ids • 0:00:00
-⠋ [  11/33] Reading relations • 0:00:00
-⠋ [  12/33] Unnesting relations • 0:00:00
-⠋ [  13/33] Filtering relations - valid refs • 0:00:00
-⠋ [  14/33] Filtering relations - intersection • 0:00:00
-⠋ [  15/33] Filtering relations - tags • 0:00:00
-⠋ [  16/33] Calculating distinct filtered relations ids • 0:00:00
-⠋ [  17/33] Loading required ways - by relations • 0:00:00
-⠋ [  18/33] Calculating distinct required ways ids • 0:00:00
-⠙ [  19/33] Saving filtered nodes with geometries • 0:00:00
-⠸ [  20/33] Saving required nodes with structs • 0:00:00
-⠼ [  21/33] Grouping filtered ways • 0:00:00
-  [  22/33] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠙ [  23/33] Grouping required ways • 0:00:00
-  [  24/33] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠴ [  25/33] Saving filtered ways with geometries • 0:00:00
-⠹ [  26/33] Saving valid relations parts • 0:00:00
-⠋ [27.1/33] Saving relations inner parts - valid geometries • 0:00:00
-⠋ [27.2/33] Saving relations inner parts - invalid geometries • 0:00:00
-⠋ [28.1/33] Saving relations outer parts - valid geometries • 0:00:00
-⠋ [28.2/33] Saving relations outer parts - invalid geometries • 0:00:00
-⠋ [  29/33] Saving relations outer parts with holes • 0:00:00
-⠋ [  30/33] Saving relations outer parts without holes • 0:00:00
-⠋ [  31/33] Saving filtered relations with geometries • 0:00:00
-⠸ [32.1/33] Saving valid features • 0:00:00
-⠙ [  33/33] Saving final geoparquet file • 0:00:00
+⠙ [   1/32] Reading nodes • 0:00:00
+⠋ [   2/32] Filtering nodes - intersection • 0:00:00
+⠙ [   3/32] Filtering nodes - tags • 0:00:00
+⠋ [   4/32] Calculating distinct filtered nodes ids • 0:00:00
+⠙ [   5/32] Reading ways • 0:00:00
+⠋ [   6/32] Unnesting ways • 0:00:00
+⠹ [   7/32] Filtering ways - valid refs • 0:00:00
+⠋ [   8/32] Filtering ways - intersection • 0:00:00
+⠙ [   9/32] Filtering ways - tags • 0:00:00
+⠋ [  10/32] Calculating distinct filtered ways ids • 0:00:00
+⠋ [  11/32] Reading relations • 0:00:00
+⠋ [  12/32] Unnesting relations • 0:00:00
+⠹ [  13/32] Filtering relations - valid refs • 0:00:00
+⠋ [  14/32] Filtering relations - intersection • 0:00:00
+⠙ [  15/32] Filtering relations - tags • 0:00:00
+⠋ [  16/32] Calculating distinct filtered relations ids • 0:00:00
+⠙ [  17/32] Loading required ways - by relations • 0:00:00
+⠋ [  18/32] Calculating distinct required ways ids • 0:00:00
+⠙ [  19/32] Saving filtered nodes with geometries • 0:00:00
+⠋ [20.1/32] Grouping filtered ways - assigning groups • 0:00:00
+⠧ [20.2/32] Grouping filtered ways - joining with nodes • 0:00:00
+⠋ [20.3/32] Grouping filtered ways - partitioning by group • 0:00:00
+  [  21/32] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
+⠋ [22.1/32] Grouping required ways - assigning groups • 0:00:00
+⠧ [22.2/32] Grouping required ways - joining with nodes • 0:00:00
+⠋ [22.3/32] Grouping required ways - partitioning by group • 0:00:00
+  [  23/32] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
+⠹ [  24/32] Saving filtered ways with geometries • 0:00:00
+⠸ [  25/32] Saving valid relations parts • 0:00:00
+⠋ [26.1/32] Saving relations inner parts - valid geometries • 0:00:00
+⠋ [26.2/32] Saving relations inner parts - invalid geometries • 0:00:00
+⠋ [27.1/32] Saving relations outer parts - valid geometries • 0:00:00
+⠋ [27.2/32] Saving relations outer parts - invalid geometries • 0:00:00
+⠋ [  28/32] Saving relations outer parts with holes • 0:00:00
+⠋ [  29/32] Saving relations outer parts without holes • 0:00:00
+⠙ [  30/32] Saving filtered relations with geometries • 0:00:00
+⠹ [31.1/32] Saving valid features • 0:00:00
+⠋ [  32/32] Saving final geoparquet file • 0:00:00
+Finished operation in 0:00:06
 files/monaco_nofilter_noclip_compact.geoparquet
 ```
 
@@ -285,41 +289,45 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 ```console
 $ quackosm --geom-filter-geocode "Shibuya, Tokyo"
 100%|██████████████████████████████████████| 45.7M/45.7M [00:00<00:00, 259GB/s]
-⠹ [   1/33] Reading nodes • 0:00:03
-⠇ [   2/33] Filtering nodes - intersection • 0:00:01
-⠇ [   3/33] Filtering nodes - tags • 0:00:01
-⠙ [   4/33] Calculating distinct filtered nodes ids • 0:00:00
-⠋ [   5/33] Reading ways • 0:00:04
-⠧ [   6/33] Unnesting ways • 0:00:02
-⠹ [   7/33] Filtering ways - valid refs • 0:00:03
-⠴ [   8/33] Filtering ways - intersection • 0:00:02
-⠼ [   9/33] Filtering ways - tags • 0:00:00
-⠋ [  10/33] Calculating distinct filtered ways ids • 0:00:00
-⠦ [  11/33] Reading relations • 0:00:00
-⠴ [  12/33] Unnesting relations • 0:00:00
-⠼ [  13/33] Filtering relations - valid refs • 0:00:00
-⠸ [  14/33] Filtering relations - intersection • 0:00:00
-⠙ [  15/33] Filtering relations - tags • 0:00:00
-⠋ [  16/33] Calculating distinct filtered relations ids • 0:00:00
-⠹ [  17/33] Loading required ways - by relations • 0:00:00
-⠋ [  18/33] Calculating distinct required ways ids • 0:00:00
-⠇ [  19/33] Saving filtered nodes with geometries • 0:00:02
-⠋ [  20/33] Saving required nodes with structs • 0:00:05
-⠧ [  21/33] Grouping filtered ways • 0:00:03
-  [  22/33] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠴ [  23/33] Grouping required ways • 0:00:02
-  [  24/33] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠹ [  25/33] Saving filtered ways with geometries • 0:00:01
-⠦ [  26/33] Saving valid relations parts • 0:00:00
-⠙ [27.1/33] Saving relations inner parts - valid geometries • 0:00:00
-⠙ [27.2/33] Saving relations inner parts - invalid geometries • 0:00:00
-⠙ [28.1/33] Saving relations outer parts - valid geometries • 0:00:00
-⠙ [28.2/33] Saving relations outer parts - invalid geometries • 0:00:00
-⠋ [  29/33] Saving relations outer parts with holes • 0:00:00
-⠙ [  30/33] Saving relations outer parts without holes • 0:00:00
-⠙ [  31/33] Saving filtered relations with geometries • 0:00:00
-⠼ [32.1/33] Saving valid features • 0:00:00
-⠋ [  33/33] Saving final geoparquet file • 0:00:00
+⠦ [   1/32] Reading nodes • 0:00:05
+⠋ [   2/32] Filtering nodes - intersection • 0:00:00
+⠦ [   3/32] Filtering nodes - tags • 0:00:00
+⠋ [   4/32] Calculating distinct filtered nodes ids • 0:00:00
+⠏ [   5/32] Reading ways • 0:00:04
+⠦ [   6/32] Unnesting ways • 0:00:02
+⠴ [   7/32] Filtering ways - valid refs • 0:00:02
+⠙ [   8/32] Filtering ways - intersection • 0:00:01
+⠹ [   9/32] Filtering ways - tags • 0:00:00
+⠋ [  10/32] Calculating distinct filtered ways ids • 0:00:00
+⠴ [  11/32] Reading relations • 0:00:00
+⠴ [  12/32] Unnesting relations • 0:00:00
+⠹ [  13/32] Filtering relations - valid refs • 0:00:00
+⠙ [  14/32] Filtering relations - intersection • 0:00:00
+⠙ [  15/32] Filtering relations - tags • 0:00:00
+⠋ [  16/32] Calculating distinct filtered relations ids • 0:00:00
+⠙ [  17/32] Loading required ways - by relations • 0:00:00
+⠋ [  18/32] Calculating distinct required ways ids • 0:00:00
+⠋ [  19/32] Saving filtered nodes with geometries • 0:00:00
+⠋ [20.1/32] Grouping filtered ways - assigning groups • 0:00:00
+⠴ [20.2/32] Grouping filtered ways - joining with nodes • 0:00:03
+⠹ [20.3/32] Grouping filtered ways - partitioning by group • 0:00:00
+  [  21/32] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 •
+⠋ [22.1/32] Grouping required ways - assigning groups • 0:00:00
+⠴ [22.2/32] Grouping required ways - joining with nodes • 0:00:03
+⠋ [22.3/32] Grouping required ways - partitioning by group • 0:00:00
+  [  23/32] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
+⠋ [  24/32] Saving filtered ways with geometries • 0:00:01
+⠸ [  25/32] Saving valid relations parts • 0:00:00
+⠋ [26.1/32] Saving relations inner parts - valid geometries • 0:00:00
+⠋ [26.2/32] Saving relations inner parts - invalid geometries • 0:00:00
+⠙ [27.1/32] Saving relations outer parts - valid geometries • 0:00:00
+⠋ [27.2/32] Saving relations outer parts - invalid geometries • 0:00:00
+⠋ [  28/32] Saving relations outer parts with holes • 0:00:00
+⠋ [  29/32] Saving relations outer parts without holes • 0:00:00
+⠙ [  30/32] Saving filtered relations with geometries • 0:00:00
+⠸ [31.1/32] Saving valid features • 0:00:00
+⠋ [  32/32] Saving final geoparquet file • 0:00:00
+Finished operation in 0:00:39
 files/9ae2b160eb7556991148f5a2693aaf4b38bbb225c3700a6bfe9e5e54f48b987e_nofilter_compact.geoparquet
 ```
 
@@ -397,11 +405,13 @@ When the `keep_all_tags` parameter is passed while filtering by OSM tags, and ad
 General schema of multiple segments that are concatenated together:
 `pbf_file_name`\_(`osm_filter_tags_hash_part`/`nofilter`)(\_`alltags`)\_(`clipping_geometry_hash_part`/`noclip`)\_(`compact`/`exploded`)(\_`filter_osm_ids_hash_part`).geoparquet
 
+> If the WKT mode is turned on, then the result file will be saved with a `parquet` extension and a `_wkt` suffix.
+
 ### Memory usage
 
 DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk.
 
-QuackOSM has been roughly tuned to different workloads. The `rows_per_bucket` variable is set based on an available memory in the system:
+QuackOSM has been roughly tuned to different workloads. The `rows_per_group` variable is set based on an available memory in the system:
 
 |     Memory | Rows per group |
 | ---------: | -------------: |

@@ -2,6 +2,8 @@
 """Wrapper over Rich progress bar."""
 
 from collections.abc import Iterable
+from contextlib import suppress
+from datetime import timedelta
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
@@ -15,6 +17,14 @@ def log_message(message: str) -> None:
         rprint(message)
     except ImportError:
         print(message)
+
+
+def show_total_elapsed_time(elapsed_seconds: float) -> None:
+    with suppress(ImportError):  # pragma: no cover
+        from rich import print as rprint
+
+        elapsed_time_formatted = str(timedelta(seconds=int(elapsed_seconds)))
+        rprint(f"Finished operation in [progress.elapsed]{elapsed_time_formatted}")
 
 
 class TaskProgressSpinner:

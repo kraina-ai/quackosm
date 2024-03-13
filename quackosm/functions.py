@@ -28,6 +28,7 @@ def convert_pbf_to_gpq(
     filter_osm_ids: Optional[list[str]] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+    save_as_wkt: bool = False,
     silent_mode: bool = False,
 ) -> Path:
     """
@@ -69,7 +70,10 @@ def convert_pbf_to_gpq(
             Config used to determine which closed way features are polygons.
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
-        silent_mode (bool): Disable progress bars.
+        save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead of WKB.
+            If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
+            standard. Defaults to `False`.
+        silent_mode (bool): Disable progress bars. Defaults to `False`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -229,6 +233,7 @@ def convert_pbf_to_gpq(
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
+        save_as_wkt=save_as_wkt,
     )
 
 
@@ -243,6 +248,7 @@ def convert_geometry_to_gpq(
     filter_osm_ids: Optional[list[str]] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+    save_as_wkt: bool = False,
     silent_mode: bool = False,
 ) -> Path:
     """
@@ -287,7 +293,10 @@ def convert_geometry_to_gpq(
             Config used to determine which closed way features are polygons.
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
-        silent_mode (bool): Disable progress bars.
+        save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead of WKB.
+            If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
+            standard. Defaults to `False`.
+        silent_mode (bool): Disable progress bars. Defaults to `False`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -399,6 +408,7 @@ def convert_geometry_to_gpq(
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
+        save_as_wkt=save_as_wkt,
     )
 
 
@@ -454,7 +464,7 @@ def get_features_gdf(
             Config used to determine which closed way features are polygons.
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
-        silent_mode (bool): Disable progress bars.
+        silent_mode (bool): Disable progress bars. Defaults to `False`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -634,7 +644,7 @@ def get_features_gdf_from_geometry(
             Config used to determine which closed way features are polygons.
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
-        silent_mode (bool): Disable progress bars.
+        silent_mode (bool): Disable progress bars. Defaults to `False`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.

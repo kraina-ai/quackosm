@@ -93,6 +93,7 @@ def test_silent_mode(monaco_pbf_file_path: str) -> None:
     assert result.exit_code == 0
     assert str(Path("files/monaco_nofilter_noclip_compact.geoparquet")) == result.stdout.strip()
 
+
 @P.parameters("args", "expected_result")  # type: ignore
 @P.case(
     "Explode",
@@ -264,6 +265,8 @@ def test_silent_mode(monaco_pbf_file_path: str) -> None:
     ["--osm-way-polygon-config", osm_way_config_file_path()],
     "files/monaco_nofilter_noclip_compact.geoparquet",
 )  # type: ignore
+@P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
+@P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
 def test_proper_args_with_pbf(
     monaco_pbf_file_path: str, args: list[str], expected_result: str
 ) -> None:

@@ -38,6 +38,7 @@ from quackosm._rich_progress import (  # type: ignore[attr-defined]
     TaskProgressBar,
     TaskProgressSpinner,
     log_message,
+    show_total_elapsed_time,
 )
 from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
@@ -84,7 +85,7 @@ class PbfFileReader:
         relations_with_unnested_way_refs: "duckdb.DuckDBPyRelation"
         relations_filtered_ids: "duckdb.DuckDBPyRelation"
 
-    ROWS_PER_BUCKET_MEMORY_CONFIG = {
+    ROWS_PER_GROUP_MEMORY_CONFIG = {
         0: 100_000,
         8: 500_000,
         16: 1_000_000,
@@ -142,12 +143,12 @@ class PbfFileReader:
         self.encountered_query_exception = False
         self.silent_mode = silent_mode
 
-        self.rows_per_bucket = PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+        self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
         actual_memory = psutil.virtual_memory()
-        # If less than 8 / 16 / 24 GB total memory, reduce number of rows per group
-        for memory_gb, rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.items():
+        # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
+        for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
             if actual_memory.total >= (memory_gb * MEMORY_1GB):
-                self.rows_per_bucket = rows_per_bucket
+                self.rows_per_group = rows_per_group
             else:
                 break
 
@@ -175,6 +176,7 @@ class PbfFileReader:
         explode_tags: Optional[bool] = None,
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
+        save_as_wkt: bool = False,
     ) -> Path:
         """
         Convert PBF file to GeoParquet file.
@@ -197,6 +199,9 @@ class PbfFileReader:
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
                 Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
                 Defaults to an empty list.
+            save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead
+                of WKB. If `True`, it will be saved as a `.parquet` file, because it won't be
+                in the GeoParquet standard. Defaults to `False`.
 
         Returns:
             Path: Path to the generated GeoParquet file.
@@ -212,11 +217,12 @@ class PbfFileReader:
             try:
                 self.encountered_query_exception = False
                 self.connection = _set_up_duckdb_connection(tmp_dir_path=self.tmp_dir_path)
-                result_file_path = result_file_path or self._generate_geoparquet_result_file_path(
+                result_file_path = result_file_path or self._generate_result_file_path(
                     pbf_path,
                     filter_osm_ids=filter_osm_ids,
                     keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
+                    save_as_wkt=save_as_wkt,
                 )
                 parsed_geoparquet_file = self._parse_pbf_file(
                     pbf_path=pbf_path,
@@ -225,7 +231,9 @@ class PbfFileReader:
                     keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
                     ignore_cache=ignore_cache,
+                    save_as_wkt=save_as_wkt,
                 )
+
                 return parsed_geoparquet_file
             finally:
                 if self.connection is not None:
@@ -239,6 +247,7 @@ class PbfFileReader:
         explode_tags: Optional[bool] = None,
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
+        save_as_wkt: bool = False,
     ) -> Path:
         """
         Convert geometry to GeoParquet file.
@@ -263,6 +272,9 @@ class PbfFileReader:
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
                 Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
                 Defaults to an empty list.
+            save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead
+                of WKB. If `True`, it will be saved as a `.parquet` file, because it won't be
+                in the GeoParquet standard. Defaults to `False`.
 
         Returns:
             Path: Path to the generated GeoParquet file.
@@ -281,10 +293,11 @@ class PbfFileReader:
 
         result_file_path = Path(
             result_file_path
-            or self._generate_geoparquet_result_file_path_from_geometry(
+            or self._generate_result_file_path_from_geometry(
                 filter_osm_ids=filter_osm_ids,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
+                save_as_wkt=save_as_wkt,
             )
         )
 
@@ -301,6 +314,7 @@ class PbfFileReader:
                 explode_tags=explode_tags,
                 ignore_cache=ignore_cache,
                 filter_osm_ids=filter_osm_ids,
+                save_as_wkt=save_as_wkt,
             )
         else:
             if not result_file_path.exists() or ignore_cache:
@@ -317,15 +331,21 @@ class PbfFileReader:
                         explode_tags=explode_tags,
                         ignore_cache=ignore_cache,
                         filter_osm_ids=filter_osm_ids,
+                        save_as_wkt=save_as_wkt,
                     )
                     parsed_geoparquet_files.append(parsed_geoparquet_file)
 
                 joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
                     parsed_geoparquet_files
                 )
-                io.write_geoparquet_table(
-                    joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
-                )
+                if save_as_wkt:
+                    pq.write_table(joined_parquet_table, result_file_path)
+                else:
+                    io.write_geoparquet_table(
+                        joined_parquet_table,
+                        result_file_path,
+                        primary_geometry_column=GEOMETRY_COLUMN,
+                    )
 
         return Path(result_file_path)
 
@@ -442,8 +462,7 @@ class PbfFileReader:
         self, parsed_geoparquet_files: list[Path]
     ) -> pa.Table:
         parquet_tables = [
-            io.read_geoparquet_table(parsed_parquet_file)
-            for parsed_parquet_file in parsed_geoparquet_files
+            pq.read_table(parsed_parquet_file) for parsed_parquet_file in parsed_geoparquet_files
         ]
         joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
         if joined_parquet_table.num_rows > 0:
@@ -460,8 +479,11 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: bool = True,
         ignore_cache: bool = False,
+        save_as_wkt: bool = False,
     ) -> Path:
         if not result_file_path.exists() or ignore_cache:
+            start_time = time.time()
+
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
             converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
@@ -546,16 +568,23 @@ class PbfFileReader:
                 save_file_path=result_file_path,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
+                save_as_wkt=save_as_wkt,
             )
+
+            if not self.silent_mode:
+                end_time = time.time()
+                elapsed_seconds = end_time - start_time
+                show_total_elapsed_time(elapsed_seconds)
 
         return result_file_path
 
-    def _generate_geoparquet_result_file_path(
+    def _generate_result_file_path(
         self,
         pbf_file_path: Union[str, Path],
         keep_all_tags: bool,
         explode_tags: bool,
         filter_osm_ids: list[str],
+        save_as_wkt: bool,
     ) -> Path:
         pbf_file_name = Path(pbf_file_path).name.removesuffix(".osm.pbf")
 
@@ -576,14 +605,20 @@ class PbfFileReader:
             h.update(json.dumps(sorted(set(filter_osm_ids))).encode())
             filter_osm_ids_hash_part = f"_{h.hexdigest()}"
 
-        result_file_name = (
-            f"{pbf_file_name}_{osm_filter_tags_hash_part}"
-            f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
-        )
+        if save_as_wkt:
+            result_file_name = (
+                f"{pbf_file_name}_{osm_filter_tags_hash_part}"
+                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}_wkt.parquet"
+            )
+        else:
+            result_file_name = (
+                f"{pbf_file_name}_{osm_filter_tags_hash_part}"
+                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+            )
         return Path(self.working_directory) / result_file_name
 
-    def _generate_geoparquet_result_file_path_from_geometry(
-        self, keep_all_tags: bool, explode_tags: bool, filter_osm_ids: list[str]
+    def _generate_result_file_path_from_geometry(
+        self, keep_all_tags: bool, explode_tags: bool, filter_osm_ids: list[str], save_as_wkt: bool
     ) -> Path:
         osm_filter_tags_hash_part = "nofilter"
         if self.tags_filter is not None:
@@ -602,10 +637,16 @@ class PbfFileReader:
             h.update(json.dumps(sorted(set(filter_osm_ids))).encode())
             filter_osm_ids_hash_part = f"_{h.hexdigest()}"
 
-        result_file_name = (
-            f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
-            f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
-        )
+        if save_as_wkt:
+            result_file_name = (
+                f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
+                f"_{exploded_tags_part}{filter_osm_ids_hash_part}_wkt.parquet"
+            )
+        else:
+            result_file_name = (
+                f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
+                f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+            )
         return Path(self.working_directory) / result_file_name
 
     def _generate_geometry_hash(self) -> str:
@@ -1273,21 +1314,21 @@ class PbfFileReader:
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
                 self.encountered_query_exception = True
-                if self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]:
+                if self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                     )
-                    smaller_rows_per_bucket = 0
-                    for rows_per_bucket in PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG.values():
-                        if rows_per_bucket < self.rows_per_bucket:
-                            smaller_rows_per_bucket = rows_per_bucket
+                    smaller_rows_per_group = 0
+                    for rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.values():
+                        if rows_per_group < self.rows_per_group:
+                            smaller_rows_per_group = rows_per_group
                         else:
                             break
-                    self.rows_per_bucket = smaller_rows_per_bucket
+                    self.rows_per_group = smaller_rows_per_group
                     log_message(
                         f"Encountered {ex.__class__.__name__} during operation."
                         " Retrying with lower number of rows per group"
-                        f" ({self.rows_per_bucket})."
+                        f" ({self.rows_per_group})."
                     )
                 else:
                     raise
@@ -1319,7 +1360,7 @@ class PbfFileReader:
             self.connection.table("x").to_parquet(empty_file_path)
             return -1
 
-        groups = int(floor(total_required_ways / self.rows_per_bucket))
+        groups = int(floor(total_required_ways / self.rows_per_group))
 
         grouped_ways_ids_with_group_path = grouped_ways_tmp_path / "ids_with_group"
         grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
@@ -1331,7 +1372,7 @@ class PbfFileReader:
                 f"""
                 SELECT id,
                     floor(
-                        row_number() OVER () / {self.rows_per_bucket}
+                        row_number() OVER () / {self.rows_per_group}
                     )::INTEGER as "group",
                 FROM ({ways_ids.sql_query()})
                 """
@@ -1363,7 +1404,7 @@ class PbfFileReader:
                     relation=ways_with_nodes_points_relation,
                     file_path=grouped_ways_ids_with_points_path,
                     run_in_separate_process=(
-                        self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                        self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                     ),
                 )
         else:
@@ -1409,7 +1450,7 @@ class PbfFileReader:
                         relation=ways_with_nodes_points_relation,
                         file_path=current_grouped_ways_ids_with_points_path,
                         run_in_separate_process=(
-                            self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                            self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                         ),
                     )
 
@@ -1471,7 +1512,7 @@ class PbfFileReader:
             self._run_query(
                 queries,
                 run_in_separate_process=(
-                    self.rows_per_bucket > PbfFileReader.ROWS_PER_BUCKET_MEMORY_CONFIG[0]
+                    self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                 ),
             )
 
@@ -1783,7 +1824,7 @@ class PbfFileReader:
                         SELECT
                             * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb,
                             floor(
-                                row_number() OVER () / {self.rows_per_bucket}
+                                row_number() OVER () / {self.rows_per_group}
                             )::INTEGER as "group",
                         FROM ({relation.sql_query()})
                         WHERE NOT ST_IsValid(geometry)
@@ -1847,6 +1888,7 @@ class PbfFileReader:
         save_file_path: Path,
         keep_all_tags: bool,
         explode_tags: bool,
+        save_as_wkt: bool,
     ) -> None:
         select_clauses = [
             "feature_id",
@@ -1886,10 +1928,16 @@ class PbfFileReader:
 
         is_empty = valid_features_parquet_table.num_rows == 0
 
-        if not is_empty:
+        if not is_empty and save_as_wkt:
+            geometry_column = ga.as_wkt(
+                ga.with_crs(valid_features_parquet_table.column("geometry_wkb"), WGS84_CRS)
+            )
+        elif not is_empty:
             geometry_column = ga.as_wkb(
                 ga.with_crs(valid_features_parquet_table.column("geometry_wkb"), WGS84_CRS)
             )
+        elif save_as_wkt:
+            geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
         else:
             geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
 
@@ -1915,7 +1963,7 @@ class PbfFileReader:
 
         if invalid_features > 0:
             with TaskProgressSpinner("Grouping invalid features", "31.2", self.silent_mode):
-                groups = floor(invalid_features / self.rows_per_bucket)
+                groups = floor(invalid_features / self.rows_per_group)
                 grouped_invalid_features_result_parquet = (
                     self.tmp_dir_path / "osm_invalid_elements_grouped"
                 )
@@ -1925,7 +1973,7 @@ class PbfFileReader:
                         SELECT
                             * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb,
                             floor(
-                                row_number() OVER () / {self.rows_per_bucket}
+                                row_number() OVER () / {self.rows_per_group}
                             )::INTEGER as "group",
                         FROM ({invalid_features_full_relation.sql_query()})
                     ) TO '{grouped_invalid_features_result_parquet}' (
@@ -1945,14 +1993,24 @@ class PbfFileReader:
                     current_invalid_features_group_table = pq.read_table(
                         current_invalid_features_group_path
                     ).drop("group")
-                    valid_geometry_column = ga.as_wkb(
-                        ga.to_geopandas(
-                            ga.with_crs(
-                                current_invalid_features_group_table.column("geometry_wkb"),
-                                WGS84_CRS,
-                            )
-                        ).make_valid()
-                    )
+                    if save_as_wkt:
+                        valid_geometry_column = ga.as_wkt(
+                            ga.to_geopandas(
+                                ga.with_crs(
+                                    current_invalid_features_group_table.column("geometry_wkb"),
+                                    WGS84_CRS,
+                                )
+                            ).make_valid()
+                        )
+                    else:
+                        valid_geometry_column = ga.as_wkb(
+                            ga.to_geopandas(
+                                ga.with_crs(
+                                    current_invalid_features_group_table.column("geometry_wkb"),
+                                    WGS84_CRS,
+                                )
+                            ).make_valid()
+                        )
 
                     current_invalid_features_group_table = (
                         current_invalid_features_group_table.append_column(
@@ -1983,10 +2041,14 @@ class PbfFileReader:
         if empty_columns:
             joined_parquet_table = joined_parquet_table.drop(empty_columns)
 
-        with TaskProgressSpinner("Saving final geoparquet file", "32", self.silent_mode):
-            io.write_geoparquet_table(
-                joined_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
-            )
+        if save_as_wkt:
+            with TaskProgressSpinner("Saving final parquet file", "32", self.silent_mode):
+                pq.write_table(joined_parquet_table, save_file_path)
+        else:
+            with TaskProgressSpinner("Saving final geoparquet file", "32", self.silent_mode):
+                io.write_geoparquet_table(
+                    joined_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
+                )
 
     def _generate_osm_tags_sql_select(
         self, parsed_geometries: "duckdb.DuckDBPyRelation", keep_all_tags: bool, explode_tags: bool

@@ -500,6 +500,15 @@ def main(
             callback=_filter_osm_ids_callback,
         ),
     ] = None,
+    wkt_result: Annotated[
+        bool,
+        typer.Option(
+            "--wkt-result/",
+            "--wkt/",
+            help="Whether to save the geometry as a WKT string instead of WKB blob.",
+            show_default=False,
+        ),
+    ] = False,
     silent_mode: Annotated[
         bool,
         typer.Option(
@@ -583,6 +592,7 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
+                save_as_wkt=wkt_result,
                 silent_mode=silent_mode,
             )
         else:
@@ -601,6 +611,7 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
+                save_as_wkt=wkt_result,
                 silent_mode=silent_mode,
             )
     typer.secho(geoparquet_path, fg="green")

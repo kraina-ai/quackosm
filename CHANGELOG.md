@@ -11,10 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Option to disable progress reporting with the `--silent` flag and `silent_mode` argument [#14](https://github.com/kraina-ai/quackosm/issues/14)
 - New example notebook dedicated to the command line interface
+- Option to save parquet files with WKT geometry [#7](https://github.com/kraina-ai/quackosm/issues/7)
+- Total elapsed time summary at the end [#15](https://github.com/kraina-ai/quackosm/issues/15)
 
 ### Changed
 
 - Simplified and improved ways grouping process
+- Renamed `rows_per_bucket` parameter to `rows_per_group`
 
 ## [0.4.5] - 2024-03-07
 
