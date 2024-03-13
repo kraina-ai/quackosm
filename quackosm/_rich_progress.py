@@ -19,13 +19,13 @@ def log_message(message: str) -> None:
 
 
 def show_total_elapsed_time(elapsed_seconds: float) -> None:
-    elapsed_time_formatted = str(timedelta(seconds=int(elapsed_seconds)))
     try:  # pragma: no cover
         from rich import print as rprint
 
+        elapsed_time_formatted = str(timedelta(seconds=int(elapsed_seconds)))
         rprint(f"Finished operation in [progress.elapsed]{elapsed_time_formatted}")
     except ImportError:
-        print(f"Finished operation in {elapsed_time_formatted}")
+        pass
 
 
 class TaskProgressSpinner:
