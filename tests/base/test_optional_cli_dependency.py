@@ -7,6 +7,21 @@ import pytest
 from quackosm.__main__ import main
 
 
+@pytest.fixture  # type: ignore
+def optional_packages() -> list[str]:
+    """Get a list with optional packages."""
+    return [
+        "typer",
+        "click",
+        "rich",
+        "osmnx",
+        "h3",
+        "h3ronpy",
+        "s2",
+        "geohash",
+    ]
+
+
 @pytest.fixture(autouse=True)  # type: ignore
 def cleanup_imports():
     """Clean imports."""
@@ -23,21 +38,9 @@ class PackageDiscarder:
 
     def find_spec(self, fullname, path, target=None) -> None:  # type: ignore
         """Throws ImportError if matching module."""
+        print(fullname, self.pkgnames)
         if fullname in self.pkgnames:
             raise ImportError()
-
-
-@pytest.fixture  # type: ignore
-def optional_packages() -> list[str]:
-    """Get a list with optional packages."""
-    return [
-        "typer",
-        "osmnx",
-        "h3",
-        "h3ronpy",
-        "s2",
-        "geohash",
-    ]
 
 
 @pytest.fixture  # type: ignore
