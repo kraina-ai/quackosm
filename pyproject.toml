@@ -98,6 +98,7 @@ docs = [
     "osmnx",
     "matplotlib",
     "seaborn",
+    "py-cpuinfo",
 ]
 license = ["licensecheck"]
 cli-dev = [

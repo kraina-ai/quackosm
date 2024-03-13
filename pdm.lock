@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:5b9828fe3d8d62c2cb10912df81f9afeae5a9f4c528acca3a725dd14622fba27"
+content_hash = "sha256:389f38a9c7bdcb4634e1154de5251627fb92bb8647d44d9326dafb73154103b2"
 
 [[package]]
 name = "anyio"
@@ -2595,6 +2595,15 @@ files = [
 ]
 
 [[package]]
+name = "py-cpuinfo"
+version = "9.0.0"
+summary = "Get CPU info with pure Python"
+files = [
+    {file = "py-cpuinfo-9.0.0.tar.gz", hash = "sha256:3cdbbf3fac90dc6f118bfd64384f309edeadd902d7c8fb17f02ffa1fc3f49690"},
+    {file = "py_cpuinfo-9.0.0-py3-none-any.whl", hash = "sha256:859625bc251f64e21f077d099d4162689c762b5d6a4c3c97553d56241c9674d5"},
+]
+
+[[package]]
 name = "pyarrow"
 version = "15.0.0"
 requires_python = ">=3.8"
@@ -3768,7 +3777,7 @@ files = [
 [[package]]
 name = "topojson"
 version = "1.7"
-summary = "topojson - a powerful library to encode geographic data as topology in Python!ğŸŒ�"
+summary = "topojson - a powerful library to encode geographic data as topology in Python!🌍"
 dependencies = [
     "numpy",
     "packaging",
