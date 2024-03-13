@@ -206,8 +206,6 @@ class PbfFileReader:
         Returns:
             Path: Path to the generated GeoParquet file.
         """
-        start_time = time.time()
-
         if filter_osm_ids is None:
             filter_osm_ids = []
 
@@ -235,11 +233,6 @@ class PbfFileReader:
                     ignore_cache=ignore_cache,
                     save_as_wkt=save_as_wkt,
                 )
-
-                if not self.silent_mode:
-                    end_time = time.time()
-                    elapsed_seconds = end_time - start_time
-                    show_total_elapsed_time(elapsed_seconds)
 
                 return parsed_geoparquet_file
             finally:
@@ -489,6 +482,8 @@ class PbfFileReader:
         save_as_wkt: bool = False,
     ) -> Path:
         if not result_file_path.exists() or ignore_cache:
+            start_time = time.time()
+
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
             converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
@@ -575,6 +570,11 @@ class PbfFileReader:
                 explode_tags=explode_tags,
                 save_as_wkt=save_as_wkt,
             )
+
+            if not self.silent_mode:
+                end_time = time.time()
+                elapsed_seconds = end_time - start_time
+                show_total_elapsed_time(elapsed_seconds)
 
         return result_file_path
 
