@@ -41,26 +41,37 @@ QuackOSM supports **Python >= 3.9**
 ### Dependencies
 
 Required:
-- duckdb (>=0.9.2) - For all DuckDB operations on PBF files
-- pyarrow (>=13.0.0) - For parquet files wrangling
-- pyarrow-ops - For easy removal of duplicated features in parquet files
-- geoarrow-pyarrow (>=0.1.1) - For GeoParquet IO operations
-- geopandas - For returning GeoDataFrames and reading Geo files
-- shapely (>=2.0) - For parsing WKT and GeoJSON strings and fixing geometries
-- typeguard - For internal validation of types
-- psutil - For automatic scaling of parameters based on available resources
-- pooch - For downloading `*.osm.pbf` files
-- tqdm - For showing progress bars
-- requests - For iterating OSM PBF files services
-- beautifulsoup4 - For parsing HTML files and scraping required information
+- `duckdb (==0.9.2)`: For all DuckDB operations on PBF files
+
+- `pyarrow (>=13.0.0)`: For parquet files wrangling
+
+- `pyarrow-ops`: For easy removal of duplicated features in parquet files
+
+- `geoarrow-pyarrow (>=0.1.1)`: For GeoParquet IO operations
+
+- `geopandas`: For returning GeoDataFrames and reading Geo files
+
+- `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries
+
+- `typeguard`: For internal validation of types
+
+- `psutil`: For automatic scaling of parameters based on available resources
+
+- `pooch`: For downloading `*.osm.pbf` files
+
+- `tqdm`: For showing progress bars
+
+- `requests`: For iterating OSM PBF files services
+
+- `beautifulsoup4`: For parsing HTML files and scraping required information
 
 Optional:
-- typer[all] (click, colorama, rich, shellingham) - For CLI
-- osmnx - For geocoding of strings in CLI
-- h3 - For reading H3 strings in CLI
-- h3ronpy - For transforming H3 indexes into geometries
-- s2 - For transforming S2 indexes into geometries
-- python-geohash - For transforming GeoHash indexes into geometries
+- `typer[all]` (click, colorama, rich, shellingham): For CLI
+- `osmnx`: For geocoding of strings in CLI
+- `h3`: For reading H3 strings in CLI
+- `h3ronpy`: For transforming H3 indexes into geometries
+- `s2`: For transforming S2 indexes into geometries
+- `python-geohash`: For transforming GeoHash indexes into geometries
 
 ## Usage
 
@@ -303,16 +314,16 @@ QuackOSM utilizes `ST_ReadOSM` function from `DuckDB`'s `Spatial` extension to r
 Library contains a logic to construct geometries (points, linestrings, polygons) from those raw features.
 
 1. Read nodes from the PBF file, save them to the parquet file.
-   1. (Optional) Filter nodes based on geometry filter
-   2. (Optional) Filter nodes based on tags filter
+    1. (Optional) Filter nodes based on geometry filter
+    2. (Optional) Filter nodes based on tags filter
 2. Read ways from the PBF file, save them to the parquet file.
-   1. Select all nodes refs and join them with previously read nodes.
-   2. (Optional) Filter ways based on geometry filter - join intersecting nodes
-   3. (Optional) Filter ways based on tags filter
+    1. Select all nodes refs and join them with previously read nodes.
+    2. (Optional) Filter ways based on geometry filter - join intersecting nodes
+    3. (Optional) Filter ways based on tags filter
 3. Read relations from the PBF file, save them to the parquet file.
-   1. Select all ways refs and join them with previously read ways.
-   2. (Optional) Filter relations based on geometry filter - join intersecting ways
-   3. (Optional) Filter relations based on tags filter
+    1. Select all ways refs and join them with previously read ways.
+    2. (Optional) Filter relations based on geometry filter - join intersecting ways
+    3. (Optional) Filter relations based on tags filter
 4. Select ways required by filtered relations
 5. Select nodes required by filtered and required ways
 6. Save filtered nodes with point geometries
@@ -379,7 +390,7 @@ QuackOSM has been roughly tuned to different workloads. The `rows_per_bucket` va
 The algorithm depends on saving intermediate `.parquet` files between queries.
 As a rule of thumb, when parsing a full file without filtering, you should have at least 10x more free space on disk than the base file size (100MB pbf file -> 1GB free space to parse it).
 
-Below you can see the chart of disk usage during operation. Generated on a machine with Intel i7-4790 CPU with 32 GB of RAM. Red dotted line represents the size of the base file.
+Below you can see the chart of disk usage during operation. Generated on a machine with AMD Ryzen 7 5800X CPU (16 threads, 3.8 GHz clock speed) and 24 GB of RAM.
 
 #### Monaco
 PBF file size: 525 KB
