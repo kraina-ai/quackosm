@@ -175,6 +175,7 @@ class PbfFileReader:
         explode_tags: Optional[bool] = None,
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
+        save_as_wkt: bool = False,
     ) -> Path:
         """
         Convert PBF file to GeoParquet file.
@@ -197,6 +198,9 @@ class PbfFileReader:
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
                 Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
                 Defaults to an empty list.
+            save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead
+                of WKB. If `True`, it will be saved as a `.parquet` file, because it won't be
+                in the GeoParquet standard. Defaults to `False`.
 
         Returns:
             Path: Path to the generated GeoParquet file.
@@ -212,11 +216,12 @@ class PbfFileReader:
             try:
                 self.encountered_query_exception = False
                 self.connection = _set_up_duckdb_connection(tmp_dir_path=self.tmp_dir_path)
-                result_file_path = result_file_path or self._generate_geoparquet_result_file_path(
+                result_file_path = result_file_path or self._generate_result_file_path(
                     pbf_path,
                     filter_osm_ids=filter_osm_ids,
                     keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
+                    save_as_wkt=save_as_wkt,
                 )
                 parsed_geoparquet_file = self._parse_pbf_file(
                     pbf_path=pbf_path,
@@ -225,6 +230,7 @@ class PbfFileReader:
                     keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
                     ignore_cache=ignore_cache,
+                    save_as_wkt=save_as_wkt,
                 )
                 return parsed_geoparquet_file
             finally:
@@ -239,6 +245,7 @@ class PbfFileReader:
         explode_tags: Optional[bool] = None,
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
+        save_as_wkt: bool = False,
     ) -> Path:
         """
         Convert geometry to GeoParquet file.
@@ -263,6 +270,9 @@ class PbfFileReader:
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
                 Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
                 Defaults to an empty list.
+            save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead
+                of WKB. If `True`, it will be saved as a `.parquet` file, because it won't be
+                in the GeoParquet standard. Defaults to `False`.
 
         Returns:
             Path: Path to the generated GeoParquet file.
@@ -281,10 +291,11 @@ class PbfFileReader:
 
         result_file_path = Path(
             result_file_path
-            or self._generate_geoparquet_result_file_path_from_geometry(
+            or self._generate_result_file_path_from_geometry(
                 filter_osm_ids=filter_osm_ids,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
+                save_as_wkt=save_as_wkt,
             )
         )
 
@@ -301,6 +312,7 @@ class PbfFileReader:
                 explode_tags=explode_tags,
                 ignore_cache=ignore_cache,
                 filter_osm_ids=filter_osm_ids,
+                save_as_wkt=save_as_wkt,
             )
         else:
             if not result_file_path.exists() or ignore_cache:
@@ -317,15 +329,21 @@ class PbfFileReader:
                         explode_tags=explode_tags,
                         ignore_cache=ignore_cache,
                         filter_osm_ids=filter_osm_ids,
+                        save_as_wkt=save_as_wkt,
                     )
                     parsed_geoparquet_files.append(parsed_geoparquet_file)
 
                 joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
                     parsed_geoparquet_files
                 )
-                io.write_geoparquet_table(
-                    joined_parquet_table, result_file_path, primary_geometry_column=GEOMETRY_COLUMN
-                )
+                if save_as_wkt:
+                    pq.write_table(joined_parquet_table, result_file_path)
+                else:
+                    io.write_geoparquet_table(
+                        joined_parquet_table,
+                        result_file_path,
+                        primary_geometry_column=GEOMETRY_COLUMN,
+                    )
 
         return Path(result_file_path)
 
@@ -460,6 +478,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: bool = True,
         ignore_cache: bool = False,
+        save_as_wkt: bool = False,
     ) -> Path:
         if not result_file_path.exists() or ignore_cache:
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
@@ -546,16 +565,18 @@ class PbfFileReader:
                 save_file_path=result_file_path,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
+                save_as_wkt=save_as_wkt,
             )
 
         return result_file_path
 
-    def _generate_geoparquet_result_file_path(
+    def _generate_result_file_path(
         self,
         pbf_file_path: Union[str, Path],
         keep_all_tags: bool,
         explode_tags: bool,
         filter_osm_ids: list[str],
+        save_as_wkt: bool,
     ) -> Path:
         pbf_file_name = Path(pbf_file_path).name.removesuffix(".osm.pbf")
 
@@ -576,14 +597,20 @@ class PbfFileReader:
             h.update(json.dumps(sorted(set(filter_osm_ids))).encode())
             filter_osm_ids_hash_part = f"_{h.hexdigest()}"
 
-        result_file_name = (
-            f"{pbf_file_name}_{osm_filter_tags_hash_part}"
-            f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
-        )
+        if save_as_wkt:
+            result_file_name = (
+                f"{pbf_file_name}_{osm_filter_tags_hash_part}"
+                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}_wkt.parquet"
+            )
+        else:
+            result_file_name = (
+                f"{pbf_file_name}_{osm_filter_tags_hash_part}"
+                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+            )
         return Path(self.working_directory) / result_file_name
 
-    def _generate_geoparquet_result_file_path_from_geometry(
-        self, keep_all_tags: bool, explode_tags: bool, filter_osm_ids: list[str]
+    def _generate_result_file_path_from_geometry(
+        self, keep_all_tags: bool, explode_tags: bool, filter_osm_ids: list[str], save_as_wkt: bool
     ) -> Path:
         osm_filter_tags_hash_part = "nofilter"
         if self.tags_filter is not None:
@@ -602,10 +629,16 @@ class PbfFileReader:
             h.update(json.dumps(sorted(set(filter_osm_ids))).encode())
             filter_osm_ids_hash_part = f"_{h.hexdigest()}"
 
-        result_file_name = (
-            f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
-            f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
-        )
+        if save_as_wkt:
+            result_file_name = (
+                f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
+                f"_{exploded_tags_part}{filter_osm_ids_hash_part}_wkt.parquet"
+            )
+        else:
+            result_file_name = (
+                f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
+                f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+            )
         return Path(self.working_directory) / result_file_name
 
     def _generate_geometry_hash(self) -> str:
@@ -1847,6 +1880,7 @@ class PbfFileReader:
         save_file_path: Path,
         keep_all_tags: bool,
         explode_tags: bool,
+        save_as_wkt: bool,
     ) -> None:
         select_clauses = [
             "feature_id",
@@ -1886,10 +1920,16 @@ class PbfFileReader:
 
         is_empty = valid_features_parquet_table.num_rows == 0
 
-        if not is_empty:
+        if not is_empty and save_as_wkt:
+            geometry_column = ga.as_wkt(
+                ga.with_crs(valid_features_parquet_table.column("geometry_wkb"), WGS84_CRS)
+            )
+        elif not is_empty:
             geometry_column = ga.as_wkb(
                 ga.with_crs(valid_features_parquet_table.column("geometry_wkb"), WGS84_CRS)
             )
+        elif save_as_wkt:
+            geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
         else:
             geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
 
@@ -1945,14 +1985,24 @@ class PbfFileReader:
                     current_invalid_features_group_table = pq.read_table(
                         current_invalid_features_group_path
                     ).drop("group")
-                    valid_geometry_column = ga.as_wkb(
-                        ga.to_geopandas(
-                            ga.with_crs(
-                                current_invalid_features_group_table.column("geometry_wkb"),
-                                WGS84_CRS,
-                            )
-                        ).make_valid()
-                    )
+                    if save_as_wkt:
+                        valid_geometry_column = ga.as_wkt(
+                            ga.to_geopandas(
+                                ga.with_crs(
+                                    current_invalid_features_group_table.column("geometry_wkb"),
+                                    WGS84_CRS,
+                                )
+                            ).make_valid()
+                        )
+                    else:
+                        valid_geometry_column = ga.as_wkb(
+                            ga.to_geopandas(
+                                ga.with_crs(
+                                    current_invalid_features_group_table.column("geometry_wkb"),
+                                    WGS84_CRS,
+                                )
+                            ).make_valid()
+                        )
 
                     current_invalid_features_group_table = (
                         current_invalid_features_group_table.append_column(
@@ -1983,10 +2033,14 @@ class PbfFileReader:
         if empty_columns:
             joined_parquet_table = joined_parquet_table.drop(empty_columns)
 
-        with TaskProgressSpinner("Saving final geoparquet file", "32", self.silent_mode):
-            io.write_geoparquet_table(
-                joined_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
-            )
+        if save_as_wkt:
+            with TaskProgressSpinner("Saving final parquet file", "32", self.silent_mode):
+                pq.write_table(joined_parquet_table, save_file_path)
+        else:
+            with TaskProgressSpinner("Saving final geoparquet file", "32", self.silent_mode):
+                io.write_geoparquet_table(
+                    joined_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
+                )
 
     def _generate_osm_tags_sql_select(
         self, parsed_geometries: "duckdb.DuckDBPyRelation", keep_all_tags: bool, explode_tags: bool

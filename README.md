@@ -403,6 +403,8 @@ When the `keep_all_tags` parameter is passed while filtering by OSM tags, and ad
 General schema of multiple segments that are concatenated together:
 `pbf_file_name`\_(`osm_filter_tags_hash_part`/`nofilter`)(\_`alltags`)\_(`clipping_geometry_hash_part`/`noclip`)\_(`compact`/`exploded`)(\_`filter_osm_ids_hash_part`).geoparquet
 
+> If the WKT mode is turned on, then the result file will be saved with a `parquet` extension and a `_wkt` suffix.
+
 ### Memory usage
 
 DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk.
