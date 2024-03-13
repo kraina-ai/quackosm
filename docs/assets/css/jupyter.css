@@ -36,9 +36,10 @@
   z-index: 3 !important;
 }
 
+div.highlight pre code,
 div.jp-RenderedText.jp-OutputArea-output > pre,
 div.jp-RenderedText.jp-OutputArea-output.jp-OutputArea-executeResult > pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+  font-family: "Noto Sans Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace, SFMono-Regular, Consolas, Menlo,
     monospace;
   white-space: pre;
