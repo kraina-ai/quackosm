@@ -5,7 +5,7 @@ from collections.abc import Iterable
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
-TOTAL_STEPS = 33
+TOTAL_STEPS = 32
 
 
 def log_message(message: str) -> None:
@@ -18,26 +18,30 @@ def log_message(message: str) -> None:
 
 
 class TaskProgressSpinner:
-    def __init__(self, step_name: str, step_number: str):
+    def __init__(self, step_name: str, step_number: str, silent_mode: bool):
         self.step_name = step_name
         self.step_number = step_number
+        self.silent_mode = silent_mode
         self.progress = None
 
     def __enter__(self):
         try:  # pragma: no cover
-            from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+            if self.silent_mode:
+                self.progress = None
+            else:
+                from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-            self.progress = Progress(
-                SpinnerColumn(),
-                TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
-                TextColumn("[progress.description]{task.description}"),
-                TextColumn("•"),
-                TimeElapsedColumn(),
-                transient=False,
-            )
+                self.progress = Progress(
+                    SpinnerColumn(),
+                    TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
+                    TextColumn("[progress.description]{task.description}"),
+                    TextColumn("•"),
+                    TimeElapsedColumn(),
+                    transient=False,
+                )
 
-            self.progress.__enter__()
-            self.progress.add_task(description=self.step_name, total=None)
+                self.progress.__enter__()
+                self.progress.add_task(description=self.step_name, total=None)
 
         except ImportError:
             self.progress = None
@@ -50,55 +54,60 @@ class TaskProgressSpinner:
 
 
 class TaskProgressBar:
-    def __init__(self, step_name: str, step_number: str):
+    def __init__(self, step_name: str, step_number: str, silent_mode: bool):
         self.step_name = step_name
         self.step_number = step_number
+        self.silent_mode = silent_mode
         self.progress = None
 
     def __enter__(self):
+
         try:  # pragma: no cover
-            from rich.progress import (
-                BarColumn,
-                MofNCompleteColumn,
-                Progress,
-                ProgressColumn,
-                SpinnerColumn,
-                Task,
-                Text,
-                TextColumn,
-                TimeElapsedColumn,
-                TimeRemainingColumn,
-            )
+            if self.silent_mode:
+                self.progress = None
+            else:
+                from rich.progress import (
+                    BarColumn,
+                    MofNCompleteColumn,
+                    Progress,
+                    ProgressColumn,
+                    SpinnerColumn,
+                    Task,
+                    Text,
+                    TextColumn,
+                    TimeElapsedColumn,
+                    TimeRemainingColumn,
+                )
 
-            class SpeedColumn(ProgressColumn):
-                def render(self, task: "Task") -> Text:
-                    if task.speed is None:
-                        return Text("")
-                    elif task.speed >= 1:
-                        return Text(f"{task.speed:.2f} it/s")
-                    else:
-                        return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
+                class SpeedColumn(ProgressColumn):
+                    def render(self, task: "Task") -> Text:
+                        if task.speed is None:
+                            return Text("")
+                        elif task.speed >= 1:
+                            return Text(f"{task.speed:.2f} it/s")
+                        else:
+                            return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
 
-            self.progress = Progress(
-                SpinnerColumn(),
-                TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
-                TextColumn(
-                    "[progress.description]{task.description}"
-                    " [progress.percentage]{task.percentage:>3.0f}%"
-                ),
-                BarColumn(),
-                MofNCompleteColumn(),
-                TextColumn("•"),
-                TimeElapsedColumn(),
-                TextColumn("<"),
-                TimeRemainingColumn(),
-                TextColumn("•"),
-                SpeedColumn(),
-                transient=False,
-                speed_estimate_period=1800,
-            )
+                self.progress = Progress(
+                    SpinnerColumn(),
+                    TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
+                    TextColumn(
+                        "[progress.description]{task.description}"
+                        " [progress.percentage]{task.percentage:>3.0f}%"
+                    ),
+                    BarColumn(),
+                    MofNCompleteColumn(),
+                    TextColumn("•"),
+                    TimeElapsedColumn(),
+                    TextColumn("<"),
+                    TimeRemainingColumn(),
+                    TextColumn("•"),
+                    SpeedColumn(),
+                    transient=False,
+                    speed_estimate_period=1800,
+                )
 
-            self.progress.__enter__()
+                self.progress.__enter__()
 
         except ImportError:
             self.progress = None

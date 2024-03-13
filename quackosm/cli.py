@@ -500,6 +500,14 @@ def main(
             callback=_filter_osm_ids_callback,
         ),
     ] = None,
+    silent_mode: Annotated[
+        bool,
+        typer.Option(
+            "--silent/",
+            help="Whether to disable progress reporting.",
+            show_default=False,
+        ),
+    ] = False,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -575,6 +583,7 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
+                silent_mode=silent_mode,
             )
         else:
             geoparquet_path = convert_geometry_to_gpq(
@@ -592,5 +601,6 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
+                silent_mode=silent_mode,
             )
     typer.secho(geoparquet_path, fg="green")
