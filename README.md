@@ -8,6 +8,7 @@
 An open-source tool for reading OpenStreetMap PBF files using DuckDB.
 
 ## What is **QuackOSM** 🦆?
+
 - Scalable reader for OpenStreetMap ProtoBuffer (`pbf`) files.
 - Is based on top of `DuckDB`[^1] with its `Spatial`[^2] extension.
 - Saves files in the `GeoParquet`[^3] file format for easier integration with modern cloud stacks.
@@ -31,16 +32,19 @@ pip install quackosm
 ```
 
 ### With beautiful CLI
+
 ```
 pip install quackosm[cli]
 ```
 
 ### Required Python version?
+
 QuackOSM supports **Python >= 3.9**
 
 ### Dependencies
 
 Required:
+
 - `duckdb (==0.9.2)`: For all DuckDB operations on PBF files
 
 - `pyarrow (>=13.0.0)`: For parquet files wrangling
@@ -65,12 +69,19 @@ Required:
 
 - `beautifulsoup4`: For parsing HTML files and scraping required information
 
+
 Optional:
+
 - `typer[all]` (click, colorama, rich, shellingham): For CLI
+
 - `osmnx`: For geocoding of strings in CLI
+
 - `h3`: For reading H3 strings in CLI
+
 - `h3ronpy`: For transforming H3 indexes into geometries
+
 - `s2`: For transforming S2 indexes into geometries
+
 - `python-geohash`: For transforming GeoHash indexes into geometries
 
 ## Usage
@@ -78,6 +89,7 @@ Optional:
 ### If you already have downloaded the PBF file 📁🗺️
 
 #### Load data as a GeoDataFrame
+
 ```python
 >>> import quackosm as qosm
 >>> qosm.get_features_gdf(monaco_pbf_path)
@@ -97,14 +109,18 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 
 [7906 rows x 2 columns]
 ```
+
 #### Just convert PBF to GeoParquet
+
 ```python
 >>> import quackosm as qosm
 >>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
 >>> gpq_path.as_posix()
 'files/monaco_nofilter_noclip_compact.geoparquet'
 ```
+
 #### Inspect the file with duckdb
+
 ```python
 >>> import duckdb
 >>> duckdb.load_extension('spatial')
@@ -142,7 +158,9 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 │ 7906 rows (20 shown)                                                         3 columns │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
 #### Use as CLI
+
 ```console
 $ quackosm monaco.osm.pbf
 ⠏ [   1/33] Reading nodes • 0:00:00
@@ -186,6 +204,7 @@ files/monaco_nofilter_noclip_compact.geoparquet
 ### Let the QuackOSM automatically download the required OSM PBF files for you 🔎🌍
 
 #### Load data as a GeoDataFrame
+
 ```python
 >>> import quackosm as qosm
 >>> import osmnx as ox
@@ -207,7 +226,9 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 
 [3286 rows x 2 columns]
 ```
+
 #### Just convert geometry to GeoParquet
+
 ```python
 >>> import quackosm as qosm
 >>> from shapely import from_wkt
@@ -218,7 +239,9 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 >>> gpq_path.as_posix()
 'files/4b2967088a8fe31cdc15401e29bff9b7b882565cd8143e90443f39f2dc5fe6de_nofilter_compact.geoparquet'
 ```
+
 #### Inspect the file with duckdb
+
 ```python
 >>> import duckdb
 >>> duckdb.load_extension('spatial')
@@ -256,7 +279,9 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 │ ? rows (>9999 rows, 20 shown)                                                3 columns │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
 #### Use as CLI
+
 ```console
 $ quackosm --geom-filter-geocode "Shibuya, Tokyo"
 100%|██████████████████████████████████████| 45.7M/45.7M [00:00<00:00, 259GB/s]
@@ -297,6 +322,7 @@ $ quackosm --geom-filter-geocode "Shibuya, Tokyo"
 ⠋ [  33/33] Saving final geoparquet file • 0:00:00
 files/9ae2b160eb7556991148f5a2693aaf4b38bbb225c3700a6bfe9e5e54f48b987e_nofilter_compact.geoparquet
 ```
+
 CLI Help output (`QuackOSM -h`):
 ![CLI Help output](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/cli_help.png)
 
@@ -307,6 +333,7 @@ You can find full API + more examples in the [docs](https://kraina-ai.github.io/
 ### Basic logic
 
 QuackOSM utilizes `ST_ReadOSM` function from `DuckDB`'s `Spatial` extension to read raw data from the PBF file:
+
 - **Nodes** with coordinates and tags;
 - **Ways** with nodes refs and tags;
 - **Relations** with nodes and ways refs, ref roles and tags.
@@ -314,16 +341,16 @@ QuackOSM utilizes `ST_ReadOSM` function from `DuckDB`'s `Spatial` extension to r
 Library contains a logic to construct geometries (points, linestrings, polygons) from those raw features.
 
 1. Read nodes from the PBF file, save them to the parquet file.
-    1. (Optional) Filter nodes based on geometry filter
-    2. (Optional) Filter nodes based on tags filter
+   1. (Optional) Filter nodes based on geometry filter
+   2. (Optional) Filter nodes based on tags filter
 2. Read ways from the PBF file, save them to the parquet file.
-    1. Select all nodes refs and join them with previously read nodes.
-    2. (Optional) Filter ways based on geometry filter - join intersecting nodes
-    3. (Optional) Filter ways based on tags filter
+   1. Select all nodes refs and join them with previously read nodes.
+   2. (Optional) Filter ways based on geometry filter - join intersecting nodes
+   3. (Optional) Filter ways based on tags filter
 3. Read relations from the PBF file, save them to the parquet file.
-    1. Select all ways refs and join them with previously read ways.
-    2. (Optional) Filter relations based on geometry filter - join intersecting ways
-    3. (Optional) Filter relations based on tags filter
+   1. Select all ways refs and join them with previously read ways.
+   2. (Optional) Filter relations based on geometry filter - join intersecting ways
+   3. (Optional) Filter relations based on tags filter
 4. Select ways required by filtered relations
 5. Select nodes required by filtered and required ways
 6. Save filtered nodes with point geometries
@@ -376,8 +403,8 @@ DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memo
 
 QuackOSM has been roughly tuned to different workloads. The `rows_per_bucket` variable is set based on an available memory in the system:
 
-| Memory     | Rows per group |
-|-----------:|---------------:|
+|     Memory | Rows per group |
+| ---------: | -------------: |
 |     < 8 GB |        100 000 |
 |  8 - 16 GB |        500 000 |
 | 16 - 24 GB |      1 000 000 |
@@ -393,6 +420,7 @@ As a rule of thumb, when parsing a full file without filtering, you should have 
 Below you can see the chart of disk usage during operation. Generated on a machine with AMD Ryzen 7 5800X CPU (16 threads, 3.8 GHz clock speed) and 24 GB of RAM.
 
 #### Monaco
+
 PBF file size: 525 KB
 
 [Geofabrik link](https://download.geofabrik.de/europe/monaco.html)
@@ -400,6 +428,7 @@ PBF file size: 525 KB
 ![Monaco PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/monaco_disk_spillage.png)
 
 #### Estonia
+
 PBF file size: 100 MB
 
 [Geofabrik link](https://download.geofabrik.de/europe/estonia.html)
@@ -407,12 +436,12 @@ PBF file size: 100 MB
 ![Estonia PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/estonia_disk_spillage.png)
 
 #### Poland
+
 PBF file size: 1.7 GB
 
 [Geofabrik link](https://download.geofabrik.de/europe/poland.html)
 
 ![Poland PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_disk_spillage.png)
-
 
 ## License
 

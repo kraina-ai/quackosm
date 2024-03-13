@@ -1,10 +1,5 @@
-.jp-CodeCell > .jp-Cell-inputWrapper {
-  direction: rtl;
-  width: 113%;
-}
-
 .jp-InputArea-prompt {
-  visibility: hidden;
+  visibility: collapse;
 }
 
 .jp-OutputArea-prompt {
@@ -41,13 +36,22 @@
   z-index: 3 !important;
 }
 
+div.highlight pre code,
+div.jp-RenderedText.jp-OutputArea-output > pre,
 div.jp-RenderedText.jp-OutputArea-output.jp-OutputArea-executeResult > pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+  font-family: "Noto Sans Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace, SFMono-Regular, Consolas, Menlo,
     monospace;
   white-space: pre;
+  overflow-x: auto;
+  line-height: normal;
 }
 
 .jupyter-wrapper .jp-Notebook {
   overflow: hidden !important;
+}
+
+div.admonition p {
+  margin-top: 0.6rem;
+  margin-bottom: 0.6rem;
 }

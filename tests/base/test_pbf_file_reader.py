@@ -268,13 +268,13 @@ def test_pbf_reader_proper_tags_reading(
             maxx=7.421931388477276,
             maxy=43.73370705597216,
         ),
-        GeohashGeometryParser().convert("spv2bc", None, None),  # type: ignore
-        GeohashGeometryParser().convert("spv2bc,spv2bfr", None, None),  # type: ignore
-        H3GeometryParser().convert("8a3969a40ac7fff", None, None),  # type: ignore
-        H3GeometryParser().convert("8a3969a40ac7fff,893969a4037ffff", None, None),  # type: ignore
-        S2GeometryParser().convert("12cdc28bc", None, None),  # type: ignore
-        S2GeometryParser().convert("12cdc28bc,12cdc28f", None, None),  # type: ignore
-        GeocodeGeometryParser().convert("Monaco-Ville, Monaco", None, None),  # type: ignore
+        GeohashGeometryParser().convert("spv2bc"),  # type: ignore
+        GeohashGeometryParser().convert("spv2bc,spv2bfr"),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff"),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff,893969a4037ffff"),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc"),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc,12cdc28f"),  # type: ignore
+        GeocodeGeometryParser().convert("Monaco-Ville, Monaco"),  # type: ignore
     ],
 )
 def test_geometry_orienting(geometry: BaseGeometry):
