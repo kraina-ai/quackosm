@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified and improved ways grouping process
 - Renamed `rows_per_bucket` parameter to `rows_per_group`
 
+### Fixed
+
+- Set minimal `h3` and `h3ronpy` versions in requirements
+
 ## [0.4.5] - 2024-03-07
 
 ### Fixed
