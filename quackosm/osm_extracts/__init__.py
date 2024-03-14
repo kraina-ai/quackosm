@@ -223,6 +223,7 @@ def _find_smallest_containing_extracts(
             desc="Finding matching extracts",
             max_workers=num_of_multiprocessing_workers,
             chunksize=ceil(total_polygons / (4 * num_of_multiprocessing_workers)),
+            tqdm_kwargs=dict(disable=None),
         ):
             unique_extracts_ids.update(extract_ids_list)
     else:
@@ -347,6 +348,7 @@ def _filter_extracts(
             desc="Filtering extracts",
             max_workers=num_of_multiprocessing_workers,
             chunksize=ceil(total_geometries / (4 * num_of_multiprocessing_workers)),
+            tqdm_kwargs=dict(disable=None),
         ):
             filtered_extracts_ids.update(extract_ids_list)
     else:

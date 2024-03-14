@@ -10,7 +10,7 @@ from typing import Optional
 
 import geopandas as gpd
 import requests
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import OpenStreetMapExtract
@@ -84,7 +84,7 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:
         if extract_href.text != ".."
     ]
 
-    for extract_name in tqdm(extract_names, desc="Iterating BBBike index"):
+    for extract_name in tqdm(extract_names, desc="Iterating BBBike index", disable=None):
         poly_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.poly"
         polygon = parse_polygon_file(poly_url)
         if polygon is None:

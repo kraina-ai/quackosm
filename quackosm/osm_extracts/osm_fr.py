@@ -11,7 +11,7 @@ from typing import Optional
 
 import geopandas as gpd
 import requests
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import OpenStreetMapExtract
@@ -44,7 +44,7 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
     if save_path.exists():
         gdf = gpd.read_file(save_path)
     else:
-        with tqdm() as pbar:
+        with tqdm(disable=None) as pbar:
             extracts = _iterate_openstreetmap_fr_index("osm_fr", "/", True, pbar)
         gdf = gpd.GeoDataFrame(
             data=[asdict(extract) for extract in extracts], geometry="geometry"
