@@ -34,6 +34,7 @@ jobs:
         run: |
           pdm build -v -d dist
           pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --user
+          quackosm -h
           QuackOSM -h
       - name: Configure Git user
         run: |
@@ -52,6 +53,7 @@ jobs:
       - name: Test required commands
         run: |
           ./duckdb :memory: "SELECT 1"
+          quackosm -h
           QuackOSM -h
       - name: Execute jupyter notebooks
         run: |
