@@ -34,10 +34,7 @@ jobs:
         run: |
           pdm build -v -d dist
           pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --user
-          pip show quackosm
-          echo $PATH
-          python -m quackosm.__main__ -h
-          quackosm -h
+          QuackOSM -h
       - name: Configure Git user
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -55,8 +52,6 @@ jobs:
       - name: Test required commands
         run: |
           ./duckdb :memory: "SELECT 1"
-          alias QuackOSM='python -m quackosm.__main__'
-          alias quackosm='python -m quackosm.__main__'
           QuackOSM -h
       - name: Execute jupyter notebooks
         run: |
