@@ -34,8 +34,6 @@ jobs:
         run: |
           pdm build -v -d dist
           pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --user
-          quackosm -h
-          QuackOSM -h
       - name: Configure Git user
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -53,11 +51,12 @@ jobs:
       - name: Test required commands
         run: |
           ./duckdb :memory: "SELECT 1"
-          quackosm -h
           QuackOSM -h
       - name: Execute jupyter notebooks
         run: |
+          mv ./duckdb ./examples/duckdb
           jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
+          rm ./examples/duckdb
       - uses: jannekem/run-python-script-action@v1
         name: Replace copyright date
         with:
