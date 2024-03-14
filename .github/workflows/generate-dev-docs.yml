@@ -10,6 +10,7 @@ jobs:
     env:
       MKDOCS_EXECUTE_JUPYTER: false # execution is done before rendering documentation
       MKDOCS_DEV: true
+      FORCE_TERMINAL_MODE: true
     steps:
       - uses: actions/checkout@v3
         with:
@@ -33,7 +34,7 @@ jobs:
       - name: Install quackosm
         run: |
           pdm build -v -d dist
-          pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')"
+          pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --user
       - name: Configure Git user
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -51,12 +52,12 @@ jobs:
       - name: Test required commands
         run: |
           ./duckdb :memory: "SELECT 1"
-          alias QuackOSM='python -m quackosm.__main__'
-          alias quackosm='python -m quackosm.__main__'
           QuackOSM -h
       - name: Execute jupyter notebooks
         run: |
+          mv ./duckdb ./examples/duckdb
           jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
+          rm ./examples/duckdb
       - uses: jannekem/run-python-script-action@v1
         name: Replace copyright date
         with:

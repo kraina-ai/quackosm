@@ -5,6 +5,7 @@ This module contains iterators for publically available OpenStreetMap `*.osm.pbf
 repositories.
 """
 
+import os
 from collections.abc import Iterable
 from enum import Enum
 from functools import partial
@@ -217,12 +218,14 @@ def _find_smallest_containing_extracts(
             polygons_index_gdf=polygons_index_gdf,
         )
 
+        force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
         for extract_ids_list in process_map(
             find_extracts_func,
             geometries,
             desc="Finding matching extracts",
             max_workers=num_of_multiprocessing_workers,
             chunksize=ceil(total_polygons / (4 * num_of_multiprocessing_workers)),
+            tqdm_kwargs=dict(disable=True if force_terminal else None),
         ):
             unique_extracts_ids.update(extract_ids_list)
     else:
@@ -341,12 +344,14 @@ def _filter_extracts(
             sorted_extracts_gdf=sorted_extracts_gdf,
         )
 
+        force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
         for extract_ids_list in process_map(
             filter_extracts_func,
             geometries,
             desc="Filtering extracts",
             max_workers=num_of_multiprocessing_workers,
             chunksize=ceil(total_geometries / (4 * num_of_multiprocessing_workers)),
+            tqdm_kwargs=dict(disable=True if force_terminal else None),
         ):
             filtered_extracts_ids.update(extract_ids_list)
     else:
