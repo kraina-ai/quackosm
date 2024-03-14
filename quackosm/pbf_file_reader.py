@@ -1325,11 +1325,12 @@ class PbfFileReader:
                         else:
                             break
                     self.rows_per_group = smaller_rows_per_group
-                    log_message(
-                        f"Encountered {ex.__class__.__name__} during operation."
-                        " Retrying with lower number of rows per group"
-                        f" ({self.rows_per_group})."
-                    )
+                    if not self.silent_mode:
+                        log_message(
+                            f"Encountered {ex.__class__.__name__} during operation."
+                            " Retrying with lower number of rows per group"
+                            f" ({self.rows_per_group})."
+                        )
                 else:
                     raise
 

@@ -1,5 +1,7 @@
-.jp-InputArea-prompt {
+.jp-InputArea-prompt,
+.jp-Cell-inputCollapser {
   visibility: collapse;
+  display: none !important;
 }
 
 .jp-OutputArea-prompt {

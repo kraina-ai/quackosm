@@ -54,6 +54,7 @@ cli = [
 
 [project.scripts]
 quackosm = "quackosm.__main__:main"
+QuackOSM = "quackosm.__main__:main"
 
 [build-system]
 requires = ["pdm-backend"]
