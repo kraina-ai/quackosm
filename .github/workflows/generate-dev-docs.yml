@@ -51,6 +51,8 @@ jobs:
       - name: Test required commands
         run: |
           ./duckdb :memory: "SELECT 1"
+          alias QuackOSM='python -m quackosm.__main__'
+          alias quackosm='python -m quackosm.__main__'
           QuackOSM -h
       - name: Execute jupyter notebooks
         run: |
