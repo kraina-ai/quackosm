@@ -33,7 +33,7 @@ class TaskProgressSpinner:
         self.step_number = step_number
         self.silent_mode = silent_mode
         self.progress = None
-        self.force_terminal = os.getenv("RICH_FORCE_TERMINAL", "false").lower() == "true"
+        self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
 
     def __enter__(self):
         try:  # pragma: no cover
@@ -81,7 +81,7 @@ class TaskProgressBar:
         self.step_number = step_number
         self.silent_mode = silent_mode
         self.progress = None
-        self.force_terminal = os.getenv("RICH_FORCE_TERMINAL", "false").lower() == "true"
+        self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
 
     def __enter__(self):
 
