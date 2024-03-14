@@ -4,6 +4,7 @@ OpenStreetMap.fr extracts.
 This module contains wrapper for publically available OpenStreetMap.fr download server.
 """
 
+import os
 import re
 from dataclasses import asdict
 from pathlib import Path
@@ -44,7 +45,8 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
     if save_path.exists():
         gdf = gpd.read_file(save_path)
     else:
-        with tqdm(disable=None) as pbar:
+        force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+        with tqdm(disable=True if force_terminal else None) as pbar:
             extracts = _iterate_openstreetmap_fr_index("osm_fr", "/", True, pbar)
         gdf = gpd.GeoDataFrame(
             data=[asdict(extract) for extract in extracts], geometry="geometry"
