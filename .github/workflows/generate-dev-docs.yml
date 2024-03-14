@@ -1,4 +1,4 @@
-name: "Build & publish - DEV"
+name: "Publish docs on demand - DEV"
 on: workflow_dispatch
 
 jobs:
