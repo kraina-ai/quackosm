@@ -1,6 +1,6 @@
 # type: ignore
 """Wrapper over Rich progress bar."""
-
+import os
 from collections.abc import Iterable
 from contextlib import suppress
 from datetime import timedelta
@@ -33,13 +33,20 @@ class TaskProgressSpinner:
         self.step_number = step_number
         self.silent_mode = silent_mode
         self.progress = None
+        self.force_terminal = os.getenv("RICH_FORCE_TERMINAL", "false").lower() == "true"
 
     def __enter__(self):
         try:  # pragma: no cover
             if self.silent_mode:
                 self.progress = None
             else:
-                from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+                from rich.progress import (
+                    Console,
+                    Progress,
+                    SpinnerColumn,
+                    TextColumn,
+                    TimeElapsedColumn,
+                )
 
                 self.progress = Progress(
                     SpinnerColumn(),
@@ -48,6 +55,11 @@ class TaskProgressSpinner:
                     TextColumn("•"),
                     TimeElapsedColumn(),
                     transient=False,
+                    console=Console(
+                        force_interactive=False if self.force_terminal else None,
+                        force_jupyter=False if self.force_terminal else None,
+                        force_terminal=True if self.force_terminal else None,
+                    ),
                 )
 
                 self.progress.__enter__()
@@ -69,6 +81,7 @@ class TaskProgressBar:
         self.step_number = step_number
         self.silent_mode = silent_mode
         self.progress = None
+        self.force_terminal = os.getenv("RICH_FORCE_TERMINAL", "false").lower() == "true"
 
     def __enter__(self):
 
@@ -78,6 +91,7 @@ class TaskProgressBar:
             else:
                 from rich.progress import (
                     BarColumn,
+                    Console,
                     MofNCompleteColumn,
                     Progress,
                     ProgressColumn,
@@ -115,6 +129,11 @@ class TaskProgressBar:
                     SpeedColumn(),
                     transient=False,
                     speed_estimate_period=1800,
+                    console=Console(
+                        force_interactive=False if self.force_terminal else None,
+                        force_jupyter=False if self.force_terminal else None,
+                        force_terminal=True if self.force_terminal else None,
+                    ),
                 )
 
                 self.progress.__enter__()

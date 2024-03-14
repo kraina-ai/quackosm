@@ -10,7 +10,7 @@ from typing import Optional
 
 import geopandas as gpd
 import requests
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import OpenStreetMapExtract
