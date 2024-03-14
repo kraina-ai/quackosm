@@ -46,8 +46,8 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 cli = [
     "typer[all]",
     "osmnx",
-    "h3",
-    "h3ronpy",
+    "h3>=4.0.0b1",
+    "h3ronpy>=0.18.0",
     "s2",
     "python-geohash",
 ]
