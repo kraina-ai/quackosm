@@ -34,6 +34,8 @@ jobs:
         run: |
           pdm build -v -d dist
           pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')"
+          pip show quackosm
+          echo $PATH
       - name: Configure Git user
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
