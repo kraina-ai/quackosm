@@ -1035,18 +1035,16 @@ class PbfFileReader:
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
                 if isinstance(filter_tag_value, bool) and filter_tag_value:
                     filter_clauses.append(f"(list_contains(map_keys(tags), '{filter_tag_key}'))")
-                elif isinstance(filter_tag_value, str):
-                    escaped_value = self._sql_escape(filter_tag_value)
-                    filter_clauses.append(
-                        f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
-                        f" '{escaped_value}'"
-                    )
-                elif isinstance(filter_tag_value, list) and filter_tag_value:
-                    values_list = [f"'{self._sql_escape(value)}'" for value in filter_tag_value]
-                    filter_clauses.append(
-                        f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) IN"
-                        f" ({', '.join(values_list)})"
-                    )
+                elif isinstance(filter_tag_value, (str, list)):
+                    filter_tag_values = filter_tag_value
+                    if isinstance(filter_tag_value, str):
+                        filter_tag_values = [filter_tag_value]
+                    for single_filter_tag_value in filter_tag_values:
+                        escaped_value = self._sql_escape(single_filter_tag_value)
+                        filter_clauses.append(
+                            f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
+                            f" '{escaped_value}'"
+                        )
 
         return " OR ".join(filter_clauses)
 
@@ -2086,18 +2084,16 @@ class PbfFileReader:
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
                 if isinstance(filter_tag_value, bool) and filter_tag_value:
                     filter_tag_clauses.append(f"tag_entry.key = '{filter_tag_key}'")
-                elif isinstance(filter_tag_value, str):
-                    escaped_value = self._sql_escape(filter_tag_value)
-                    filter_tag_clauses.append(
-                        f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value ="
-                        f" '{escaped_value}')"
-                    )
-                elif isinstance(filter_tag_value, list) and filter_tag_value:
-                    values_list = [f"'{self._sql_escape(value)}'" for value in filter_tag_value]
-                    filter_tag_clauses.append(
-                        f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value IN"
-                        f" ({', '.join(values_list)}))"
-                    )
+                elif isinstance(filter_tag_value, (str, list)):
+                    filter_tag_values = filter_tag_value
+                    if isinstance(filter_tag_value, str):
+                        filter_tag_values = [filter_tag_value]
+                    for single_filter_tag_value in filter_tag_values:
+                        escaped_value = self._sql_escape(single_filter_tag_value)
+                        filter_tag_clauses.append(
+                            f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value ="
+                            f" '{escaped_value}')"
+                        )
             osm_tag_keys_select_clauses = [
                 f"""
                 map_from_entries(
@@ -2116,25 +2112,20 @@ class PbfFileReader:
                         f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) as"
                         f' "{filter_tag_key}"'
                     )
-                elif isinstance(filter_tag_value, str):
-                    escaped_value = self._sql_escape(filter_tag_value)
+                elif isinstance(filter_tag_value, (str, list)):
+                    filter_tag_clauses = []
+                    filter_tag_values = filter_tag_value
+                    if isinstance(filter_tag_value, str):
+                        filter_tag_values = [filter_tag_value]
+                    for single_filter_tag_value in filter_tag_values:
+                        escaped_value = self._sql_escape(single_filter_tag_value)
+                        filter_tag_clauses.append(
+                            f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
+                            f" '{escaped_value}'"
+                        )
                     osm_tag_keys_select_clauses.append(
                         f"""
-                        CASE WHEN list_extract(
-                            map_extract(tags, '{filter_tag_key}'), 1
-                        ) = '{escaped_value}'
-                        THEN '{escaped_value}'
-                        ELSE NULL
-                        END as "{filter_tag_key}"
-                        """
-                    )
-                elif isinstance(filter_tag_value, list) and filter_tag_value:
-                    values_list = [f"'{self._sql_escape(value)}'" for value in filter_tag_value]
-                    osm_tag_keys_select_clauses.append(
-                        f"""
-                        CASE WHEN list_extract(
-                            map_extract(tags, '{filter_tag_key}'), 1
-                        ) IN ({', '.join(values_list)})
+                        CASE WHEN {' OR '.join(filter_tag_clauses)}
                         THEN list_extract(map_extract(tags, '{filter_tag_key}'), 1)
                         ELSE NULL
                         END as "{filter_tag_key}"
@@ -2199,18 +2190,21 @@ class PbfFileReader:
                             f"WHEN \"{osm_tag_key}\" IS NOT NULL THEN '{osm_tag_key}=' ||"
                             f' "{osm_tag_key}"'
                         )
-                    elif isinstance(osm_tag_value, str):
-                        escaped_value = self._sql_escape(osm_tag_value)
+                    elif isinstance(osm_tag_value, (str, list)):
+                        filter_tag_clauses = []
+                        osm_tag_values = osm_tag_value
+                        if isinstance(osm_tag_value, str):
+                            osm_tag_values = [osm_tag_value]
+                        for single_osm_tag_value in osm_tag_values:
+                            escaped_value = self._sql_escape(single_osm_tag_value)
+                            filter_tag_clauses.append(
+                                f"\"{osm_tag_key}\" = '{escaped_value}'"
+                            )
                         case_when_clauses.append(
-                            f"WHEN \"{osm_tag_key}\" = '{escaped_value}' THEN '{osm_tag_key}=' ||"
+                            f"WHEN {' OR '.join(filter_tag_clauses)} THEN '{osm_tag_key}=' ||"
                             f' "{osm_tag_key}"'
                         )
-                    elif isinstance(osm_tag_value, list) and osm_tag_value:
-                        values_list = [f"'{self._sql_escape(value)}'" for value in osm_tag_value]
-                        case_when_clauses.append(
-                            f"WHEN \"{osm_tag_key}\" IN ({', '.join(values_list)}) THEN"
-                            f" '{osm_tag_key}=' || \"{osm_tag_key}\""
-                        )
+
                 case_clause = f'CASE {" ".join(case_when_clauses)} END AS "{group_name}"'
                 case_clauses.append(case_clause)
 
@@ -2234,18 +2228,21 @@ class PbfFileReader:
                             f"WHEN {element_clause} IS NOT NULL THEN '{osm_tag_key}=' ||"
                             f" {element_clause}"
                         )
-                    elif isinstance(osm_tag_value, str):
-                        escaped_value = self._sql_escape(osm_tag_value)
+                    elif isinstance(osm_tag_value, (str, list)):
+                        filter_tag_clauses = []
+                        osm_tag_values = osm_tag_value
+                        if isinstance(osm_tag_value, str):
+                            osm_tag_values = [osm_tag_value]
+                        for single_osm_tag_value in osm_tag_values:
+                            escaped_value = self._sql_escape(single_osm_tag_value)
+                            filter_tag_clauses.append(
+                                f"{element_clause} = '{escaped_value}'"
+                            )
                         case_when_clauses.append(
-                            f"WHEN {element_clause} = '{escaped_value}' THEN '{osm_tag_key}=' ||"
+                            f"WHEN {' OR '.join(filter_tag_clauses)} THEN '{osm_tag_key}=' ||"
                             f" {element_clause}"
                         )
-                    elif isinstance(osm_tag_value, list) and osm_tag_value:
-                        values_list = [f"'{self._sql_escape(value)}'" for value in osm_tag_value]
-                        case_when_clauses.append(
-                            f"WHEN {element_clause} IN ({', '.join(values_list)}) THEN"
-                            f" '{osm_tag_key}=' || {element_clause}"
-                        )
+
                 case_clause = f'CASE {" ".join(case_when_clauses)} END'
                 case_clauses.append(case_clause)
 
