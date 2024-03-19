@@ -1116,11 +1116,11 @@ class PbfFileReader:
             positive_filter_clauses.clear()
 
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if filter_tag_value == True: # noqa: E712
+                if filter_tag_value == True:  # noqa: E712
                     positive_filter_clauses.append(
                         f"(list_contains(map_keys(tags), '{filter_tag_key}'))"
                     )
-                elif filter_tag_value == False: # noqa: E712
+                elif filter_tag_value == False:  # noqa: E712
                     negative_filter_clauses.append(
                         f"(not list_contains(map_keys(tags), '{filter_tag_key}'))"
                     )
@@ -2186,7 +2186,7 @@ class PbfFileReader:
         elif self.merged_tags_filter and keep_tags_compact:
             filter_tag_clauses = []
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if filter_tag_value == True: # noqa: E712
+                if filter_tag_value == True:  # noqa: E712
                     filter_tag_clauses.append(f"tag_entry.key = '{filter_tag_key}'")
                 elif isinstance(filter_tag_value, (str, list)):
                     filter_tag_values = filter_tag_value
@@ -2220,7 +2220,7 @@ class PbfFileReader:
             ]
         elif self.merged_tags_filter and explode_tags:
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if filter_tag_value == True: # noqa: E712
+                if filter_tag_value == True:  # noqa: E712
                     osm_tag_keys_select_clauses.append(
                         f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) as"
                         f' "{filter_tag_key}"'
@@ -2307,7 +2307,7 @@ class PbfFileReader:
                 osm_filter = grouped_tags_filter[group_name]
                 case_when_clauses = []
                 for osm_tag_key, osm_tag_value in osm_filter.items():
-                    if osm_tag_value == True: # noqa: E712
+                    if osm_tag_value == True:  # noqa: E712
                         case_when_clauses.append(
                             f"WHEN \"{osm_tag_key}\" IS NOT NULL THEN '{osm_tag_key}=' ||"
                             f' "{osm_tag_key}"'
@@ -2351,7 +2351,7 @@ class PbfFileReader:
                 case_when_clauses = []
                 for osm_tag_key, osm_tag_value in osm_filter.items():
                     element_clause = f"element_at(tags, '{osm_tag_key}')[1]"
-                    if osm_tag_value == True: # noqa: E712
+                    if osm_tag_value == True:  # noqa: E712
                         case_when_clauses.append(
                             f"WHEN {element_clause} IS NOT NULL THEN '{osm_tag_key}=' ||"
                             f" {element_clause}"
