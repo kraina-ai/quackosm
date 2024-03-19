@@ -143,9 +143,9 @@ def _merge_multiple_osm_tags_filters(osm_tags_filters: Iterable[OsmTagsFilter]) 
             current_values_list = cast(list[str], result[osm_tag_key])
 
             # Check bool
-            if osm_tag_value == True: # noqa: E712
+            if osm_tag_value == True:  # noqa: E712
                 result[osm_tag_key] = True
-            elif osm_tag_value == False: # noqa: E712
+            elif osm_tag_value == False:  # noqa: E712
                 result[osm_tag_key] = False
             # Check string
             elif isinstance(osm_tag_value, str) and osm_tag_value not in current_values_list:
