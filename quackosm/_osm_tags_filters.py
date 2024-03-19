@@ -67,6 +67,16 @@ def merge_osm_tags_filter(
     )
 
 
+def merge_key_value_pairs_to_osm_tags_filter(
+    key_value_pairs: list[tuple[str, Union[list[str], str, bool]]],
+) -> OsmTagsFilter:
+    merged_osm_tag_filter = _merge_multiple_osm_tags_filters(
+        {osm_tag_filter_key: osm_tag_filter_value}
+        for osm_tag_filter_key, osm_tag_filter_value in key_value_pairs
+    )
+    return merged_osm_tag_filter
+
+
 def _merge_grouped_osm_tags_filter(grouped_filter: GroupedOsmTagsFilter) -> OsmTagsFilter:
     """
     Merge grouped osm tags filter into a base one.
@@ -110,6 +120,22 @@ def _merge_multiple_osm_tags_filters(osm_tags_filters: Iterable[OsmTagsFilter]) 
             if osm_tag_key not in result:
                 result[osm_tag_key] = []
 
+            is_current_value_positive = (
+                isinstance(result[osm_tag_key], (list, bool)) and result[osm_tag_key]
+            )
+            is_current_value_negative = result[osm_tag_key] == False  # noqa: E712
+
+            # If current value is negative and filter already have positive value
+            # If current value is positive and filter already have negative value
+            if (is_current_value_positive and osm_tag_value == False) or (  # noqa: E712
+                is_current_value_negative and osm_tag_value != False  # noqa: E712
+            ):
+                raise ValueError(
+                    "Provided OSM tags filter values cannot be merged."
+                    f" There is a conflict between the following values with '{osm_tag_key}' key:"
+                    f" {result[osm_tag_key]} and {osm_tag_value}."
+                )
+
             # If filter is already a positive boolean, skip
             if isinstance(result[osm_tag_key], bool) and result[osm_tag_key]:
                 continue
@@ -117,8 +143,10 @@ def _merge_multiple_osm_tags_filters(osm_tags_filters: Iterable[OsmTagsFilter]) 
             current_values_list = cast(list[str], result[osm_tag_key])
 
             # Check bool
-            if isinstance(osm_tag_value, bool) and osm_tag_value:
+            if osm_tag_value == True: # noqa: E712
                 result[osm_tag_key] = True
+            elif osm_tag_value == False: # noqa: E712
+                result[osm_tag_key] = False
             # Check string
             elif isinstance(osm_tag_value, str) and osm_tag_value not in current_values_list:
                 current_values_list.append(osm_tag_value)
