@@ -35,6 +35,7 @@ from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
     OsmTagsFilter,
+    check_if_any_osm_tags_filter_value_is_positive,
     merge_key_value_pairs_to_osm_tags_filter,
     merge_osm_tags_filter,
 )
@@ -139,6 +140,11 @@ class PbfFileReader:
             silent_mode (bool): Disable progress bars.
         """
         self.tags_filter = tags_filter
+        self.is_tags_filter_positive = (
+            check_if_any_osm_tags_filter_value_is_positive(self.tags_filter)
+            if self.tags_filter is not None
+            else False
+        )
         self.expanded_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
         self.merged_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
         self.geometry_filter = geometry_filter
@@ -216,7 +222,9 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None and not keep_all_tags
+            explode_tags = (
+                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
+            )
 
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
@@ -295,7 +303,9 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None and not keep_all_tags
+            explode_tags = (
+                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
+            )
 
         result_file_path = Path(
             result_file_path
@@ -396,7 +406,9 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None and not keep_all_tags
+            explode_tags = (
+                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
+            )
 
         parsed_geoparquet_files = []
         for file_path in file_paths:
@@ -1109,8 +1121,8 @@ class PbfFileReader:
 
     def _generate_osm_tags_sql_filter(self) -> str:
         """Prepare features filter clauses based on tags filter."""
-        positive_filter_clauses = ["(1=1)"]
-        negative_filter_clauses = []
+        positive_filter_clauses: list[str] = []
+        negative_filter_clauses: list[str] = []
 
         if self.merged_tags_filter:
             positive_filter_clauses.clear()
@@ -1143,6 +1155,9 @@ class PbfFileReader:
                                 f"(list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
                                 f" '{escaped_value}')"
                             )
+
+        if not positive_filter_clauses:
+            positive_filter_clauses.append("(1=1)")
 
         joined_filter_clauses = " OR ".join(positive_filter_clauses)
         if negative_filter_clauses:
@@ -2159,7 +2174,7 @@ class PbfFileReader:
         """Prepare features filter clauses based on tags filter."""
         osm_tag_keys_select_clauses = []
 
-        no_tags_filter = not self.merged_tags_filter
+        no_tags_filter = not self.merged_tags_filter or not self.is_tags_filter_positive
         tags_filter_and_keep_all_tags = self.merged_tags_filter and keep_all_tags
         keep_tags_compact = not explode_tags
 
@@ -2293,6 +2308,7 @@ class PbfFileReader:
         """
         if (
             not self.expanded_tags_filter
+            or not self.is_tags_filter_positive
             or not is_expected_type(self.expanded_tags_filter, GroupedOsmTagsFilter)
             or keep_all_tags
         ):

@@ -77,6 +77,26 @@ def merge_key_value_pairs_to_osm_tags_filter(
     return merged_osm_tag_filter
 
 
+def check_if_any_osm_tags_filter_value_is_positive(
+    osm_tags_filter: Union[GroupedOsmTagsFilter, OsmTagsFilter],
+) -> bool:
+    if is_expected_type(osm_tags_filter, OsmTagsFilter):
+        return any(
+            osm_tag_filter_value != False  # noqa: E712
+            for osm_tag_filter_value in cast(OsmTagsFilter, osm_tags_filter).values()
+        )
+    elif is_expected_type(osm_tags_filter, GroupedOsmTagsFilter):
+        return any(
+            check_if_any_osm_tags_filter_value_is_positive(osm_tags_filter_group)
+            for osm_tags_filter_group in cast(GroupedOsmTagsFilter, osm_tags_filter).values()
+        )
+
+    raise AttributeError(
+        "Provided tags don't match required type definitions"
+        " (OsmTagsFilter or GroupedOsmTagsFilter)."
+    )
+
+
 def _merge_grouped_osm_tags_filter(grouped_filter: GroupedOsmTagsFilter) -> OsmTagsFilter:
     """
     Merge grouped osm tags filter into a base one.
