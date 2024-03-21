@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:d096eae7abb813d956ce2f024359f340409b688fd5703027bf494072d9cf85a6"
+content_hash = "sha256:8415dbd8de3ba48220f0c5fdfc925ec2ca71644ada7c3cf1644d900b4e3e1ec8"
 
 [[package]]
 name = "anyio"
@@ -3615,12 +3615,12 @@ files = [
 
 [[package]]
 name = "shellingham"
-version = "1.5.4"
-requires_python = ">=3.7"
+version = "1.4.0"
+requires_python = "!=3.0,!=3.1,!=3.2,!=3.3,>=2.6"
 summary = "Tool to Detect Surrounding Shell"
 files = [
-    {file = "shellingham-1.5.4-py2.py3-none-any.whl", hash = "sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686"},
-    {file = "shellingham-1.5.4.tar.gz", hash = "sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de"},
+    {file = "shellingham-1.4.0-py2.py3-none-any.whl", hash = "sha256:536b67a0697f2e4af32ab176c00a50ac2899c5a05e0d8e2dadac8e58888283f9"},
+    {file = "shellingham-1.4.0.tar.gz", hash = "sha256:4855c2458d6904829bd34c299f11fdeed7cfefbf8a2c522e4caea6cd76b3171e"},
 ]
 
 [[package]]
@@ -3766,7 +3766,7 @@ files = [
 [[package]]
 name = "topojson"
 version = "1.7"
-summary = "topojson - a powerful library to encode geographic data as topology in Python!ğŸŒ�"
+summary = "topojson - a powerful library to encode geographic data as topology in Python!🌍"
 dependencies = [
     "numpy",
     "packaging",
