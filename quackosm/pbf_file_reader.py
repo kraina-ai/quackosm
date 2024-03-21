@@ -513,6 +513,9 @@ class PbfFileReader:
                     cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.expanded_tags_filter)
                 )
 
+                # print(self.expanded_tags_filter)
+                # print(self.merged_tags_filter)
+
             converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
             self._delete_directories(
@@ -802,6 +805,7 @@ class PbfFileReader:
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
     ) -> ConvertedOSMParquetFiles:
         sql_filter = self._generate_osm_tags_sql_filter()
+        # print(sql_filter)
         filtered_tags_clause = self._generate_filtered_tags_clause()
 
         is_intersecting = self.geometry_filter is not None
@@ -2015,6 +2019,7 @@ class PbfFileReader:
             ),
             "ST_GeomFromWKB(geometry_wkb) AS geometry",
         ]
+        # print(", ".join(select_clauses))
 
         unioned_features = self.connection.sql(
             f"""
@@ -2353,6 +2358,7 @@ class PbfFileReader:
                 case_clauses.append(case_clause)
 
             joined_case_clauses = ", ".join(case_clauses)
+            # print(joined_case_clauses)
             grouped_features_relation = self.connection.sql(
                 f"""
                 SELECT feature_id, {joined_case_clauses}, geometry
@@ -2400,6 +2406,7 @@ class PbfFileReader:
             groups_map = (
                 f"map([{', '.join(group_names_as_sql_strings)}], [{', '.join(case_clauses)}])"
             )
+            # print(groups_map)
             non_null_groups_map = f"""map_from_entries(
                 [
                     tag_entry
