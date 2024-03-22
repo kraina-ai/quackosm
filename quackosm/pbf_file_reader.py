@@ -535,7 +535,7 @@ class PbfFileReader:
                         {current_parquet_file_relation.sql_query()}
                         ANTI JOIN read_parquet({[str(pq_file) for pq_file in result_parquet_files]})
                         USING (feature_id)
-                    ) TO '{str(filtered_result_parquet_file)}' (
+                    ) TO '{filtered_result_parquet_file}' (
                         FORMAT 'parquet',
                         PER_THREAD_OUTPUT true,
                         ROW_GROUP_SIZE 25000,
