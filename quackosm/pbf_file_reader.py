@@ -335,17 +335,27 @@ class PbfFileReader:
                     )
                     parsed_geoparquet_files.append(parsed_geoparquet_file)
 
-                joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
-                    parsed_geoparquet_files
-                )
-                if save_as_wkt:
-                    pq.write_table(joined_parquet_table, result_file_path)
-                else:
-                    io.write_geoparquet_table(
-                        joined_parquet_table,
-                        result_file_path,
-                        primary_geometry_column=GEOMETRY_COLUMN,
-                    )
+                with tempfile.TemporaryDirectory(
+                    dir=self.working_directory.resolve()
+                ) as tmp_dir_name:
+                    try:
+                        joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
+                            parsed_geoparquet_files
+                        )
+                    except pa.ArrowInvalid:
+                        tmp_dir_path = Path(tmp_dir_name)
+                        joined_parquet_table = self._drop_duplicated_features_in_joined_table(
+                            parsed_geoparquet_files, tmp_dir_path
+                        )
+
+                    if save_as_wkt:
+                        pq.write_table(joined_parquet_table, result_file_path)
+                    else:
+                        io.write_geoparquet_table(
+                            joined_parquet_table,
+                            result_file_path,
+                            primary_geometry_column=GEOMETRY_COLUMN,
+                        )
 
         return Path(result_file_path)
 
@@ -403,13 +413,21 @@ class PbfFileReader:
             )
             parsed_geoparquet_files.append(parsed_geoparquet_file)
 
-        joined_parquet_table = self._drop_duplicates_features_in_pyarrow_table(
-            parsed_geoparquet_files
-        )
-        gdf_parquet = gpd.GeoDataFrame(
-            data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
-            geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
-        ).set_index(FEATURES_INDEX)
+        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
+            try:
+                joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
+                    parsed_geoparquet_files
+                )
+            except pa.ArrowInvalid:
+                tmp_dir_path = Path(tmp_dir_name)
+                joined_parquet_table = self._drop_duplicated_features_in_joined_table(
+                    parsed_geoparquet_files, tmp_dir_path
+                )
+
+            gdf_parquet = gpd.GeoDataFrame(
+                data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
+                geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
+            ).set_index(FEATURES_INDEX)
 
         return gdf_parquet
 
@@ -458,7 +476,7 @@ class PbfFileReader:
 
         return gdf_parquet
 
-    def _drop_duplicates_features_in_pyarrow_table(
+    def _drop_duplicated_features_in_pyarrow_table(
         self, parsed_geoparquet_files: list[Path]
     ) -> pa.Table:
         parquet_tables = [
@@ -470,6 +488,33 @@ class PbfFileReader:
                 joined_parquet_table, on=["feature_id"], keep="first"
             )
         return joined_parquet_table
+
+    def _drop_duplicated_features_in_joined_table(
+        self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
+    ) -> pa.Table:
+        if len(parsed_geoparquet_files) == 1:
+            return pq.read_table(parsed_geoparquet_files[0])
+
+        connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
+        output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
+        parquet_relation = connection.read_parquet(
+            [str(parsed_geoparquet_file) for parsed_geoparquet_file in parsed_geoparquet_files],
+            union_by_name=True,
+        )
+        query = f"""
+            COPY (
+                {parquet_relation.sql_query()}
+                QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
+            ) TO '{output_file_name}' (
+                FORMAT 'parquet',
+                PER_THREAD_OUTPUT true,
+                ROW_GROUP_SIZE 25000,
+                COMPRESSION '{self.parquet_compression}'
+            )
+        """
+        connection.sql(query)
+
+        return pq.read_table(output_file_name)
 
     def _parse_pbf_file(
         self,
