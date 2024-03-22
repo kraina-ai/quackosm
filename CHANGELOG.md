@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Added alternative way to remove `feature_id` duplicates for big data operations
+- Slowed down rich progress bars refresh rate
 
 ## [0.5.0] - 2024-03-14
 
