@@ -495,26 +495,56 @@ class PbfFileReader:
         if len(parsed_geoparquet_files) == 1:
             return pq.read_table(parsed_geoparquet_files[0])
 
-        connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
-        output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
-        parquet_relation = connection.read_parquet(
-            [str(parsed_geoparquet_file) for parsed_geoparquet_file in parsed_geoparquet_files],
-            union_by_name=True,
+        sorted_parsed_geoparquet_files = sorted(
+            parsed_geoparquet_files, key=lambda pq_file: pq_file.stat().st_size, reverse=True
         )
-        query = f"""
-            COPY (
-                {parquet_relation.sql_query()}
-                QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
-            ) TO '{output_file_name}' (
-                FORMAT 'parquet',
-                PER_THREAD_OUTPUT true,
-                ROW_GROUP_SIZE 25000,
-                COMPRESSION '{self.parquet_compression}'
-            )
-        """
-        connection.sql(query)
 
-        return pq.read_table(output_file_name)
+        connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
+
+        try:
+            # Attempt 1: read all at once
+            output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
+            parquet_relation = connection.read_parquet(
+                [
+                    str(parsed_geoparquet_file)
+                    for parsed_geoparquet_file in sorted_parsed_geoparquet_files
+                ],
+                union_by_name=True,
+            )
+            query = f"""
+                COPY (
+                    {parquet_relation.sql_query()}
+                    QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
+                ) TO '{output_file_name}' (
+                    FORMAT 'parquet',
+                    PER_THREAD_OUTPUT true,
+                    ROW_GROUP_SIZE 25000,
+                    COMPRESSION '{self.parquet_compression}'
+                )
+            """
+            self._run_query(query, run_in_separate_process=True)
+            return pq.read_table(output_file_name)
+        except MemoryError:
+            # Attempt 2: read one by one
+            result_parquet_files = [sorted_parsed_geoparquet_files[0]]
+            for idx, parsed_geoparquet_file in enumerate(sorted_parsed_geoparquet_files[1:]):
+                current_parquet_file_relation = connection.read_parquet(str(parsed_geoparquet_file))
+                filtered_result_parquet_file = tmp_dir_path / f"sub_file_{idx}"
+                query = f"""
+                    COPY (
+                        {current_parquet_file_relation.sql_query()}
+                        ANTI JOIN read_parquet({[str(pq_file) for pq_file in result_parquet_files]})
+                        USING (feature_id)
+                    ) TO '{str(filtered_result_parquet_file)}' (
+                        FORMAT 'parquet',
+                        PER_THREAD_OUTPUT true,
+                        ROW_GROUP_SIZE 25000,
+                        COMPRESSION '{self.parquet_compression}'
+                    )
+                """
+                connection.sql(query)
+                result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
+        return pq.read_table(result_parquet_files)
 
     def _parse_pbf_file(
         self,
