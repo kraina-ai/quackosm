@@ -522,7 +522,7 @@ class PbfFileReader:
                     COMPRESSION '{self.parquet_compression}'
                 )
             """
-            self._run_query(query, run_in_separate_process=True)
+            self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
             return pq.read_table(output_file_name)
         except MemoryError:
             # Attempt 2: read one by one
@@ -1202,13 +1202,16 @@ class PbfFileReader:
         sql_queries: Union[str, list[str]],
         run_in_separate_process: bool = False,
         query_timeout_seconds: Optional[int] = None,
+        tmp_dir_path: Optional[Path] = None,
     ) -> None:
         if isinstance(sql_queries, str):
             sql_queries = [sql_queries]
 
         if run_in_separate_process:
             with Pool() as pool:
-                r = pool.apply_async(_run_query, args=(sql_queries, self.tmp_dir_path))
+                r = pool.apply_async(
+                    _run_query, args=(sql_queries, tmp_dir_path or self.tmp_dir_path)
+                )
                 start_time = time.time()
                 actual_memory = psutil.virtual_memory()
                 percentage_threshold = 95
