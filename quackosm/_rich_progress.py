@@ -54,6 +54,7 @@ class TaskProgressSpinner:
                     TextColumn("[progress.description]{task.description}"),
                     TextColumn("•"),
                     TimeElapsedColumn(),
+                    refresh_per_second=1,
                     transient=False,
                     console=Console(
                         force_interactive=False if self.force_terminal else None,
@@ -127,6 +128,7 @@ class TaskProgressBar:
                     TimeRemainingColumn(),
                     TextColumn("•"),
                     SpeedColumn(),
+                    refresh_per_second=1,
                     transient=False,
                     speed_estimate_period=1800,
                     console=Console(

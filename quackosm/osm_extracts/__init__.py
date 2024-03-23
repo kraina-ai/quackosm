@@ -273,8 +273,8 @@ def _find_smallest_containing_extracts_for_single_geometry(
     else:
         geometry_to_cover = geometry.buffer(1e-6)
 
-    exactly_matching_geometry = polygons_index_gdf[
-        polygons_index_gdf.geometry.geom_almost_equals(geometry)
+    exactly_matching_geometry = polygons_index_gdf.loc[
+        polygons_index_gdf.geometry.geom_equals_exact(geometry, tolerance=1e-6)
     ]
     if len(exactly_matching_geometry) == 1:
         extracts_ids.add(exactly_matching_geometry.iloc[0].id)
@@ -282,7 +282,7 @@ def _find_smallest_containing_extracts_for_single_geometry(
 
     iterations = 100
     while not geometry_to_cover.is_empty and iterations > 0:
-        matching_rows = polygons_index_gdf[
+        matching_rows = polygons_index_gdf.loc[
             (~polygons_index_gdf["id"].isin(extracts_ids))
             & (polygons_index_gdf.intersects(geometry_to_cover))
         ]
@@ -324,7 +324,7 @@ def _filter_extracts(
     if polygons_index_gdf is None:
         raise RuntimeError("Extracts index is empty.")
 
-    sorted_extracts_gdf = polygons_index_gdf[
+    sorted_extracts_gdf = polygons_index_gdf.loc[
         polygons_index_gdf["id"].isin(extracts_ids)
     ].sort_values(by="area", ignore_index=True, ascending=False)
 
@@ -364,7 +364,7 @@ def _filter_extracts(
         filtered_extracts_ids, sorted_extracts_gdf
     )
 
-    for _, extract_row in sorted_extracts_gdf[
+    for _, extract_row in sorted_extracts_gdf.loc[
         sorted_extracts_gdf["id"].isin(simplified_extracts_ids)
     ].iterrows():
         extract = OpenStreetMapExtract(
@@ -418,7 +418,9 @@ def _simplify_selected_extracts(
 ) -> set[str]:
     simplified_extracts_ids: set[str] = filtered_extracts_ids.copy()
 
-    matching_extracts = sorted_extracts_gdf[sorted_extracts_gdf["id"].isin(simplified_extracts_ids)]
+    matching_extracts = sorted_extracts_gdf.loc[
+        sorted_extracts_gdf["id"].isin(simplified_extracts_ids)
+    ]
 
     simplify_again = True
     while simplify_again:
@@ -426,9 +428,9 @@ def _simplify_selected_extracts(
         extract_to_remove = None
         for extract_id in simplified_extracts_ids:
             extract_geometry = (
-                matching_extracts[sorted_extracts_gdf["id"] == extract_id].iloc[0].geometry
+                matching_extracts.loc[sorted_extracts_gdf["id"] == extract_id].iloc[0].geometry
             )
-            other_geometries = matching_extracts[
+            other_geometries = matching_extracts.loc[
                 sorted_extracts_gdf["id"] != extract_id
             ].unary_union
             if extract_geometry.covered_by(other_geometries):
