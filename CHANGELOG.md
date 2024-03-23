@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2024-03-23
+
 ### Fixed
 
 - Added alternative way to remove `feature_id` duplicates for big data operations
@@ -150,7 +152,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.1...HEAD
+
+[0.5.1]: https://github.com/kraina-ai/quackosm/compare/0.5.0...0.5.1
 
 [0.5.0]: https://github.com/kraina-ai/quackosm/compare/0.4.5...0.5.0
 
