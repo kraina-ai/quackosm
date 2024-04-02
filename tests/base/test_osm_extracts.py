@@ -34,6 +34,10 @@ ut = TestCase()
     "Case insensitive Geofabrik",
     "GEOFABRIK",
 )  # type: ignore
+@P.case(
+    "OSM fr without underscore",
+    "osmfr",
+)  # type: ignore
 def test_proper_osm_extract_source(value: str):
     """Test if OsmExtractSource is parsed correctly."""
     OsmExtractSource(value)

@@ -132,7 +132,7 @@ class PbfFileReader:
                 Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
                 Defaults to "snappy".
             osm_extract_source (OsmExtractSource): A source for automatic downloading of
-                OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
+                OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
             silent_mode (bool): Disable progress bars.
             allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't
                 covered by any OSM extract. Defaults to `False`.

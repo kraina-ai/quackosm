@@ -261,7 +261,7 @@ def convert_geometry_to_gpq(
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
+            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -620,7 +620,7 @@ def get_features_gdf_from_geometry(
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
+            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
