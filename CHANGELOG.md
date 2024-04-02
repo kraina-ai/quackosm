@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Option to filter by OSM tags with negative values (`False`) and with star (`*`) expansion in both keys and values [#49](https://github.com/kraina-ai/quackosm/issues/49) [#53](https://github.com/kraina-ai/quackosm/issues/53)
 
+## [0.5.1] - 2024-03-23
+
+### Fixed
+
+- Added alternative way to remove `feature_id` duplicates for big data operations
+- Slowed down rich progress bars refresh rate
+
 ## [0.5.0] - 2024-03-14
 
 ### Added
@@ -149,7 +156,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.1...HEAD
+
+[0.5.1]: https://github.com/kraina-ai/quackosm/compare/0.5.0...0.5.1
 
 [0.5.0]: https://github.com/kraina-ai/quackosm/compare/0.4.5...0.5.0
 
