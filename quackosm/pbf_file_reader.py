@@ -32,6 +32,7 @@ from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
+from quackosm._exceptions import EmptyResultWarning
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter, merge_osm_tags_filter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig, parse_dict_to_config_object
 from quackosm._rich_progress import (  # type: ignore[attr-defined]
@@ -103,6 +104,7 @@ class PbfFileReader:
         parquet_compression: str = "snappy",
         osm_extract_source: OsmExtractSource = OsmExtractSource.any,
         silent_mode: bool = False,
+        allow_unconvered_geometry: bool = False,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -132,10 +134,13 @@ class PbfFileReader:
             osm_extract_source (OsmExtractSource): A source for automatic downloading of
                 OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
             silent_mode (bool): Disable progress bars.
+            allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't
+                covered by any OSM extract. Defaults to `False`.
         """
         self.tags_filter = tags_filter
         self.merged_tags_filter = merge_osm_tags_filter(tags_filter) if tags_filter else None
         self.geometry_filter = geometry_filter
+        self.allow_unconvered_geometry = allow_unconvered_geometry
         self.osm_extract_source = osm_extract_source
         self.working_directory = Path(working_directory)
         self.working_directory.mkdir(parents=True, exist_ok=True)
@@ -302,7 +307,9 @@ class PbfFileReader:
         )
 
         matching_extracts = find_smallest_containing_extract(
-            self.geometry_filter, self.osm_extract_source
+            self.geometry_filter,
+            self.osm_extract_source,
+            allow_unconvered_geometry=self.allow_unconvered_geometry,
         )
 
         if len(matching_extracts) == 1:
@@ -318,9 +325,6 @@ class PbfFileReader:
             )
         else:
             if not result_file_path.exists() or ignore_cache:
-                matching_extracts = find_smallest_containing_extract(
-                    self.geometry_filter, self.osm_extract_source
-                )
                 pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
 
                 parsed_geoparquet_files = []
@@ -335,27 +339,42 @@ class PbfFileReader:
                     )
                     parsed_geoparquet_files.append(parsed_geoparquet_file)
 
-                with tempfile.TemporaryDirectory(
-                    dir=self.working_directory.resolve()
-                ) as tmp_dir_name:
-                    try:
-                        joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
-                            parsed_geoparquet_files
-                        )
-                    except pa.ArrowInvalid:
-                        tmp_dir_path = Path(tmp_dir_name)
-                        joined_parquet_table = self._drop_duplicated_features_in_joined_table(
-                            parsed_geoparquet_files, tmp_dir_path
-                        )
-
+                if parsed_geoparquet_files:
+                    with tempfile.TemporaryDirectory(
+                        dir=self.working_directory.resolve()
+                    ) as tmp_dir_name:
+                        try:
+                            joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
+                                parsed_geoparquet_files
+                            )
+                        except pa.ArrowInvalid:
+                            tmp_dir_path = Path(tmp_dir_name)
+                            joined_parquet_table = self._drop_duplicated_features_in_joined_table(
+                                parsed_geoparquet_files, tmp_dir_path
+                            )
+                else:
+                    warnings.warn(
+                        "Found 0 extracts covering the geometry. Returning empty result.",
+                        EmptyResultWarning,
+                        stacklevel=0,
+                    )
                     if save_as_wkt:
-                        pq.write_table(joined_parquet_table, result_file_path)
+                        geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
                     else:
-                        io.write_geoparquet_table(
-                            joined_parquet_table,
-                            result_file_path,
-                            primary_geometry_column=GEOMETRY_COLUMN,
-                        )
+                        geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
+                    joined_parquet_table = pa.table(
+                        [pa.array([], type=pa.string()), geometry_column],
+                        names=[FEATURES_INDEX, GEOMETRY_COLUMN],
+                    )
+
+                if save_as_wkt:
+                    pq.write_table(joined_parquet_table, result_file_path)
+                else:
+                    io.write_geoparquet_table(
+                        joined_parquet_table,
+                        result_file_path,
+                        primary_geometry_column=GEOMETRY_COLUMN,
+                    )
 
         return Path(result_file_path)
 
@@ -413,20 +432,33 @@ class PbfFileReader:
             )
             parsed_geoparquet_files.append(parsed_geoparquet_file)
 
-        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
-            try:
-                joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
-                    parsed_geoparquet_files
-                )
-            except pa.ArrowInvalid:
-                tmp_dir_path = Path(tmp_dir_name)
-                joined_parquet_table = self._drop_duplicated_features_in_joined_table(
-                    parsed_geoparquet_files, tmp_dir_path
-                )
+        if parsed_geoparquet_files:
+            with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
+                try:
+                    joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
+                        parsed_geoparquet_files
+                    )
+                except pa.ArrowInvalid:
+                    tmp_dir_path = Path(tmp_dir_name)
+                    joined_parquet_table = self._drop_duplicated_features_in_joined_table(
+                        parsed_geoparquet_files, tmp_dir_path
+                    )
 
+                gdf_parquet = gpd.GeoDataFrame(
+                    data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(
+                        maps_as_pydicts="strict"
+                    ),
+                    geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
+                ).set_index(FEATURES_INDEX)
+        else:
+            warnings.warn(
+                "Found 0 extracts covering the geometry. Returning empty result.",
+                EmptyResultWarning,
+                stacklevel=0,
+            )
             gdf_parquet = gpd.GeoDataFrame(
-                data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
-                geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
+                data={FEATURES_INDEX: []},
+                geometry=gpd.GeoSeries([], crs=WGS84_CRS),
             ).set_index(FEATURES_INDEX)
 
         return gdf_parquet

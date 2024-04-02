@@ -6,6 +6,7 @@ repositories.
 """
 
 import os
+import warnings
 from collections.abc import Iterable
 from enum import Enum
 from functools import partial
@@ -19,6 +20,7 @@ from pooch import retrieve
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
 
+from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
@@ -79,6 +81,7 @@ def download_extracts_pbf_files(
 
 def find_smallest_containing_extracts_total(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    allow_unconvered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
     Find smallest extracts from all OSM extract indexes that contains given polygon.
@@ -87,6 +90,8 @@ def find_smallest_containing_extracts_total(
 
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
 
     Returns:
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
@@ -95,11 +100,14 @@ def find_smallest_containing_extracts_total(
         [_get_bbbike_index(), _get_geofabrik_index(), _get_openstreetmap_fr_index()]
     )
     indexes.sort_values(by="area", ignore_index=True, inplace=True)
-    return _find_smallest_containing_extracts(geometry, indexes)
+    return _find_smallest_containing_extracts(
+        geometry, indexes, allow_unconvered_geometry=allow_unconvered_geometry
+    )
 
 
 def find_smallest_containing_geofabrik_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    allow_unconvered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
     Find smallest extracts from Geofabrik that contains given geometry.
@@ -108,15 +116,20 @@ def find_smallest_containing_geofabrik_extracts(
 
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
 
     Returns:
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
-    return _find_smallest_containing_extracts(geometry, _get_geofabrik_index())
+    return _find_smallest_containing_extracts(
+        geometry, _get_geofabrik_index(), allow_unconvered_geometry=allow_unconvered_geometry
+    )
 
 
 def find_smallest_containing_openstreetmap_fr_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    allow_unconvered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
     Find smallest extracts from OpenStreetMap.fr that contains given polygon.
@@ -125,15 +138,20 @@ def find_smallest_containing_openstreetmap_fr_extracts(
 
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
 
     Returns:
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
-    return _find_smallest_containing_extracts(geometry, _get_openstreetmap_fr_index())
+    return _find_smallest_containing_extracts(
+        geometry, _get_openstreetmap_fr_index(), allow_unconvered_geometry=allow_unconvered_geometry
+    )
 
 
 def find_smallest_containing_bbbike_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    allow_unconvered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
     Find smallest extracts from BBBike that contains given polygon.
@@ -142,11 +160,15 @@ def find_smallest_containing_bbbike_extracts(
 
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
 
     Returns:
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
-    return _find_smallest_containing_extracts(geometry, _get_bbbike_index())
+    return _find_smallest_containing_extracts(
+        geometry, _get_bbbike_index(), allow_unconvered_geometry=allow_unconvered_geometry
+    )
 
 
 OSM_EXTRACT_SOURCE_MATCHING_FUNCTION = {
@@ -158,11 +180,30 @@ OSM_EXTRACT_SOURCE_MATCHING_FUNCTION = {
 
 
 def find_smallest_containing_extract(
-    geometry: Union[BaseGeometry, BaseMultipartGeometry], source: Union[OsmExtractSource, str]
+    geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    source: Union[OsmExtractSource, str],
+    allow_unconvered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
+    """
+    Find smallest extracts from a given OSM source that contains given polygon.
+
+    Iterates an OSM source index and finds smallest extracts that covers a given geometry.
+
+    Args:
+        geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        source (Union[OsmExtractSource, str]): OSM source name. Can be one of: 'any', 'Geofabrik',
+            'BBBike', 'OSM_fr'.
+        allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
+
+    Returns:
+        List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
+    """
     try:
         source_enum = OsmExtractSource(source)
-        return OSM_EXTRACT_SOURCE_MATCHING_FUNCTION[source_enum](geometry)
+        return OSM_EXTRACT_SOURCE_MATCHING_FUNCTION[source_enum](
+            geometry, allow_unconvered_geometry=allow_unconvered_geometry
+        )
     except ValueError as ex:
         raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
 
@@ -172,6 +213,7 @@ def _find_smallest_containing_extracts(
     polygons_index_gdf: gpd.GeoDataFrame,
     num_of_multiprocessing_workers: int = -1,
     multiprocessing_activation_threshold: Optional[int] = None,
+    allow_unconvered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
     Find smallest set of extracts covering a given geometry.
@@ -191,6 +233,8 @@ def _find_smallest_containing_extracts(
         multiprocessing_activation_threshold (int, optional): Number of gometries required to start
             processing on multiple processes. Activating multiprocessing for a small
             amount of points might not be feasible. Defaults to 100.
+        allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
 
     Returns:
         List[OpenStreetMapExtract]: List of extracts covering a given geometry.
@@ -216,6 +260,7 @@ def _find_smallest_containing_extracts(
         find_extracts_func = partial(
             _find_smallest_containing_extracts_for_single_geometry,
             polygons_index_gdf=polygons_index_gdf,
+            allow_unconvered_geometry=allow_unconvered_geometry,
         )
 
         force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
@@ -232,7 +277,9 @@ def _find_smallest_containing_extracts(
         for sub_geometry in geometries:
             unique_extracts_ids.update(
                 _find_smallest_containing_extracts_for_single_geometry(
-                    sub_geometry, polygons_index_gdf
+                    geometry=sub_geometry,
+                    polygons_index_gdf=polygons_index_gdf,
+                    allow_unconvered_geometry=allow_unconvered_geometry,
                 )
             )
 
@@ -248,7 +295,9 @@ def _find_smallest_containing_extracts(
 
 
 def _find_smallest_containing_extracts_for_single_geometry(
-    geometry: BaseGeometry, polygons_index_gdf: gpd.GeoDataFrame
+    geometry: BaseGeometry,
+    polygons_index_gdf: gpd.GeoDataFrame,
+    allow_unconvered_geometry: bool = False,
 ) -> set[str]:
     """
     Find smallest set of extracts covering a given singular geometry.
@@ -256,6 +305,8 @@ def _find_smallest_containing_extracts_for_single_geometry(
     Args:
         geometry (BaseGeometry): Geometry to be covered.
         polygons_index_gdf (gpd.GeoDataFrame): Index of available extracts.
+        allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
 
     Raises:
         RuntimeError: If provided extracts index is empty.
@@ -287,7 +338,19 @@ def _find_smallest_containing_extracts_for_single_geometry(
             & (polygons_index_gdf.intersects(geometry_to_cover))
         ]
         if 0 in (len(matching_rows), iterations):
-            raise RuntimeError("Couldn't find extracts matching given geometry.")
+            if not allow_unconvered_geometry:
+                raise GeometryNotCoveredError(
+                    "Couldn't find extracts covering given geometry."
+                    " If it's expected behaviour, you can suppress this error by passing"
+                    " the `allow_unconvered_geometry=True` argument"
+                    " or add `--allow-unconvered-geometry` flag to the CLI command."
+                )
+            warnings.warn(
+                "Couldn't find extracts covering given geometry.",
+                GeometryNotCoveredWarning,
+                stacklevel=0,
+            )
+            break
 
         smallest_extract = matching_rows.iloc[0]
         geometry_to_cover = geometry_to_cover.difference(smallest_extract.geometry)

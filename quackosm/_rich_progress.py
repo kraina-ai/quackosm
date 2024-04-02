@@ -1,5 +1,6 @@
 # type: ignore
 """Wrapper over Rich progress bar."""
+
 import os
 from collections.abc import Iterable
 from contextlib import suppress
@@ -98,7 +99,6 @@ class TaskProgressBar:
         self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
 
     def __enter__(self):
-
         try:  # pragma: no cover
             if self.silent_mode:
                 self.progress = None
