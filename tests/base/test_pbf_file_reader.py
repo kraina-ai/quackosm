@@ -213,13 +213,13 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
 
 
 @pytest.mark.parametrize(
-    "expectation,allow_unconvered_geometry",
+    "expectation,allow_uncovered_geometry",
     [
         (pytest.raises(GeometryNotCoveredError), False),
         (pytest.warns(GeometryNotCoveredWarning), True),
     ],
 )  # type: ignore
-def test_uncovered_geometry_extract(expectation, allow_unconvered_geometry: bool):
+def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool):
     """Test if raises errors as expected when geometry can't be covered."""
     with expectation:
         geometry = from_wkt(
@@ -227,7 +227,7 @@ def test_uncovered_geometry_extract(expectation, allow_unconvered_geometry: bool
             " -43.017 29.673, -43.064 29.673))"
         )
         features_gdf = PbfFileReader(
-            geometry_filter=geometry, allow_unconvered_geometry=allow_unconvered_geometry
+            geometry_filter=geometry, allow_uncovered_geometry=allow_uncovered_geometry
         ).get_features_gdf_from_geometry(ignore_cache=True)
         assert len(features_gdf) == 0
 

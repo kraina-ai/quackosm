@@ -526,7 +526,7 @@ def test_proper_args_with_pbf(
             "POLYGON ((-43.064 29.673, -43.064 29.644, -43.017 29.644,"
             " -43.017 29.673, -43.064 29.673))"
         ),
-        "--allow-unconvered-geometry",
+        "--allow-uncovered-geometry",
         "--ignore-cache",
     ],
     "files/fa44926c5f128cd438ecbe06d29644849a9de323703076b8ac62ffd7a0747e50_nofilter_compact.geoparquet",

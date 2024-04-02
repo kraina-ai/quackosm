@@ -144,13 +144,13 @@ def test_multiple_smallest_extracts(
 
 
 @pytest.mark.parametrize(
-    "expectation,allow_unconvered_geometry",
+    "expectation,allow_uncovered_geometry",
     [
         (pytest.raises(GeometryNotCoveredError), False),
         (pytest.warns(GeometryNotCoveredWarning), True),
     ],
 )  # type: ignore
-def test_uncovered_geometry_extract(expectation, allow_unconvered_geometry: bool):
+def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool):
     """Test if raises errors as expected when geometry can't be covered."""
     with expectation:
         geometry = from_wkt(
@@ -158,5 +158,5 @@ def test_uncovered_geometry_extract(expectation, allow_unconvered_geometry: bool
             " -43.017 29.673, -43.064 29.673))"
         )
         find_smallest_containing_extracts_total(
-            geometry=geometry, allow_unconvered_geometry=allow_unconvered_geometry
+            geometry=geometry, allow_uncovered_geometry=allow_uncovered_geometry
         )

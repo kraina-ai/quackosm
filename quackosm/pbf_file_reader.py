@@ -104,7 +104,7 @@ class PbfFileReader:
         parquet_compression: str = "snappy",
         osm_extract_source: OsmExtractSource = OsmExtractSource.any,
         silent_mode: bool = False,
-        allow_unconvered_geometry: bool = False,
+        allow_uncovered_geometry: bool = False,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -134,13 +134,13 @@ class PbfFileReader:
             osm_extract_source (OsmExtractSource): A source for automatic downloading of
                 OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
             silent_mode (bool): Disable progress bars.
-            allow_unconvered_geometry (bool): Suppress an error if some geometry parts aren't
+            allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't
                 covered by any OSM extract. Defaults to `False`.
         """
         self.tags_filter = tags_filter
         self.merged_tags_filter = merge_osm_tags_filter(tags_filter) if tags_filter else None
         self.geometry_filter = geometry_filter
-        self.allow_unconvered_geometry = allow_unconvered_geometry
+        self.allow_uncovered_geometry = allow_uncovered_geometry
         self.osm_extract_source = osm_extract_source
         self.working_directory = Path(working_directory)
         self.working_directory.mkdir(parents=True, exist_ok=True)
@@ -309,7 +309,7 @@ class PbfFileReader:
         matching_extracts = find_smallest_containing_extract(
             self.geometry_filter,
             self.osm_extract_source,
-            allow_unconvered_geometry=self.allow_unconvered_geometry,
+            allow_uncovered_geometry=self.allow_uncovered_geometry,
         )
 
         if len(matching_extracts) == 1:

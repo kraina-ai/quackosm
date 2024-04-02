@@ -516,10 +516,10 @@ def main(
             show_default=False,
         ),
     ] = False,
-    allow_unconvered_geometry: Annotated[
+    allow_uncovered_geometry: Annotated[
         bool,
         typer.Option(
-            "--allow-unconvered-geometry/",
+            "--allow-uncovered-geometry/",
             help=(
                 "Suppresses an error if some geometry parts aren't covered by any OSM extract."
                 " Works only when PbfFileReader is asked to download OSM extracts automatically."
@@ -621,6 +621,6 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             save_as_wkt=wkt_result,
             silent_mode=silent_mode,
-            allow_unconvered_geometry=allow_unconvered_geometry,
+            allow_uncovered_geometry=allow_uncovered_geometry,
         )
     typer.secho(geoparquet_path, fg="green")
