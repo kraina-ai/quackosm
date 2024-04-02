@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Changed tqdm's kwargs for parallel extracts check
+- Changed tqdm's kwargs for parallel OSM extracts checks
 
 ## [0.5.1] - 2024-03-23
 
