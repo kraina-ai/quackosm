@@ -479,15 +479,19 @@ class PbfFileReader:
     def _drop_duplicated_features_in_pyarrow_table(
         self, parsed_geoparquet_files: list[Path]
     ) -> pa.Table:
-        parquet_tables = [
-            pq.read_table(parsed_parquet_file) for parsed_parquet_file in parsed_geoparquet_files
-        ]
-        joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
-        if joined_parquet_table.num_rows > 0:
-            joined_parquet_table = drop_duplicates(
-                joined_parquet_table, on=["feature_id"], keep="first"
+        with TaskProgressSpinner("Combining results", "", self.silent_mode, skip_step_number=True):
+            parquet_tables = [
+                pq.read_table(parsed_parquet_file)
+                for parsed_parquet_file in parsed_geoparquet_files
+            ]
+            joined_parquet_table: pa.Table = pa.concat_tables(
+                parquet_tables, promote_options="default"
             )
-        return joined_parquet_table
+            if joined_parquet_table.num_rows > 0:
+                joined_parquet_table = drop_duplicates(
+                    joined_parquet_table, on=["feature_id"], keep="first"
+                )
+            return joined_parquet_table
 
     def _drop_duplicated_features_in_joined_table(
         self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
@@ -503,47 +507,60 @@ class PbfFileReader:
 
         try:
             # Attempt 1: read all at once
-            output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
-            parquet_relation = connection.read_parquet(
-                [
-                    str(parsed_geoparquet_file)
-                    for parsed_geoparquet_file in sorted_parsed_geoparquet_files
-                ],
-                union_by_name=True,
-            )
-            query = f"""
-                COPY (
-                    {parquet_relation.sql_query()}
-                    QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
-                ) TO '{output_file_name}' (
-                    FORMAT 'parquet',
-                    PER_THREAD_OUTPUT true,
-                    ROW_GROUP_SIZE 25000,
-                    COMPRESSION '{self.parquet_compression}'
+            with TaskProgressSpinner(
+                "Combining results", "", self.silent_mode, skip_step_number=True
+            ):
+                output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
+                parquet_relation = connection.read_parquet(
+                    [
+                        str(parsed_geoparquet_file)
+                        for parsed_geoparquet_file in sorted_parsed_geoparquet_files
+                    ],
+                    union_by_name=True,
                 )
-            """
-            self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
-            return pq.read_table(output_file_name)
-        except MemoryError:
-            # Attempt 2: read one by one
-            result_parquet_files = [sorted_parsed_geoparquet_files[0]]
-            for idx, parsed_geoparquet_file in enumerate(sorted_parsed_geoparquet_files[1:]):
-                current_parquet_file_relation = connection.read_parquet(str(parsed_geoparquet_file))
-                filtered_result_parquet_file = tmp_dir_path / f"sub_file_{idx}"
                 query = f"""
                     COPY (
-                        {current_parquet_file_relation.sql_query()}
-                        ANTI JOIN read_parquet({[str(pq_file) for pq_file in result_parquet_files]})
-                        USING (feature_id)
-                    ) TO '{filtered_result_parquet_file}' (
+                        {parquet_relation.sql_query()}
+                        QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
+                    ) TO '{output_file_name}' (
                         FORMAT 'parquet',
                         PER_THREAD_OUTPUT true,
                         ROW_GROUP_SIZE 25000,
                         COMPRESSION '{self.parquet_compression}'
                     )
                 """
-                connection.sql(query)
-                result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
+                self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
+                return pq.read_table(output_file_name)
+        except MemoryError:
+            # Attempt 2: read one by one
+            result_parquet_files = [sorted_parsed_geoparquet_files[0]]
+            with TaskProgressBar(
+                "Combining results", "", self.silent_mode, skip_step_number=True
+            ) as bar:
+                for idx, parsed_geoparquet_file in bar.track(
+                    enumerate(sorted_parsed_geoparquet_files[1:])
+                ):
+                    current_parquet_file_relation = connection.read_parquet(
+                        str(parsed_geoparquet_file)
+                    )
+                    filtered_result_parquet_file = tmp_dir_path / f"sub_file_{idx}"
+                    result_parquet_files_strings = [
+                        str(pq_file) for pq_file in result_parquet_files
+                    ]
+                    query = f"""
+                        COPY (
+                            {current_parquet_file_relation.sql_query()}
+                            ANTI JOIN read_parquet({result_parquet_files_strings})
+                            USING (feature_id)
+                        ) TO '{filtered_result_parquet_file}' (
+                            FORMAT 'parquet',
+                            PER_THREAD_OUTPUT true,
+                            ROW_GROUP_SIZE 25000,
+                            COMPRESSION '{self.parquet_compression}'
+                        )
+                    """
+                    connection.sql(query)
+                    result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
         return pq.read_table(result_parquet_files)
 
     def _parse_pbf_file(

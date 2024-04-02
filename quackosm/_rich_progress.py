@@ -28,10 +28,13 @@ def show_total_elapsed_time(elapsed_seconds: float) -> None:
 
 
 class TaskProgressSpinner:
-    def __init__(self, step_name: str, step_number: str, silent_mode: bool):
+    def __init__(
+        self, step_name: str, step_number: str, silent_mode: bool, skip_step_number: bool = False
+    ):
         self.step_name = step_name
         self.step_number = step_number
         self.silent_mode = silent_mode
+        self.skip_step_number = skip_step_number
         self.progress = None
         self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
 
@@ -48,12 +51,19 @@ class TaskProgressSpinner:
                     TimeElapsedColumn,
                 )
 
-                self.progress = Progress(
+                columns = [
                     SpinnerColumn(),
                     TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
                     TextColumn("[progress.description]{task.description}"),
                     TextColumn("•"),
                     TimeElapsedColumn(),
+                ]
+
+                if self.skip_step_number:
+                    columns.pop(1)
+
+                self.progress = Progress(
+                    *columns,
                     refresh_per_second=1,
                     transient=False,
                     console=Console(
@@ -77,10 +87,13 @@ class TaskProgressSpinner:
 
 
 class TaskProgressBar:
-    def __init__(self, step_name: str, step_number: str, silent_mode: bool):
+    def __init__(
+        self, step_name: str, step_number: str, silent_mode: bool, skip_step_number: bool = False
+    ):
         self.step_name = step_name
         self.step_number = step_number
         self.silent_mode = silent_mode
+        self.skip_step_number = skip_step_number
         self.progress = None
         self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
 
@@ -113,7 +126,7 @@ class TaskProgressBar:
                         else:
                             return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
 
-                self.progress = Progress(
+                columns = [
                     SpinnerColumn(),
                     TextColumn(f"[{self.step_number: >4}/{TOTAL_STEPS}]"),
                     TextColumn(
@@ -128,6 +141,13 @@ class TaskProgressBar:
                     TimeRemainingColumn(),
                     TextColumn("•"),
                     SpeedColumn(),
+                ]
+
+                if self.skip_step_number:
+                    columns.pop(1)
+
+                self.progress = Progress(
+                    *columns,
                     refresh_per_second=1,
                     transient=False,
                     speed_estimate_period=1800,
