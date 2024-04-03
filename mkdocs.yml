@@ -89,6 +89,7 @@ plugins:
         - docs/copy_readme.py
         - docs/copy_examples.py
         - docs/gen_ref_pages.py
+        - docs/gen_cli_docs.py
   - search
   - mkdocstrings:
       custom_templates: docs/templates

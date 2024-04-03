@@ -250,6 +250,7 @@ def convert_geometry_to_gpq(
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
     silent_mode: bool = False,
+    allow_uncovered_geometry: bool = False,
 ) -> Path:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -260,7 +261,7 @@ def convert_geometry_to_gpq(
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
+            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -297,6 +298,9 @@ def convert_geometry_to_gpq(
             If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
             standard. Defaults to `False`.
         silent_mode (bool): Disable progress bars. Defaults to `False`.
+        allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
+            automatically. Defaults to `False`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -402,6 +406,7 @@ def convert_geometry_to_gpq(
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         osm_extract_source=osm_extract_source,
         silent_mode=silent_mode,
+        allow_uncovered_geometry=allow_uncovered_geometry,
     ).convert_geometry_filter_to_gpq(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -604,6 +609,7 @@ def get_features_gdf_from_geometry(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     silent_mode: bool = False,
+    allow_uncovered_geometry: bool = False,
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -614,7 +620,7 @@ def get_features_gdf_from_geometry(
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSM_fr or any. Defaults to `any`.
+            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -645,6 +651,9 @@ def get_features_gdf_from_geometry(
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
         silent_mode (bool): Disable progress bars. Defaults to `False`.
+        allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
+            automatically. Defaults to `False`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -704,6 +713,7 @@ def get_features_gdf_from_geometry(
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         osm_extract_source=osm_extract_source,
         silent_mode=silent_mode,
+        allow_uncovered_geometry=allow_uncovered_geometry,
     ).get_features_gdf_from_geometry(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,

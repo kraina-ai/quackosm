@@ -25,6 +25,7 @@ from srai.loaders.download import download_file
 from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm._constants import FEATURES_INDEX
+from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.cli import (
     GeocodeGeometryParser,
@@ -146,6 +147,26 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
         filter_osm_ids=filter_osm_ids,
     )
     assert len(features_gdf) == expected_result_length
+
+
+@pytest.mark.parametrize(
+    "expectation,allow_uncovered_geometry",
+    [
+        (pytest.raises(GeometryNotCoveredError), False),
+        (pytest.warns(GeometryNotCoveredWarning), True),
+    ],
+)  # type: ignore
+def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool):
+    """Test if raises errors as expected when geometry can't be covered."""
+    with expectation:
+        geometry = from_wkt(
+            "POLYGON ((-43.064 29.673, -43.064 29.644, -43.017 29.644,"
+            " -43.017 29.673, -43.064 29.673))"
+        )
+        features_gdf = PbfFileReader(
+            geometry_filter=geometry, allow_uncovered_geometry=allow_uncovered_geometry
+        ).get_features_gdf_from_geometry(ignore_cache=True)
+        assert len(features_gdf) == 0
 
 
 @pytest.mark.parametrize(  # type: ignore

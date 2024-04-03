@@ -7,7 +7,12 @@ from parametrization import Parametrization as P
 from shapely import from_wkt
 from shapely.geometry.base import BaseGeometry
 
-from quackosm.osm_extracts import OsmExtractSource, find_smallest_containing_extract
+from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
+from quackosm.osm_extracts import (
+    OsmExtractSource,
+    find_smallest_containing_extract,
+    find_smallest_containing_extracts_total,
+)
 
 ut = TestCase()
 
@@ -28,6 +33,10 @@ ut = TestCase()
 @P.case(
     "Case insensitive Geofabrik",
     "GEOFABRIK",
+)  # type: ignore
+@P.case(
+    "OSM fr without underscore",
+    "osmfr",
 )  # type: ignore
 def test_proper_osm_extract_source(value: str):
     """Test if OsmExtractSource is parsed correctly."""
@@ -132,3 +141,22 @@ def test_multiple_smallest_extracts(
     extracts = find_smallest_containing_extract(geometry, source)
     assert len(extracts) == len(expected_extract_ids)
     ut.assertListEqual([extract.id for extract in extracts], expected_extract_ids)
+
+
+@pytest.mark.parametrize(
+    "expectation,allow_uncovered_geometry",
+    [
+        (pytest.raises(GeometryNotCoveredError), False),
+        (pytest.warns(GeometryNotCoveredWarning), True),
+    ],
+)  # type: ignore
+def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool):
+    """Test if raises errors as expected when geometry can't be covered."""
+    with expectation:
+        geometry = from_wkt(
+            "POLYGON ((-43.064 29.673, -43.064 29.644, -43.017 29.644,"
+            " -43.017 29.673, -43.064 29.673))"
+        )
+        find_smallest_containing_extracts_total(
+            geometry=geometry, allow_uncovered_geometry=allow_uncovered_geometry
+        )

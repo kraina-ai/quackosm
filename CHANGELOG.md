@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Option to filter by OSM tags with negative values (`False`) and with star (`*`) expansion in both keys and values [#49](https://github.com/kraina-ai/quackosm/issues/49) [#53](https://github.com/kraina-ai/quackosm/issues/53)
 
+## [0.5.2] - 2024-04-03
+
+### Added
+
+- Progress bars for final merge of multiple geoparquet files into a single file
+- Option to allow provided geometry to not be fully covered by existing OSM extracts [#68](https://github.com/kraina-ai/quackosm/issues/68)
+
+### Fixed
+
+- Changed tqdm's kwargs for parallel OSM extracts checks
+
 ## [0.5.1] - 2024-03-23
 
 ### Fixed
@@ -156,7 +167,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.2...HEAD
+
+[0.5.2]: https://github.com/kraina-ai/quackosm/compare/0.5.1...0.5.2
 
 [0.5.1]: https://github.com/kraina-ai/quackosm/compare/0.5.0...0.5.1
 
