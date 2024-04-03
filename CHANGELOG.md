@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Progress bars for final merge of multiple geoparquet files into a single file
+- Option to allow provided geometry to not be fully covered by existing OSM extracts [#68](https://github.com/kraina-ai/quackosm/issues/68)
+
+### Fixed
+
+- Changed tqdm's kwargs for parallel OSM extracts checks
+
 ## [0.5.1] - 2024-03-23
 
 ### Fixed

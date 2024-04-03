@@ -518,6 +518,19 @@ def test_proper_args_with_pbf(
     ],
     "files/6e3ec5872bf41c2c44698fcf71266971c552d13feea19c3714e171bcd7a2b2c8_nofilter_compact.geoparquet",
 )  # type: ignore
+@P.case(
+    "Allow not covered geometry",
+    [
+        "--geom-filter-wkt",
+        (
+            "POLYGON ((-43.064 29.673, -43.064 29.644, -43.017 29.644,"
+            " -43.017 29.673, -43.064 29.673))"
+        ),
+        "--allow-uncovered-geometry",
+        "--ignore-cache",
+    ],
+    "files/fa44926c5f128cd438ecbe06d29644849a9de323703076b8ac62ffd7a0747e50_nofilter_compact.geoparquet",
+)  # type: ignore
 def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
     result = runner.invoke(cli.app, [*args])
