@@ -511,6 +511,9 @@ class PbfFileReader:
     def _drop_duplicated_features_in_pyarrow_table(
         self, parsed_geoparquet_files: list[Path]
     ) -> pa.Table:
+        if len(parsed_geoparquet_files) == 1:
+            return pq.read_table(parsed_geoparquet_files[0])
+
         with TaskProgressSpinner("Combining results", "", self.silent_mode, skip_step_number=True):
             parquet_tables = [
                 pq.read_table(parsed_parquet_file)
