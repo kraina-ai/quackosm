@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Made geometry orientation agnostic hash algorithm
+
 ## [0.5.2] - 2024-04-03
 
 ### Added
