@@ -796,7 +796,10 @@ class PbfFileReader:
         if isinstance(geometry, LinearRing):
             # https://stackoverflow.com/a/73073112/7766101
             new_coords = []
-            perimeter = list(geometry.coords)
+            if geometry.is_ccw:
+                perimeter = list(geometry.coords)
+            else:
+                perimeter = list(geometry.coords)[::-1]
             smallest_point = sorted(perimeter)[0]
             double_iteration = itertools.chain(perimeter[:-1], perimeter)
             for point in double_iteration:

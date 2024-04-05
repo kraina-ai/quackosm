@@ -17,7 +17,7 @@ import pytest
 import six
 from parametrization import Parametrization as P
 from shapely import from_wkt, hausdorff_distance
-from shapely.geometry import MultiPolygon, Polygon, box
+from shapely.geometry import LinearRing, MultiPolygon, Polygon, box, polygon
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 from srai.geometry import remove_interiors
@@ -35,6 +35,7 @@ from quackosm.cli import (
 )
 from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
+from tests.base.conftest import geometry_box
 
 ut = TestCase()
 LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files/"
@@ -135,6 +136,31 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
         ignore_cache=True,
     )
     assert len(features_gdf) == 0
+
+
+@pytest.mark.parametrize(
+    "geometry",
+    [
+        geometry_box(),
+        from_wkt(
+            "POLYGON ((-43.064 29.673, -43.064 29.644, -43.017 29.644,"
+            " -43.017 29.673, -43.064 29.673))"
+        ),
+    ],
+)  # type: ignore
+def test_geometry_hash_calculation(geometry: BaseGeometry):
+    """Test if geometry hash is orientation-agnostic."""
+    if isinstance(geometry, Polygon):
+        oriented_a = polygon.orient(geometry, sign=1.0)
+        oriented_b = polygon.orient(geometry, sign=-1.0)
+    elif isinstance(geometry, LinearRing):
+        oriented_a = geometry
+        oriented_b = LinearRing(list(geometry.coords)[::-1])
+
+    assert (
+        PbfFileReader(geometry_filter=oriented_a)._get_oriented_geometry_filter()
+        == PbfFileReader(geometry_filter=oriented_b)._get_oriented_geometry_filter()
+    )
 
 
 def test_unique_osm_ids_duplicated_file():  # type: ignore
