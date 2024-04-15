@@ -18,7 +18,6 @@ jobs:
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - name: Setup Python ${{ matrix.python-version }}
@@ -72,10 +71,11 @@ jobs:
         with:
           action: codecov/codecov-action@v4
           with: |
-            env_vars: OS,PYTHON,CODECOV_TOKEN
+            env_vars: OS,PYTHON
             fail_ci_if_error: true
             files: ./coverage.python${{ matrix.python-version }}.xml,
             flags: ${{ matrix.os }}-python${{ matrix.python-version }}
             verbose: true
+            token: ${{ secrets.CODECOV_TOKEN }}
           attempt_limit: 100
           attempt_delay: 10000
