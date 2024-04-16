@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Option to filter by OSM tags with negative values (`False`) and with wildcard asterisk (`*`) expansion in both keys and values [#49](https://github.com/kraina-ai/quackosm/issues/49) [#53](https://github.com/kraina-ai/quackosm/issues/53)
 
+### Changed
+
+- Set minimal `typer` version to `0.9.0`
+
 ## [0.5.3] - 2024-04-05
 
 ### Fixed
