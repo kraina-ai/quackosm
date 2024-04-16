@@ -33,7 +33,13 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._exceptions import EmptyResultWarning
-from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter, merge_osm_tags_filter
+from quackosm._osm_tags_filters import (
+    GroupedOsmTagsFilter,
+    OsmTagsFilter,
+    check_if_any_osm_tags_filter_value_is_positive,
+    merge_key_value_pairs_to_osm_tags_filter,
+    merge_osm_tags_filter,
+)
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig, parse_dict_to_config_object
 from quackosm._rich_progress import (  # type: ignore[attr-defined]
     TaskProgressBar,
@@ -138,7 +144,13 @@ class PbfFileReader:
                 covered by any OSM extract. Defaults to `False`.
         """
         self.tags_filter = tags_filter
-        self.merged_tags_filter = merge_osm_tags_filter(tags_filter) if tags_filter else None
+        self.is_tags_filter_positive = (
+            check_if_any_osm_tags_filter_value_is_positive(self.tags_filter)
+            if self.tags_filter is not None
+            else False
+        )
+        self.expanded_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
+        self.merged_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
         self.geometry_filter = geometry_filter
         self.allow_uncovered_geometry = allow_uncovered_geometry
         self.osm_extract_source = osm_extract_source
@@ -215,7 +227,9 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None and not keep_all_tags
+            explode_tags = (
+                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
+            )
 
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
@@ -294,7 +308,9 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None and not keep_all_tags
+            explode_tags = (
+                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
+            )
 
         result_file_path = Path(
             result_file_path
@@ -419,7 +435,9 @@ class PbfFileReader:
             filter_osm_ids = []
 
         if explode_tags is None:
-            explode_tags = self.tags_filter is not None and not keep_all_tags
+            explode_tags = (
+                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
+            )
 
         parsed_geoparquet_files = []
         for file_path in file_paths:
@@ -612,6 +630,16 @@ class PbfFileReader:
             start_time = time.time()
 
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
+
+            if self.tags_filter is None:
+                self.expanded_tags_filter = None
+                self.merged_tags_filter = None
+            else:
+                self.expanded_tags_filter = self._expand_osm_tags_filter(elements)
+                self.merged_tags_filter = merge_osm_tags_filter(
+                    cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.expanded_tags_filter)
+                )
+
             converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
             self._delete_directories(
@@ -833,6 +861,72 @@ class PbfFileReader:
             )
 
         return geometry
+
+    def _expand_osm_tags_filter(
+        self, elements: "duckdb.DuckDBPyRelation"
+    ) -> Union[GroupedOsmTagsFilter, OsmTagsFilter]:
+        is_any_key_expandable = False
+        if is_expected_type(self.tags_filter, GroupedOsmTagsFilter):
+            grouped_osm_tags_filter = cast(GroupedOsmTagsFilter, self.tags_filter)
+            is_any_key_expandable = any(
+                any("*" in key for key in osm_tags_filter.keys())
+                for osm_tags_filter in grouped_osm_tags_filter.values()
+            )
+        else:
+            osm_tags_filter = cast(OsmTagsFilter, self.tags_filter)
+            is_any_key_expandable = any("*" in key for key in osm_tags_filter.keys())
+
+        if not is_any_key_expandable:
+            return cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.tags_filter)
+
+        with TaskProgressSpinner("Preparing OSM tags filter", "0", self.silent_mode):
+            if is_expected_type(self.tags_filter, GroupedOsmTagsFilter):
+                grouped_osm_tags_filter = cast(GroupedOsmTagsFilter, self.tags_filter)
+                return {
+                    group: self._expand_single_osm_tags_filter(elements, osm_tags_filter)
+                    for group, osm_tags_filter in grouped_osm_tags_filter.items()
+                }
+            else:
+                osm_tags_filter = cast(OsmTagsFilter, self.tags_filter)
+                return self._expand_single_osm_tags_filter(elements, osm_tags_filter)
+
+    def _expand_single_osm_tags_filter(
+        self, elements: "duckdb.DuckDBPyRelation", osm_tags_filter: OsmTagsFilter
+    ) -> OsmTagsFilter:
+        osm_tags_filter_key_value_pairs = []
+        for osm_tag_filter_key, osm_tag_filter_value in osm_tags_filter.items():
+            new_tags_to_add = [osm_tag_filter_key]
+
+            if "*" in osm_tag_filter_key:
+                sql_like_value = self._replace_star_value_in_string(osm_tag_filter_key)
+
+                new_tags_to_add = list(
+                    self.connection.sql(
+                        f"""
+                        WITH distinct_tags AS (
+                            SELECT DISTINCT unnest(map_keys(tags)) tag
+                            FROM ({elements.sql_query()})
+                            WHERE tags IS NOT NULL
+                        )
+                        SELECT tag FROM distinct_tags
+                        WHERE tag LIKE '{sql_like_value}'
+                        """
+                    ).fetchnumpy()["tag"]
+                )
+
+            for new_tag_to_add in sorted(new_tags_to_add, key=str.casefold):
+                osm_tags_filter_key_value_pairs.append((new_tag_to_add, osm_tag_filter_value))
+
+        return merge_key_value_pairs_to_osm_tags_filter(osm_tags_filter_key_value_pairs)
+
+    def _replace_star_value_in_string(self, value: str) -> str:
+        value_with_star = value
+
+        while "**" in value_with_star:
+            value_with_star = value_with_star.replace("**", "*")
+
+        value_with_percent = value_with_star.replace("*", "%")
+        return self._sql_escape(value_with_percent)
 
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
@@ -1157,28 +1251,51 @@ class PbfFileReader:
 
     def _generate_osm_tags_sql_filter(self) -> str:
         """Prepare features filter clauses based on tags filter."""
-        filter_clauses = ["(1=1)"]
+        positive_filter_clauses: list[str] = []
+        negative_filter_clauses: list[str] = []
 
         if self.merged_tags_filter:
-            filter_clauses.clear()
+            positive_filter_clauses.clear()
 
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if isinstance(filter_tag_value, bool) and filter_tag_value:
-                    filter_clauses.append(f"(list_contains(map_keys(tags), '{filter_tag_key}'))")
-                elif isinstance(filter_tag_value, str):
-                    escaped_value = self._sql_escape(filter_tag_value)
-                    filter_clauses.append(
-                        f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
-                        f" '{escaped_value}'"
+                if filter_tag_value == True:  # noqa: E712
+                    positive_filter_clauses.append(
+                        f"(list_contains(map_keys(tags), '{filter_tag_key}'))"
                     )
-                elif isinstance(filter_tag_value, list) and filter_tag_value:
-                    values_list = [f"'{self._sql_escape(value)}'" for value in filter_tag_value]
-                    filter_clauses.append(
-                        f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) IN"
-                        f" ({', '.join(values_list)})"
+                elif filter_tag_value == False:  # noqa: E712
+                    negative_filter_clauses.append(
+                        f"(not list_contains(map_keys(tags), '{filter_tag_key}'))"
                     )
+                elif isinstance(filter_tag_value, (str, list)):
+                    filter_tag_values = filter_tag_value
+                    if isinstance(filter_tag_value, str):
+                        filter_tag_values = [filter_tag_value]
+                    for single_filter_tag_value in filter_tag_values:
+                        if "*" in single_filter_tag_value:
+                            sql_like_value = self._replace_star_value_in_string(
+                                single_filter_tag_value
+                            )
+                            positive_filter_clauses.append(
+                                f"(list_extract(map_extract(tags, '{filter_tag_key}'), 1) LIKE"
+                                f" '{sql_like_value}')"
+                            )
+                        else:
+                            escaped_value = self._sql_escape(single_filter_tag_value)
+                            positive_filter_clauses.append(
+                                f"(list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
+                                f" '{escaped_value}')"
+                            )
 
-        return " OR ".join(filter_clauses)
+        if not positive_filter_clauses:
+            positive_filter_clauses.append("(1=1)")
+
+        joined_filter_clauses = " OR ".join(positive_filter_clauses)
+        if negative_filter_clauses:
+            joined_filter_clauses = (
+                f"({joined_filter_clauses}) AND ({' AND '.join(negative_filter_clauses)})"
+            )
+
+        return joined_filter_clauses
 
     def _generate_filtered_tags_clause(self) -> str:
         """Prepare filtered tags clause by removing tags commonly ignored by OGR."""
@@ -2190,7 +2307,7 @@ class PbfFileReader:
         """Prepare features filter clauses based on tags filter."""
         osm_tag_keys_select_clauses = []
 
-        no_tags_filter = not self.merged_tags_filter
+        no_tags_filter = not self.merged_tags_filter or not self.is_tags_filter_positive
         tags_filter_and_keep_all_tags = self.merged_tags_filter and keep_all_tags
         keep_tags_compact = not explode_tags
 
@@ -2217,20 +2334,27 @@ class PbfFileReader:
         elif self.merged_tags_filter and keep_tags_compact:
             filter_tag_clauses = []
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if isinstance(filter_tag_value, bool) and filter_tag_value:
+                if filter_tag_value == True:  # noqa: E712
                     filter_tag_clauses.append(f"tag_entry.key = '{filter_tag_key}'")
-                elif isinstance(filter_tag_value, str):
-                    escaped_value = self._sql_escape(filter_tag_value)
-                    filter_tag_clauses.append(
-                        f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value ="
-                        f" '{escaped_value}')"
-                    )
-                elif isinstance(filter_tag_value, list) and filter_tag_value:
-                    values_list = [f"'{self._sql_escape(value)}'" for value in filter_tag_value]
-                    filter_tag_clauses.append(
-                        f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value IN"
-                        f" ({', '.join(values_list)}))"
-                    )
+                elif isinstance(filter_tag_value, (str, list)):
+                    filter_tag_values = filter_tag_value
+                    if isinstance(filter_tag_value, str):
+                        filter_tag_values = [filter_tag_value]
+                    for single_filter_tag_value in filter_tag_values:
+                        if "*" in single_filter_tag_value:
+                            sql_like_value = self._replace_star_value_in_string(
+                                single_filter_tag_value
+                            )
+                            filter_tag_clauses.append(
+                                f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value LIKE"
+                                f" '{sql_like_value}')"
+                            )
+                        else:
+                            escaped_value = self._sql_escape(single_filter_tag_value)
+                            filter_tag_clauses.append(
+                                f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value ="
+                                f" '{escaped_value}')"
+                            )
             osm_tag_keys_select_clauses = [
                 f"""
                 map_from_entries(
@@ -2244,30 +2368,34 @@ class PbfFileReader:
             ]
         elif self.merged_tags_filter and explode_tags:
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if isinstance(filter_tag_value, bool) and filter_tag_value:
+                if filter_tag_value == True:  # noqa: E712
                     osm_tag_keys_select_clauses.append(
                         f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) as"
                         f' "{filter_tag_key}"'
                     )
-                elif isinstance(filter_tag_value, str):
-                    escaped_value = self._sql_escape(filter_tag_value)
+                elif isinstance(filter_tag_value, (str, list)):
+                    filter_tag_clauses = []
+                    filter_tag_values = filter_tag_value
+                    if isinstance(filter_tag_value, str):
+                        filter_tag_values = [filter_tag_value]
+                    for single_filter_tag_value in filter_tag_values:
+                        if "*" in single_filter_tag_value:
+                            sql_like_value = self._replace_star_value_in_string(
+                                single_filter_tag_value
+                            )
+                            filter_tag_clauses.append(
+                                f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) LIKE"
+                                f" '{sql_like_value}'"
+                            )
+                        else:
+                            escaped_value = self._sql_escape(single_filter_tag_value)
+                            filter_tag_clauses.append(
+                                f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
+                                f" '{escaped_value}'"
+                            )
                     osm_tag_keys_select_clauses.append(
                         f"""
-                        CASE WHEN list_extract(
-                            map_extract(tags, '{filter_tag_key}'), 1
-                        ) = '{escaped_value}'
-                        THEN '{escaped_value}'
-                        ELSE NULL
-                        END as "{filter_tag_key}"
-                        """
-                    )
-                elif isinstance(filter_tag_value, list) and filter_tag_value:
-                    values_list = [f"'{self._sql_escape(value)}'" for value in filter_tag_value]
-                    osm_tag_keys_select_clauses.append(
-                        f"""
-                        CASE WHEN list_extract(
-                            map_extract(tags, '{filter_tag_key}'), 1
-                        ) IN ({', '.join(values_list)})
+                        CASE WHEN {' OR '.join(filter_tag_clauses)}
                         THEN list_extract(map_extract(tags, '{filter_tag_key}'), 1)
                         ELSE NULL
                         END as "{filter_tag_key}"
@@ -2312,14 +2440,15 @@ class PbfFileReader:
             duckdb.DuckDBPyRelation: Parsed features_relation.
         """
         if (
-            not self.tags_filter
-            or not is_expected_type(self.tags_filter, GroupedOsmTagsFilter)
+            not self.expanded_tags_filter
+            or not self.is_tags_filter_positive
+            or not is_expected_type(self.expanded_tags_filter, GroupedOsmTagsFilter)
             or keep_all_tags
         ):
             return features_relation
 
         grouped_features_relation: "duckdb.DuckDBPyRelation"
-        grouped_tags_filter = cast(GroupedOsmTagsFilter, self.tags_filter)
+        grouped_tags_filter = cast(GroupedOsmTagsFilter, self.expanded_tags_filter)
 
         if explode_tags:
             case_clauses = []
@@ -2327,23 +2456,32 @@ class PbfFileReader:
                 osm_filter = grouped_tags_filter[group_name]
                 case_when_clauses = []
                 for osm_tag_key, osm_tag_value in osm_filter.items():
-                    if isinstance(osm_tag_value, bool) and osm_tag_value:
+                    if osm_tag_value == True:  # noqa: E712
                         case_when_clauses.append(
                             f"WHEN \"{osm_tag_key}\" IS NOT NULL THEN '{osm_tag_key}=' ||"
                             f' "{osm_tag_key}"'
                         )
-                    elif isinstance(osm_tag_value, str):
-                        escaped_value = self._sql_escape(osm_tag_value)
+                    elif isinstance(osm_tag_value, (str, list)):
+                        filter_tag_clauses = []
+                        osm_tag_values = osm_tag_value
+                        if isinstance(osm_tag_value, str):
+                            osm_tag_values = [osm_tag_value]
+                        for single_osm_tag_value in osm_tag_values:
+                            if "*" in single_osm_tag_value:
+                                sql_like_value = self._replace_star_value_in_string(
+                                    single_osm_tag_value
+                                )
+                                filter_tag_clauses.append(
+                                    f"\"{osm_tag_key}\" LIKE '{sql_like_value}'"
+                                )
+                            else:
+                                escaped_value = self._sql_escape(single_osm_tag_value)
+                                filter_tag_clauses.append(f"\"{osm_tag_key}\" = '{escaped_value}'")
                         case_when_clauses.append(
-                            f"WHEN \"{osm_tag_key}\" = '{escaped_value}' THEN '{osm_tag_key}=' ||"
+                            f"WHEN {' OR '.join(filter_tag_clauses)} THEN '{osm_tag_key}=' ||"
                             f' "{osm_tag_key}"'
                         )
-                    elif isinstance(osm_tag_value, list) and osm_tag_value:
-                        values_list = [f"'{self._sql_escape(value)}'" for value in osm_tag_value]
-                        case_when_clauses.append(
-                            f"WHEN \"{osm_tag_key}\" IN ({', '.join(values_list)}) THEN"
-                            f" '{osm_tag_key}=' || \"{osm_tag_key}\""
-                        )
+
                 case_clause = f'CASE {" ".join(case_when_clauses)} END AS "{group_name}"'
                 case_clauses.append(case_clause)
 
@@ -2362,23 +2500,32 @@ class PbfFileReader:
                 case_when_clauses = []
                 for osm_tag_key, osm_tag_value in osm_filter.items():
                     element_clause = f"element_at(tags, '{osm_tag_key}')[1]"
-                    if isinstance(osm_tag_value, bool) and osm_tag_value:
+                    if osm_tag_value == True:  # noqa: E712
                         case_when_clauses.append(
                             f"WHEN {element_clause} IS NOT NULL THEN '{osm_tag_key}=' ||"
                             f" {element_clause}"
                         )
-                    elif isinstance(osm_tag_value, str):
-                        escaped_value = self._sql_escape(osm_tag_value)
+                    elif isinstance(osm_tag_value, (str, list)):
+                        filter_tag_clauses = []
+                        osm_tag_values = osm_tag_value
+                        if isinstance(osm_tag_value, str):
+                            osm_tag_values = [osm_tag_value]
+                        for single_osm_tag_value in osm_tag_values:
+                            if "*" in single_osm_tag_value:
+                                sql_like_value = self._replace_star_value_in_string(
+                                    single_osm_tag_value
+                                )
+                                filter_tag_clauses.append(
+                                    f"{element_clause} LIKE '{sql_like_value}'"
+                                )
+                            else:
+                                escaped_value = self._sql_escape(single_osm_tag_value)
+                                filter_tag_clauses.append(f"{element_clause} = '{escaped_value}'")
                         case_when_clauses.append(
-                            f"WHEN {element_clause} = '{escaped_value}' THEN '{osm_tag_key}=' ||"
+                            f"WHEN {' OR '.join(filter_tag_clauses)} THEN '{osm_tag_key}=' ||"
                             f" {element_clause}"
                         )
-                    elif isinstance(osm_tag_value, list) and osm_tag_value:
-                        values_list = [f"'{self._sql_escape(value)}'" for value in osm_tag_value]
-                        case_when_clauses.append(
-                            f"WHEN {element_clause} IN ({', '.join(values_list)}) THEN"
-                            f" '{osm_tag_key}=' || {element_clause}"
-                        )
+
                 case_clause = f'CASE {" ".join(case_when_clauses)} END'
                 case_clauses.append(case_clause)
 

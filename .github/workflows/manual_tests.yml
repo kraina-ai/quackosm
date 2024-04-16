@@ -1,0 +1,58 @@
+name: "Run tests with newest dependencies"
+on: [workflow_dispatch, workflow_call]
+
+jobs:
+    run-tests:
+      name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions
+      runs-on: ${{ matrix.os }}
+      strategy:
+        fail-fast: false
+        matrix:
+          os: [ubuntu-latest]
+          python-version: ["3.9", "3.10", "3.11"]
+          include:
+            - os: macos-latest
+              python-version: "3.11"
+            - os: windows-latest
+              python-version: "3.11"
+      env:
+        OS: ${{ matrix.os }}
+        PYTHON: ${{ matrix.python-version }}
+      steps:
+        - uses: actions/checkout@v3
+        - name: Setup Python ${{ matrix.python-version }}
+          uses: actions/setup-python@v4
+          with:
+            python-version: ${{ matrix.python-version }}
+        - name: Install GDAL (unix)
+          if: matrix.os != 'windows-latest'
+          run: |
+            $CONDA/bin/conda install -c conda-forge gdal
+            $CONDA/bin/ogr2ogr --version
+        - name: Install GDAL (windows)
+          if: matrix.os == 'windows-latest'
+          run: |
+            & $env:CONDA\Scripts\conda.exe install -c conda-forge gdal
+            & $env:CONDA\Library\bin\ogr2ogr.exe --version
+        - name: Install pdm
+          run: pip install pdm
+        - name: Generate lock with newest dependencies
+          run: pdm lock --lockfile pdm.newest.lock --strategy no_cross_platform -dG:all
+        - name: Install quackosm and tests dependencies
+          run: pdm install --lockfile pdm.newest.lock -dG:all
+        - name: Run tests with pytest (unix)
+          if: matrix.os != 'windows-latest'
+          run: |
+            PATH=$CONDA/bin:$PATH
+            pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
+            pdm run pytest -v -s --durations=20 tests/base
+            pdm run pytest -v -s --durations=20 tests/optional_imports
+            pdm run pytest -v -s --durations=20 tests/benchmark
+        - name: Run tests with pytest (windows)
+          if: matrix.os == 'windows-latest'
+          run: |
+            $env:Path = "$env:CONDA\Library\bin;" + $env:Path
+            pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
+            pdm run pytest -v -s --durations=20 tests/base
+            pdm run pytest -v -s --durations=20 tests/optional_imports
+            pdm run pytest -v -s --durations=20 tests/benchmark
