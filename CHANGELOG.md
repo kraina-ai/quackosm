@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2024-04-16
+
 ### Added
 
 - Option to filter by OSM tags with negative values (`False`) and with wildcard asterisk (`*`) expansion in both keys and values [#49](https://github.com/kraina-ai/quackosm/issues/49) [#53](https://github.com/kraina-ai/quackosm/issues/53)
@@ -177,7 +179,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.5.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.6.0...HEAD
+
+[0.6.0]: https://github.com/kraina-ai/quackosm/compare/0.5.3...0.6.0
 
 [0.5.3]: https://github.com/kraina-ai/quackosm/compare/0.5.2...0.5.3
 
