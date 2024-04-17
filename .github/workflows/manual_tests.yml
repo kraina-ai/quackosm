@@ -52,6 +52,7 @@ jobs:
           if: matrix.os == 'windows-latest'
           run: |
             $env:Path = "$env:CONDA\Library\bin;" + $env:Path
+            $env:PYTHONIOENCODING = "utf-8"
             pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
             pdm run pytest -v -s --durations=20 tests/base
             pdm run pytest -v -s --durations=20 tests/optional_imports
