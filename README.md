@@ -45,13 +45,13 @@ QuackOSM supports **Python >= 3.9**
 
 Required:
 
-- `duckdb (==0.9.2)`: For all DuckDB operations on PBF files
+- `duckdb (>=0.10.2)`: For all DuckDB operations on PBF files
 
 - `pyarrow (>=13.0.0)`: For parquet files wrangling
 
 - `pyarrow-ops`: For easy removal of duplicated features in parquet files
 
-- `geoarrow-pyarrow (>=0.1.1)`: For GeoParquet IO operations
+- `geoarrow-pyarrow (>=0.1.2)`: For GeoParquet IO operations
 
 - `geopandas`: For returning GeoDataFrames and reading Geo files
 
@@ -72,13 +72,13 @@ Required:
 
 Optional:
 
-- `typer[all]` (click, colorama, rich, shellingham): For CLI
+- `typer[all] (>=0.9.0)` (click, colorama, rich, shellingham): For CLI
 
 - `osmnx`: For geocoding of strings in CLI
 
-- `h3`: For reading H3 strings in CLI
+- `h3 (>=4.0.0b1)`: For reading H3 strings in CLI
 
-- `h3ronpy`: For transforming H3 indexes into geometries
+- `h3ronpy (>=0.18.0)`: For transforming H3 indexes into geometries
 
 - `s2`: For transforming S2 indexes into geometries
 

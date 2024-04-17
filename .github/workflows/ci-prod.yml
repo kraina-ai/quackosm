@@ -18,11 +18,11 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: 3.12
       - uses: pdm-project/setup-pdm@v3
         name: Setup PDM
         with:
-          python-version: 3.11
+          python-version: 3.12
           architecture: x64
           enable-pep582: true
           cache: true
@@ -77,7 +77,7 @@ jobs:
           key: mkdocs-osm-dev-cache-${{ runner.os }}
       - name: Prepare DuckDB dependency
         run: |
-          wget https://github.com/duckdb/duckdb/releases/download/v0.9.2/duckdb_cli-linux-amd64.zip
+          wget https://github.com/duckdb/duckdb/releases/download/v0.10.2/duckdb_cli-linux-amd64.zip
           unzip duckdb_cli-linux-amd64.zip
           chmod a+x ./duckdb
       - name: Test required commands

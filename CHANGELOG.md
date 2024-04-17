@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Set minimal `duckdb` version to `0.10.2`
+- Added support for Python 3.12
+
 ## [0.6.0] - 2024-04-16
 
 ### Added
