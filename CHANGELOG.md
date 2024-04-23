@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Transient mode of reporting progress with output being removed after operation [#77](https://github.com/kraina-ai/quackosm/issues/77)
+- Tracking for multiple files within single operation
+
+### Changed
+
+- Refactored internal Rich progress reporting process
+- Replaced `silent_mode` parameter with `verbosity_mode` argument
+
+### Removed
+
+- `silent_mode` parameter from the Python API
+
 ## [0.6.1] - 2024-04-17
 
 ### Changed

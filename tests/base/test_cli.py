@@ -68,6 +68,16 @@ def test_silent_mode(monaco_pbf_file_path: str) -> None:
     assert str(Path("files/monaco_nofilter_noclip_compact.geoparquet")) == result.stdout.strip()
 
 
+def test_transient_mode(monaco_pbf_file_path: str) -> None:
+    """Test if runs properly without reporting status."""
+    result = runner.invoke(cli.app, [monaco_pbf_file_path, "--ignore-cache", "--transient"])
+    output_lines = result.stdout.strip().split("\n")
+    assert result.exit_code == 0
+    assert len(result.stdout.strip().split("\n")) == 2
+    assert "Finished operation in" in output_lines[0]
+    assert str(Path("files/monaco_nofilter_noclip_compact.geoparquet")) == output_lines[1]
+
+
 @P.parameters("args", "expected_result")  # type: ignore
 @P.case(
     "Explode",
@@ -87,6 +97,7 @@ def test_silent_mode(monaco_pbf_file_path: str) -> None:
 @P.case("Output", ["--output", "files/monaco_output.geoparquet"], "files/monaco_output.geoparquet")  # type: ignore
 @P.case("Output short", ["-o", "files/monaco_output.geoparquet"], "files/monaco_output.geoparquet")  # type: ignore
 @P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
+@P.case("Transient", ["--transient"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
 @P.case(
     "Output with working directory",
     ["--working-directory", "files/workdir", "-o", "files/monaco_output.geoparquet"],
