@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2024-04-24
+
 ### Added
 
 - Transient mode of reporting progress with output being removed after operation [#77](https://github.com/kraina-ai/quackosm/issues/77)
@@ -18,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored internal Rich progress reporting process
 - Replaced `silent_mode` parameter with `verbosity_mode` argument
 - Changed default `OSMExtractSource` value from `any` to `Geofabrik`
-- Modified OpenStreetMap_fr scraping process with better progress bar UI
+- Modified OpenStreetMap\_fr scraping process with better progress bar UI
 
 ### Removed
 
@@ -208,7 +210,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.7.0...HEAD
+
+[0.7.0]: https://github.com/kraina-ai/quackosm/compare/0.6.1...0.7.0
 
 [0.6.1]: https://github.com/kraina-ai/quackosm/compare/0.6.0...0.6.1
 
