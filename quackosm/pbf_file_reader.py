@@ -107,7 +107,7 @@ class PbfFileReader:
             Union[OsmWayPolygonConfig, dict[str, Any]]
         ] = None,
         parquet_compression: str = "snappy",
-        osm_extract_source: OsmExtractSource = OsmExtractSource.any,
+        osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
         allow_uncovered_geometry: bool = False,
     ) -> None:
@@ -136,8 +136,9 @@ class PbfFileReader:
             parquet_compression (str): Compression of intermediate parquet files.
                 Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
                 Defaults to "snappy".
-            osm_extract_source (OsmExtractSource): A source for automatic downloading of
-                OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
+            osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
+                downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
+                Defaults to `geofabrik`.
             verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.
@@ -381,9 +382,18 @@ class PbfFileReader:
                             )
                         except pa.ArrowInvalid:
                             tmp_dir_path = Path(tmp_dir_name)
-                            joined_parquet_table = self._drop_duplicated_features_in_joined_table(
-                                parsed_geoparquet_files, tmp_dir_path
-                            )
+                            try:
+                                joined_parquet_table = (
+                                    self._drop_duplicated_features_in_joined_table(
+                                        parsed_geoparquet_files, tmp_dir_path
+                                    )
+                                )
+                            except MemoryError:
+                                joined_parquet_table = (
+                                    self._drop_duplicated_features_in_joined_table_one_by_one(
+                                        parsed_geoparquet_files, tmp_dir_path
+                                    )
+                                )
                 else:
                     warnings.warn(
                         "Found 0 extracts covering the geometry. Returning empty result.",
@@ -482,9 +492,16 @@ class PbfFileReader:
                     )
                 except pa.ArrowInvalid:
                     tmp_dir_path = Path(tmp_dir_name)
-                    joined_parquet_table = self._drop_duplicated_features_in_joined_table(
-                        parsed_geoparquet_files, tmp_dir_path
-                    )
+                    try:
+                        joined_parquet_table = self._drop_duplicated_features_in_joined_table(
+                            parsed_geoparquet_files, tmp_dir_path
+                        )
+                    except MemoryError:
+                        joined_parquet_table = (
+                            self._drop_duplicated_features_in_joined_table_one_by_one(
+                                parsed_geoparquet_files, tmp_dir_path
+                            )
+                        )
 
                 gdf_parquet = gpd.GeoDataFrame(
                     data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(
@@ -578,64 +595,65 @@ class PbfFileReader:
         if len(parsed_geoparquet_files) == 1:
             return pq.read_table(parsed_geoparquet_files[0])
 
+        connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
+
+        with self.task_progress_tracker.get_basic_spinner("Combining results"):
+            output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
+            parquet_relation = connection.read_parquet(
+                [
+                    str(parsed_geoparquet_file)
+                    for parsed_geoparquet_file in parsed_geoparquet_files
+                ],
+                union_by_name=True,
+            )
+            query = f"""
+                COPY (
+                    {parquet_relation.sql_query()}
+                    QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
+                ) TO '{output_file_name}' (
+                    FORMAT 'parquet',
+                    PER_THREAD_OUTPUT true,
+                    ROW_GROUP_SIZE 25000,
+                    COMPRESSION '{self.parquet_compression}'
+                )
+            """
+            self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
+            return pq.read_table(output_file_name)
+
+    def _drop_duplicated_features_in_joined_table_one_by_one(
+        self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
+    ) -> pa.Table:
+        if len(parsed_geoparquet_files) == 1:
+            return pq.read_table(parsed_geoparquet_files[0])
+
         sorted_parsed_geoparquet_files = sorted(
             parsed_geoparquet_files, key=lambda pq_file: pq_file.stat().st_size, reverse=True
         )
 
         connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
 
-        try:
-            # Attempt 1: read all at once
-            with self.task_progress_tracker.get_basic_spinner("Combining results"):
-                output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
-                parquet_relation = connection.read_parquet(
-                    [
-                        str(parsed_geoparquet_file)
-                        for parsed_geoparquet_file in sorted_parsed_geoparquet_files
-                    ],
-                    union_by_name=True,
-                )
+        result_parquet_files = [sorted_parsed_geoparquet_files[0]]
+        with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
+            for idx, parsed_geoparquet_file in bar.track(
+                enumerate(sorted_parsed_geoparquet_files[1:])
+            ):
+                current_parquet_file_relation = connection.read_parquet(str(parsed_geoparquet_file))
+                filtered_result_parquet_file = tmp_dir_path / f"sub_file_{idx}"
+                result_parquet_files_strings = [str(pq_file) for pq_file in result_parquet_files]
                 query = f"""
                     COPY (
-                        {parquet_relation.sql_query()}
-                        QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
-                    ) TO '{output_file_name}' (
+                        {current_parquet_file_relation.sql_query()}
+                        ANTI JOIN read_parquet({result_parquet_files_strings})
+                        USING (feature_id)
+                    ) TO '{filtered_result_parquet_file}' (
                         FORMAT 'parquet',
                         PER_THREAD_OUTPUT true,
                         ROW_GROUP_SIZE 25000,
                         COMPRESSION '{self.parquet_compression}'
                     )
                 """
-                self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
-                return pq.read_table(output_file_name)
-        except MemoryError:
-            # Attempt 2: read one by one
-            result_parquet_files = [sorted_parsed_geoparquet_files[0]]
-            with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
-                for idx, parsed_geoparquet_file in bar.track(
-                    enumerate(sorted_parsed_geoparquet_files[1:])
-                ):
-                    current_parquet_file_relation = connection.read_parquet(
-                        str(parsed_geoparquet_file)
-                    )
-                    filtered_result_parquet_file = tmp_dir_path / f"sub_file_{idx}"
-                    result_parquet_files_strings = [
-                        str(pq_file) for pq_file in result_parquet_files
-                    ]
-                    query = f"""
-                        COPY (
-                            {current_parquet_file_relation.sql_query()}
-                            ANTI JOIN read_parquet({result_parquet_files_strings})
-                            USING (feature_id)
-                        ) TO '{filtered_result_parquet_file}' (
-                            FORMAT 'parquet',
-                            PER_THREAD_OUTPUT true,
-                            ROW_GROUP_SIZE 25000,
-                            COMPRESSION '{self.parquet_compression}'
-                        )
-                    """
-                    connection.sql(query)
-                    result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
+                connection.sql(query)
+                result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
         return pq.read_table(result_parquet_files)
 
     def _parse_pbf_file(
@@ -1501,7 +1519,6 @@ class PbfFileReader:
         return self._get_ways_with_linestrings(
             ways_ids=osm_parquet_files.ways_filtered_ids,
             mode="filtered",
-            step_number=20,
             osm_parquet_files=osm_parquet_files,
             destination_dir_path=destination_dir_path,
             grouped_ways_path=grouped_ways_path,
@@ -1519,7 +1536,6 @@ class PbfFileReader:
         return self._get_ways_with_linestrings(
             ways_ids=osm_parquet_files.ways_required_ids,
             mode="required",
-            step_number=22,
             osm_parquet_files=osm_parquet_files,
             destination_dir_path=destination_dir_path,
             grouped_ways_path=grouped_ways_path,
@@ -1530,7 +1546,6 @@ class PbfFileReader:
         self,
         ways_ids: "duckdb.DuckDBPyRelation",
         mode: Literal["filtered", "required"],
-        step_number: int,
         osm_parquet_files: ConvertedOSMParquetFiles,
         destination_dir_path: Path,
         grouped_ways_tmp_path: Path,
@@ -1544,7 +1559,6 @@ class PbfFileReader:
                     groups = self._group_ways(
                         ways_ids=ways_ids,
                         mode=mode,
-                        step_number=step_number,
                         osm_parquet_files=osm_parquet_files,
                         destination_dir_path=destination_dir_path,
                         grouped_ways_tmp_path=grouped_ways_tmp_path,
@@ -1555,7 +1569,6 @@ class PbfFileReader:
                     groups = self._group_ways(
                         ways_ids=ways_ids,
                         mode=mode,
-                        step_number=step_number,
                         osm_parquet_files=osm_parquet_files,
                         destination_dir_path=destination_dir_path,
                         grouped_ways_tmp_path=grouped_ways_tmp_path,
@@ -1612,7 +1625,6 @@ class PbfFileReader:
         grouped_ways_tmp_path: Path,
         grouped_ways_path: Path,
         mode: Literal["filtered", "required"],
-        step_number: int,
         group_all_at_once: bool = True,
     ) -> int:
         total_required_ways = ways_ids.count("id").fetchone()[0]
@@ -1829,6 +1841,8 @@ class PbfFileReader:
                     (
                         -- if first and last nodes are the same
                         ST_Equals(linestring[1]::POINT_2D, linestring[-1]::POINT_2D)
+                        -- if linestring has at least 3 points
+                        AND len(linestring) >= 3
                         -- if the element doesn't have any tags leave it as a Linestring
                         AND raw_tags IS NOT NULL
                         -- if the element is specifically tagged 'area':'no' -> LineString

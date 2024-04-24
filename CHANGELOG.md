@@ -11,16 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Transient mode of reporting progress with output being removed after operation [#77](https://github.com/kraina-ai/quackosm/issues/77)
 - Tracking for multiple files within single operation
+- New tests for all 3 methods of combining result files together with duplicated features removal
 
 ### Changed
 
 - Refactored internal Rich progress reporting process
 - Replaced `silent_mode` parameter with `verbosity_mode` argument
 - Changed default `OSMExtractSource` value from `any` to `Geofabrik`
+- Modified OpenStreetMap_fr scraping process with better progress bar UI
 
 ### Removed
 
 - `silent_mode` parameter from the Python API
+
+### Fixed
+
+- Replaced slash characters in Geofabrik index IDs with underscore to prevent nested directories creation
+- Added additional check on number of points in a LineString when trying to represent them as a polygon
 
 ## [0.6.1] - 2024-04-17
 

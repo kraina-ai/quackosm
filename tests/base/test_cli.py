@@ -610,6 +610,7 @@ def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
 @P.case("Filter OSM", ["--filter-osm-ids", "node/124|way/124|relation/124"])  # type: ignore
 @P.case("Filter OSM", ["--filter-osm-ids", "node/124 way/124 relation/124"])  # type: ignore
 @P.case("OSM way polygon config", ["--osm-way-polygon-config", "nonexistent_json_file.json"])  # type: ignore
+@P.case("Silent and transient", ["--silent", "--transient"])  # type: ignore
 def test_wrong_args(
     monaco_pbf_file_path: str, args: list[str], capsys: pytest.CaptureFixture
 ) -> None:

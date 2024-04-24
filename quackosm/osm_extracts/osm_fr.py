@@ -8,7 +8,7 @@ import os
 import re
 from dataclasses import asdict
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import geopandas as gpd
 import requests
@@ -46,8 +46,26 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
         gdf = gpd.read_file(save_path)
     else:
         force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+        extracts = []
         with tqdm(disable=True if force_terminal else None) as pbar:
-            extracts = _iterate_openstreetmap_fr_index("osm_fr", "/", True, pbar)
+            extract_soup_objects = _gather_all_openstreetmap_fr_urls("osm_fr", "/", pbar)
+            pbar.set_description("osm_fr")
+            for soup_object, id_prefix, directory_url in extract_soup_objects:
+                link = soup_object.find_parent("tr").find("a")
+                name = link.text.replace("-latest.osm.pbf", "")
+                polygon = parse_polygon_file(
+                    f"{OPENSTREETMAP_FR_POLYGONS_INDEX_URL}/{directory_url}{name}.poly"
+                )
+                if polygon is None:
+                    continue
+                extracts.append(
+                    OpenStreetMapExtract(
+                        id=f"{id_prefix}_{name}",
+                        url=f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}{link['href']}",
+                        geometry=polygon,
+                    )
+                )
+                pbar.update()
         gdf = gpd.GeoDataFrame(
             data=[asdict(extract) for extract in extracts], geometry="geometry"
         ).set_crs("EPSG:4326")
@@ -60,9 +78,7 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
     return gdf
 
 
-def _iterate_openstreetmap_fr_index(
-    id_prefix: str, directory_url: str, return_extracts: bool, pbar: tqdm
-) -> list[OpenStreetMapExtract]:
+def _gather_all_openstreetmap_fr_urls(id_prefix: str, directory_url: str, pbar: tqdm) -> list[Any]:
     """
     Iterate OpenStreetMap.fr extracts service page.
 
@@ -71,50 +87,39 @@ def _iterate_openstreetmap_fr_index(
     Args:
         id_prefix (str): Prefix to be applies to extracts names.
         directory_url (str): Directory URL to load.
-        return_extracts (bool): Whether to return collected extracts or not.
         pbar (tqdm): Progress bar.
 
     Returns:
-        List[OpenStreetMapExtract]: List of loaded osm.fr extracts objects.
+        list[Any]: List of osm.fr extracts urls objects for further processing.
     """
     from bs4 import BeautifulSoup
 
     pbar.set_description_str(id_prefix)
-    extracts = []
+    extract_soup_objects = []
+
     result = requests.get(
         f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}",
         headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
     )
     soup = BeautifulSoup(result.text, "html.parser")
-    if return_extracts:
-        extracts_urls = soup.find_all(string=re.compile("-latest\\.osm\\.pbf$"))
-        for extract in extracts_urls:
-            link = extract.find_parent("tr").find("a")
-            name = link.text.replace("-latest.osm.pbf", "")
-            polygon = parse_polygon_file(
-                f"{OPENSTREETMAP_FR_POLYGONS_INDEX_URL}/{directory_url}{name}.poly"
-            )
-            if polygon is None:
-                continue
-            extracts.append(
-                OpenStreetMapExtract(
-                    id=f"{id_prefix}_{name}",
-                    url=f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}{link['href']}",
-                    geometry=polygon,
-                )
-            )
-            pbar.update()
+
+    extracts_urls = soup.find_all(string=re.compile("-latest\\.osm\\.pbf$"))
+    pbar.total = (pbar.total or 0) + len(extracts_urls)
+    pbar.refresh()
+    extract_soup_objects.extend(
+        [(extract_url, id_prefix, directory_url) for extract_url in extracts_urls]
+    )
+
     directories = soup.find_all(src="/icons/folder.gif")
     for directory in directories:
         link = directory.find_parent("tr").find("a")
         name = link.text.replace("/", "")
-        extracts.extend(
-            _iterate_openstreetmap_fr_index(
+        extract_soup_objects.extend(
+            _gather_all_openstreetmap_fr_urls(
                 id_prefix=f"{id_prefix}_{name}",
                 directory_url=f"{directory_url}{link['href']}",
-                return_extracts=True,
                 pbar=pbar,
             )
         )
 
-    return extracts
+    return extract_soup_objects
