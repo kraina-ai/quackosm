@@ -32,7 +32,7 @@ jobs:
       - name: Install GDAL (macos)
         if: matrix.os == 'macos-latest'
         run: |
-          CONDA=/usr/local/miniconda
+          CONDA=$HOME/miniconda
           wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
           bash Miniconda3-latest-MacOSX-arm64.sh -b -p $CONDA
           $CONDA/bin/conda install -c conda-forge gdal
