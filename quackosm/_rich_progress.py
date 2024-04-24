@@ -205,7 +205,7 @@ class TaskProgressTracker:
             self.major_steps_prefix = ""
 
         if not self.verbosity_mode == "silent":
-            with suppress(ImportError):
+            with suppress(ImportError): # pragma: no cover
                 from types import TracebackType
                 from typing import Union
 
