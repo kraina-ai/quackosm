@@ -64,9 +64,15 @@ jobs:
           key: tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pdm.lock') }}
           restore-keys: |
             tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-
-      - name: Run tests with tox (unix)
-        if: matrix.os != 'windows-latest'
+      - name: Run tests with tox (linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
+          PATH=$CONDA/bin:$PATH
+          pdm run tox -e python${{ matrix.python-version }}
+      - name: Run tests with tox (macos)
+        if: matrix.os == 'macos-13'
+        run: |
+          CONDA=$HOME/miniconda
           PATH=$CONDA/bin:$PATH
           pdm run tox -e python${{ matrix.python-version }}
       - name: Run tests with tox (windows)

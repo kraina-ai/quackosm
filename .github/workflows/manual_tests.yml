@@ -48,9 +48,18 @@ jobs:
           run: pdm lock --lockfile pdm.newest.lock --strategy no_cross_platform -dG:all
         - name: Install quackosm and tests dependencies
           run: pdm install --lockfile pdm.newest.lock -dG:all
-        - name: Run tests with pytest (unix)
-          if: matrix.os != 'windows-latest'
+        - name: Run tests with pytest (linux)
+          if: matrix.os == 'ubuntu-latest'
           run: |
+            PATH=$CONDA/bin:$PATH
+            pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
+            pdm run pytest -v -s --durations=20 tests/base
+            pdm run pytest -v -s --durations=20 tests/optional_imports
+            pdm run pytest -v -s --durations=20 tests/benchmark
+        - name: Run tests with pytest (macos)
+          if: matrix.os == 'macos-13'
+          run: |
+            CONDA=$HOME/miniconda
             PATH=$CONDA/bin:$PATH
             pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
             pdm run pytest -v -s --durations=20 tests/base
@@ -60,7 +69,6 @@ jobs:
           if: matrix.os == 'windows-latest'
           run: |
             $env:Path = "$env:CONDA\Library\bin;" + $env:Path
-            $env:PYTHONIOENCODING = "utf-8"
             pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
             pdm run pytest -v -s --durations=20 tests/base
             pdm run pytest -v -s --durations=20 tests/optional_imports
