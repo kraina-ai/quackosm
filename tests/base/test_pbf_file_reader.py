@@ -12,10 +12,12 @@ from unittest import TestCase
 import duckdb
 import geopandas as gpd
 import pandas as pd
+import pyarrow as pa
 import pyogrio
 import pytest
 import six
 from parametrization import Parametrization as P
+from pytest_mock import MockerFixture
 from shapely import from_wkt, hausdorff_distance
 from shapely.geometry import LinearRing, MultiPolygon, Polygon, box, polygon
 from shapely.geometry.base import BaseGeometry
@@ -24,6 +26,7 @@ from srai.geometry import remove_interiors
 from srai.loaders.download import download_file
 from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
+from quackosm import convert_geometry_to_gpq, get_features_gdf
 from quackosm._constants import FEATURES_INDEX
 from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
@@ -122,11 +125,77 @@ def test_unique_osm_ids_real_example():  # type: ignore
         " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
         " 1.382599544073372 42.67676873293743))"
     )
-    result_gdf = PbfFileReader(geometry_filter=andorra_geometry).get_features_gdf_from_geometry(
-        ignore_cache=True
-    )
+    result_gdf = PbfFileReader(
+        geometry_filter=andorra_geometry, osm_extract_source=OsmExtractSource.any
+    ).get_features_gdf_from_geometry(ignore_cache=True)
 
     assert result_gdf.index.is_unique
+
+
+def test_antwerpen_and_brussels_invalid_linear_ring() -> None:
+    """Test if properly filters out invalid linear rings."""
+    antwerpen_and_brussels_geometry = from_wkt(
+        "POLYGON ((4.331278527313799 51.173447782908625,"
+        " 4.331278527313799 50.89211829585622, 4.413826045759777 50.89211829585622,"
+        " 4.413826045759777 51.173447782908625, 4.331278527313799 51.173447782908625))"
+    )
+
+    result_gdf = PbfFileReader(
+        geometry_filter=antwerpen_and_brussels_geometry, osm_extract_source=OsmExtractSource.bbbike
+    ).get_features_gdf_from_geometry(ignore_cache=True)
+
+    assert result_gdf.index.is_unique
+
+
+@pytest.mark.parametrize("operation_mode", ["gdf", "gpq"])  # type: ignore
+@pytest.mark.parametrize("patch_methods", [0, 1, 2])  # type: ignore
+def test_combining_files_different_techniques(
+    mocker: MockerFixture, operation_mode: str, patch_methods: int
+) -> None:
+    """Test if all files merging techniques work as expected."""
+    if patch_methods > 0:
+        # Leave _drop_duplicated_features_in_joined_table as backup
+        mocker.patch(
+            "quackosm.pbf_file_reader.PbfFileReader._drop_duplicated_features_in_pyarrow_table",
+            side_effect=pa.ArrowInvalid(),
+        )
+
+
+    if patch_methods > 1:
+        # Leave _drop_duplicated_features_in_joined_table_one_by_one as backup
+        mocker.patch(
+            "quackosm.pbf_file_reader.PbfFileReader._drop_duplicated_features_in_joined_table",
+            side_effect=MemoryError(),
+        )
+
+    if operation_mode == "gdf":
+        monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+        result_gdf = get_features_gdf(
+            file_paths=[
+                monaco_file_path,
+                monaco_file_path,
+            ],
+            ignore_cache=True,
+        )
+        single_result_gdf = PbfFileReader().get_features_gdf(
+            file_paths=[monaco_file_path], ignore_cache=True
+        )
+
+        assert result_gdf.index.is_unique
+        assert len(result_gdf.index) == len(single_result_gdf.index)
+    elif operation_mode == "gpq":
+        result = convert_geometry_to_gpq(
+            geometry_filter=from_wkt(
+                "POLYGON ((4.331278527313799 51.173447782908625,"
+                " 4.331278527313799 50.89211829585622, 4.413826045759777 50.89211829585622,"
+                " 4.413826045759777 51.173447782908625, 4.331278527313799 51.173447782908625))"
+            ),
+            osm_extract_source="BBBike",
+            ignore_cache=True,
+        )
+        assert pd.read_parquet(result).set_index("feature_id").index.is_unique
+    else:
+        raise ValueError("Wrong operation_mode value.")
 
 
 def test_schema_unification_real_example():  # type: ignore

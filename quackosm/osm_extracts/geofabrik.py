@@ -50,7 +50,7 @@ def _load_geofabrik_index() -> gpd.GeoDataFrame:
         gdf["area"] = gdf.geometry.area
         gdf.sort_values(by="area", ignore_index=True, inplace=True)
         gdf["url"] = gdf["urls"].apply(operator.itemgetter("pbf"))
-        gdf["id"] = "Geofabrik_" + gdf["id"]
+        gdf["id"] = "Geofabrik_" + gdf["id"].str.replace("/", "_")
         gdf = gdf[["id", "name", "geometry", "area", "url"]]
 
         save_path.parent.mkdir(parents=True, exist_ok=True)

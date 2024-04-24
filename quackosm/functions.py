@@ -6,7 +6,7 @@ This module contains helper functions to simplify the usage.
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import geopandas as gpd
 from shapely.geometry.base import BaseGeometry
@@ -29,7 +29,7 @@ def convert_pbf_to_gpq(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    silent_mode: bool = False,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
 ) -> Path:
     """
     Convert PBF file to GeoParquet file.
@@ -73,7 +73,10 @@ def convert_pbf_to_gpq(
         save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead of WKB.
             If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
             standard. Defaults to `False`.
-        silent_mode (bool): Disable progress bars. Defaults to `False`.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -225,7 +228,7 @@ def convert_pbf_to_gpq(
         geometry_filter=geometry_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
-        silent_mode=silent_mode,
+        verbosity_mode=verbosity_mode,
     ).convert_pbf_to_gpq(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -239,7 +242,7 @@ def convert_pbf_to_gpq(
 
 def convert_geometry_to_gpq(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: OsmExtractSource = OsmExtractSource.any,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
@@ -249,7 +252,7 @@ def convert_geometry_to_gpq(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    silent_mode: bool = False,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
     allow_uncovered_geometry: bool = False,
 ) -> Path:
     """
@@ -260,8 +263,9 @@ def convert_geometry_to_gpq(
 
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
-        osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
+        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
+            Defaults to `geofabrik`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -297,7 +301,10 @@ def convert_geometry_to_gpq(
         save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead of WKB.
             If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
             standard. Defaults to `False`.
-        silent_mode (bool): Disable progress bars. Defaults to `False`.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
@@ -405,7 +412,7 @@ def convert_geometry_to_gpq(
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         osm_extract_source=osm_extract_source,
-        silent_mode=silent_mode,
+        verbosity_mode=verbosity_mode,
         allow_uncovered_geometry=allow_uncovered_geometry,
     ).convert_geometry_filter_to_gpq(
         result_file_path=result_file_path,
@@ -427,7 +434,7 @@ def get_features_gdf(
     filter_osm_ids: Optional[list[str]] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    silent_mode: bool = False,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame from a PBF file or list of PBF files.
@@ -469,7 +476,10 @@ def get_features_gdf(
             Config used to determine which closed way features are polygons.
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
-        silent_mode (bool): Disable progress bars. Defaults to `False`.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -588,7 +598,7 @@ def get_features_gdf(
         geometry_filter=geometry_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
-        silent_mode=silent_mode,
+        verbosity_mode=verbosity_mode,
     ).get_features_gdf(
         file_paths=file_paths,
         keep_all_tags=keep_all_tags,
@@ -600,7 +610,7 @@ def get_features_gdf(
 
 def get_features_gdf_from_geometry(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: OsmExtractSource = OsmExtractSource.any,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
@@ -608,7 +618,7 @@ def get_features_gdf_from_geometry(
     filter_osm_ids: Optional[list[str]] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    silent_mode: bool = False,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
     allow_uncovered_geometry: bool = False,
 ) -> gpd.GeoDataFrame:
     """
@@ -619,8 +629,9 @@ def get_features_gdf_from_geometry(
 
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
-        osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
+        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
+            Defaults to `geofabrik`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -650,7 +661,10 @@ def get_features_gdf_from_geometry(
             Config used to determine which closed way features are polygons.
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
-        silent_mode (bool): Disable progress bars. Defaults to `False`.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
@@ -712,7 +726,7 @@ def get_features_gdf_from_geometry(
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         osm_extract_source=osm_extract_source,
-        silent_mode=silent_mode,
+        verbosity_mode=verbosity_mode,
         allow_uncovered_geometry=allow_uncovered_geometry,
     ).get_features_gdf_from_geometry(
         keep_all_tags=keep_all_tags,

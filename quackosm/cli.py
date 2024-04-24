@@ -4,7 +4,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Annotated, Optional, Union, cast
+from typing import Annotated, Literal, Optional, Union, cast
 
 import click
 import geopandas as gpd
@@ -417,9 +417,9 @@ def main(
                 " Can be Geofabrik, BBBike, OpenStreetMap.fr or any."
             ),
             case_sensitive=False,
-            show_default="any",
+            show_default="geofabrik",
         ),
-    ] = OsmExtractSource.any,
+    ] = OsmExtractSource.geofabrik,
     explode_tags: Annotated[
         Optional[bool],
         typer.Option(
@@ -516,6 +516,14 @@ def main(
             show_default=False,
         ),
     ] = False,
+    transient_mode: Annotated[
+        bool,
+        typer.Option(
+            "--transient/",
+            help="Whether to make more transient (concise) progress reporting.",
+            show_default=False,
+        ),
+    ] = False,
     allow_uncovered_geometry: Annotated[
         bool,
         typer.Option(
@@ -583,6 +591,16 @@ def main(
     if osm_tags_filter is not None and osm_tags_filter_file is not None:
         raise typer.BadParameter("Provided more than one osm tags filter parameter")
 
+    if transient_mode and silent_mode:
+        raise typer.BadParameter("Cannot pass both silent and transient mode at once.")
+
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "verbose"
+
+    if transient_mode:
+        verbosity_mode = "transient"
+    elif silent_mode:
+        verbosity_mode = "silent"
+
     logging.disable(logging.CRITICAL)
     if pbf_file:
         geoparquet_path = convert_pbf_to_gpq(
@@ -601,7 +619,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             save_as_wkt=wkt_result,
-            silent_mode=silent_mode,
+            verbosity_mode=verbosity_mode,
         )
     else:
         geoparquet_path = convert_geometry_to_gpq(
@@ -620,7 +638,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             save_as_wkt=wkt_result,
-            silent_mode=silent_mode,
+            verbosity_mode=verbosity_mode,
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
     typer.secho(geoparquet_path, fg="green")

@@ -62,12 +62,6 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:
 
     Works recursively, by scraping whole available directory.
 
-    Args:
-        id_prefix (str): Prefix to be applies to extracts names.
-        directory_url (str): Directory URL to load.
-        return_extracts (bool): Whether to return collected extracts or not.
-        pbar (tqdm): Progress bar.
-
     Returns:
         List[OpenStreetMapExtract]: List of loaded osm.fr extracts objects.
     """
