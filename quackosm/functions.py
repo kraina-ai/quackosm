@@ -242,7 +242,7 @@ def convert_pbf_to_gpq(
 
 def convert_geometry_to_gpq(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: OsmExtractSource = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSource = OsmExtractSource.geofabrik,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
@@ -264,7 +264,7 @@ def convert_geometry_to_gpq(
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
+            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `geofabrik`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -609,7 +609,7 @@ def get_features_gdf(
 
 def get_features_gdf_from_geometry(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: OsmExtractSource = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSource = OsmExtractSource.geofabrik,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
@@ -629,7 +629,7 @@ def get_features_gdf_from_geometry(
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (OsmExtractSource): A source for automatic downloading of
-            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `any`.
+            OSM extracts. Can be Geofabrik, BBBike, OSMfr or any. Defaults to `geofabrik`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).

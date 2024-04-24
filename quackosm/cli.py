@@ -417,9 +417,9 @@ def main(
                 " Can be Geofabrik, BBBike, OpenStreetMap.fr or any."
             ),
             case_sensitive=False,
-            show_default="any",
+            show_default="geofabrik",
         ),
-    ] = OsmExtractSource.any,
+    ] = OsmExtractSource.geofabrik,
     explode_tags: Annotated[
         Optional[bool],
         typer.Option(
