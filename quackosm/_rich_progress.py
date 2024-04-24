@@ -2,10 +2,11 @@
 """Wrapper over Rich progress bar."""
 
 import os
+import time
 from collections.abc import Iterable
 from contextlib import suppress
 from datetime import timedelta
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
@@ -36,6 +37,8 @@ class TaskProgressSpinner:
         step_number: str,
         silent_mode: bool,
         transient_mode: bool,
+        progress_cls: Any,
+        live_obj: Any,
         skip_step_number: bool = False,
     ):
         self.step_name = step_name
@@ -44,20 +47,15 @@ class TaskProgressSpinner:
         self.transient_mode = transient_mode
         self.skip_step_number = skip_step_number
         self.progress = None
-        self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+        self.progress_cls = progress_cls
+        self.live_obj = live_obj
 
     def __enter__(self):
         try:  # pragma: no cover
             if self.silent_mode:
                 self.progress = None
             else:
-                from rich.progress import (
-                    Console,
-                    Progress,
-                    SpinnerColumn,
-                    TextColumn,
-                    TimeElapsedColumn,
-                )
+                from rich.progress import SpinnerColumn, TextColumn, TimeElapsedColumn
 
                 columns = [
                     SpinnerColumn(),
@@ -70,15 +68,10 @@ class TaskProgressSpinner:
                 if self.skip_step_number:
                     columns.pop(1)
 
-                self.progress = Progress(
+                self.progress = self.progress_cls(
                     *columns,
-                    refresh_per_second=1,
+                    live_obj=self.live_obj,
                     transient=self.transient_mode,
-                    console=Console(
-                        force_interactive=False if self.force_terminal else None,
-                        force_jupyter=False if self.force_terminal else None,
-                        force_terminal=True if self.force_terminal else None,
-                    ),
                 )
 
                 self.progress.__enter__()
@@ -101,6 +94,8 @@ class TaskProgressBar:
         step_number: str,
         silent_mode: bool,
         transient_mode: bool,
+        progress_cls: Any,
+        live_obj: Any,
         skip_step_number: bool = False,
     ):
         self.step_name = step_name
@@ -109,7 +104,8 @@ class TaskProgressBar:
         self.transient_mode = transient_mode
         self.skip_step_number = skip_step_number
         self.progress = None
-        self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+        self.progress_cls = progress_cls
+        self.live_obj = live_obj
 
     def __enter__(self):
         try:  # pragma: no cover
@@ -118,9 +114,7 @@ class TaskProgressBar:
             else:
                 from rich.progress import (
                     BarColumn,
-                    Console,
                     MofNCompleteColumn,
-                    Progress,
                     ProgressColumn,
                     SpinnerColumn,
                     Task,
@@ -159,16 +153,11 @@ class TaskProgressBar:
                 if self.skip_step_number:
                     columns.pop(1)
 
-                self.progress = Progress(
+                self.progress = self.progress_cls(
                     *columns,
-                    refresh_per_second=1,
+                    live_obj=self.live_obj,
                     transient=self.transient_mode,
                     speed_estimate_period=1800,
-                    console=Console(
-                        force_interactive=False if self.force_terminal else None,
-                        force_jupyter=False if self.force_terminal else None,
-                        force_terminal=True if self.force_terminal else None,
-                    ),
                 )
 
                 self.progress.__enter__()
@@ -205,6 +194,9 @@ class TaskProgressTracker:
         self.minor_step_number: Optional[int] = None
         self.total_major_steps = total_major_steps
         self.current_major_step = current_major_step
+        self.transient_progress_cls = None
+        self.live = None
+        self.console = None
 
         if total_major_steps > 1:
             number_width = len(str(total_major_steps))
@@ -212,8 +204,96 @@ class TaskProgressTracker:
         else:
             self.major_steps_prefix = ""
 
+        if not self.verbosity_mode == "silent":
+            with suppress(ImportError):
+                from types import TracebackType
+                from typing import Union
+
+                from rich.progress import Console, Live, Progress, ProgressColumn
+
+                self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+
+                class TransientProgress(Progress):
+                    def __init__(
+                        self, *columns: Union[str, ProgressColumn], live_obj: Live, **kwargs
+                    ) -> None:
+                        super().__init__(*columns, **kwargs)
+                        self.live = live_obj
+                        self.live._get_renderable = self.get_renderable
+
+                    def start(self) -> None:
+                        if not self.live.transient:
+                            super().start()
+
+                    def stop(self) -> None:
+                        if not self.live.transient:
+                            super().stop()
+
+                    def __enter__(self) -> Progress:
+                        self.start()
+                        return self
+
+                    def __exit__(
+                        self,
+                        exc_type: Optional[type[BaseException]],
+                        exc_val: Optional[BaseException],
+                        exc_tb: Optional[TracebackType],
+                    ) -> None:
+                        self.stop()
+
+                self.console = Console(
+                    force_interactive=False if self.force_terminal else None,
+                    force_jupyter=False if self.force_terminal else None,
+                    force_terminal=True if self.force_terminal else None,
+                )
+                self.transient_progress_cls = TransientProgress
+
+            self.start_time = time.time()
+
+    def reset_steps(self, current_major_step):
+        self.major_step_number: int = 0
+        self.minor_step_number: Optional[int] = None
+
+        self.current_major_step = current_major_step
+        if self.total_major_steps > 1:
+            number_width = len(str(self.total_major_steps))
+            self.major_steps_prefix = (
+                f"[{self.current_major_step: >{number_width}}/{self.total_major_steps}]"
+            )
+        else:
+            self.major_steps_prefix = ""
+
     def is_new(self):
         return self.major_step_number == 0 and self.minor_step_number is None
+
+    def stop(self):
+        if self.live:
+            self.live.stop()
+        if self.console and not self.console.is_interactive:
+            self.console.print()
+
+        if not self.verbosity_mode == "silent":
+            end_time = time.time()
+            elapsed_seconds = end_time - self.start_time
+            show_total_elapsed_time(elapsed_seconds)
+
+    def _check_live_obj(self):
+        if self.verbosity_mode == "silent":
+            return
+
+        with suppress(ImportError):
+            if not self.live or not self.live._started:
+                from rich.progress import Live
+
+                self.live = Live(
+                    console=self.console,
+                    auto_refresh=True,
+                    refresh_per_second=1,
+                    transient=self.verbosity_mode == "transient",
+                    redirect_stdout=True,
+                    redirect_stderr=True,
+                )
+                self.live.start(refresh=True)
 
     def get_spinner(
         self,
@@ -222,11 +302,14 @@ class TaskProgressTracker:
         with_minor_step: bool = False,
     ) -> TaskProgressSpinner:
         self._parse_steps(next_step=next_step, with_minor_step=with_minor_step)
+        self._check_live_obj()
         return TaskProgressSpinner(
             step_name=step_name,
             step_number=self.current_step_number,
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
+            progress_cls=self.transient_progress_cls,
+            live_obj=self.live,
         )
 
     def get_bar(
@@ -236,29 +319,38 @@ class TaskProgressTracker:
         with_minor_step: bool = False,
     ) -> TaskProgressBar:
         self._parse_steps(next_step=next_step, with_minor_step=with_minor_step)
+        self._check_live_obj()
         return TaskProgressBar(
             step_name=step_name,
             step_number=self.current_step_number,
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
+            progress_cls=self.transient_progress_cls,
+            live_obj=self.live,
         )
 
     def get_basic_bar(self, step_name: str) -> TaskProgressBar:
+        self._check_live_obj()
         return TaskProgressBar(
             step_name=step_name,
             step_number="",
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
             skip_step_number=False,
+            progress_cls=self.transient_progress_cls,
+            live_obj=self.live,
         )
 
     def get_basic_spinner(self, step_name: str) -> TaskProgressSpinner:
+        self._check_live_obj()
         return TaskProgressSpinner(
             step_name=step_name,
             step_number="",
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
             skip_step_number=False,
+            progress_cls=self.transient_progress_cls,
+            live_obj=self.live,
         )
 
     def _parse_steps(

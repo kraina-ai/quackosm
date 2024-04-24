@@ -45,7 +45,6 @@ from quackosm._rich_progress import (  # type: ignore[attr-defined]
     TaskProgressBar,
     TaskProgressTracker,
     log_message,
-    show_total_elapsed_time,
 )
 from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
@@ -227,7 +226,9 @@ class PbfFileReader:
         Returns:
             Path: Path to the generated GeoParquet file.
         """
+        created_task_progress_tracker = False
         if self.task_progress_tracker is None or not self.task_progress_tracker.is_new():
+            created_task_progress_tracker = True
             self.task_progress_tracker = TaskProgressTracker(verbosity_mode=self.verbosity_mode)
 
         if filter_osm_ids is None:
@@ -265,6 +266,8 @@ class PbfFileReader:
                 if self.connection is not None:
                     self.connection.close()
                     self.connection = None
+                if created_task_progress_tracker:
+                    self.task_progress_tracker.stop()
 
     def convert_geometry_filter_to_gpq(
         self,
@@ -352,12 +355,12 @@ class PbfFileReader:
 
                 parsed_geoparquet_files = []
                 total_files = len(pbf_files)
+                self.task_progress_tracker = TaskProgressTracker(
+                    verbosity_mode=self.verbosity_mode,
+                    total_major_steps=total_files,
+                )
                 for file_idx, file_path in enumerate(pbf_files):
-                    self.task_progress_tracker = TaskProgressTracker(
-                        verbosity_mode=self.verbosity_mode,
-                        total_major_steps=total_files,
-                        current_major_step=file_idx + 1,
-                    )
+                    self.task_progress_tracker.reset_steps(file_idx + 1)
                     parsed_geoparquet_file = self.convert_pbf_to_gpq(
                         file_path,
                         keep_all_tags=keep_all_tags,
@@ -404,6 +407,8 @@ class PbfFileReader:
                         result_file_path,
                         primary_geometry_column=GEOMETRY_COLUMN,
                     )
+
+                self.task_progress_tracker.stop()
 
         return Path(result_file_path)
 
@@ -454,12 +459,12 @@ class PbfFileReader:
 
         parsed_geoparquet_files = []
         total_files = len(list(file_paths))
+        self.task_progress_tracker = TaskProgressTracker(
+            verbosity_mode=self.verbosity_mode,
+            total_major_steps=total_files,
+        )
         for file_idx, file_path in enumerate(file_paths):
-            self.task_progress_tracker = TaskProgressTracker(
-                verbosity_mode=self.verbosity_mode,
-                total_major_steps=total_files,
-                current_major_step=file_idx + 1,
-            )
+            self.task_progress_tracker.reset_steps(file_idx + 1)
             parsed_geoparquet_file = self.convert_pbf_to_gpq(
                 file_path,
                 keep_all_tags=keep_all_tags,
@@ -497,6 +502,8 @@ class PbfFileReader:
                 data={FEATURES_INDEX: []},
                 geometry=gpd.GeoSeries([], crs=WGS84_CRS),
             ).set_index(FEATURES_INDEX)
+
+        self.task_progress_tracker.stop()
 
         return gdf_parquet
 
@@ -551,9 +558,7 @@ class PbfFileReader:
         if len(parsed_geoparquet_files) == 1:
             return pq.read_table(parsed_geoparquet_files[0])
 
-        with TaskProgressTracker(verbosity_mode=self.verbosity_mode).get_basic_spinner(
-            "Combining results"
-        ):
+        with self.task_progress_tracker.get_basic_spinner("Combining results"):
             parquet_tables = [
                 pq.read_table(parsed_parquet_file)
                 for parsed_parquet_file in parsed_geoparquet_files
@@ -581,9 +586,7 @@ class PbfFileReader:
 
         try:
             # Attempt 1: read all at once
-            with TaskProgressTracker(verbosity_mode=self.verbosity_mode).get_basic_spinner(
-                "Combining results"
-            ):
+            with self.task_progress_tracker.get_basic_spinner("Combining results"):
                 output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
                 parquet_relation = connection.read_parquet(
                     [
@@ -608,7 +611,7 @@ class PbfFileReader:
         except MemoryError:
             # Attempt 2: read one by one
             result_parquet_files = [sorted_parsed_geoparquet_files[0]]
-            with TaskProgressTracker.get_basic_bar("Combining results") as bar:
+            with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
                 for idx, parsed_geoparquet_file in bar.track(
                     enumerate(sorted_parsed_geoparquet_files[1:])
                 ):
@@ -646,7 +649,6 @@ class PbfFileReader:
         save_as_wkt: bool = False,
     ) -> Path:
         if not result_file_path.exists() or ignore_cache:
-            start_time = time.time()
 
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
 
@@ -744,11 +746,6 @@ class PbfFileReader:
                 explode_tags=explode_tags,
                 save_as_wkt=save_as_wkt,
             )
-
-            if not self.verbosity_mode == "silent":
-                end_time = time.time()
-                elapsed_seconds = end_time - start_time
-                show_total_elapsed_time(elapsed_seconds)
 
         return result_file_path
 
