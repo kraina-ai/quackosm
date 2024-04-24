@@ -176,12 +176,12 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
-    ["--geom-filter-index-geohash", "spv2bc"],
+    ["--geom-filter-index-geohash", "spv2bc", "--osm-extract-source", "any"],
     "files/monaco_nofilter_c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_compact.geoparquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
-    ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
+    ["--geom-filter-index-geohash", "spv2bc,spv2bfr", "--osm-extract-source", "any"],
     "files/monaco_nofilter_1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_compact.geoparquet",
 )  # type: ignore
 @P.case(
@@ -281,12 +281,12 @@ def test_proper_args_with_pbf(
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
-    ["--geom-filter-index-geohash", "spv2bc"],
+    ["--geom-filter-index-geohash", "spv2bc", "--osm-extract-source", "any"],
     "files/c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_nofilter_compact.geoparquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
-    ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
+    ["--geom-filter-index-geohash", "spv2bc,spv2bfr", "--osm-extract-source", "any"],
     "files/1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_nofilter_compact.geoparquet",
 )  # type: ignore
 @P.case(
