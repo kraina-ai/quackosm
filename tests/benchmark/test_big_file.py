@@ -20,7 +20,7 @@ def test_big_file(extract_name: str) -> None:
         f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf", str(file_name)
     )
 
-    reader = PbfFileReader(working_directory=files_dir)
+    reader = PbfFileReader(working_directory=files_dir, verbosity_mode="verbose")
     # Reset rows_per_group value to test automatic downscaling
     reader.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[24]
     reader.convert_pbf_to_gpq(pbf_path=file_name, ignore_cache=True)
