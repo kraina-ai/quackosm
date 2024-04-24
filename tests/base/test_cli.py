@@ -176,12 +176,12 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
-    ["--geom-filter-index-geohash", "spv2bc", "--osm-extract-source", "any"],
+    ["--geom-filter-index-geohash", "spv2bc"],
     "files/monaco_nofilter_c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_compact.geoparquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
-    ["--geom-filter-index-geohash", "spv2bc,spv2bfr", "--osm-extract-source", "any"],
+    ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
     "files/monaco_nofilter_1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_compact.geoparquet",
 )  # type: ignore
 @P.case(
@@ -256,7 +256,7 @@ def test_proper_args_with_pbf(
     monaco_pbf_file_path: str, args: list[str], expected_result: str
 ) -> None:
     """Test if runs properly with options."""
-    result = runner.invoke(cli.app, [monaco_pbf_file_path, *args])
+    result = runner.invoke(cli.app, [monaco_pbf_file_path, *args, "--osm-extract-source", "any"])
     print(result.stdout)
 
     assert result.exit_code == 0
@@ -281,12 +281,12 @@ def test_proper_args_with_pbf(
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
-    ["--geom-filter-index-geohash", "spv2bc", "--osm-extract-source", "any"],
+    ["--geom-filter-index-geohash", "spv2bc"],
     "files/c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_nofilter_compact.geoparquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
-    ["--geom-filter-index-geohash", "spv2bc,spv2bfr", "--osm-extract-source", "any"],
+    ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
     "files/1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_nofilter_compact.geoparquet",
 )  # type: ignore
 @P.case(
@@ -518,7 +518,7 @@ def test_proper_args_with_pbf(
 )  # type: ignore
 def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
-    result = runner.invoke(cli.app, [*args])
+    result = runner.invoke(cli.app, [*args, "--osm-extract-source", "any"])
     print(result.stdout)
 
     assert result.exit_code == 0
