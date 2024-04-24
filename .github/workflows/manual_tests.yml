@@ -13,6 +13,8 @@ jobs:
           include:
             - os: macos-latest
               python-version: "3.12"
+            - os: macos-13
+              python-version: "3.12"
             - os: windows-latest
               python-version: "3.12"
       env:
@@ -30,7 +32,7 @@ jobs:
             $CONDA/bin/conda install -c conda-forge gdal
             $CONDA/bin/ogr2ogr --version
         - name: Install GDAL (macos)
-          if: matrix.os == 'macos-latest'
+          if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
           run: |
             CONDA=$HOME/miniconda
             wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
@@ -57,7 +59,7 @@ jobs:
             pdm run pytest -v -s --durations=20 tests/optional_imports
             pdm run pytest -v -s --durations=20 tests/benchmark
         - name: Run tests with pytest (macos)
-          if: matrix.os == 'macos-13'
+          if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
           run: |
             CONDA=$HOME/miniconda
             PATH=$CONDA/bin:$PATH
