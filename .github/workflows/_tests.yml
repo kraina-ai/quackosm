@@ -33,7 +33,7 @@ jobs:
         if: matrix.os == 'macos-latest-large'
         run: |
           CONDA=$HOME/miniconda
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
           bash Miniconda3-latest-MacOSX-arm64.sh -b -p $CONDA
           $CONDA/bin/conda install -c conda-forge gdal
           $CONDA/bin/ogr2ogr --version
