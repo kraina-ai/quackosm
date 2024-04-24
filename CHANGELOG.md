@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Refactored internal Rich progress reporting process
 - Replaced `silent_mode` parameter with `verbosity_mode` argument
+- Changed default `OSMExtractSource` value from `any` to `Geofabrik`
 
 ### Removed
 
