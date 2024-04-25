@@ -14,7 +14,17 @@ import pytest
 from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
 from shapely import from_wkt, hausdorff_distance
-from shapely.geometry import LinearRing, MultiPolygon, Polygon, box, polygon
+from shapely.geometry import (
+    GeometryCollection,
+    LinearRing,
+    LineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+    box,
+    polygon,
+)
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
 from srai.geometry import remove_interiors
@@ -23,7 +33,11 @@ from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm import convert_geometry_to_gpq, get_features_gdf
 from quackosm._constants import FEATURES_INDEX, WGS84_CRS
-from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
+from quackosm._exceptions import (
+    GeometryNotCoveredError,
+    GeometryNotCoveredWarning,
+    InvalidGeometryFilter,
+)
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.cli import (
     GeocodeGeometryParser,
@@ -256,6 +270,61 @@ def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool)
             geometry_filter=geometry, allow_uncovered_geometry=allow_uncovered_geometry
         ).get_features_gdf_from_geometry(ignore_cache=True)
         assert len(features_gdf) == 0
+
+
+@pytest.mark.parametrize(  # type: ignore
+    "geometry",
+    [
+        box(
+            minx=7.416486207767861,
+            miny=43.7310867041912,
+            maxx=7.421931388477276,
+            maxy=43.73370705597216,
+        ),
+        GeohashGeometryParser().convert("spv2bc"),  # type: ignore
+        GeohashGeometryParser().convert("spv2bc,spv2bfr"),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff"),  # type: ignore
+        H3GeometryParser().convert("8a3969a40ac7fff,893969a4037ffff"),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc"),  # type: ignore
+        S2GeometryParser().convert("12cdc28bc,12cdc28f"),  # type: ignore
+        GeocodeGeometryParser().convert("Monaco-Ville, Monaco"),  # type: ignore
+    ],
+)
+def test_valid_geometries(geometry: BaseGeometry):
+    """Test if geometry filters as loaded properly."""
+    PbfFileReader(geometry_filter=geometry)
+
+
+@pytest.mark.parametrize(  # type: ignore
+    "geometry",
+    [
+        Point(10, 5),
+        box(
+            minx=7.416486207767861,
+            miny=43.7310867041912,
+            maxx=7.421931388477276,
+            maxy=43.73370705597216,
+        ).boundary,
+        Point(10, 5).boundary,
+        MultiPoint([(1, 2), (3, 4)]),
+        LineString([(1, 2), (3, 4)]),
+        GeometryCollection(
+            [
+                box(
+                    minx=7.416486207767861,
+                    miny=43.7310867041912,
+                    maxx=7.421931388477276,
+                    maxy=43.73370705597216,
+                ),
+                Point(10, 5),
+            ]
+        ),
+    ],
+)
+def test_invalid_geometries(geometry: BaseGeometry):
+    """Test if invalid geometry filters raise errors."""
+    with pytest.raises(InvalidGeometryFilter):
+        PbfFileReader(geometry_filter=geometry)
 
 
 @pytest.mark.parametrize(  # type: ignore

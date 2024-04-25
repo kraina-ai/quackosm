@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Simplified GDAL parity tests by precalculating result files and uploading them to additional repository
 
+### Fixed
+
+- Added exception if parts of provided geometry have no area [#85](https://github.com/kraina-ai/quackosm/issues/85)
+
 ## [0.7.0] - 2024-04-24
 
 ### Added

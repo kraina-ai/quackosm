@@ -32,7 +32,7 @@ from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
-from quackosm._exceptions import EmptyResultWarning
+from quackosm._exceptions import EmptyResultWarning, InvalidGeometryFilter
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
     OsmTagsFilter,
@@ -145,7 +145,13 @@ class PbfFileReader:
                 Verbose leaves all progress outputs in the stdout. Defaults to "transient".
             allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't
                 covered by any OSM extract. Defaults to `False`.
+
+        Raises:
+            InvalidGeometryFilter: When provided geometry filter has parts without area.
         """
+        self.geometry_filter = geometry_filter
+        self._check_if_valid_geometry_filter()
+
         self.tags_filter = tags_filter
         self.is_tags_filter_positive = (
             check_if_any_osm_tags_filter_value_is_positive(self.tags_filter)
@@ -154,7 +160,7 @@ class PbfFileReader:
         )
         self.expanded_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
         self.merged_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
-        self.geometry_filter = geometry_filter
+
         self.allow_uncovered_geometry = allow_uncovered_geometry
         self.osm_extract_source = osm_extract_source
         self.working_directory = Path(working_directory)
@@ -600,10 +606,7 @@ class PbfFileReader:
         with self.task_progress_tracker.get_basic_spinner("Combining results"):
             output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
             parquet_relation = connection.read_parquet(
-                [
-                    str(parsed_geoparquet_file)
-                    for parsed_geoparquet_file in parsed_geoparquet_files
-                ],
+                [str(parsed_geoparquet_file) for parsed_geoparquet_file in parsed_geoparquet_files],
                 union_by_name=True,
             )
             query = f"""
@@ -837,6 +840,25 @@ class PbfFileReader:
                 f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
             )
         return Path(self.working_directory) / result_file_name
+
+    def _check_if_valid_geometry_filter(self) -> None:
+        if self.geometry_filter is None:
+            return
+
+        if isinstance(self.geometry_filter, BaseMultipartGeometry):
+            geometries_to_check = self.geometry_filter.geoms
+        else:
+            geometries_to_check = [self.geometry_filter]
+
+        if not geometries_to_check:
+            raise InvalidGeometryFilter("Geometry filter is empty.")
+
+        for geometry_to_check in geometries_to_check:
+            if geometry_to_check.area == 0:
+                raise InvalidGeometryFilter(
+                    "Detected geometry with area equal to 0."
+                    " Geometry filter cannot contain geometries without area."
+                )
 
     def _generate_geometry_hash(self) -> str:
         clipping_geometry_hash_part = "noclip"
