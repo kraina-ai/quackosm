@@ -493,9 +493,11 @@ def _simplify_selected_extracts(
             extract_geometry = (
                 matching_extracts.loc[sorted_extracts_gdf["id"] == extract_id].iloc[0].geometry
             )
-            other_geometries = matching_extracts.loc[
-                sorted_extracts_gdf["id"] != extract_id
-            ].unary_union
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=FutureWarning)
+                other_geometries = matching_extracts.loc[
+                    sorted_extracts_gdf["id"] != extract_id
+                ].unary_union
             if extract_geometry.covered_by(other_geometries):
                 extract_to_remove = extract_id
                 simplify_again = True

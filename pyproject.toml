@@ -78,7 +78,6 @@ test = [
     "pytest-parametrization",
     "pytest-xdist",
     "pytest-doctestplus",
-    "pyogrio",
     "srai>=0.6.2",
 ]
 # pdm add -dG docs <library>

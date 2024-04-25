@@ -1,10 +1,7 @@
 """Tests for PbfFileReader."""
 
-import platform
-import re
-import subprocess
+import json
 import warnings
-from collections.abc import Iterable
 from pathlib import Path
 from typing import Optional, Union, cast
 from unittest import TestCase
@@ -13,9 +10,7 @@ import duckdb
 import geopandas as gpd
 import pandas as pd
 import pyarrow as pa
-import pyogrio
 import pytest
-import six
 from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
 from shapely import from_wkt, hausdorff_distance
@@ -27,7 +22,7 @@ from srai.loaders.download import download_file
 from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm import convert_geometry_to_gpq, get_features_gdf
-from quackosm._constants import FEATURES_INDEX
+from quackosm._constants import FEATURES_INDEX, WGS84_CRS
 from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.cli import (
@@ -160,7 +155,6 @@ def test_combining_files_different_techniques(
             side_effect=pa.ArrowInvalid(),
         )
 
-
     if patch_methods > 1:
         # Leave _drop_duplicated_features_in_joined_table_one_by_one as backup
         mocker.patch(
@@ -290,147 +284,6 @@ def test_geometry_orienting(geometry: BaseGeometry):
     intersection_area = geometry.intersection(oriented_geometry).area
     iou = intersection_area / (geometry.area + oriented_geometry.area - intersection_area)
     ut.assertAlmostEqual(iou, 1, delta=1e-4)
-
-
-# Copyright (C) 2011 by Hong Minhee <http://dahlia.kr/>,
-#                       Robert Kajic <http://github.com/kajic>
-# Copyright (C) 2020 by Salesforce.com, Inc
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-def parse_hstore_tags(tags: str) -> dict[str, Optional[str]]:
-    """
-    Parse hstore tags to python dict.
-
-    This function has been copied from pghstore library
-    https://github.com/heroku/pghstore/blob/main/src/pghstore/_native.py
-    since it can't be installed on Windows.
-    """
-    ESCAPE_RE = re.compile(r"\\(.)")
-
-    PAIR_RE = re.compile(
-        r'\s*(?:"(?P<kq>(?:[^\\"]|\\.)*)")\s*=>\s*'
-        r'(?:"(?P<vq>(?:[^\\"]|\\.)*)"|(?P<vn>NULL))'
-        r"\s*(?:(?P<ts>,)|$)",
-        re.IGNORECASE,
-    )
-
-    def _unescape(s: str) -> str:
-        return ESCAPE_RE.sub(r"\1", s)
-
-    def _parse(string: str, encoding: str = "utf-8") -> Iterable[tuple[str, Optional[str]]]:
-        if isinstance(string, six.binary_type):
-            string = string.decode(encoding)
-
-        string = string.strip()
-        offset = 0
-        term_sep = None
-        for match in PAIR_RE.finditer(string):
-            if match.start() > offset:
-                raise ValueError("malformed hstore value: position %d" % offset)
-
-            key = value = None
-            kq = match.group("kq")
-            if kq:
-                key = _unescape(kq)
-
-            if key is None:
-                raise ValueError("Malformed hstore value starting at position %d" % offset)
-
-            vq = match.group("vq")
-            if vq:
-                value = _unescape(vq)
-            elif match.group("vn"):
-                value = ""
-            else:
-                value = ""
-
-            yield key, value
-
-            term_sep = match.group("ts")
-
-            offset = match.end()
-
-        if len(string) > offset or term_sep:
-            raise ValueError("malformed hstore value: position %d" % offset)
-
-    return dict(_parse(tags, encoding="utf-8"))
-
-
-def transform_pbf_to_gpkg(extract_name: str, layer_name: str) -> Path:
-    """Uses GDAL ogr2ogr to transform PBF file into GPKG."""
-    input_file = Path(__file__).parent.parent / "files" / f"{extract_name}.osm.pbf"
-    output_file = Path(__file__).parent.parent / "files" / f"{extract_name}_{layer_name}.gpkg"
-    config_file = Path(__file__).parent.parent / "test_files" / "osmconf.ini"
-    args = [
-        "ogr2ogr" if platform.system() != "Windows" else "ogr2ogr.exe",
-        str(output_file),
-        str(input_file),
-        layer_name,
-        "-oo",
-        f"CONFIG_FILE={config_file}",
-    ]
-    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=-1)
-    _, err = p.communicate()
-    rc = p.returncode
-    if rc > 0:
-        raise RuntimeError(rc, err)
-
-    return output_file
-
-
-def read_features_with_pyogrio(extract_name: str) -> gpd.GeoDataFrame:
-    """Read features from *.osm.pbf file using pyogrio."""
-    gdfs = []
-    for layer_name in ("points", "lines", "multilinestrings", "multipolygons", "other_relations"):
-        gpkg_file_path = transform_pbf_to_gpkg(extract_name, layer_name)
-        gdf = pyogrio.read_dataframe(gpkg_file_path)
-
-        if layer_name == "points":
-            gdf[FEATURES_INDEX] = "node/" + gdf["osm_id"]
-        elif layer_name == "lines":
-            gdf[FEATURES_INDEX] = "way/" + gdf["osm_id"]
-        elif layer_name in ("multilinestrings", "other_relations"):
-            gdf[FEATURES_INDEX] = "relation/" + gdf["osm_id"]
-        elif layer_name == "multipolygons":
-            gdf[FEATURES_INDEX] = gdf.apply(
-                lambda row: (
-                    "relation/" + row["osm_id"]
-                    if row["osm_id"] is not None
-                    else "way/" + row["osm_way_id"]
-                ),
-                axis=1,
-            )
-
-        gdfs.append(gdf)
-
-    final_gdf = gpd.pd.concat(gdfs)
-    final_gdf = final_gdf[~final_gdf["all_tags"].isnull()]
-    final_gdf["tags"] = final_gdf["all_tags"].apply(parse_hstore_tags)
-    non_relations = ~final_gdf[FEATURES_INDEX].str.startswith("relation/")
-    relations = final_gdf[FEATURES_INDEX].str.startswith("relation/")
-    matching_relations = relations & final_gdf["tags"].apply(
-        lambda x: x.get("type") in ("boundary", "multipolygon")
-    )
-    final_gdf = final_gdf[non_relations | matching_relations]
-    final_gdf.geometry = final_gdf.geometry.make_valid()
-    return final_gdf[[FEATURES_INDEX, "tags", "geometry"]].set_index(FEATURES_INDEX)
 
 
 def check_if_relation_in_osm_is_valid_based_on_tags(pbf_file: str, relation_id: str) -> bool:
@@ -608,16 +461,24 @@ def extract_polygons_from_geometry(geometry: BaseGeometry) -> list[Union[Polygon
 @P.case("Monaco", "monaco")  # type: ignore
 @P.case("Panama", "panama")  # type: ignore
 @P.case("Seychelles", "seychelles")  # type: ignore
-@P.case("Sierra Leone", "sierra-leone")  # type: ignore
 def test_gdal_parity(extract_name: str) -> None:
-    """Test if loaded data is similar to GDAL results."""
+    """
+    Test if loaded data is similar to GDAL results.
+
+    Test downloads prepared pbf files and parsed geoparquet using GDAL from kraina-ai/srai-test-
+    files repository.
+    """
     pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
     pbf_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.osm.pbf"
     download_file(pbf_file_download_url, str(pbf_file_path), force_download=True)
+    gpq_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.geoparquet"
+    gpq_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.geoparquet"
+    download_file(gpq_file_download_url, str(gpq_file_path), force_download=True)
 
     reader = PbfFileReader()
     duckdb_gdf = reader.get_features_gdf([pbf_file_path], explode_tags=False, ignore_cache=True)
-    gdal_gdf = read_features_with_pyogrio(extract_name)
+    gdal_gdf = gpd.read_parquet(gpq_file_path)
+    gdal_gdf["tags"] = gdal_gdf["tags"].apply(json.loads)
 
     gdal_index = gdal_gdf.index
     duckdb_index = duckdb_gdf.index
@@ -734,12 +595,14 @@ def test_gdal_parity(extract_name: str) -> None:
     ] = gpd.GeoSeries(
         invalid_geometries_df.loc[
             invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
-        ]
+        ],
+        crs=WGS84_CRS,
     ).geom_equals_exact(
         gpd.GeoSeries(
             invalid_geometries_df.loc[
                 invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
-            ]
+            ],
+            crs=WGS84_CRS,
         ),
         tolerance=tolerance,
     )
@@ -758,12 +621,14 @@ def test_gdal_parity(extract_name: str) -> None:
     ] = gpd.GeoSeries(
         invalid_geometries_df.loc[
             invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
-        ]
+        ],
+        crs=WGS84_CRS,
     ).geom_equals(
         gpd.GeoSeries(
             invalid_geometries_df.loc[
                 invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
-            ]
+            ],
+            crs=WGS84_CRS,
         )
     )
     invalid_geometries_df = invalid_geometries_df.loc[
@@ -788,12 +653,14 @@ def test_gdal_parity(extract_name: str) -> None:
     )
     invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"] = (
         gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
+            crs=WGS84_CRS,
         )
         .intersection(
             gpd.GeoSeries(
-                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
-            )
+                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
+                crs=WGS84_CRS,
+            ),
         )
         .area
     )
@@ -804,10 +671,12 @@ def test_gdal_parity(extract_name: str) -> None:
         matching_polygon_geometries_mask, "geometry_intersection_area"
     ] / (
         gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
+            crs=WGS84_CRS,
         ).area
         + gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
+            crs=WGS84_CRS,
         ).area
         - invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
     )

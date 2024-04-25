@@ -26,60 +26,14 @@ jobs:
           uses: actions/setup-python@v4
           with:
             python-version: ${{ matrix.python-version }}
-        - name: Install GDAL (linux)
-          if: matrix.os == 'ubuntu-latest'
-          run: |
-            $CONDA/bin/conda install -c conda-forge gdal
-            $CONDA/bin/ogr2ogr --version
-        - name: Install GDAL (macos arm)
-          if: matrix.os == 'macos-latest'
-          run: |
-            CONDA=$HOME/miniconda
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
-            bash Miniconda3-latest-MacOSX-arm64.sh -b -p $CONDA
-            $CONDA/bin/conda install -c conda-forge gdal
-            $CONDA/bin/ogr2ogr --version
-        - name: Install GDAL (macos x86)
-          if: matrix.os == 'macos-13'
-          run: |
-            CONDA=$HOME/miniconda
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
-            bash Miniconda3-latest-MacOSX-x86_64.sh -b -p $CONDA
-            $CONDA/bin/conda install -c conda-forge gdal
-            $CONDA/bin/ogr2ogr --version
-        - name: Install GDAL (windows)
-          if: matrix.os == 'windows-latest'
-          run: |
-            & $env:CONDA\Scripts\conda.exe install -c conda-forge gdal
-            & $env:CONDA\Library\bin\ogr2ogr.exe --version
         - name: Install pdm
           run: pip install pdm
         - name: Generate lock with newest dependencies
           run: pdm lock --lockfile pdm.newest.lock --strategy no_cross_platform -dG:all
         - name: Install quackosm and tests dependencies
           run: pdm install --lockfile pdm.newest.lock -dG:all
-        - name: Run tests with pytest (linux)
-          if: matrix.os == 'ubuntu-latest'
+        - name: Run tests with pytest
           run: |
-            PATH=$CONDA/bin:$PATH
-            pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
-            pdm run pytest -v -s --durations=20 tests/base
-            pdm run pytest -v -s --durations=20 tests/optional_imports
-            pdm run pytest -v -s --durations=20 tests/benchmark
-        - name: Run tests with pytest (macos)
-          if: matrix.os == 'macos-latest' || matrix.os == 'macos-13'
-          run: |
-            CONDA=$HOME/miniconda
-            PATH=$CONDA/bin:$PATH
-            pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
-            pdm run pytest -v -s --durations=20 tests/base
-            pdm run pytest -v -s --durations=20 tests/optional_imports
-            pdm run pytest -v -s --durations=20 tests/benchmark
-        - name: Run tests with pytest (windows)
-          if: matrix.os == 'windows-latest'
-          run: |
-            $env:Path = "$env:CONDA\Library\bin;" + $env:Path
-            $env:PYTHONIOENCODING = "utf-8"
             pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
             pdm run pytest -v -s --durations=20 tests/base
             pdm run pytest -v -s --durations=20 tests/optional_imports
