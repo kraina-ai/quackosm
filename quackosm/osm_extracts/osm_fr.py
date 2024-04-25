@@ -14,6 +14,7 @@ import geopandas as gpd
 import requests
 from tqdm import tqdm
 
+from quackosm._constants import WGS84_CRS
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import OpenStreetMapExtract
 
@@ -68,7 +69,7 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
                 pbar.update()
         gdf = gpd.GeoDataFrame(
             data=[asdict(extract) for extract in extracts], geometry="geometry"
-        ).set_crs("EPSG:4326")
+        ).set_crs(WGS84_CRS)
         gdf["area"] = gdf.geometry.area
         gdf.sort_values(by="area", ignore_index=True, inplace=True)
 
