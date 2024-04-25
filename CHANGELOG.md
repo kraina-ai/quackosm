@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Simplified GDAL parity tests by precalculating result files and uploading them to additional repository
+
 ## [0.7.0] - 2024-04-24
 
 ### Added
