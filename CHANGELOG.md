@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored geometry fixing by utilizing `ST_MakeValid` function added in DuckDB `0.10.0` version
+
 ## [0.7.1] - 2024-04-25
 
 ### Changed
