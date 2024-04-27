@@ -1944,7 +1944,7 @@ class PbfFileReader:
                     GROUP BY id, ref_role
                 ) x
                 JOIN any_outer_refs aor ON aor.id = x.id
-                WHERE ST_NPoints(geom) >= 4
+                WHERE ST_NPoints(geom) >= 3
             ),
             valid_relations AS (
                 SELECT id, is_valid
@@ -1978,7 +1978,6 @@ class PbfFileReader:
         relation_inner_parts_parquet = self._save_parquet_file_with_geometry(
             relation=relation_inner_parts,
             file_path=self.tmp_dir_path / "relation_inner_parts",
-            fix_geometries=True,
             step_name="Saving relations inner parts",
         )
         relation_outer_parts = self.connection.sql(
@@ -1991,7 +1990,6 @@ class PbfFileReader:
         relation_outer_parts_parquet = self._save_parquet_file_with_geometry(
             relation=relation_outer_parts,
             file_path=self.tmp_dir_path / "relation_outer_parts",
-            fix_geometries=True,
             step_name="Saving relations outer parts",
         )
         relation_outer_parts_with_holes = self.connection.sql(
@@ -2062,113 +2060,22 @@ class PbfFileReader:
         file_path: Path,
         step_name: str,
         with_minor_step: bool = False,
-        fix_geometries: bool = False,
     ) -> "duckdb.DuckDBPyRelation":
-        if not fix_geometries:
-            with self.task_progress_tracker.get_spinner(step_name, with_minor_step=with_minor_step):
-                self.connection.sql(
-                    f"""
-                    COPY (
-                        SELECT
-                            * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb
-                        FROM ({relation.sql_query()})
-                    ) TO '{file_path}' (
-                        FORMAT 'parquet',
-                        PER_THREAD_OUTPUT true,
-                        ROW_GROUP_SIZE 25000,
-                        COMPRESSION '{self.parquet_compression}'
-                    )
-                    """
+        with self.task_progress_tracker.get_spinner(step_name, with_minor_step=with_minor_step):
+            self.connection.sql(
+                f"""
+                COPY (
+                    SELECT
+                        * EXCLUDE (geometry), ST_AsWKB(ST_MakeValid(geometry)) geometry_wkb
+                    FROM ({relation.sql_query()})
+                ) TO '{file_path}' (
+                    FORMAT 'parquet',
+                    PER_THREAD_OUTPUT true,
+                    ROW_GROUP_SIZE 25000,
+                    COMPRESSION '{self.parquet_compression}'
                 )
-        else:
-            valid_path = file_path / "valid"
-            invalid_path = file_path / "invalid"
-            fixed_path = file_path / "fixed"
-
-            valid_path.mkdir(parents=True, exist_ok=True)
-            invalid_path.mkdir(parents=True, exist_ok=True)
-            fixed_path.mkdir(parents=True, exist_ok=True)
-
-            # Save valid features
-            with self.task_progress_tracker.get_spinner(
-                f"{step_name} - valid geometries", with_minor_step=True
-            ):
-                self.connection.sql(
-                    f"""
-                    COPY (
-                        SELECT
-                            * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb
-                        FROM ({relation.sql_query()})
-                        WHERE ST_IsValid(geometry)
-                    ) TO '{valid_path}' (
-                        FORMAT 'parquet',
-                        PER_THREAD_OUTPUT true,
-                        ROW_GROUP_SIZE 25000,
-                        COMPRESSION '{self.parquet_compression}'
-                    )
-                    """
-                )
-
-            # Save invalid features
-            with self.task_progress_tracker.get_spinner(
-                f"{step_name} - invalid geometries", next_step="minor"
-            ):
-                self.connection.sql(
-                    f"""
-                    COPY (
-                        SELECT
-                            * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb,
-                            floor(
-                                row_number() OVER () / {self.rows_per_group}
-                            )::INTEGER as "group",
-                        FROM ({relation.sql_query()})
-                        WHERE NOT ST_IsValid(geometry)
-                    ) TO '{invalid_path}' (
-                        FORMAT 'parquet',
-                        PARTITION_BY ("group"),
-                        ROW_GROUP_SIZE 25000,
-                        COMPRESSION '{self.parquet_compression}'
-                    )
-                    """
-                )
-
-            # Fix invalid features
-            total_groups = 0
-            while (invalid_path / f"group={total_groups}").exists():
-                total_groups += 1
-
-            if total_groups > 0:
-                with self.task_progress_tracker.get_bar(
-                    f"{step_name} - fixing invalid geometries", next_step="minor"
-                ) as bar:
-                    for group_id in bar.track(range(total_groups)):
-                        current_invalid_features_group_path = invalid_path / f"group={group_id}"
-                        current_invalid_features_group_table = pq.read_table(
-                            current_invalid_features_group_path
-                        ).drop("group")
-                        valid_geometry_column = ga.as_wkb(
-                            ga.to_geopandas(
-                                ga.with_crs(
-                                    current_invalid_features_group_table.column("geometry_wkb"),
-                                    WGS84_CRS,
-                                )
-                            ).make_valid(),
-                        )
-                        current_invalid_features_group_table = (
-                            current_invalid_features_group_table.drop("geometry_wkb")
-                        )
-
-                        current_invalid_features_group_table = (
-                            current_invalid_features_group_table.append_column(
-                                "geometry_wkb", valid_geometry_column
-                            )
-                        )
-                        pq.write_table(
-                            current_invalid_features_group_table,
-                            fixed_path / f"data_{group_id}.parquet",
-                        )
-
-            self._delete_directories(invalid_path)
+                """
+            )
 
         return self.connection.sql(
             f"""
@@ -2204,149 +2111,67 @@ class PbfFileReader:
             unioned_features, keep_all_tags=keep_all_tags, explode_tags=explode_tags
         )
 
-        valid_features_full_relation = self.connection.sql(
+        features_full_relation = self.connection.sql(
             f"""
-            SELECT * FROM ({grouped_features.sql_query()})
-            WHERE ST_IsValid(geometry)
+            SELECT
+                * EXCLUDE (geometry),
+                ST_MakeValid(geometry) geometry
+            FROM ({grouped_features.sql_query()})
             """
         )
 
-        valid_features_parquet_path = self.tmp_dir_path / "osm_valid_elements"
-        valid_features_parquet_relation = self._save_parquet_file_with_geometry(
-            valid_features_full_relation,
-            valid_features_parquet_path,
-            step_name="Saving valid features",
-            with_minor_step=True,
+        features_parquet_path = self.tmp_dir_path / "osm_valid_elements"
+        self._save_parquet_file_with_geometry(
+            features_full_relation,
+            features_parquet_path,
+            step_name="Saving all features",
         )
 
-        valid_features_parquet_table = pq.read_table(valid_features_parquet_path)
+        features_parquet_table = pq.read_table(features_parquet_path)
 
-        is_empty = valid_features_parquet_table.num_rows == 0
+        is_empty = features_parquet_table.num_rows == 0
 
         if not is_empty and save_as_wkt:
             geometry_column = ga.as_wkt(
-                ga.with_crs(valid_features_parquet_table.column("geometry_wkb"), WGS84_CRS)
+                ga.with_crs(features_parquet_table.column("geometry_wkb"), WGS84_CRS)
             )
         elif not is_empty:
             geometry_column = ga.as_wkb(
-                ga.with_crs(valid_features_parquet_table.column("geometry_wkb"), WGS84_CRS)
+                ga.with_crs(features_parquet_table.column("geometry_wkb"), WGS84_CRS)
             )
         elif save_as_wkt:
             geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
         else:
             geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
 
-        valid_features_parquet_table = valid_features_parquet_table.append_column(
+        features_parquet_table = features_parquet_table.append_column(
             GEOMETRY_COLUMN, geometry_column
         ).drop("geometry_wkb")
 
-        parquet_tables = [valid_features_parquet_table]
-
-        invalid_features_full_relation = self.connection.sql(
-            f"""
-            SELECT * FROM ({grouped_features.sql_query()}) a
-            ANTI JOIN ({valid_features_parquet_relation.sql_query()}) b
-            ON a.feature_id = b.feature_id
-            """
-        )
-
-        total_features = parsed_geometries.count("feature_id").fetchone()[0]
-
-        valid_features = valid_features_parquet_relation.count("feature_id").fetchone()[0]
-
-        invalid_features = total_features - valid_features
-
-        if invalid_features > 0:
-            with self.task_progress_tracker.get_spinner(
-                "Grouping invalid features", next_step="minor"
-            ):
-                groups = floor(invalid_features / self.rows_per_group)
-                grouped_invalid_features_result_parquet = (
-                    self.tmp_dir_path / "osm_invalid_elements_grouped"
-                )
-                self.connection.sql(
-                    f"""
-                    COPY (
-                        SELECT
-                            * EXCLUDE (geometry), ST_AsWKB(geometry) geometry_wkb,
-                            floor(
-                                row_number() OVER () / {self.rows_per_group}
-                            )::INTEGER as "group",
-                        FROM ({invalid_features_full_relation.sql_query()})
-                    ) TO '{grouped_invalid_features_result_parquet}' (
-                        FORMAT 'parquet',
-                        PARTITION_BY ("group"),
-                        ROW_GROUP_SIZE 25000,
-                        COMPRESSION '{self.parquet_compression}'
-                    )
-                    """
-                )
-
-            with self.task_progress_tracker.get_bar(
-                "Fixing invalid features", next_step="minor"
-            ) as bar:
-                for group in bar.track(range(groups + 1)):
-                    current_invalid_features_group_path = (
-                        grouped_invalid_features_result_parquet / f"group={group}"
-                    )
-                    current_invalid_features_group_table = pq.read_table(
-                        current_invalid_features_group_path
-                    ).drop("group")
-                    if save_as_wkt:
-                        valid_geometry_column = ga.as_wkt(
-                            ga.to_geopandas(
-                                ga.with_crs(
-                                    current_invalid_features_group_table.column("geometry_wkb"),
-                                    WGS84_CRS,
-                                )
-                            ).make_valid()
-                        )
-                    else:
-                        valid_geometry_column = ga.as_wkb(
-                            ga.to_geopandas(
-                                ga.with_crs(
-                                    current_invalid_features_group_table.column("geometry_wkb"),
-                                    WGS84_CRS,
-                                )
-                            ).make_valid()
-                        )
-
-                    current_invalid_features_group_table = (
-                        current_invalid_features_group_table.append_column(
-                            GEOMETRY_COLUMN, valid_geometry_column
-                        )
-                    )
-                    current_invalid_features_group_table = (
-                        current_invalid_features_group_table.drop("geometry_wkb")
-                    )
-                    parquet_tables.append(current_invalid_features_group_table)
-
-        joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables)
-
-        is_empty = joined_parquet_table.num_rows == 0
+        is_empty = features_parquet_table.num_rows == 0
 
         empty_columns = []
-        for column_name in joined_parquet_table.column_names:
+        for column_name in features_parquet_table.column_names:
             if column_name in (FEATURES_INDEX, GEOMETRY_COLUMN):
                 continue
             if (
                 is_empty
                 or pa.compute.all(
-                    pa.compute.is_null(joined_parquet_table.column(column_name))
+                    pa.compute.is_null(features_parquet_table.column(column_name))
                 ).as_py()
             ):
                 empty_columns.append(column_name)
 
         if empty_columns:
-            joined_parquet_table = joined_parquet_table.drop(empty_columns)
+            features_parquet_table = features_parquet_table.drop(empty_columns)
 
         if save_as_wkt:
             with self.task_progress_tracker.get_spinner("Saving final parquet file"):
-                pq.write_table(joined_parquet_table, save_file_path)
+                pq.write_table(features_parquet_table, save_file_path)
         else:
             with self.task_progress_tracker.get_spinner("Saving final geoparquet file"):
                 io.write_geoparquet_table(
-                    joined_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
+                    features_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
                 )
 
     def _generate_osm_tags_sql_select(
