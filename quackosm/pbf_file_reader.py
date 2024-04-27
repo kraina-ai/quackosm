@@ -1864,7 +1864,7 @@ class PbfFileReader:
                         -- if first and last nodes are the same
                         ST_Equals(linestring[1]::POINT_2D, linestring[-1]::POINT_2D)
                         -- if linestring has at least 3 points
-                        AND len(linestring) >= 4
+                        AND len(linestring) >= 3
                         -- if the element doesn't have any tags leave it as a Linestring
                         AND raw_tags IS NOT NULL
                         -- if the element is specifically tagged 'area':'no' -> LineString
