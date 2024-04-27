@@ -1864,7 +1864,7 @@ class PbfFileReader:
                         -- if first and last nodes are the same
                         ST_Equals(linestring[1]::POINT_2D, linestring[-1]::POINT_2D)
                         -- if linestring has at least 3 points
-                        AND len(linestring) >= 3
+                        AND len(linestring) >= 4
                         -- if the element doesn't have any tags leave it as a Linestring
                         AND raw_tags IS NOT NULL
                         -- if the element is specifically tagged 'area':'no' -> LineString
@@ -1944,7 +1944,7 @@ class PbfFileReader:
                     GROUP BY id, ref_role
                 ) x
                 JOIN any_outer_refs aor ON aor.id = x.id
-                WHERE ST_NPoints(geom) >= 3
+                WHERE ST_NPoints(geom) >= 4
             ),
             valid_relations AS (
                 SELECT id, is_valid
