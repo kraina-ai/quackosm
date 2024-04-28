@@ -13,7 +13,7 @@ LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files
 def add_pbf_files(doctest_namespace):  # type: ignore
     """Download PBF files used in doctests."""
     extracts = ["monaco", "kiribati", "maldives"]
-    download_directory = Path(__file__).parent / "files"
+    download_directory = Path("files")
     download_directory.mkdir(parents=True, exist_ok=True)
     for extract_name in extracts:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
