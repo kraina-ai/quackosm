@@ -3,23 +3,53 @@
 import sys
 import urllib.request
 from pathlib import Path
+from typing import Any, Union
 
 import pytest
+from pooch import retrieve
 
 LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files/"
 
+EXTRACTS_NAMES = ["monaco", "kiribati", "maldives"]
+
+
+def _retrieve_mock( # type: ignore
+    url,
+    known_hash,
+    fname=None,
+    path=None,
+    processor=None,
+    downloader=None,
+    progressbar=False,
+) -> Union[Path, str, Any]:
+    print("mocked pooch function", url)
+    for extract_name in EXTRACTS_NAMES:
+        if url == f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf":
+            return Path(__file__).parent / "files" / f"{extract_name}.osm.pbf"
+
+    return retrieve(
+        url=url,
+        known_hash=known_hash,
+        fname=fname,
+        path=path,
+        processor=processor,
+        downloader=downloader,
+        progressbar=progressbar,
+    )
+
 
 @pytest.fixture(autouse=True)
-def add_pbf_files(doctest_namespace):  # type: ignore
+def add_pbf_files(doctest_namespace, mocker):  # type: ignore
     """Download PBF files used in doctests."""
-    extracts = ["monaco", "kiribati", "maldives"]
-    download_directory = Path("files")
+    download_directory = Path(__file__).parent / "files"
     download_directory.mkdir(parents=True, exist_ok=True)
-    for extract_name in extracts:
+    for extract_name in EXTRACTS_NAMES:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
         pbf_file_path = download_directory / f"{extract_name}.osm.pbf"
         urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
+
+    mocker.patch("pooch.retrieve", new=_retrieve_mock)
 
 
 @pytest.fixture  # type: ignore
