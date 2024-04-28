@@ -15,7 +15,7 @@ EXTRACTS_NAMES = ["monaco", "kiribati", "maldives"]
 @pytest.fixture(autouse=True)
 def add_pbf_files(doctest_namespace):  # type: ignore
     """Download PBF files used in doctests."""
-    download_directory = Path(__file__).parent / "files"
+    download_directory = Path("files")
     download_directory.mkdir(parents=True, exist_ok=True)
     for extract_name in EXTRACTS_NAMES:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
