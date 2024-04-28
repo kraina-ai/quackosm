@@ -359,7 +359,7 @@ def convert_geometry_to_gpq(
         │ way/952419572    │ {highway=primary, …  │ LINESTRING (7.4173054 43.7316813, 7.417276…  │
         │ way/952419573    │ {highway=primary, …  │ LINESTRING (7.4173897 43.7316435, 7.417372…  │
         ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
-        │ 1388 rows (20 shown)                                                                   │
+        │ 1384 rows (20 shown)                                                                   │
         └────────────────────────────────────────────────────────────────────────────────────────┘
 
         Making sure that you are using specific OSM extract source - here Geofabrik.
@@ -403,7 +403,7 @@ def convert_geometry_to_gpq(
         │ way/952419572    │ {highway=primary, …  │ LINESTRING (7.4173054 43.7316813, 7.417276…  │
         │ way/952419573    │ {highway=primary, …  │ LINESTRING (7.4173897 43.7316435, 7.417372…  │
         ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
-        │ 1388 rows (20 shown)                                                                   │
+        │ 1384 rows (20 shown)                                                                   │
         └────────────────────────────────────────────────────────────────────────────────────────┘
     """
     return PbfFileReader(
@@ -696,7 +696,7 @@ def get_features_gdf_from_geometry(
         way/952419572     {'highway': 'primary', 'j...  LINESTRING (7.41731 43.73168, 7.41728 43....
         way/952419573     {'highway': 'primary', 'j...  LINESTRING (7.41739 43.73164, 7.41737 43....
         <BLANKLINE>
-        [1388 rows x 2 columns]
+        [1384 rows x 2 columns]
 
         Making sure that you are using specific OSM extract source - here Geofabrik.
 
@@ -718,7 +718,7 @@ def get_features_gdf_from_geometry(
         way/952419572     {'highway': 'primary', 'j...   LINESTRING (7.41731 43.73168, 7.41728 43...
         way/952419573     {'highway': 'primary', 'j...   LINESTRING (7.41739 43.73164, 7.41737 43...
         <BLANKLINE>
-        [1388 rows x 2 columns]
+        [1384 rows x 2 columns]
     """
     return PbfFileReader(
         tags_filter=tags_filter,
