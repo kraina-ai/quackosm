@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2024-04-28
+
 ### Changed
 
 - Refactored geometry fixing by utilizing `ST_MakeValid` function added in DuckDB `0.10.0` version
@@ -224,7 +226,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.7.2...HEAD
+
+[0.7.2]: https://github.com/kraina-ai/quackosm/compare/0.7.1...0.7.2
 
 [0.7.1]: https://github.com/kraina-ai/quackosm/compare/0.7.0...0.7.1
 
