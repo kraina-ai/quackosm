@@ -20,7 +20,7 @@ def add_pbf_files(doctest_namespace):  # type: ignore
     for extract_name in EXTRACTS_NAMES:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
         pbf_file_path = download_directory / f"{extract_name}.osm.pbf"
-        geofabrik_pbf_file_path = Path("files") / f"Geofabrik_{extract_name}.osm.pbf"
+        geofabrik_pbf_file_path = download_directory / f"Geofabrik_{extract_name}.osm.pbf"
         urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
