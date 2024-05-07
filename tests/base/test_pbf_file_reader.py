@@ -161,7 +161,7 @@ def test_antwerpen_and_brussels_invalid_linear_ring() -> None:
 def test_combining_files_different_techniques(
     mocker: MockerFixture, operation_mode: str, patch_methods: int
 ) -> None:
-    """Test if all files merging techniques work as expected."""
+    """Test if all files merging techniques work as expected in debug mode."""
     if patch_methods > 0:
         # Leave _drop_duplicated_features_in_joined_table as backup
         mocker.patch(
@@ -185,7 +185,7 @@ def test_combining_files_different_techniques(
             ],
             ignore_cache=True,
         )
-        single_result_gdf = PbfFileReader().get_features_gdf(
+        single_result_gdf = PbfFileReader(debug=True).get_features_gdf(
             file_paths=[monaco_file_path], ignore_cache=True
         )
 

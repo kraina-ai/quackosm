@@ -110,6 +110,7 @@ class PbfFileReader:
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
         allow_uncovered_geometry: bool = False,
+        debug: bool = False,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -133,7 +134,7 @@ class PbfFileReader:
                 Config used to determine which closed way features are polygons.
                 Modifications to this config left are left for experienced OSM users.
                 Defaults to predefined "osm_way_polygon_features.json".
-            parquet_compression (str): Compression of intermediate parquet files.
+            parquet_compression (str, optional): Compression of intermediate parquet files.
                 Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
                 Defaults to "snappy".
             osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
@@ -143,8 +144,10 @@ class PbfFileReader:
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.
                 Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-            allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't
-                covered by any OSM extract. Defaults to `False`.
+            allow_uncovered_geometry (bool, optional): Suppress an error if some geometry parts
+                aren't covered by any OSM extract. Defaults to `False`.
+            debug (bool, optional): If turned on, will keep all temporary files after operation
+                for debugging. Defaults to `False`.
 
         Raises:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
@@ -168,6 +171,7 @@ class PbfFileReader:
         self.connection: duckdb.DuckDBPyConnection = None
         self.encountered_query_exception = False
         self.verbosity_mode = verbosity_mode
+        self.debug = debug
         self.task_progress_tracker: TaskProgressTracker = None
 
         self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
@@ -248,6 +252,10 @@ class PbfFileReader:
 
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
+
+            if self.debug:
+                self.tmp_dir_path = self._prepare_debug_directory()
+
             try:
                 self.encountered_query_exception = False
                 self.connection = _set_up_duckdb_connection(tmp_dir_path=self.tmp_dir_path)
@@ -382,6 +390,9 @@ class PbfFileReader:
                     with tempfile.TemporaryDirectory(
                         dir=self.working_directory.resolve()
                     ) as tmp_dir_name:
+                        if self.debug:
+                            tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
+
                         try:
                             joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
                                 parsed_geoparquet_files
@@ -492,6 +503,9 @@ class PbfFileReader:
 
         if parsed_geoparquet_files:
             with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
+                if self.debug:
+                    tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
+
                 try:
                     joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
                         parsed_geoparquet_files
@@ -620,6 +634,8 @@ class PbfFileReader:
                     COMPRESSION '{self.parquet_compression}'
                 )
             """
+            if self.debug:
+                log_message(f"Saved to directory: {output_file_name}")
             self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
             return pq.read_table(output_file_name)
 
@@ -655,6 +671,8 @@ class PbfFileReader:
                         COMPRESSION '{self.parquet_compression}'
                     )
                 """
+                if self.debug:
+                    log_message(f"Saved to directory: {filtered_result_parquet_file}")
                 connection.sql(query)
                 result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
         return pq.read_table(result_parquet_files)
@@ -1282,7 +1300,12 @@ class PbfFileReader:
             relations_filtered_ids=relations_filtered_ids,
         )
 
-    def _delete_directories(self, directories: Union[str, Path, list[Union[str, Path]]]) -> None:
+    def _delete_directories(
+        self, directories: Union[str, Path, list[Union[str, Path]]], override_debug: bool = False
+    ) -> None:
+        if self.debug and not override_debug:
+            return
+
         _directories = []
         if isinstance(directories, (str, Path)):
             _directories = [directories]
@@ -1303,6 +1326,14 @@ class PbfFileReader:
                     sleep(0.5)
                 finally:
                     tries -= 1
+
+    def _prepare_debug_directory(self) -> Path:
+        if self.debug:
+            dir_path = Path(self.working_directory) / "debug" / secrets.token_hex(16)
+            self._delete_directories(dir_path, override_debug=True)
+            dir_path.mkdir(exist_ok=True, parents=True)
+            return dir_path
+        raise RuntimeError("Cannot prepare debug directory when debug mode is not activated.")
 
     def _generate_osm_tags_sql_filter(self) -> str:
         """Prepare features filter clauses based on tags filter."""
@@ -1422,6 +1453,8 @@ class PbfFileReader:
             )
         """
         self._run_query(query, run_in_separate_process)
+        if self.debug:
+            log_message(f"Saved to directory: {file_path}")
         return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
     def _run_query(
@@ -1483,6 +1516,8 @@ class PbfFileReader:
             )
             """
         )
+        if self.debug:
+            log_message(f"Saved to directory: {result_path}")
 
         return self.connection.sql(f"SELECT * FROM read_parquet('{result_path}/**')")
 
@@ -1775,6 +1810,8 @@ class PbfFileReader:
                 )
                 """
             )
+            if self.debug:
+                log_message(f"Saved to directory: {grouped_ways_path}")
 
         return groups
 
@@ -1815,6 +1852,8 @@ class PbfFileReader:
                     self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                 ),
             )
+            if self.debug:
+                log_message(f"Saved to directory: {current_destination_path}")
 
             self._delete_directories(current_ways_group_path)
 
@@ -1884,8 +1923,8 @@ class PbfFileReader:
                     tags,
                     (CASE
                         WHEN is_polygon
-                        THEN linestring_to_polygon_wkt(linestring)
-                        ELSE linestring_to_linestring_wkt(linestring)
+                        THEN linestring_to_polygon_geometry(linestring)
+                        ELSE linestring_to_linestring_geometry(linestring)
                     END)::GEOMETRY AS geometry
                 FROM
                     required_ways_with_linestrings w
@@ -1913,7 +1952,7 @@ class PbfFileReader:
                     r.id,
                     COALESCE(r.ref_role, 'outer') as ref_role,
                     r.ref,
-                    linestring_to_linestring_wkt(w.linestring)::GEOMETRY as geometry
+                    linestring_to_linestring_geometry(w.linestring)::GEOMETRY as geometry
                 FROM ({osm_parquet_files.relations_with_unnested_way_refs.sql_query()}) r
                 SEMI JOIN ({osm_parquet_files.relations_filtered_ids.sql_query()}) fr
                 ON r.id = fr.id
@@ -2076,6 +2115,8 @@ class PbfFileReader:
                 )
                 """
             )
+            if self.debug:
+                log_message(f"Saved to directory: {file_path}")
 
         return self.connection.sql(
             f"""
@@ -2438,18 +2479,14 @@ def _set_up_duckdb_connection(
         connection.install_extension(extension_name)
         connection.load_extension(extension_name)
 
-    connection.sql(
-        """
-        CREATE OR REPLACE MACRO linestring_to_linestring_wkt(ls) AS
-        'LINESTRING (' || array_to_string([pt.x || ' ' || pt.y for pt in ls], ', ') || ')';
-        """
-    )
-    connection.sql(
-        """
-        CREATE OR REPLACE MACRO linestring_to_polygon_wkt(ls) AS
-        'POLYGON ((' || array_to_string([pt.x || ' ' || pt.y for pt in ls], ', ') || '))';
-        """
-    )
+    connection.sql("""
+        CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
+        ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D::GEOMETRY;
+    """)
+    connection.sql("""
+        CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
+        [ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]]::POLYGON_2D::GEOMETRY;
+    """)
 
     return connection
 
