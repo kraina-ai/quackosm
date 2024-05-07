@@ -4,9 +4,25 @@
 import os
 import time
 from collections.abc import Iterable
-from contextlib import suppress
 from datetime import timedelta
-from typing import Any, Literal, Optional
+from types import TracebackType
+from typing import Any, Literal, Optional, Union
+
+from rich import print as rprint
+from rich.progress import (
+    BarColumn,
+    Console,
+    Live,
+    MofNCompleteColumn,
+    Progress,
+    ProgressColumn,
+    SpinnerColumn,
+    Task,
+    Text,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
@@ -14,20 +30,49 @@ TOTAL_STEPS = 32
 
 
 def log_message(message: str) -> None:
-    try:  # pragma: no cover
-        from rich import print as rprint
-
-        rprint(message)
-    except ImportError:
-        print(message)
+    rprint(message)
 
 
 def show_total_elapsed_time(elapsed_seconds: float) -> None:
-    with suppress(ImportError):  # pragma: no cover
-        from rich import print as rprint
+    elapsed_time_formatted = str(timedelta(seconds=int(elapsed_seconds)))
+    rprint(f"Finished operation in [progress.elapsed]{elapsed_time_formatted}")
 
-        elapsed_time_formatted = str(timedelta(seconds=int(elapsed_seconds)))
-        rprint(f"Finished operation in [progress.elapsed]{elapsed_time_formatted}")
+
+class SpeedColumn(ProgressColumn):
+    def render(self, task: "Task") -> Text:
+        if task.speed is None:
+            return Text("")
+        elif task.speed >= 1:
+            return Text(f"{task.speed:.2f} it/s")
+        else:
+            return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
+
+
+class TransientProgress(Progress):
+    def __init__(self, *columns: Union[str, ProgressColumn], live_obj: Live, **kwargs) -> None:
+        super().__init__(*columns, **kwargs)
+        self.live = live_obj
+        self.live._get_renderable = self.get_renderable
+
+    def start(self) -> None:
+        if not self.live.transient:
+            super().start()
+
+    def stop(self) -> None:
+        if not self.live.transient:
+            super().stop()
+
+    def __enter__(self) -> Progress:
+        self.start()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        self.stop()
 
 
 class TaskProgressSpinner:
@@ -51,34 +96,28 @@ class TaskProgressSpinner:
         self.live_obj = live_obj
 
     def __enter__(self):
-        try:  # pragma: no cover
-            if self.silent_mode:
-                self.progress = None
-            else:
-                from rich.progress import SpinnerColumn, TextColumn, TimeElapsedColumn
-
-                columns = [
-                    SpinnerColumn(),
-                    TextColumn(self.step_number),
-                    TextColumn("[progress.description]{task.description}"),
-                    TextColumn("•"),
-                    TimeElapsedColumn(),
-                ]
-
-                if self.skip_step_number:
-                    columns.pop(1)
-
-                self.progress = self.progress_cls(
-                    *columns,
-                    live_obj=self.live_obj,
-                    transient=self.transient_mode,
-                )
-
-                self.progress.__enter__()
-                self.progress.add_task(description=self.step_name, total=None)
-
-        except ImportError:
+        if self.silent_mode:
             self.progress = None
+        else:
+            columns = [
+                SpinnerColumn(),
+                TextColumn(self.step_number),
+                TextColumn("[progress.description]{task.description}"),
+                TextColumn("•"),
+                TimeElapsedColumn(),
+            ]
+
+            if self.skip_step_number:
+                columns.pop(1)
+
+            self.progress = self.progress_cls(
+                *columns,
+                live_obj=self.live_obj,
+                transient=self.transient_mode,
+            )
+
+            self.progress.__enter__()
+            self.progress.add_task(description=self.step_name, total=None)
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         if self.progress:
@@ -108,62 +147,38 @@ class TaskProgressBar:
         self.live_obj = live_obj
 
     def __enter__(self):
-        try:  # pragma: no cover
-            if self.silent_mode:
-                self.progress = None
-            else:
-                from rich.progress import (
-                    BarColumn,
-                    MofNCompleteColumn,
-                    ProgressColumn,
-                    SpinnerColumn,
-                    Task,
-                    Text,
-                    TextColumn,
-                    TimeElapsedColumn,
-                    TimeRemainingColumn,
-                )
-
-                class SpeedColumn(ProgressColumn):
-                    def render(self, task: "Task") -> Text:
-                        if task.speed is None:
-                            return Text("")
-                        elif task.speed >= 1:
-                            return Text(f"{task.speed:.2f} it/s")
-                        else:
-                            return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
-
-                columns = [
-                    SpinnerColumn(),
-                    TextColumn(self.step_number),
-                    TextColumn(
-                        "[progress.description]{task.description}"
-                        " [progress.percentage]{task.percentage:>3.0f}%"
-                    ),
-                    BarColumn(),
-                    MofNCompleteColumn(),
-                    TextColumn("•"),
-                    TimeElapsedColumn(),
-                    TextColumn("<"),
-                    TimeRemainingColumn(),
-                    TextColumn("•"),
-                    SpeedColumn(),
-                ]
-
-                if self.skip_step_number:
-                    columns.pop(1)
-
-                self.progress = self.progress_cls(
-                    *columns,
-                    live_obj=self.live_obj,
-                    transient=self.transient_mode,
-                    speed_estimate_period=1800,
-                )
-
-                self.progress.__enter__()
-
-        except ImportError:
+        if self.silent_mode:
             self.progress = None
+        else:
+
+            columns = [
+                SpinnerColumn(),
+                TextColumn(self.step_number),
+                TextColumn(
+                    "[progress.description]{task.description}"
+                    " [progress.percentage]{task.percentage:>3.0f}%"
+                ),
+                BarColumn(),
+                MofNCompleteColumn(),
+                TextColumn("•"),
+                TimeElapsedColumn(),
+                TextColumn("<"),
+                TimeRemainingColumn(),
+                TextColumn("•"),
+                SpeedColumn(),
+            ]
+
+            if self.skip_step_number:
+                columns.pop(1)
+
+            self.progress = self.progress_cls(
+                *columns,
+                live_obj=self.live_obj,
+                transient=self.transient_mode,
+                speed_estimate_period=1800,
+            )
+
+            self.progress.__enter__()
 
         return self
 
@@ -205,48 +220,14 @@ class TaskProgressTracker:
             self.major_steps_prefix = ""
 
         if not self.verbosity_mode == "silent":
-            with suppress(ImportError):  # pragma: no cover
-                from types import TracebackType
-                from typing import Union
+            self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
 
-                from rich.progress import Console, Live, Progress, ProgressColumn
-
-                self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
-
-                class TransientProgress(Progress):
-                    def __init__(
-                        self, *columns: Union[str, ProgressColumn], live_obj: Live, **kwargs
-                    ) -> None:
-                        super().__init__(*columns, **kwargs)
-                        self.live = live_obj
-                        self.live._get_renderable = self.get_renderable
-
-                    def start(self) -> None:
-                        if not self.live.transient:
-                            super().start()
-
-                    def stop(self) -> None:
-                        if not self.live.transient:
-                            super().stop()
-
-                    def __enter__(self) -> Progress:
-                        self.start()
-                        return self
-
-                    def __exit__(
-                        self,
-                        exc_type: Optional[type[BaseException]],
-                        exc_val: Optional[BaseException],
-                        exc_tb: Optional[TracebackType],
-                    ) -> None:
-                        self.stop()
-
-                self.console = Console(
-                    force_interactive=False if self.force_terminal else None,
-                    force_jupyter=False if self.force_terminal else None,
-                    force_terminal=True if self.force_terminal else None,
-                )
-                self.transient_progress_cls = TransientProgress
+            self.console = Console(
+                force_interactive=False if self.force_terminal else None,
+                force_jupyter=False if self.force_terminal else None,
+                force_terminal=True if self.force_terminal else None,
+            )
+            self.transient_progress_cls = TransientProgress
 
             self.start_time = time.time()
 
@@ -280,20 +261,16 @@ class TaskProgressTracker:
     def _check_live_obj(self):
         if self.verbosity_mode == "silent":
             return
-
-        with suppress(ImportError):  # pragma: no cover
-            if not self.live or not self.live._started:
-                from rich.progress import Live
-
-                self.live = Live(
-                    console=self.console,
-                    auto_refresh=True,
-                    refresh_per_second=1,
-                    transient=self.verbosity_mode == "transient",
-                    redirect_stdout=True,
-                    redirect_stderr=True,
-                )
-                self.live.start(refresh=True)
+        if not self.live or not self.live._started:
+            self.live = Live(
+                console=self.console,
+                auto_refresh=True,
+                refresh_per_second=1,
+                transient=self.verbosity_mode == "transient",
+                redirect_stdout=True,
+                redirect_stderr=True,
+            )
+            self.live.start(refresh=True)
 
     def get_spinner(
         self,

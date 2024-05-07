@@ -13,7 +13,6 @@ def optional_packages() -> list[str]:
     return [
         "typer",
         "click",
-        "rich",
         "osmnx",
         "h3",
         "h3ronpy",
