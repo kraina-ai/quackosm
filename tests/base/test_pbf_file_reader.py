@@ -57,17 +57,15 @@ LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files
 @pytest.mark.parametrize("explode_tags", [None, True, False])  # type: ignore
 @pytest.mark.parametrize("keep_all_tags", [True, False])  # type: ignore
 @pytest.mark.parametrize("save_as_wkt", [True, False])  # type: ignore
-@pytest.mark.parametrize("debug", [True, False])  # type: ignore
 def test_pbf_to_geoparquet_parsing(
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]],
     explode_tags: Optional[bool],
     keep_all_tags: bool,
     save_as_wkt: bool,
-    debug: bool,
 ):
     """Test if pbf to geoparquet conversion works."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    PbfFileReader(tags_filter=tags_filter, debug=debug).convert_pbf_to_gpq(
+    PbfFileReader(tags_filter=tags_filter).convert_pbf_to_gpq(
         pbf_path=pbf_file,
         ignore_cache=True,
         explode_tags=explode_tags,
@@ -163,7 +161,7 @@ def test_antwerpen_and_brussels_invalid_linear_ring() -> None:
 def test_combining_files_different_techniques(
     mocker: MockerFixture, operation_mode: str, patch_methods: int
 ) -> None:
-    """Test if all files merging techniques work as expected."""
+    """Test if all files merging techniques work as expected in debug mode."""
     if patch_methods > 0:
         # Leave _drop_duplicated_features_in_joined_table as backup
         mocker.patch(
@@ -187,7 +185,7 @@ def test_combining_files_different_techniques(
             ],
             ignore_cache=True,
         )
-        single_result_gdf = PbfFileReader().get_features_gdf(
+        single_result_gdf = PbfFileReader(debug=True).get_features_gdf(
             file_paths=[monaco_file_path], ignore_cache=True
         )
 
