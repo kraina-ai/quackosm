@@ -2481,15 +2481,11 @@ def _set_up_duckdb_connection(
 
     connection.sql("""
         CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
-        [
-            struct_pack(x := pt.x::DECIMAL(10, 7), y := pt.y::DECIMAL(10, 7)) for pt in ls
-        ]::LINESTRING_2D::GEOMETRY;
+        ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D::GEOMETRY;
     """)
     connection.sql("""
         CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
-        [[
-            struct_pack(x := pt.x::DECIMAL(10, 7), y := pt.y::DECIMAL(10, 7)) for pt in ls
-        ]]::POLYGON_2D::GEOMETRY;
+        [ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]]::POLYGON_2D::GEOMETRY;
     """)
 
     return connection
