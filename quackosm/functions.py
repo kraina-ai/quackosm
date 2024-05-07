@@ -91,7 +91,7 @@ def convert_pbf_to_gpq(
         >>> import quackosm as qosm
         >>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
         >>> gpq_path.as_posix()
-        'files/monaco_nofilter_noclip_compact.geoparquet'
+        'files/monaco_nofilter_noclip_compact.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -138,7 +138,7 @@ def convert_pbf_to_gpq(
         ...     tags_filter={"building": True, "amenity": True, "highway": True}
         ... )
         >>> gpq_path.as_posix()
-        'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.geoparquet'
+        'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(
@@ -189,7 +189,7 @@ def convert_pbf_to_gpq(
         ...     )
         ... )
         >>> gpq_path.as_posix()
-        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.geoparquet'
+        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(
@@ -330,7 +330,7 @@ def convert_geometry_to_gpq(
         ... )
         >>> gpq_path = qosm.convert_geometry_to_gpq(from_wkt(wkt))
         >>> gpq_path.as_posix()
-        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -376,7 +376,7 @@ def convert_geometry_to_gpq(
         ...     osm_extract_source='Geofabrik',
         ... )
         >>> gpq_path.as_posix()
-        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(

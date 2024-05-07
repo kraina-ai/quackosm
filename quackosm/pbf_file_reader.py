@@ -366,6 +366,19 @@ class PbfFileReader:
                 save_as_wkt=save_as_wkt,
             )
         else:
+            if result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
+                warnings.warn(
+                    (
+                        "Found existing result file with `.geoparquet` extension."
+                        " Users are enouraged to change the extension manually"
+                        " to `.parquet` for old files. Files with `.geoparquet`"
+                        " extension will be backwards supported, but reusing them"
+                        " will result in this warning."
+                    ),
+                    DeprecationWarning,
+                    stacklevel=0,
+                )
+                return result_file_path.with_suffix(".geoparquet")
             if not result_file_path.exists() or ignore_cache:
                 pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
 
@@ -688,6 +701,20 @@ class PbfFileReader:
         ignore_cache: bool = False,
         save_as_wkt: bool = False,
     ) -> Path:
+        if result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
+            warnings.warn(
+                (
+                    "Found existing result file with `.geoparquet` extension."
+                    " Users are enouraged to change the extension manually"
+                    " to `.parquet` for old files. Files with `.geoparquet`"
+                    " extension will be backwards supported, but reusing them"
+                    " will result in this warning."
+                ),
+                DeprecationWarning,
+                stacklevel=0,
+            )
+            return result_file_path.with_suffix(".geoparquet")
+
         if not result_file_path.exists() or ignore_cache:
 
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
@@ -824,7 +851,7 @@ class PbfFileReader:
         else:
             result_file_name = (
                 f"{pbf_file_name}_{osm_filter_tags_hash_part}"
-                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.parquet"
             )
         return Path(self.working_directory) / result_file_name
 
@@ -856,7 +883,7 @@ class PbfFileReader:
         else:
             result_file_name = (
                 f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
-                f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+                f"_{exploded_tags_part}{filter_osm_ids_hash_part}.parquet"
             )
         return Path(self.working_directory) / result_file_name
 

@@ -31,7 +31,7 @@ from srai.geometry import remove_interiors
 from srai.loaders.download import download_file
 from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
-from quackosm import convert_geometry_to_gpq, get_features_gdf
+from quackosm import convert_geometry_to_gpq, convert_pbf_to_gpq, get_features_gdf
 from quackosm._constants import FEATURES_INDEX, WGS84_CRS
 from quackosm._exceptions import (
     GeometryNotCoveredError,
@@ -327,6 +327,18 @@ def test_invalid_geometries(geometry: BaseGeometry):
         PbfFileReader(geometry_filter=geometry)
 
 
+def test_geoparquet_deprecation_warning() -> None:
+    """Test if warning is properly displayed."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    convert_pbf_to_gpq(
+        monaco_file_path,
+        ignore_cache=True,
+        result_file_path="files/monaco_nofilter_noclip_compact.geoparquet",
+    )
+    with pytest.warns(DeprecationWarning):
+        convert_pbf_to_gpq(monaco_file_path, ignore_cache=False)
+
+
 @pytest.mark.parametrize(  # type: ignore
     "geometry",
     [
@@ -541,7 +553,7 @@ def test_gdal_parity(extract_name: str) -> None:
     pbf_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.osm.pbf"
     download_file(pbf_file_download_url, str(pbf_file_path), force_download=True)
     gpq_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.geoparquet"
-    gpq_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.geoparquet"
+    gpq_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.parquet"
     download_file(gpq_file_download_url, str(gpq_file_path), force_download=True)
 
     reader = PbfFileReader()

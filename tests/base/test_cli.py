@@ -57,7 +57,7 @@ def test_basic_run(monaco_pbf_file_path: str) -> None:
     result = runner.invoke(cli.app, [monaco_pbf_file_path])
 
     assert result.exit_code == 0
-    assert str(Path("files/monaco_nofilter_noclip_compact.geoparquet")) in result.stdout
+    assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) in result.stdout
 
 
 def test_silent_mode(monaco_pbf_file_path: str) -> None:
@@ -65,7 +65,7 @@ def test_silent_mode(monaco_pbf_file_path: str) -> None:
     result = runner.invoke(cli.app, [monaco_pbf_file_path, "--ignore-cache", "--silent"])
 
     assert result.exit_code == 0
-    assert str(Path("files/monaco_nofilter_noclip_compact.geoparquet")) == result.stdout.strip()
+    assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) == result.stdout.strip()
 
 
 def test_transient_mode(monaco_pbf_file_path: str) -> None:
@@ -75,33 +75,33 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
     assert result.exit_code == 0
     assert len(result.stdout.strip().split("\n")) == 2
     assert "Finished operation in" in output_lines[0]
-    assert str(Path("files/monaco_nofilter_noclip_compact.geoparquet")) == output_lines[1]
+    assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) == output_lines[1]
 
 
 @P.parameters("args", "expected_result")  # type: ignore
 @P.case(
     "Explode",
     ["--explode-tags"],
-    "files/monaco_nofilter_noclip_exploded.geoparquet",
+    "files/monaco_nofilter_noclip_exploded.parquet",
 )  # type: ignore
-@P.case("Explode short", ["--explode"], "files/monaco_nofilter_noclip_exploded.geoparquet")  # type: ignore
-@P.case("Compact", ["--compact-tags"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
-@P.case("Compact short", ["--compact"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
+@P.case("Explode short", ["--explode"], "files/monaco_nofilter_noclip_exploded.parquet")  # type: ignore
+@P.case("Compact", ["--compact-tags"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
+@P.case("Compact short", ["--compact"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case(
     "Working directory",
     ["--working-directory", "files/workdir"],
-    "files/workdir/monaco_nofilter_noclip_compact.geoparquet",
+    "files/workdir/monaco_nofilter_noclip_compact.parquet",
 )  # type: ignore
-@P.case("Ignore cache", ["--ignore-cache"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
-@P.case("Ignore cache short", ["--no-cache"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
-@P.case("Output", ["--output", "files/monaco_output.geoparquet"], "files/monaco_output.geoparquet")  # type: ignore
-@P.case("Output short", ["-o", "files/monaco_output.geoparquet"], "files/monaco_output.geoparquet")  # type: ignore
-@P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
-@P.case("Transient", ["--transient"], "files/monaco_nofilter_noclip_compact.geoparquet")  # type: ignore
+@P.case("Ignore cache", ["--ignore-cache"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
+@P.case("Ignore cache short", ["--no-cache"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
+@P.case("Output", ["--output", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
+@P.case("Output short", ["-o", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
+@P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
+@P.case("Transient", ["--transient"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case(
     "Output with working directory",
-    ["--working-directory", "files/workdir", "-o", "files/monaco_output.geoparquet"],
-    "files/monaco_output.geoparquet",
+    ["--working-directory", "files/workdir", "-o", "files/monaco_output.parquet"],
+    "files/monaco_output.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter",
@@ -109,7 +109,7 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet",
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter compact",
@@ -118,7 +118,7 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.geoparquet",
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter file",
@@ -126,7 +126,7 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         "--osm-tags-filter-file",
         osm_tags_filter_file_path(),
     ],
-    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet",
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter file compact",
@@ -135,7 +135,7 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         osm_tags_filter_file_path(),
         "--compact",
     ],
-    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.geoparquet",
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped",
@@ -143,7 +143,7 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         "--osm-tags-filter",
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
     ],
-    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_exploded.geoparquet",
+    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped compact",
@@ -152,69 +152,69 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
         "--compact",
     ],
-    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_compact.geoparquet",
+    "files/monaco_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_noclip_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
-    "files/monaco_nofilter_09c3fc0471538594b784be7c52782837c7a26753c2b26097b780581fa0a6bfc6_compact.geoparquet",
+    "files/monaco_nofilter_09c3fc0471538594b784be7c52782837c7a26753c2b26097b780581fa0a6bfc6_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry GeoJSON filter",
     ["--geom-filter-geojson", geometry_geojson()],
-    "files/monaco_nofilter_82c0fdfa2d5654818a03540644834d70c353e3f82f9d8f201c37420aeb35118e_compact.geoparquet",
+    "files/monaco_nofilter_82c0fdfa2d5654818a03540644834d70c353e3f82f9d8f201c37420aeb35118e_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry file filter",
     ["--geom-filter-file", geometry_boundary_file_path()],
-    "files/monaco_nofilter_6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_compact.geoparquet",
+    "files/monaco_nofilter_6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry geocode filter",
     ["--geom-filter-geocode", "Monaco-Ville, Monaco"],
-    "files/monaco_nofilter_e7f0b78a0fdc16c4db31c9767fa4e639eadaa8e83a9b90e07b521f4925cdf4b3_compact.geoparquet",
+    "files/monaco_nofilter_e7f0b78a0fdc16c4db31c9767fa4e639eadaa8e83a9b90e07b521f4925cdf4b3_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
     ["--geom-filter-index-geohash", "spv2bc"],
-    "files/monaco_nofilter_c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_compact.geoparquet",
+    "files/monaco_nofilter_c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
     ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
-    "files/monaco_nofilter_1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_compact.geoparquet",
+    "files/monaco_nofilter_1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter",
     ["--geom-filter-index-h3", "8a3969a40ac7fff"],
-    "files/monaco_nofilter_a2f8d5114760394646aa999a1204adaa48ad686b3fcadb0b25fd02322c16dff4_compact.geoparquet",
+    "files/monaco_nofilter_a2f8d5114760394646aa999a1204adaa48ad686b3fcadb0b25fd02322c16dff4_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
     ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
-    "files/monaco_nofilter_e50e6489d4faba664a3c7f9729b7a3bedafb7a396ae826521f32b556d0b554f1_compact.geoparquet",
+    "files/monaco_nofilter_e50e6489d4faba664a3c7f9729b7a3bedafb7a396ae826521f32b556d0b554f1_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
     ["--geom-filter-index-s2", "12cdc28bc"],
-    "files/monaco_nofilter_5c3d61eb108819e543a1a59fe6c67658f817c0453d728b5aa007f227453d5bf6_compact.geoparquet",
+    "files/monaco_nofilter_5c3d61eb108819e543a1a59fe6c67658f817c0453d728b5aa007f227453d5bf6_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter multiple",
     ["--geom-filter-index-s2", "12cdc28bc,12cdc28f"],
-    "files/monaco_nofilter_cda5d65e169e3ff04970e66e80b021937a5ae141ed72428cc0d9a3764bf076db_compact.geoparquet",
+    "files/monaco_nofilter_cda5d65e169e3ff04970e66e80b021937a5ae141ed72428cc0d9a3764bf076db_compact.parquet",
 )  # type: ignore
 @P.case(
     "Filter OSM features IDs",
     ["--filter-osm-ids", "way/94399646,node/3617982224,relation/36990"],
-    "files/monaco_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet",
+    "files/monaco_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.parquet",
 )  # type: ignore
 @P.case(
     "Keep all tags",
     [
         "--keep-all-tags",
     ],
-    "files/monaco_nofilter_noclip_compact.geoparquet",
+    "files/monaco_nofilter_noclip_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags",
@@ -223,7 +223,7 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet",
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags compact",
@@ -233,7 +233,7 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet",
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags exploded",
@@ -243,12 +243,12 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--explode",
     ],
-    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_exploded.geoparquet",
+    "files/monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM way polygon config",
     ["--osm-way-polygon-config", osm_way_config_file_path()],
-    "files/monaco_nofilter_noclip_compact.geoparquet",
+    "files/monaco_nofilter_noclip_compact.parquet",
 )  # type: ignore
 @P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
 @P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
@@ -267,87 +267,87 @@ def test_proper_args_with_pbf(
 @P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
-    "files/09c3fc0471538594b784be7c52782837c7a26753c2b26097b780581fa0a6bfc6_nofilter_compact.geoparquet",
+    "files/09c3fc0471538594b784be7c52782837c7a26753c2b26097b780581fa0a6bfc6_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry GeoJSON filter",
     ["--geom-filter-geojson", geometry_geojson()],
-    "files/82c0fdfa2d5654818a03540644834d70c353e3f82f9d8f201c37420aeb35118e_nofilter_compact.geoparquet",
+    "files/82c0fdfa2d5654818a03540644834d70c353e3f82f9d8f201c37420aeb35118e_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry geocode filter",
     ["--geom-filter-geocode", "Monaco-Ville, Monaco"],
-    "files/e7f0b78a0fdc16c4db31c9767fa4e639eadaa8e83a9b90e07b521f4925cdf4b3_nofilter_compact.geoparquet",
+    "files/e7f0b78a0fdc16c4db31c9767fa4e639eadaa8e83a9b90e07b521f4925cdf4b3_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
     ["--geom-filter-index-geohash", "spv2bc"],
-    "files/c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_nofilter_compact.geoparquet",
+    "files/c08889e81575260e7ea2bc9764ddaa7c5e1141270a890b022799689d39dfe4d5_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
     ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
-    "files/1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_nofilter_compact.geoparquet",
+    "files/1bd33e0afc3cd0efcb4740185b8a05ecaf1bac916d571403768939b82844b43e_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter",
     ["--geom-filter-index-h3", "8a3969a40ac7fff"],
-    "files/a2f8d5114760394646aa999a1204adaa48ad686b3fcadb0b25fd02322c16dff4_nofilter_compact.geoparquet",
+    "files/a2f8d5114760394646aa999a1204adaa48ad686b3fcadb0b25fd02322c16dff4_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
     ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
-    "files/e50e6489d4faba664a3c7f9729b7a3bedafb7a396ae826521f32b556d0b554f1_nofilter_compact.geoparquet",
+    "files/e50e6489d4faba664a3c7f9729b7a3bedafb7a396ae826521f32b556d0b554f1_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
     ["--geom-filter-index-s2", "12cdc28bc"],
-    "files/5c3d61eb108819e543a1a59fe6c67658f817c0453d728b5aa007f227453d5bf6_nofilter_compact.geoparquet",
+    "files/5c3d61eb108819e543a1a59fe6c67658f817c0453d728b5aa007f227453d5bf6_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter multiple",
     ["--geom-filter-index-s2", "12cdc28bc,12cdc28f"],
-    "files/cda5d65e169e3ff04970e66e80b021937a5ae141ed72428cc0d9a3764bf076db_nofilter_compact.geoparquet",
+    "files/cda5d65e169e3ff04970e66e80b021937a5ae141ed72428cc0d9a3764bf076db_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Geometry file filter with different OSM source",
     ["--geom-filter-file", geometry_boundary_file_path(), "--osm-extract-source", "OSMfr"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Explode",
     ["--geom-filter-file", geometry_boundary_file_path(), "--explode-tags"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_exploded.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_exploded.parquet",
 )  # type: ignore
 @P.case(
     "Explode short",
     ["--geom-filter-file", geometry_boundary_file_path(), "--explode"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_exploded.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_exploded.parquet",
 )  # type: ignore
 @P.case(
     "Compact",
     ["--geom-filter-file", geometry_boundary_file_path(), "--compact-tags"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Compact short",
     ["--geom-filter-file", geometry_boundary_file_path(), "--compact"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Working directory",
     ["--geom-filter-file", geometry_boundary_file_path(), "--working-directory", "files/workdir"],
-    "files/workdir/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/workdir/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Ignore cache",
     ["--geom-filter-file", geometry_boundary_file_path(), "--ignore-cache"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Ignore cache short",
     ["--geom-filter-file", geometry_boundary_file_path(), "--no-cache"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Output",
@@ -355,14 +355,14 @@ def test_proper_args_with_pbf(
         "--geom-filter-file",
         geometry_boundary_file_path(),
         "--output",
-        "files/monaco_output.geoparquet",
+        "files/monaco_output.parquet",
     ],
-    "files/monaco_output.geoparquet",
+    "files/monaco_output.parquet",
 )  # type: ignore
 @P.case(
     "Output short",
-    ["--geom-filter-file", geometry_boundary_file_path(), "-o", "files/monaco_output.geoparquet"],
-    "files/monaco_output.geoparquet",
+    ["--geom-filter-file", geometry_boundary_file_path(), "-o", "files/monaco_output.parquet"],
+    "files/monaco_output.parquet",
 )  # type: ignore
 @P.case(
     "Output with working directory",
@@ -372,9 +372,9 @@ def test_proper_args_with_pbf(
         "--working-directory",
         "files/workdir",
         "-o",
-        "files/monaco_output.geoparquet",
+        "files/monaco_output.parquet",
     ],
-    "files/monaco_output.geoparquet",
+    "files/monaco_output.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter",
@@ -384,7 +384,7 @@ def test_proper_args_with_pbf(
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_exploded.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter compact",
@@ -395,7 +395,7 @@ def test_proper_args_with_pbf(
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter file",
@@ -405,7 +405,7 @@ def test_proper_args_with_pbf(
         "--osm-tags-filter-file",
         osm_tags_filter_file_path(),
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_exploded.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter file compact",
@@ -416,7 +416,7 @@ def test_proper_args_with_pbf(
         osm_tags_filter_file_path(),
         "--compact",
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped",
@@ -426,7 +426,7 @@ def test_proper_args_with_pbf(
         "--osm-tags-filter",
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_exploded.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped compact",
@@ -437,7 +437,7 @@ def test_proper_args_with_pbf(
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
         "--compact",
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_654daac5550b95c8c0e3c57a75a1e16dfa638946461e0977af8f9ca98039db06_compact.parquet",
 )  # type: ignore
 @P.case(
     "Filter OSM features IDs",
@@ -447,7 +447,7 @@ def test_proper_args_with_pbf(
         "--filter-osm-ids",
         "way/94399646,node/3617982224,relation/36990",
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.parquet",
 )  # type: ignore
 @P.case(
     "Keep all tags",
@@ -456,7 +456,7 @@ def test_proper_args_with_pbf(
         geometry_boundary_file_path(),
         "--keep-all-tags",
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags",
@@ -467,7 +467,7 @@ def test_proper_args_with_pbf(
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags compact",
@@ -479,7 +479,7 @@ def test_proper_args_with_pbf(
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_compact.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags exploded",
@@ -491,7 +491,7 @@ def test_proper_args_with_pbf(
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--explode",
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_exploded.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_exploded.parquet",
 )  # type: ignore
 @P.case(
     "OSM way polygon config",
@@ -501,7 +501,7 @@ def test_proper_args_with_pbf(
         "--osm-way-polygon-config",
         osm_way_config_file_path(),
     ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.geoparquet",
+    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Allow not covered geometry",
@@ -514,7 +514,7 @@ def test_proper_args_with_pbf(
         "--allow-uncovered-geometry",
         "--ignore-cache",
     ],
-    "files/fa44926c5f128cd438ecbe06d29644849a9de323703076b8ac62ffd7a0747e50_nofilter_compact.geoparquet",
+    "files/fa44926c5f128cd438ecbe06d29644849a9de323703076b8ac62ffd7a0747e50_nofilter_compact.parquet",
 )  # type: ignore
 def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
