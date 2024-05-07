@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:7898fbfbdc0cad7174fc229da711900ac5fcb43e0711c1ab794b9e2b6b5701bf"
+content_hash = "sha256:da7effc757fe966d079095c02ed37b4655a8d98f1821c252c7035c43c96c38be"
 
 [[package]]
 name = "anyio"

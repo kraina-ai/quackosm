@@ -17,6 +17,7 @@ dependencies = [
     "pyarrow-ops",
     "requests",
     "polars",
+    "rich>=10.11.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
