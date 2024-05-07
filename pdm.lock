@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:be0840022c3a9d3aec37919ce1be4d1cd23e262dda98b8dce2da1e3cfda85376"
+content_hash = "sha256:7898fbfbdc0cad7174fc229da711900ac5fcb43e0711c1ab794b9e2b6b5701bf"
 
 [[package]]
 name = "anyio"
@@ -2524,6 +2524,20 @@ files = [
 ]
 
 [[package]]
+name = "polars"
+version = "0.20.24"
+requires_python = ">=3.8"
+summary = "Blazingly fast DataFrame library"
+files = [
+    {file = "polars-0.20.24-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:a2c7282e0c81f038c9800ec4e1d97fe53dcacbba9632baf31a633e8bf12caab3"},
+    {file = "polars-0.20.24-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:02587e12435e583693351c4757cf571b90165ceb53b031e891aadf2c816cc59d"},
+    {file = "polars-0.20.24-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dfbb129941dd0cfa05f0fb5ef1cde341fed336b4dfcb81c3bef6f3f6b899cb17"},
+    {file = "polars-0.20.24-cp38-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:9921df98cee040903d35aef2c7237182240451e1ad413116a82e1e166d8fe943"},
+    {file = "polars-0.20.24-cp38-abi3-win_amd64.whl", hash = "sha256:dc0fb1169d3d0b286793421a6919c6a9f06235b9f93c1e00f01f199e038d3681"},
+    {file = "polars-0.20.24.tar.gz", hash = "sha256:a0c11f3b5e756bab7ba164ed73104c96fa9c861efce157fe8991b3eafeb4b0b8"},
+]
+
+[[package]]
 name = "pooch"
 version = "1.8.1"
 requires_python = ">=3.7"
@@ -3741,7 +3755,7 @@ files = [
 [[package]]
 name = "topojson"
 version = "1.7"
-summary = "topojson - a powerful library to encode geographic data as topology in Python!ğŸŒ�"
+summary = "topojson - a powerful library to encode geographic data as topology in Python!🌍"
 dependencies = [
     "numpy",
     "packaging",

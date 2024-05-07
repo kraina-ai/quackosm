@@ -16,6 +16,7 @@ dependencies = [
     "beautifulsoup4",
     "pyarrow-ops",
     "requests",
+    "polars",
 ]
 requires-python = ">=3.9"
 readme = "README.md"

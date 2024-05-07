@@ -22,6 +22,7 @@ from typing import Any, Literal, NamedTuple, Optional, Union, cast
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
+import polars as pl
 import psutil
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -1824,36 +1825,30 @@ class PbfFileReader:
     ) -> None:
         for group in bar.track(range(groups + 1)):
             current_ways_group_path = grouped_ways_path / f"group={group}"
-            current_destination_path = destination_dir_path / f"group={group}"
+            current_destination_path = destination_dir_path / f"group={group}" / "data.parquet"
+            current_destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-            temp_table_name = f"tbl{secrets.token_hex(16)}"
-            create_temp_table_query = f"""
-                CREATE OR REPLACE TEMP TABLE {temp_table_name} AS
-                FROM read_parquet('{current_ways_group_path}/**')
-            """
-            group_ways_query = f"""
-                COPY (
-                    SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
-                    FROM {temp_table_name}
-                    GROUP BY id
-                ) TO '{current_destination_path}' (
-                    FORMAT 'parquet',
-                    PER_THREAD_OUTPUT true,
-                    ROW_GROUP_SIZE 25000,
-                    COMPRESSION '{self.parquet_compression}'
+            with Pool() as pool:
+                r = pool.apply_async(
+                    _group_ways_with_polars,
+                    args=(current_ways_group_path, current_destination_path),
                 )
-            """
-            drop_table_query = f"DROP TABLE {temp_table_name}"
-            queries = [create_temp_table_query, group_ways_query, drop_table_query]
+                actual_memory = psutil.virtual_memory()
+                percentage_threshold = 95
+                if (actual_memory.total * 0.05) > MEMORY_1GB:
+                    percentage_threshold = (
+                        100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+                    )
+                while not r.ready():
+                    actual_memory = psutil.virtual_memory()
+                    if actual_memory.percent > percentage_threshold:
+                        raise MemoryError()
 
-            self._run_query(
-                queries,
-                run_in_separate_process=(
-                    self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
-                ),
-            )
+                    sleep(0.5)
+                r.get()
+
             if self.debug:
-                log_message(f"Saved to directory: {current_destination_path}")
+                log_message(f"Saved to file: {current_destination_path}")
 
             self._delete_directories(current_ways_group_path)
 
@@ -2479,14 +2474,18 @@ def _set_up_duckdb_connection(
         connection.install_extension(extension_name)
         connection.load_extension(extension_name)
 
-    connection.sql("""
+    connection.sql(
+        """
         CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
         ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D::GEOMETRY;
-    """)
-    connection.sql("""
+    """
+    )
+    connection.sql(
+        """
         CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
         [ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]]::POLYGON_2D::GEOMETRY;
-    """)
+    """
+    )
 
     return connection
 
@@ -2498,3 +2497,16 @@ def _run_query(sql_queries: Union[str, list[str]], tmp_dir_path: Path) -> None:
     for sql_query in sql_queries:
         conn.sql(sql_query)
     conn.close()
+
+
+def _group_ways_with_polars(current_ways_group_path: Path, current_destination_path: Path) -> None:
+    pl.scan_parquet(
+        source=f"{current_ways_group_path}/*.parquet",
+        hive_partitioning=False,
+    ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
+        {"point": "linestring"}
+    ).collect(
+        streaming=True
+    ).write_parquet(
+        current_destination_path
+    )
