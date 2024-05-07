@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Steps numbering after encountering `MemoryError`
 
+### Deprecated
+
+- Usage of `geoparquet` files as default extension, reusing existing `geoparquet` files from cache will be supported with deprecation warning [#99](https://github.com/kraina-ai/quackosm/issues/99)
+
 ## [0.7.3] - 2024-05-07
 
 ### Added
