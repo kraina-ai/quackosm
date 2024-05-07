@@ -57,15 +57,17 @@ LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files
 @pytest.mark.parametrize("explode_tags", [None, True, False])  # type: ignore
 @pytest.mark.parametrize("keep_all_tags", [True, False])  # type: ignore
 @pytest.mark.parametrize("save_as_wkt", [True, False])  # type: ignore
+@pytest.mark.parametrize("debug", [True, False])  # type: ignore
 def test_pbf_to_geoparquet_parsing(
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]],
     explode_tags: Optional[bool],
     keep_all_tags: bool,
     save_as_wkt: bool,
+    debug: bool,
 ):
     """Test if pbf to geoparquet conversion works."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    PbfFileReader(tags_filter=tags_filter).convert_pbf_to_gpq(
+    PbfFileReader(tags_filter=tags_filter, debug=debug).convert_pbf_to_gpq(
         pbf_path=pbf_file,
         ignore_cache=True,
         explode_tags=explode_tags,
