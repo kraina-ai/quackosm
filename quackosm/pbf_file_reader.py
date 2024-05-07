@@ -1612,6 +1612,7 @@ class PbfFileReader:
         finished_operation = False
 
         while not finished_operation:
+            reset_steps = 1
             try:
                 if not self.encountered_query_exception:
                     groups = self._group_ways(
@@ -1633,6 +1634,7 @@ class PbfFileReader:
                         grouped_ways_path=grouped_ways_path,
                         group_all_at_once=False,
                     )
+                reset_steps += 1
 
                 self._delete_directories(grouped_ways_tmp_path)
 
@@ -1649,7 +1651,7 @@ class PbfFileReader:
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
                 self.encountered_query_exception = True
-                self.task_progress_tracker.major_step_number -= 1
+                self.task_progress_tracker.major_step_number -= reset_steps
                 if self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
