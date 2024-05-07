@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2024-05-07
+
 ### Added
 
 - Debug mode that keeps all temporary files for further inspection, activated with `debug` flag
@@ -234,7 +236,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.7.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.7.3...HEAD
+
+[0.7.3]: https://github.com/kraina-ai/quackosm/compare/0.7.2...0.7.3
 
 [0.7.2]: https://github.com/kraina-ai/quackosm/compare/0.7.1...0.7.2
 
