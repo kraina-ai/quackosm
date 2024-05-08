@@ -16,7 +16,7 @@ dependencies = [
     "beautifulsoup4",
     "pyarrow-ops",
     "requests",
-    "polars>=0.16.15",
+    "polars>=0.19.4",
     "rich>=10.11.0",
 ]
 requires-python = ">=3.9"
@@ -72,7 +72,7 @@ dev = [
     "setuptools>=45.0.0",
 ]
 # pdm add -dG lint <library>
-lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff"]
+lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>
 test = [
     "pytest>=7.0.0",
