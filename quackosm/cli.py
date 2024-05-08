@@ -146,10 +146,12 @@ class H3GeometryParser(click.ParamType):  # type: ignore
         try:
             geometries = []  # noqa: FURB138
             for h3_cell in value.split(","):
-                geometries.append(Polygon(h3.cell_to_boundary(h3_cell.strip(), geo_json=True)))
+                geometries.append(
+                    Polygon([coords[::-1] for coords in h3.cell_to_boundary(h3_cell.strip())])
+                )
             return gpd.GeoSeries(geometries).unary_union
-        except Exception:
-            raise typer.BadParameter(f"Cannot parse provided H3 values: {value}") from None
+        except Exception as ex:
+            raise typer.BadParameter(f"Cannot parse provided H3 values: {value}") from ex
 
 
 class S2GeometryParser(click.ParamType):  # type: ignore
