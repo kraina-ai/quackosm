@@ -9,7 +9,7 @@ dependencies = [
     "pyarrow>=13.0.0",
     "duckdb>=0.10.2",
     "geoarrow-pyarrow>=0.1.2",
-    "typeguard",
+    "typeguard>=3.0.0",
     "psutil",
     "pooch",
     "tqdm",
