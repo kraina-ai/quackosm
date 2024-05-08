@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:b23b87e9c2472acdc685c610e62f07e934c9c3ea60f4ae7c7c6a143cf7d293a6"
+content_hash = "sha256:10b68b3e86b43d0589d579f6d9a3702565e130c47e7e3eee72fd229e023bb36b"
 
 [[package]]
 name = "adjusttext"
@@ -2581,16 +2581,16 @@ files = [
 
 [[package]]
 name = "polars"
-version = "0.20.24"
+version = "0.20.25"
 requires_python = ">=3.8"
 summary = "Blazingly fast DataFrame library"
 files = [
-    {file = "polars-0.20.24-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:a2c7282e0c81f038c9800ec4e1d97fe53dcacbba9632baf31a633e8bf12caab3"},
-    {file = "polars-0.20.24-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:02587e12435e583693351c4757cf571b90165ceb53b031e891aadf2c816cc59d"},
-    {file = "polars-0.20.24-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dfbb129941dd0cfa05f0fb5ef1cde341fed336b4dfcb81c3bef6f3f6b899cb17"},
-    {file = "polars-0.20.24-cp38-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:9921df98cee040903d35aef2c7237182240451e1ad413116a82e1e166d8fe943"},
-    {file = "polars-0.20.24-cp38-abi3-win_amd64.whl", hash = "sha256:dc0fb1169d3d0b286793421a6919c6a9f06235b9f93c1e00f01f199e038d3681"},
-    {file = "polars-0.20.24.tar.gz", hash = "sha256:a0c11f3b5e756bab7ba164ed73104c96fa9c861efce157fe8991b3eafeb4b0b8"},
+    {file = "polars-0.20.25-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:126e3b7d9394e4b23b4cc48919b7188203feeeb35d861ad808f281eaa06d76e2"},
+    {file = "polars-0.20.25-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:3bda62b681726538714a1159638ab7c9eeca6b8633fd778d84810c3e13b9c7e3"},
+    {file = "polars-0.20.25-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:62c8826e81c759f07bf5c0ae00f57a537644ae05fe68737185666b8ad8430664"},
+    {file = "polars-0.20.25-cp38-abi3-manylinux_2_24_aarch64.whl", hash = "sha256:0fb5e7a4a9831fba742f1c706e01656607089b6362a5e6f8d579b134a99795ce"},
+    {file = "polars-0.20.25-cp38-abi3-win_amd64.whl", hash = "sha256:9eaeb9080c853e11b207d191025e0ba8fd59ea06a36c22d410a48f2f124e18cd"},
+    {file = "polars-0.20.25.tar.gz", hash = "sha256:4308d63f956874bac9ae040bdd6d62b2992d0b1e1349301bc7a3b59458189108"},
 ]
 
 [[package]]

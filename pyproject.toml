@@ -73,7 +73,7 @@ dev = [
     "setuptools>=45.0.0",
 ]
 # pdm add -dG lint <library>
-lint = ["pre-commit", "mypy", "docformatter[tomli]", "ruff"]
+lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff"]
 # pdm add -dG test <library>
 test = [
     "pytest",
@@ -96,7 +96,7 @@ docs = [
     "ipykernel",
     "mkdocs-gen-files",
     "mkdocs-awesome-pages-plugin",
-    "mike<2",
+    "mike>=1,<2",
     "black",
     "jupyter",
     "nbconvert",
@@ -104,7 +104,7 @@ docs = [
     "notebook",
     "osmnx",
     "matplotlib",
-    "seaborn",
+    "seaborn>=0.10.0",
     "py-cpuinfo",
     "adjustText",
 ]

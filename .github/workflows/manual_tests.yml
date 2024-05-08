@@ -8,15 +8,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        include:
-          - os: macos-latest
-            python-version: "3.12"
-          - os: macos-13
-            python-version: "3.12"
-          - os: windows-latest
-            python-version: "3.12"
+        os: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+        python-version: ["3.12"]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -37,7 +30,6 @@ jobs:
           pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
           pdm run pytest -v -s --durations=20 tests/base
           pdm run pytest -v -s --durations=20 tests/optional_imports
-          pdm run pytest -v -s --durations=20 tests/benchmark
 
   run-tests-oldest:
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions (oldest dependencies)
@@ -45,15 +37,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        include:
-          - os: macos-latest
-            python-version: "3.12"
-          - os: macos-13
-            python-version: "3.12"
-          - os: windows-latest
-            python-version: "3.12"
+        os: [ubuntu-latest, macos-13, macos-latest, windows-latest]
+        python-version: ["3.12"]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -74,4 +59,3 @@ jobs:
           pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
           pdm run pytest -v -s --durations=20 tests/base
           pdm run pytest -v -s --durations=20 tests/optional_imports
-          pdm run pytest -v -s --durations=20 tests/benchmark
