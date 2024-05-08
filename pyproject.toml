@@ -76,7 +76,7 @@ dev = [
 lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff"]
 # pdm add -dG test <library>
 test = [
-    "pytest",
+    "pytest>=7.0.0",
     "tox-pdm",
     "pytest-mock",
     "requests-mock",
