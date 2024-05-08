@@ -1,6 +1,7 @@
 # type: ignore
 """Wrapper over Rich progress bar."""
 
+import json
 import os
 import time
 from collections.abc import Iterable
@@ -203,6 +204,7 @@ class TaskProgressTracker:
         verbosity_mode: Literal["silent", "transient", "verbose"] = "verbose",
         total_major_steps: int = 1,
         current_major_step: int = 1,
+        debug: bool = False,
     ):
         self.verbosity_mode = verbosity_mode
         self.major_step_number: int = 0
@@ -212,6 +214,9 @@ class TaskProgressTracker:
         self.transient_progress_cls = None
         self.live = None
         self.console = None
+        self.debug = debug
+        self.steps_times = {}
+        self.start_time = time.time()
 
         if total_major_steps > 1:
             number_width = len(str(total_major_steps))
@@ -228,8 +233,6 @@ class TaskProgressTracker:
                 force_terminal=True if self.force_terminal else None,
             )
             self.transient_progress_cls = TransientProgress
-
-            self.start_time = time.time()
 
     def reset_steps(self, current_major_step):
         self.major_step_number: int = 0
@@ -257,6 +260,9 @@ class TaskProgressTracker:
             end_time = time.time()
             elapsed_seconds = end_time - self.start_time
             show_total_elapsed_time(elapsed_seconds)
+
+        if self.debug:
+            rprint(f"Steps times: {json.dumps(self.steps_times)}")
 
     def _check_live_obj(self):
         if self.verbosity_mode == "silent":
@@ -346,5 +352,10 @@ class TaskProgressTracker:
             if not self.minor_step_number
             else f"{self.major_step_number}.{self.minor_step_number}"
         )
+
+        if self.debug:
+            end_time = time.time()
+            elapsed_seconds = end_time - self.start_time
+            self.steps_times[step_number] = elapsed_seconds
 
         self.current_step_number = f"{self.major_steps_prefix}[{step_number: >4}/{TOTAL_STEPS}]"

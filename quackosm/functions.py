@@ -30,7 +30,8 @@ def convert_pbf_to_gpq(
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> Path:
     """
     Convert PBF file to GeoParquet file.
@@ -78,8 +79,10 @@ def convert_pbf_to_gpq(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -235,7 +238,8 @@ def convert_pbf_to_gpq(
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         verbosity_mode=verbosity_mode,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).convert_pbf_to_gpq(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -261,7 +265,8 @@ def convert_geometry_to_gpq(
     save_as_wkt: bool = False,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
     allow_uncovered_geometry: bool = False,
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> Path:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -316,8 +321,10 @@ def convert_geometry_to_gpq(
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -426,7 +433,8 @@ def convert_geometry_to_gpq(
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
         allow_uncovered_geometry=allow_uncovered_geometry,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).convert_geometry_filter_to_gpq(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -448,7 +456,8 @@ def get_features_gdf(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame from a PBF file or list of PBF files.
@@ -494,8 +503,10 @@ def get_features_gdf(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -623,7 +634,8 @@ def get_features_gdf(
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         verbosity_mode=verbosity_mode,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).get_features_gdf(
         file_paths=file_paths,
         keep_all_tags=keep_all_tags,
@@ -645,7 +657,8 @@ def get_features_gdf_from_geometry(
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
     allow_uncovered_geometry: bool = False,
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -694,8 +707,10 @@ def get_features_gdf_from_geometry(
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -760,7 +775,8 @@ def get_features_gdf_from_geometry(
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
         allow_uncovered_geometry=allow_uncovered_geometry,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).get_features_gdf_from_geometry(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,

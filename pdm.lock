@@ -5,7 +5,21 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:e2c55f87d54b5d06476d2a31580077f06897dddbe67f6c1ef4de3560cd9e56fd"
+content_hash = "sha256:b23b87e9c2472acdc685c610e62f07e934c9c3ea60f4ae7c7c6a143cf7d293a6"
+
+[[package]]
+name = "adjusttext"
+version = "1.1.1"
+summary = "Iteratively adjust text position in matplotlib plots to minimize overlaps"
+dependencies = [
+    "matplotlib",
+    "numpy",
+    "scipy",
+]
+files = [
+    {file = "adjustText-1.1.1-py3-none-any.whl", hash = "sha256:ad2285f4239cd6c172508d772b026a133806deed9779977dfbeadcf233454938"},
+    {file = "adjustText-1.1.1.tar.gz", hash = "sha256:e2c0975ef2c642478e60f4c03c5e9afbdeda7764336907ef69a9205bfa2d9896"},
+]
 
 [[package]]
 name = "anyio"

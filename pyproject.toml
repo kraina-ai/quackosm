@@ -106,6 +106,7 @@ docs = [
     "matplotlib",
     "seaborn",
     "py-cpuinfo",
+    "adjustText",
 ]
 license = ["licensecheck"]
 cli-dev = [

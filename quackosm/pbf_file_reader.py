@@ -111,7 +111,8 @@ class PbfFileReader:
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
         allow_uncovered_geometry: bool = False,
-        debug: bool = False,
+        debug_memory: bool = False,
+        debug_times: bool = False,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -147,8 +148,10 @@ class PbfFileReader:
                 Verbose leaves all progress outputs in the stdout. Defaults to "transient".
             allow_uncovered_geometry (bool, optional): Suppress an error if some geometry parts
                 aren't covered by any OSM extract. Defaults to `False`.
-            debug (bool, optional): If turned on, will keep all temporary files after operation
-                for debugging. Defaults to `False`.
+            debug_memory (bool, optional): If turned on, will keep all temporary files after
+                operation for debugging. Defaults to `False`.
+            debug_times (bool, optional): If turned on, will report timestamps at which second each
+                step has been executed. Defaults to `False`.
 
         Raises:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
@@ -172,7 +175,8 @@ class PbfFileReader:
         self.connection: duckdb.DuckDBPyConnection = None
         self.encountered_query_exception = False
         self.verbosity_mode = verbosity_mode
-        self.debug = debug
+        self.debug_memory = debug_memory
+        self.debug_times = debug_times
         self.task_progress_tracker: TaskProgressTracker = None
 
         self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
@@ -241,7 +245,9 @@ class PbfFileReader:
         created_task_progress_tracker = False
         if self.task_progress_tracker is None or not self.task_progress_tracker.is_new():
             created_task_progress_tracker = True
-            self.task_progress_tracker = TaskProgressTracker(verbosity_mode=self.verbosity_mode)
+            self.task_progress_tracker = TaskProgressTracker(
+                verbosity_mode=self.verbosity_mode, debug=self.debug_times
+            )
 
         if filter_osm_ids is None:
             filter_osm_ids = []
@@ -254,7 +260,7 @@ class PbfFileReader:
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
 
-            if self.debug:
+            if self.debug_memory:
                 self.tmp_dir_path = self._prepare_debug_directory()
 
             try:
@@ -387,6 +393,7 @@ class PbfFileReader:
                 self.task_progress_tracker = TaskProgressTracker(
                     verbosity_mode=self.verbosity_mode,
                     total_major_steps=total_files,
+                    debug=self.debug_times,
                 )
                 for file_idx, file_path in enumerate(pbf_files):
                     self.task_progress_tracker.reset_steps(file_idx + 1)
@@ -404,7 +411,7 @@ class PbfFileReader:
                     with tempfile.TemporaryDirectory(
                         dir=self.working_directory.resolve()
                     ) as tmp_dir_name:
-                        if self.debug:
+                        if self.debug_memory:
                             tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
 
                         try:
@@ -503,6 +510,7 @@ class PbfFileReader:
         self.task_progress_tracker = TaskProgressTracker(
             verbosity_mode=self.verbosity_mode,
             total_major_steps=total_files,
+            debug=self.debug_memory,
         )
         for file_idx, file_path in enumerate(file_paths):
             self.task_progress_tracker.reset_steps(file_idx + 1)
@@ -517,7 +525,7 @@ class PbfFileReader:
 
         if parsed_geoparquet_files:
             with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
-                if self.debug:
+                if self.debug_memory:
                     tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
 
                 try:
@@ -648,7 +656,7 @@ class PbfFileReader:
                     COMPRESSION '{self.parquet_compression}'
                 )
             """
-            if self.debug:
+            if self.debug_memory:
                 log_message(f"Saved to directory: {output_file_name}")
             self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
             return pq.read_table(output_file_name)
@@ -685,7 +693,7 @@ class PbfFileReader:
                         COMPRESSION '{self.parquet_compression}'
                     )
                 """
-                if self.debug:
+                if self.debug_memory:
                     log_message(f"Saved to directory: {filtered_result_parquet_file}")
                 connection.sql(query)
                 result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
@@ -1331,7 +1339,7 @@ class PbfFileReader:
     def _delete_directories(
         self, directories: Union[str, Path, list[Union[str, Path]]], override_debug: bool = False
     ) -> None:
-        if self.debug and not override_debug:
+        if self.debug_memory and not override_debug:
             return
 
         _directories = []
@@ -1356,7 +1364,7 @@ class PbfFileReader:
                     tries -= 1
 
     def _prepare_debug_directory(self) -> Path:
-        if self.debug:
+        if self.debug_memory:
             dir_path = Path(self.working_directory) / "debug" / secrets.token_hex(16)
             self._delete_directories(dir_path, override_debug=True)
             dir_path.mkdir(exist_ok=True, parents=True)
@@ -1481,7 +1489,7 @@ class PbfFileReader:
             )
         """
         self._run_query(query, run_in_separate_process)
-        if self.debug:
+        if self.debug_memory:
             log_message(f"Saved to directory: {file_path}")
         return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
@@ -1544,7 +1552,7 @@ class PbfFileReader:
             )
             """
         )
-        if self.debug:
+        if self.debug_memory:
             log_message(f"Saved to directory: {result_path}")
 
         return self.connection.sql(f"SELECT * FROM read_parquet('{result_path}/**')")
@@ -1840,7 +1848,7 @@ class PbfFileReader:
                 )
                 """
             )
-            if self.debug:
+            if self.debug_memory:
                 log_message(f"Saved to directory: {grouped_ways_path}")
 
         return groups
@@ -1876,7 +1884,7 @@ class PbfFileReader:
                     sleep(0.5)
                 r.get()
 
-            if self.debug:
+            if self.debug_memory:
                 log_message(f"Saved to file: {current_destination_path}")
 
             self._delete_directories(current_ways_group_path)
@@ -2139,7 +2147,7 @@ class PbfFileReader:
                 )
                 """
             )
-            if self.debug:
+            if self.debug_memory:
                 log_message(f"Saved to directory: {file_path}")
 
         return self.connection.sql(
