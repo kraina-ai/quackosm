@@ -12,7 +12,7 @@ dependencies = [
     "typeguard>=3.0.0",
     "psutil",
     "pooch>=1.1.0",
-    "tqdm",
+    "tqdm>=4.42.0",
     "beautifulsoup4",
     "pyarrow-ops",
     "requests",
