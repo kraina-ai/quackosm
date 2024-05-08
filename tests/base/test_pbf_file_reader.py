@@ -185,7 +185,7 @@ def test_combining_files_different_techniques(
             ],
             ignore_cache=True,
         )
-        single_result_gdf = PbfFileReader(debug=True).get_features_gdf(
+        single_result_gdf = PbfFileReader(debug_memory=True, debug_times=True).get_features_gdf(
             file_paths=[monaco_file_path], ignore_cache=True
         )
 
