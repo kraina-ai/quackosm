@@ -447,12 +447,12 @@ QuackOSM has been roughly tuned to different workloads. The `rows_per_group` var
 
 > WSL usage: sometimes code can break since DuckDB is trying to use all available memory, that can be occupied by Windows.
 
-### Disk usage
+### Resources usage
 
 The algorithm depends on saving intermediate `.parquet` files between queries.
 As a rule of thumb, when parsing a full file without filtering, you should have at least 10x more free space on disk than the base file size (100MB pbf file -> 1GB free space to parse it).
 
-Below you can see the chart of disk usage during operation. Generated on a machine with AMD Ryzen 7 5800X CPU (16 threads, 3.8 GHz clock speed) and 24 GB of RAM.
+Below you can see the chart of resources usage during operation. Generated on a Github Actions Ubuntu virtual machine with 4 threads and 16 GB of memory.
 
 #### Monaco
 
