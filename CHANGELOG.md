@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Steps numbering after encountering `MemoryError`
 
+### Removed
+
+- `h3ronpy` from dependencies and replaced logic with pure `h3` calls
+
 ### Deprecated
 
 - Reusing existing `geoparquet` files from cache will be supported, but will result in deprecation warning [#99](https://github.com/kraina-ai/quackosm/issues/99)

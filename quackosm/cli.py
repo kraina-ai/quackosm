@@ -14,7 +14,6 @@ import typer
 from click import Argument
 from click.exceptions import MissingParameter
 from geohash import bbox as geohash_bbox
-from h3ronpy.arrow.vector import cells_to_wkb_polygons
 from s2 import s2
 from shapely import from_geojson, from_wkt
 from shapely.geometry import Polygon, box
@@ -145,8 +144,10 @@ class H3GeometryParser(click.ParamType):  # type: ignore
             return None
 
         try:
-            h3_int_indexes = [h3.str_to_int(h3_cell.strip()) for h3_cell in value.split(",")]
-            return gpd.GeoSeries.from_wkb(cells_to_wkb_polygons(h3_int_indexes)).unary_union
+            geometries = []  # noqa: FURB138
+            for h3_cell in value.split(","):
+                geometries.append(Polygon(h3.cell_to_boundary(h3_cell.strip(), geo_json=True)))
+            return gpd.GeoSeries(geometries).unary_union
         except Exception:
             raise typer.BadParameter(f"Cannot parse provided H3 values: {value}") from None
 
