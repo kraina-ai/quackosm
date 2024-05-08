@@ -338,6 +338,9 @@ def test_geoparquet_deprecation_warning() -> None:
     with pytest.warns(DeprecationWarning):
         convert_pbf_to_gpq(monaco_file_path, ignore_cache=False)
 
+    with pytest.warns(DeprecationWarning):
+        get_features_gdf(monaco_file_path, ignore_cache=False)
+
 
 @pytest.mark.parametrize(  # type: ignore
     "geometry",
