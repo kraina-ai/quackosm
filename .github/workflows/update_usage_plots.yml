@@ -45,6 +45,7 @@ jobs:
           title: "chore: update resources usage plots"
           branch: update-resources-usage-plots
           base: main
+          labels: Skip-Changelog
           add-paths: docs/assets/images/*.png
           token: ${{ secrets.CICD_PAT_TOKEN }}
           author: Kraina CI/CD <cicd@kraina.ai>

@@ -354,8 +354,6 @@ class TaskProgressTracker:
         )
 
         if self.debug:
-            end_time = time.time()
-            elapsed_seconds = end_time - self.start_time
-            self.steps_times[step_number] = elapsed_seconds
+            self.steps_times[step_number] = round(time.time(), 2)
 
         self.current_step_number = f"{self.major_steps_prefix}[{step_number: >4}/{TOTAL_STEPS}]"
