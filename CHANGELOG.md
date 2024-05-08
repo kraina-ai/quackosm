@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2024-05-08
+
 ### Added
 
 - Polars library to the main dependencies
@@ -254,7 +256,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.7.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.0...HEAD
+
+[0.8.0]: https://github.com/kraina-ai/quackosm/compare/0.7.3...0.8.0
 
 [0.7.3]: https://github.com/kraina-ai/quackosm/compare/0.7.2...0.7.3
 
