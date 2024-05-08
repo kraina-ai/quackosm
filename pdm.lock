@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:0ad9f4c5bc26eddf7c1c70e25297d2bff05f224277a28d82dd23916e63c595b1"
+content_hash = "sha256:133de315f6d6ed2abc19ed843e0093eae297ce032543007e38f5366a12faaa16"
 
 [[package]]
 name = "adjusttext"
