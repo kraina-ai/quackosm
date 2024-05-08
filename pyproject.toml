@@ -82,7 +82,7 @@ test = [
     "requests-mock",
     "pytest-check",
     "pytest-parametrization",
-    "pytest-xdist",
+    "pytest-xdist>=3.4.0",
     "pytest-doctestplus",
     "srai>=0.6.2",
 ]
