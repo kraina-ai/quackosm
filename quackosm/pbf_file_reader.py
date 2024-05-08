@@ -22,6 +22,7 @@ from typing import Any, Literal, NamedTuple, Optional, Union, cast
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
+import polars as pl
 import psutil
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -110,7 +111,8 @@ class PbfFileReader:
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
         allow_uncovered_geometry: bool = False,
-        debug: bool = False,
+        debug_memory: bool = False,
+        debug_times: bool = False,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -146,8 +148,10 @@ class PbfFileReader:
                 Verbose leaves all progress outputs in the stdout. Defaults to "transient".
             allow_uncovered_geometry (bool, optional): Suppress an error if some geometry parts
                 aren't covered by any OSM extract. Defaults to `False`.
-            debug (bool, optional): If turned on, will keep all temporary files after operation
-                for debugging. Defaults to `False`.
+            debug_memory (bool, optional): If turned on, will keep all temporary files after
+                operation for debugging. Defaults to `False`.
+            debug_times (bool, optional): If turned on, will report timestamps at which second each
+                step has been executed. Defaults to `False`.
 
         Raises:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
@@ -171,7 +175,8 @@ class PbfFileReader:
         self.connection: duckdb.DuckDBPyConnection = None
         self.encountered_query_exception = False
         self.verbosity_mode = verbosity_mode
-        self.debug = debug
+        self.debug_memory = debug_memory
+        self.debug_times = debug_times
         self.task_progress_tracker: TaskProgressTracker = None
 
         self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
@@ -240,7 +245,9 @@ class PbfFileReader:
         created_task_progress_tracker = False
         if self.task_progress_tracker is None or not self.task_progress_tracker.is_new():
             created_task_progress_tracker = True
-            self.task_progress_tracker = TaskProgressTracker(verbosity_mode=self.verbosity_mode)
+            self.task_progress_tracker = TaskProgressTracker(
+                verbosity_mode=self.verbosity_mode, debug=self.debug_times
+            )
 
         if filter_osm_ids is None:
             filter_osm_ids = []
@@ -253,7 +260,7 @@ class PbfFileReader:
         with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
             self.tmp_dir_path = Path(self.tmp_dir_name)
 
-            if self.debug:
+            if self.debug_memory:
                 self.tmp_dir_path = self._prepare_debug_directory()
 
             try:
@@ -365,6 +372,19 @@ class PbfFileReader:
                 save_as_wkt=save_as_wkt,
             )
         else:
+            if result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
+                warnings.warn(
+                    (
+                        "Found existing result file with `.geoparquet` extension."
+                        " Users are enouraged to change the extension manually"
+                        " to `.parquet` for old files. Files with `.geoparquet`"
+                        " extension will be backwards supported, but reusing them"
+                        " will result in this warning."
+                    ),
+                    DeprecationWarning,
+                    stacklevel=0,
+                )
+                return result_file_path.with_suffix(".geoparquet")
             if not result_file_path.exists() or ignore_cache:
                 pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
 
@@ -373,6 +393,7 @@ class PbfFileReader:
                 self.task_progress_tracker = TaskProgressTracker(
                     verbosity_mode=self.verbosity_mode,
                     total_major_steps=total_files,
+                    debug=self.debug_times,
                 )
                 for file_idx, file_path in enumerate(pbf_files):
                     self.task_progress_tracker.reset_steps(file_idx + 1)
@@ -390,7 +411,7 @@ class PbfFileReader:
                     with tempfile.TemporaryDirectory(
                         dir=self.working_directory.resolve()
                     ) as tmp_dir_name:
-                        if self.debug:
+                        if self.debug_memory:
                             tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
 
                         try:
@@ -489,6 +510,7 @@ class PbfFileReader:
         self.task_progress_tracker = TaskProgressTracker(
             verbosity_mode=self.verbosity_mode,
             total_major_steps=total_files,
+            debug=self.debug_memory,
         )
         for file_idx, file_path in enumerate(file_paths):
             self.task_progress_tracker.reset_steps(file_idx + 1)
@@ -503,7 +525,7 @@ class PbfFileReader:
 
         if parsed_geoparquet_files:
             with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
-                if self.debug:
+                if self.debug_memory:
                     tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
 
                 try:
@@ -634,7 +656,7 @@ class PbfFileReader:
                     COMPRESSION '{self.parquet_compression}'
                 )
             """
-            if self.debug:
+            if self.debug_memory:
                 log_message(f"Saved to directory: {output_file_name}")
             self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
             return pq.read_table(output_file_name)
@@ -671,7 +693,7 @@ class PbfFileReader:
                         COMPRESSION '{self.parquet_compression}'
                     )
                 """
-                if self.debug:
+                if self.debug_memory:
                     log_message(f"Saved to directory: {filtered_result_parquet_file}")
                 connection.sql(query)
                 result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
@@ -687,6 +709,20 @@ class PbfFileReader:
         ignore_cache: bool = False,
         save_as_wkt: bool = False,
     ) -> Path:
+        if result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
+            warnings.warn(
+                (
+                    "Found existing result file with `.geoparquet` extension."
+                    " Users are enouraged to change the extension manually"
+                    " to `.parquet` for old files. Files with `.geoparquet`"
+                    " extension will be backwards supported, but reusing them"
+                    " will result in this warning."
+                ),
+                DeprecationWarning,
+                stacklevel=0,
+            )
+            return result_file_path.with_suffix(".geoparquet")
+
         if not result_file_path.exists() or ignore_cache:
 
             elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
@@ -823,7 +859,7 @@ class PbfFileReader:
         else:
             result_file_name = (
                 f"{pbf_file_name}_{osm_filter_tags_hash_part}"
-                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+                f"_{clipping_geometry_hash_part}_{exploded_tags_part}{filter_osm_ids_hash_part}.parquet"
             )
         return Path(self.working_directory) / result_file_name
 
@@ -855,7 +891,7 @@ class PbfFileReader:
         else:
             result_file_name = (
                 f"{clipping_geometry_hash_part}_{osm_filter_tags_hash_part}"
-                f"_{exploded_tags_part}{filter_osm_ids_hash_part}.geoparquet"
+                f"_{exploded_tags_part}{filter_osm_ids_hash_part}.parquet"
             )
         return Path(self.working_directory) / result_file_name
 
@@ -1303,7 +1339,7 @@ class PbfFileReader:
     def _delete_directories(
         self, directories: Union[str, Path, list[Union[str, Path]]], override_debug: bool = False
     ) -> None:
-        if self.debug and not override_debug:
+        if self.debug_memory and not override_debug:
             return
 
         _directories = []
@@ -1328,7 +1364,7 @@ class PbfFileReader:
                     tries -= 1
 
     def _prepare_debug_directory(self) -> Path:
-        if self.debug:
+        if self.debug_memory:
             dir_path = Path(self.working_directory) / "debug" / secrets.token_hex(16)
             self._delete_directories(dir_path, override_debug=True)
             dir_path.mkdir(exist_ok=True, parents=True)
@@ -1453,7 +1489,7 @@ class PbfFileReader:
             )
         """
         self._run_query(query, run_in_separate_process)
-        if self.debug:
+        if self.debug_memory:
             log_message(f"Saved to directory: {file_path}")
         return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
@@ -1516,7 +1552,7 @@ class PbfFileReader:
             )
             """
         )
-        if self.debug:
+        if self.debug_memory:
             log_message(f"Saved to directory: {result_path}")
 
         return self.connection.sql(f"SELECT * FROM read_parquet('{result_path}/**')")
@@ -1611,6 +1647,7 @@ class PbfFileReader:
         finished_operation = False
 
         while not finished_operation:
+            reset_steps = 1
             try:
                 if not self.encountered_query_exception:
                     groups = self._group_ways(
@@ -1632,6 +1669,7 @@ class PbfFileReader:
                         grouped_ways_path=grouped_ways_path,
                         group_all_at_once=False,
                     )
+                reset_steps += 1
 
                 self._delete_directories(grouped_ways_tmp_path)
 
@@ -1648,7 +1686,7 @@ class PbfFileReader:
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
                 self.encountered_query_exception = True
-                self.task_progress_tracker.major_step_number -= 1
+                self.task_progress_tracker.major_step_number -= reset_steps
                 if self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
@@ -1810,7 +1848,7 @@ class PbfFileReader:
                 )
                 """
             )
-            if self.debug:
+            if self.debug_memory:
                 log_message(f"Saved to directory: {grouped_ways_path}")
 
         return groups
@@ -1824,36 +1862,30 @@ class PbfFileReader:
     ) -> None:
         for group in bar.track(range(groups + 1)):
             current_ways_group_path = grouped_ways_path / f"group={group}"
-            current_destination_path = destination_dir_path / f"group={group}"
+            current_destination_path = destination_dir_path / f"group={group}" / "data.parquet"
+            current_destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-            temp_table_name = f"tbl{secrets.token_hex(16)}"
-            create_temp_table_query = f"""
-                CREATE OR REPLACE TEMP TABLE {temp_table_name} AS
-                FROM read_parquet('{current_ways_group_path}/**')
-            """
-            group_ways_query = f"""
-                COPY (
-                    SELECT id, list(point ORDER BY ref_idx ASC)::LINESTRING_2D linestring
-                    FROM {temp_table_name}
-                    GROUP BY id
-                ) TO '{current_destination_path}' (
-                    FORMAT 'parquet',
-                    PER_THREAD_OUTPUT true,
-                    ROW_GROUP_SIZE 25000,
-                    COMPRESSION '{self.parquet_compression}'
+            with Pool() as pool:
+                r = pool.apply_async(
+                    _group_ways_with_polars,
+                    args=(current_ways_group_path, current_destination_path),
                 )
-            """
-            drop_table_query = f"DROP TABLE {temp_table_name}"
-            queries = [create_temp_table_query, group_ways_query, drop_table_query]
+                actual_memory = psutil.virtual_memory()
+                percentage_threshold = 95
+                if (actual_memory.total * 0.05) > MEMORY_1GB:
+                    percentage_threshold = (
+                        100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+                    )
+                while not r.ready():
+                    actual_memory = psutil.virtual_memory()
+                    if actual_memory.percent > percentage_threshold:
+                        raise MemoryError()
 
-            self._run_query(
-                queries,
-                run_in_separate_process=(
-                    self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
-                ),
-            )
-            if self.debug:
-                log_message(f"Saved to directory: {current_destination_path}")
+                    sleep(0.5)
+                r.get()
+
+            if self.debug_memory:
+                log_message(f"Saved to file: {current_destination_path}")
 
             self._delete_directories(current_ways_group_path)
 
@@ -2115,7 +2147,7 @@ class PbfFileReader:
                 )
                 """
             )
-            if self.debug:
+            if self.debug_memory:
                 log_message(f"Saved to directory: {file_path}")
 
         return self.connection.sql(
@@ -2479,14 +2511,18 @@ def _set_up_duckdb_connection(
         connection.install_extension(extension_name)
         connection.load_extension(extension_name)
 
-    connection.sql("""
+    connection.sql(
+        """
         CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
         ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D::GEOMETRY;
-    """)
-    connection.sql("""
+    """
+    )
+    connection.sql(
+        """
         CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
         [ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]]::POLYGON_2D::GEOMETRY;
-    """)
+    """
+    )
 
     return connection
 
@@ -2498,3 +2534,16 @@ def _run_query(sql_queries: Union[str, list[str]], tmp_dir_path: Path) -> None:
     for sql_query in sql_queries:
         conn.sql(sql_query)
     conn.close()
+
+
+def _group_ways_with_polars(current_ways_group_path: Path, current_destination_path: Path) -> None:
+    pl.scan_parquet(
+        source=f"{current_ways_group_path}/*.parquet",
+        hive_partitioning=False,
+    ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
+        {"point": "linestring"}
+    ).collect(
+        streaming=True
+    ).write_parquet(
+        current_destination_path
+    )

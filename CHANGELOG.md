@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Polars library to the main dependencies
+
+### Changed
+
+- Refactored ways grouping logic from duckdb to polars `LazyFrame` API for faster operations
+- Default result file extension from `geoparquet` to `parquet` [#99](https://github.com/kraina-ai/quackosm/issues/99)
+- Moved `rich` to the main dependencies [#95](https://github.com/kraina-ai/quackosm/issues/95)
+
+### Fixed
+
+- Steps numbering after encountering `MemoryError`
+
+### Deprecated
+
+- Usage of `geoparquet` files as default extension, reusing existing `geoparquet` files from cache will be supported with deprecation warning [#99](https://github.com/kraina-ai/quackosm/issues/99)
+
 ## [0.7.3] - 2024-05-07
 
 ### Added

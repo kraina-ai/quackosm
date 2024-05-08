@@ -16,6 +16,8 @@ dependencies = [
     "beautifulsoup4",
     "pyarrow-ops",
     "requests",
+    "polars",
+    "rich>=10.11.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -50,7 +52,7 @@ cli = [
     "h3>=4.0.0b1",
     "h3ronpy>=0.18.0",
     "s2",
-    "python-geohash",
+    "python-geohash>=0.8",
 ]
 
 [project.scripts]
@@ -65,7 +67,11 @@ build-backend = "pdm.backend"
 [tool.pdm]
 [tool.pdm.dev-dependencies]
 # pdm add -d <library>
-dev = ["bumpver", "types-requests"]
+dev = [
+    "bumpver",
+    "types-requests",
+    "setuptools>=45.0.0",
+]
 # pdm add -dG lint <library>
 lint = ["pre-commit", "mypy", "docformatter[tomli]", "ruff"]
 # pdm add -dG test <library>
@@ -100,6 +106,7 @@ docs = [
     "matplotlib",
     "seaborn",
     "py-cpuinfo",
+    "adjustText",
 ]
 license = ["licensecheck"]
 cli-dev = [

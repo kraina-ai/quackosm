@@ -30,7 +30,8 @@ def convert_pbf_to_gpq(
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> Path:
     """
     Convert PBF file to GeoParquet file.
@@ -78,8 +79,10 @@ def convert_pbf_to_gpq(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -90,8 +93,9 @@ def convert_pbf_to_gpq(
         Tags will be kept in a single column.
         >>> import quackosm as qosm
         >>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
+        Finished operation in ...
         >>> gpq_path.as_posix()
-        'files/monaco_nofilter_noclip_compact.geoparquet'
+        'files/monaco_nofilter_noclip_compact.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -137,8 +141,9 @@ def convert_pbf_to_gpq(
         ...     monaco_pbf_path,
         ...     tags_filter={"building": True, "amenity": True, "highway": True}
         ... )
+        Finished operation in ...
         >>> gpq_path.as_posix()
-        'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.geoparquet'
+        'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(
@@ -188,8 +193,9 @@ def convert_pbf_to_gpq(
         ...         maxy=4.1818121
         ...     )
         ... )
+        Finished operation in ...
         >>> gpq_path.as_posix()
-        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.geoparquet'
+        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(
@@ -232,7 +238,8 @@ def convert_pbf_to_gpq(
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         verbosity_mode=verbosity_mode,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).convert_pbf_to_gpq(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -258,7 +265,8 @@ def convert_geometry_to_gpq(
     save_as_wkt: bool = False,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
     allow_uncovered_geometry: bool = False,
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> Path:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -313,8 +321,10 @@ def convert_geometry_to_gpq(
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -329,8 +339,9 @@ def convert_geometry_to_gpq(
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
         >>> gpq_path = qosm.convert_geometry_to_gpq(from_wkt(wkt))
+        Finished operation in ...
         >>> gpq_path.as_posix()
-        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -375,8 +386,9 @@ def convert_geometry_to_gpq(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
         ... )
+        Finished operation in ...
         >>> gpq_path.as_posix()
-        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.geoparquet'
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).project(
@@ -421,7 +433,8 @@ def convert_geometry_to_gpq(
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
         allow_uncovered_geometry=allow_uncovered_geometry,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).convert_geometry_filter_to_gpq(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -443,7 +456,8 @@ def get_features_gdf(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame from a PBF file or list of PBF files.
@@ -489,8 +503,10 @@ def get_features_gdf(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -500,7 +516,9 @@ def get_features_gdf(
 
         Tags will be kept in a single column.
         >>> import quackosm as qosm
-        >>> qosm.get_features_gdf(monaco_pbf_path).sort_index()
+        >>> gdf = qosm.get_features_gdf(monaco_pbf_path)
+        Finished operation in ...
+        >>> gdf.sort_index()
                                                       tags                      geometry
         feature_id
         node/10005045289                {'shop': 'bakery'}      POINT (7.42245 43.73105)
@@ -520,9 +538,11 @@ def get_features_gdf(
         Get only buildings from a PBF file.
 
         Tags will be split into separate columns because of applying the filter.
-        >>> qosm.get_features_gdf(
+        >>> gdf = qosm.get_features_gdf(
         ...     monaco_pbf_path, tags_filter={"building": True}
-        ... ).sort_index()
+        ... )
+        Finished operation in ...
+        >>> gdf.sort_index()
                               building                                           geometry
         feature_id
         relation/11384697          yes  POLYGON ((7.42749 43.73125, 7.42672 43.73063, ...
@@ -543,7 +563,7 @@ def get_features_gdf(
 
         Tags will be kept in a single column.
         >>> from shapely.geometry import box
-        >>> qosm.get_features_gdf(
+        >>> gdf = qosm.get_features_gdf(
         ...     maldives_pbf_path,
         ...     geometry_filter=box(
         ...         minx=73.4975872,
@@ -551,7 +571,9 @@ def get_features_gdf(
         ...         maxx=73.5215528,
         ...         maxy=4.1818121
         ...     )
-        ... ).sort_index()
+        ... )
+        Finished operation in ...
+        >>> gdf.sort_index()
                                                    tags                                     geometry
         feature_id
         node/10010180778  {'brand': 'Ooredoo', 'bran...                     POINT (73.51790 4.17521)
@@ -573,7 +595,7 @@ def get_features_gdf(
 
         Even though we apply the filter, the tags will be kept in a single column
         because of manual `explode_tags` value setting.
-        >>> qosm.get_features_gdf(
+        >>> gdf = qosm.get_features_gdf(
         ...     kiribati_pbf_path,
         ...     tags_filter={
         ...         "highway": {"highway": True},
@@ -587,7 +609,9 @@ def get_features_gdf(
         ...         maxy=2.075240
         ...     ),
         ...     explode_tags=False,
-        ... ).sort_index()
+        ... )
+        Finished operation in ...
+        >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
         node/2377661784  {'building': 'building=ruin'}                    POINT (-157.18826 1.75186)
@@ -610,7 +634,8 @@ def get_features_gdf(
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         verbosity_mode=verbosity_mode,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).get_features_gdf(
         file_paths=file_paths,
         keep_all_tags=keep_all_tags,
@@ -632,7 +657,8 @@ def get_features_gdf_from_geometry(
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
     allow_uncovered_geometry: bool = False,
-    debug: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -681,8 +707,10 @@ def get_features_gdf_from_geometry(
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
-        debug (bool, optional): If turned on, will keep all temporary files after operation
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
             for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -696,7 +724,9 @@ def get_features_gdf_from_geometry(
         ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
-        >>> qosm.get_features_gdf_from_geometry(from_wkt(wkt)).sort_index()
+        >>> gdf = qosm.get_features_gdf_from_geometry(from_wkt(wkt))
+        Finished operation in ...
+        >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
         node/10068880335     {'amenity': 'bench', '...                      POINT (7.41869 43.73215)
@@ -715,10 +745,12 @@ def get_features_gdf_from_geometry(
 
         Making sure that you are using specific OSM extract source - here Geofabrik.
 
-        >>> qosm.get_features_gdf_from_geometry(
+        >>> gdf = qosm.get_features_gdf_from_geometry(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
-        ... ).sort_index()
+        ... )
+        Finished operation in ...
+        >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
         node/10068880335       {'amenity': 'bench',...                      POINT (7.41869 43.73215)
@@ -743,7 +775,8 @@ def get_features_gdf_from_geometry(
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
         allow_uncovered_geometry=allow_uncovered_geometry,
-        debug=debug,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
     ).get_features_gdf_from_geometry(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,

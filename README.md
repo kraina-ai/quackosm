@@ -141,7 +141,7 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 >>> import quackosm as qosm
 >>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
 >>> gpq_path.as_posix()
-'files/monaco_nofilter_noclip_compact.geoparquet'
+'files/monaco_nofilter_noclip_compact.parquet'
 ```
 
 #### Inspect the file with duckdb
@@ -227,7 +227,7 @@ $ quackosm monaco.osm.pbf
 ⠹ [31.1/32] Saving valid features • 0:00:00
 ⠋ [  32/32] Saving final geoparquet file • 0:00:00
 Finished operation in 0:00:06
-files/monaco_nofilter_noclip_compact.geoparquet
+files/monaco_nofilter_noclip_compact.parquet
 ```
 
 ### Let the QuackOSM automatically download the required OSM PBF files for you 🔎🌍
@@ -266,7 +266,7 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 ... )
 >>> gpq_path = qosm.convert_geometry_to_gpq(geometry)
 >>> gpq_path.as_posix()
-'files/4b2967088a8fe31cdc15401e29bff9b7b882565cd8143e90443f39f2dc5fe6de_nofilter_compact.geoparquet'
+'files/4b2967088a8fe31cdc15401e29bff9b7b882565cd8143e90443f39f2dc5fe6de_nofilter_compact.parquet'
 ```
 
 #### Inspect the file with duckdb
@@ -353,7 +353,7 @@ $ quackosm --geom-filter-geocode "Shibuya, Tokyo"
 ⠸ [31.1/32] Saving valid features • 0:00:00
 ⠋ [  32/32] Saving final geoparquet file • 0:00:00
 Finished operation in 0:00:39
-files/9ae2b160eb7556991148f5a2693aaf4b38bbb225c3700a6bfe9e5e54f48b987e_nofilter_compact.geoparquet
+files/9ae2b160eb7556991148f5a2693aaf4b38bbb225c3700a6bfe9e5e54f48b987e_nofilter_compact.parquet
 ```
 
 CLI Help output (`QuackOSM -h`):
@@ -411,26 +411,26 @@ By default, the library is saving results in the `files` directory created in th
 
 Original file name to be converted: `example.osm.pbf`.
 
-Default output without any filtering: `example_nofilter_noclip_compact.geoparquet`.
+Default output without any filtering: `example_nofilter_noclip_compact.parquet`.
 
 The nofilter part can be replaced by the hash of OSM tags provided for filtering.
-`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.geoparquet`
+`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_noclip_exploded.parquet`
 
 The noclip part can be replaced by the hash of geometry used for filtering.
-`example_nofilter_430020b6b1ba7bef8ea919b2fb4472dab2972c70a2abae253760a56c29f449c4_compact.geoparquet`
+`example_nofilter_430020b6b1ba7bef8ea919b2fb4472dab2972c70a2abae253760a56c29f449c4_compact.parquet`
 
 The `compact` part can also take the form of `exploded`, it represents the form of OSM tags - either kept together in a single dictionary or split into columns.
 
 When filtering by selecting individual features IDs, an additional hash based on those IDs is appended to the file.
-`example_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.geoparquet`
+`example_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.parquet`
 
 When the `keep_all_tags` parameter is passed while filtering by OSM tags, and additional `alltags` component is added after the osm filter hash part.
-`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.geoparquet`
+`example_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_alltags_noclip_compact.parquet`
 
 General schema of multiple segments that are concatenated together:
-`pbf_file_name`\_(`osm_filter_tags_hash_part`/`nofilter`)(\_`alltags`)\_(`clipping_geometry_hash_part`/`noclip`)\_(`compact`/`exploded`)(\_`filter_osm_ids_hash_part`).geoparquet
+`pbf_file_name`\_(`osm_filter_tags_hash_part`/`nofilter`)(\_`alltags`)\_(`clipping_geometry_hash_part`/`noclip`)\_(`compact`/`exploded`)(\_`filter_osm_ids_hash_part`).parquet
 
-> If the WKT mode is turned on, then the result file will be saved with a `parquet` extension and a `_wkt` suffix.
+> If the WKT mode is turned on, then the result file will be saved with a `_wkt` suffix.
 
 ### Memory usage
 
