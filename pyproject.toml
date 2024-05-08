@@ -11,7 +11,7 @@ dependencies = [
     "geoarrow-pyarrow>=0.1.2",
     "typeguard>=3.0.0",
     "psutil",
-    "pooch",
+    "pooch>=1.1.0",
     "tqdm",
     "beautifulsoup4",
     "pyarrow-ops",
