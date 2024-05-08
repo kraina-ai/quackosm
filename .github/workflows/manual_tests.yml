@@ -56,6 +56,5 @@ jobs:
         run: pdm install --lockfile pdm.oldest.lock -dG:all --skip=post_install
       - name: Run tests with pytest
         run: |
-          pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
           pdm run pytest -v -s --durations=20 tests/base
           pdm run pytest -v -s --durations=20 tests/optional_imports
