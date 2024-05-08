@@ -14,7 +14,7 @@ from quackosm.functions import (
 from quackosm.pbf_file_reader import PbfFileReader
 
 __app_name__ = "QuackOSM"
-__version__ = "0.7.3"
+__version__ = "0.8.0"
 
 __all__ = [
     "PbfFileReader",
