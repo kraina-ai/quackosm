@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2024-05-08
+
 ### Added
 
 - Polars library to the main dependencies
@@ -16,14 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored ways grouping logic from duckdb to polars `LazyFrame` API for faster operations
 - Default result file extension from `geoparquet` to `parquet` [#99](https://github.com/kraina-ai/quackosm/issues/99)
 - Moved `rich` to the main dependencies [#95](https://github.com/kraina-ai/quackosm/issues/95)
+- Set minimal versions of multiple dependencies
+- Added tests for minimal dependencies versions
 
 ### Fixed
 
 - Steps numbering after encountering `MemoryError`
 
+### Removed
+
+- `h3ronpy` from dependencies and replaced logic with pure `h3` calls
+
 ### Deprecated
 
-- Usage of `geoparquet` files as default extension, reusing existing `geoparquet` files from cache will be supported with deprecation warning [#99](https://github.com/kraina-ai/quackosm/issues/99)
+- Reusing existing `geoparquet` files from cache will be supported, but will result in deprecation warning [#99](https://github.com/kraina-ai/quackosm/issues/99)
 
 ## [0.7.3] - 2024-05-07
 
@@ -254,7 +262,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.7.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.0...HEAD
+
+[0.8.0]: https://github.com/kraina-ai/quackosm/compare/0.7.3...0.8.0
 
 [0.7.3]: https://github.com/kraina-ai/quackosm/compare/0.7.2...0.7.3
 

@@ -72,23 +72,25 @@ Required:
 
 - `duckdb (>=0.10.2)`: For all DuckDB operations on PBF files
 
-- `pyarrow (>=13.0.0)`: For parquet files wrangling
+- `pyarrow (>=14.0.0)`: For parquet files wrangling
 
 - `pyarrow-ops`: For easy removal of duplicated features in parquet files
 
 - `geoarrow-pyarrow (>=0.1.2)`: For GeoParquet IO operations
 
-- `geopandas`: For returning GeoDataFrames and reading Geo files
+- `geopandas (>=0.6)`: For returning GeoDataFrames and reading Geo files
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries
 
-- `typeguard`: For internal validation of types
+- `polars (>=0.19.4)`: For faster OSM ways grouping operation
 
-- `psutil`: For automatic scaling of parameters based on available resources
+- `typeguard (>=3.0)`: For internal validation of types
 
-- `pooch`: For downloading `*.osm.pbf` files
+- `psutil (>=5.6.2)`: For automatic scaling of parameters based on available resources
 
-- `tqdm`: For showing progress bars
+- `pooch (>=1.6.0)`: For downloading `*.osm.pbf` files
+
+- `rich (>=10.11.0)` & `tqdm (>=4.42.0)`: For showing progress bars
 
 - `requests`: For iterating OSM PBF files services
 
@@ -99,15 +101,13 @@ Optional:
 
 - `typer[all] (>=0.9.0)` (click, colorama, rich, shellingham): For CLI
 
-- `osmnx`: For geocoding of strings in CLI
+- `osmnx (>=1.3.0)`: For geocoding of strings in CLI
 
 - `h3 (>=4.0.0b1)`: For reading H3 strings in CLI
 
-- `h3ronpy (>=0.18.0)`: For transforming H3 indexes into geometries
+- `s2 (>=0.1.9)`: For transforming S2 indexes into geometries
 
-- `s2`: For transforming S2 indexes into geometries
-
-- `python-geohash`: For transforming GeoHash indexes into geometries
+- `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries
 
 ## Usage
 

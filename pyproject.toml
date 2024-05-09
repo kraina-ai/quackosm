@@ -1,22 +1,22 @@
 [project]
 name = "QuackOSM"
-version = "0.7.3"
+version = "0.8.0"
 description = "An open-source tool for reading OpenStreetMap PBF files using DuckDB"
 authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
-    "geopandas",
+    "geopandas>=0.6",
     "shapely>=2",
-    "pyarrow>=13.0.0",
+    "pyarrow>=14.0.0",
     "duckdb>=0.10.2",
     "geoarrow-pyarrow>=0.1.2",
-    "typeguard",
-    "psutil",
-    "pooch",
-    "tqdm",
+    "typeguard>=3.0.0",
+    "psutil>=5.6.2",
+    "pooch>=1.6.0",
+    "tqdm>=4.42.0",
     "beautifulsoup4",
     "pyarrow-ops",
     "requests",
-    "polars",
+    "polars>=0.19.4",
     "rich>=10.11.0",
 ]
 requires-python = ">=3.9"
@@ -48,10 +48,9 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 cli = [
     "typer[all]>=0.9.0",
-    "osmnx",
+    "osmnx>=1.3.0",
     "h3>=4.0.0b1",
-    "h3ronpy>=0.18.0",
-    "s2",
+    "s2>=0.1.9",
     "python-geohash>=0.8",
 ]
 
@@ -73,16 +72,16 @@ dev = [
     "setuptools>=45.0.0",
 ]
 # pdm add -dG lint <library>
-lint = ["pre-commit", "mypy", "docformatter[tomli]", "ruff"]
+lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>
 test = [
-    "pytest",
+    "pytest>=7.0.0",
     "tox-pdm",
-    "pytest-mock",
+    "pytest-mock>=3.3.0",
     "requests-mock",
     "pytest-check",
     "pytest-parametrization",
-    "pytest-xdist",
+    "pytest-xdist>=3.4.0",
     "pytest-doctestplus",
     "srai>=0.6.2",
 ]
@@ -96,7 +95,7 @@ docs = [
     "ipykernel",
     "mkdocs-gen-files",
     "mkdocs-awesome-pages-plugin",
-    "mike<2",
+    "mike>=1,<2",
     "black",
     "jupyter",
     "nbconvert",
@@ -104,7 +103,7 @@ docs = [
     "notebook",
     "osmnx",
     "matplotlib",
-    "seaborn",
+    "seaborn>=0.10.0",
     "py-cpuinfo",
     "adjustText",
 ]
@@ -180,7 +179,7 @@ close-quotes-on-newline = true
 wrap-one-line = true
 
 [tool.bumpver]
-current_version = "0.7.3"
+current_version = "0.8.0"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
 commit = true
