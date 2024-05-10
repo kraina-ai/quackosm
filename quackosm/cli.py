@@ -552,8 +552,8 @@ def main(
     """
     QuackOSM CLI.
 
-    Wraps convert_pbf_to_parquet function and print final path to the saved geoparquet file at the
-    end.
+    Wraps convert_pbf_to_parquet and convert_geometry_to_parquet functions and prints final path to
+    the saved geoparquet file at the end.
     """
     number_of_geometries_provided = sum(
         geom is not None
