@@ -348,7 +348,6 @@ def convert_geometry_to_parquet(
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
         >>> gpq_path = qosm.convert_geometry_to_parquet(from_wkt(wkt))
-        Finished operation in ...
         >>> gpq_path.as_posix()
         'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
@@ -395,7 +394,6 @@ def convert_geometry_to_parquet(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
         ... )
-        Finished operation in ...
         >>> gpq_path.as_posix()
         'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
@@ -735,7 +733,6 @@ def convert_geometry_to_geodataframe(
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
         >>> gdf = qosm.convert_geometry_to_geodataframe(from_wkt(wkt))
-        Finished operation in ...
         >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
@@ -759,7 +756,6 @@ def convert_geometry_to_geodataframe(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
         ... )
-        Finished operation in ...
         >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
