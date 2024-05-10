@@ -453,7 +453,8 @@ def convert_geometry_to_parquet(
         save_as_wkt=save_as_wkt,
     )
 
-@deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")   # type: ignore
+
+@deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
 def convert_pbf_to_geodataframe(
     pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
