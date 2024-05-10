@@ -2507,8 +2507,9 @@ def _set_up_duckdb_connection(
     )
     connection.sql("SET enable_progress_bar = false;")
     connection.sql("SET enable_progress_bar_print = false;")
+
+    connection.install_extension("spatial")
     for extension_name in ("parquet", "spatial"):
-        connection.install_extension(extension_name)
         connection.load_extension(extension_name)
 
     connection.sql(
