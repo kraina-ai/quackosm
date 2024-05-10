@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
 import geopandas as gpd
-from pandas.util._decorators import deprecate
+from pandas.util._decorators import deprecate, deprecate_kwarg
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
@@ -26,7 +26,7 @@ __all__ = [
 
 
 def convert_pbf_to_parquet(
-    pbf_path: Union[str, Path],
+    pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -45,7 +45,8 @@ def convert_pbf_to_parquet(
     Convert PBF file to GeoParquet file.
 
     Args:
-        pbf_path (Union[str, Path]): Pbf file to be parsed to GeoParquet.
+        pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
+            Path or list of paths of `*.osm.pbf` files to be parsed.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -443,7 +444,7 @@ def convert_geometry_to_parquet(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
-    ).convert_geometry_filter_to_gpq(
+    ).convert_geometry_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
@@ -452,9 +453,9 @@ def convert_geometry_to_parquet(
         save_as_wkt=save_as_wkt,
     )
 
-
+@deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")   # type: ignore
 def convert_pbf_to_geodataframe(
-    file_paths: Union[str, Path, Iterable[Union[str, Path]]],
+    pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     keep_all_tags: bool = False,
@@ -474,7 +475,7 @@ def convert_pbf_to_geodataframe(
     OSM objects.
 
     Args:
-        file_paths (Union[str, Path, Iterable[Union[str, Path]]]):
+        pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
             Path or list of paths of `*.osm.pbf` files to be parsed.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
@@ -645,7 +646,7 @@ def convert_pbf_to_geodataframe(
         debug_memory=debug_memory,
         debug_times=debug_times,
     ).convert_pbf_to_geodataframe(
-        file_paths=file_paths,
+        pbf_path=pbf_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,

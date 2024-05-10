@@ -2,8 +2,9 @@
 
 import json
 import warnings
+from functools import partial
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
@@ -35,6 +36,7 @@ from quackosm import (
     convert_geometry_to_parquet,
     convert_pbf_to_geodataframe,
     convert_pbf_to_parquet,
+    functions,
 )
 from quackosm._constants import FEATURES_INDEX, WGS84_CRS
 from quackosm._exceptions import (
@@ -372,6 +374,80 @@ def test_geometry_orienting(geometry: BaseGeometry):
     intersection_area = geometry.intersection(oriented_geometry).area
     iou = intersection_area / (geometry.area + oriented_geometry.area - intersection_area)
     ut.assertAlmostEqual(iou, 1, delta=1e-4)
+
+
+@pytest.mark.parametrize(  # type: ignore
+    "func,new_function_name",
+    [
+        (
+            partial(
+                functions.get_features_gdf,
+                file_paths=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            partial(
+                functions.get_features_gdf,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            partial(functions.get_features_gdf_from_geometry, geometry_filter=geometry_box()),
+            "convert_geometry_to_geodataframe",
+        ),
+        (
+            partial(
+                functions.convert_pbf_to_gpq,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_parquet",
+        ),
+        (
+            partial(
+                functions.convert_geometry_to_gpq,
+                geometry_filter=geometry_box(),
+            ),
+            "convert_geometry_to_parquet",
+        ),
+        (
+            partial(
+                PbfFileReader().get_features_gdf,
+                file_paths=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            partial(
+                PbfFileReader().get_features_gdf,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            PbfFileReader(geometry_filter=geometry_box()).get_features_gdf_from_geometry,
+            "convert_geometry_to_geodataframe",
+        ),
+        (
+            partial(
+                PbfFileReader().convert_pbf_to_gpq,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_parquet",
+        ),
+        (
+            PbfFileReader(geometry_filter=geometry_box()).convert_geometry_filter_to_gpq,
+            "convert_geometry_to_parquet",
+        ),
+    ],
+)
+def test_deprecation(func: Callable[[], Any], new_function_name: str):
+    """Test if deprecation works."""
+    with pytest.warns(FutureWarning) as record:
+        func()
+
+    assert new_function_name in str(record[0].message)
 
 
 def check_if_relation_in_osm_is_valid_based_on_tags(pbf_file: str, relation_id: str) -> bool:
