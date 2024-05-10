@@ -86,7 +86,7 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
     features_gdf = PbfFileReader(
         tags_filter=HEX2VEC_FILTER, geometry_filter=Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
     ).convert_pbf_to_geodataframe(
-        file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
+        pbf_path=[Path(__file__).parent.parent / "test_files" / file_name],
         explode_tags=True,
         ignore_cache=True,
     )
@@ -122,11 +122,11 @@ def test_unique_osm_ids_duplicated_file():  # type: ignore
     """Test if function returns results without duplicated features."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     result_gdf = PbfFileReader().convert_pbf_to_geodataframe(
-        file_paths=[monaco_file_path, monaco_file_path], ignore_cache=True
+        pbf_path=[monaco_file_path, monaco_file_path], ignore_cache=True
     )
 
     single_result_gdf = PbfFileReader().convert_pbf_to_geodataframe(
-        file_paths=[monaco_file_path], ignore_cache=True
+        pbf_path=[monaco_file_path], ignore_cache=True
     )
 
     assert result_gdf.index.is_unique
@@ -185,7 +185,7 @@ def test_combining_files_different_techniques(
     if operation_mode == "gdf":
         monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
         result_gdf = convert_pbf_to_geodataframe(
-            file_paths=[
+            pbf_path=[
                 monaco_file_path,
                 monaco_file_path,
             ],
@@ -193,7 +193,7 @@ def test_combining_files_different_techniques(
         )
         single_result_gdf = PbfFileReader(
             debug_memory=True, debug_times=True
-        ).convert_pbf_to_geodataframe(file_paths=[monaco_file_path], ignore_cache=True)
+        ).convert_pbf_to_geodataframe(pbf_path=[monaco_file_path], ignore_cache=True)
 
         assert result_gdf.index.is_unique
         assert len(result_gdf.index) == len(single_result_gdf.index)
@@ -251,7 +251,7 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
     """Test proper features ids filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
     features_gdf = PbfFileReader().convert_pbf_to_geodataframe(
-        file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
+        pbf_path=[Path(__file__).parent.parent / "test_files" / file_name],
         ignore_cache=True,
         filter_osm_ids=filter_osm_ids,
     )
