@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
 import geopandas as gpd
+from pandas.util._decorators import deprecate
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
@@ -16,8 +17,15 @@ from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
 from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
 
+__all__ = [
+    "convert_pbf_to_parquet",
+    "convert_geometry_to_parquet",
+    "convert_pbf_to_geodataframe",
+    "convert_geometry_to_geodataframe",
+]
 
-def convert_pbf_to_gpq(
+
+def convert_pbf_to_parquet(
     pbf_path: Union[str, Path],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
@@ -92,7 +100,7 @@ def convert_pbf_to_gpq(
 
         Tags will be kept in a single column.
         >>> import quackosm as qosm
-        >>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
+        >>> gpq_path = qosm.convert_pbf_to_parquet(monaco_pbf_path)
         Finished operation in ...
         >>> gpq_path.as_posix()
         'files/monaco_nofilter_noclip_compact.parquet'
@@ -137,7 +145,7 @@ def convert_pbf_to_gpq(
         Get only buildings, amenities and highways from a PBF file.
 
         Tags will be split into separate columns because of applying the filter.
-        >>> gpq_path = qosm.convert_pbf_to_gpq(
+        >>> gpq_path = qosm.convert_pbf_to_parquet(
         ...     monaco_pbf_path,
         ...     tags_filter={"building": True, "amenity": True, "highway": True}
         ... )
@@ -184,7 +192,7 @@ def convert_pbf_to_gpq(
 
         Tags will be kept in a single column.
         >>> from shapely.geometry import box
-        >>> gpq_path = qosm.convert_pbf_to_gpq(
+        >>> gpq_path = qosm.convert_pbf_to_parquet(
         ...     maldives_pbf_path,
         ...     geometry_filter=box(
         ...         minx=73.4975872,
@@ -240,7 +248,7 @@ def convert_pbf_to_gpq(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
-    ).convert_pbf_to_gpq(
+    ).convert_pbf_to_parquet(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -251,7 +259,7 @@ def convert_pbf_to_gpq(
     )
 
 
-def convert_geometry_to_gpq(
+def convert_geometry_to_parquet(
     geometry_filter: BaseGeometry = None,
     osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -338,7 +346,7 @@ def convert_geometry_to_gpq(
         ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
-        >>> gpq_path = qosm.convert_geometry_to_gpq(from_wkt(wkt))
+        >>> gpq_path = qosm.convert_geometry_to_parquet(from_wkt(wkt))
         Finished operation in ...
         >>> gpq_path.as_posix()
         'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
@@ -382,7 +390,7 @@ def convert_geometry_to_gpq(
 
         Making sure that you are using specific OSM extract source - here Geofabrik.
 
-        >>> gpq_path = qosm.convert_geometry_to_gpq(
+        >>> gpq_path = qosm.convert_geometry_to_parquet(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
         ... )
@@ -445,7 +453,7 @@ def convert_geometry_to_gpq(
     )
 
 
-def get_features_gdf(
+def convert_pbf_to_geodataframe(
     file_paths: Union[str, Path, Iterable[Union[str, Path]]],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
@@ -516,7 +524,7 @@ def get_features_gdf(
 
         Tags will be kept in a single column.
         >>> import quackosm as qosm
-        >>> gdf = qosm.get_features_gdf(monaco_pbf_path)
+        >>> gdf = qosm.convert_pbf_to_geodataframe(monaco_pbf_path)
         Finished operation in ...
         >>> gdf.sort_index()
                                                       tags                      geometry
@@ -538,7 +546,7 @@ def get_features_gdf(
         Get only buildings from a PBF file.
 
         Tags will be split into separate columns because of applying the filter.
-        >>> gdf = qosm.get_features_gdf(
+        >>> gdf = qosm.convert_pbf_to_geodataframe(
         ...     monaco_pbf_path, tags_filter={"building": True}
         ... )
         Finished operation in ...
@@ -563,7 +571,7 @@ def get_features_gdf(
 
         Tags will be kept in a single column.
         >>> from shapely.geometry import box
-        >>> gdf = qosm.get_features_gdf(
+        >>> gdf = qosm.convert_pbf_to_geodataframe(
         ...     maldives_pbf_path,
         ...     geometry_filter=box(
         ...         minx=73.4975872,
@@ -595,7 +603,7 @@ def get_features_gdf(
 
         Even though we apply the filter, the tags will be kept in a single column
         because of manual `explode_tags` value setting.
-        >>> gdf = qosm.get_features_gdf(
+        >>> gdf = qosm.convert_pbf_to_geodataframe(
         ...     kiribati_pbf_path,
         ...     tags_filter={
         ...         "highway": {"highway": True},
@@ -636,7 +644,7 @@ def get_features_gdf(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
-    ).get_features_gdf(
+    ).convert_pbf_to_geodataframe(
         file_paths=file_paths,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
@@ -645,7 +653,7 @@ def get_features_gdf(
     )
 
 
-def get_features_gdf_from_geometry(
+def convert_geometry_to_geodataframe(
     geometry_filter: BaseGeometry = None,
     osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -724,7 +732,7 @@ def get_features_gdf_from_geometry(
         ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
-        >>> gdf = qosm.get_features_gdf_from_geometry(from_wkt(wkt))
+        >>> gdf = qosm.convert_geometry_to_geodataframe(from_wkt(wkt))
         Finished operation in ...
         >>> gdf.sort_index()
                                                   tags                                      geometry
@@ -745,7 +753,7 @@ def get_features_gdf_from_geometry(
 
         Making sure that you are using specific OSM extract source - here Geofabrik.
 
-        >>> gdf = qosm.get_features_gdf_from_geometry(
+        >>> gdf = qosm.convert_geometry_to_geodataframe(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
         ... )
@@ -777,9 +785,38 @@ def get_features_gdf_from_geometry(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
-    ).get_features_gdf_from_geometry(
+    ).convert_geometry_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
+
+
+convert_pbf_to_gpq = deprecate(
+    "convert_pbf_to_gpq",
+    convert_pbf_to_parquet,
+    "0.8.1",
+    msg="Use `convert_pbf_to_parquet` instead. Deprecated since 0.8.1 version.",
+)
+
+convert_geometry_to_gpq = deprecate(
+    "convert_geometry_to_gpq",
+    convert_geometry_to_parquet,
+    "0.8.1",
+    msg="Use `convert_geometry_to_parquet` instead. Deprecated since 0.8.1 version.",
+)
+
+get_features_gdf = deprecate(
+    "get_features_gdf",
+    convert_pbf_to_geodataframe,
+    "0.8.1",
+    msg="Use `convert_pbf_to_geodataframe` instead. Deprecated since 0.8.1 version.",
+)
+
+get_features_gdf_from_geometry = deprecate(
+    "get_features_gdf_from_geometry",
+    convert_geometry_to_geodataframe,
+    "0.8.1",
+    msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
+)

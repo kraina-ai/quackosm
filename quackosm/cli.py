@@ -21,7 +21,7 @@ from shapely.geometry import Polygon, box
 from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
-from quackosm.functions import convert_geometry_to_gpq, convert_pbf_to_gpq
+from quackosm.functions import convert_geometry_to_parquet, convert_pbf_to_parquet
 from quackosm.osm_extracts import OsmExtractSource
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -552,7 +552,8 @@ def main(
     """
     QuackOSM CLI.
 
-    Wraps convert_pbf_to_gpq function and print final path to the saved geoparquet file at the end.
+    Wraps convert_pbf_to_parquet function and print final path to the saved geoparquet file at the
+    end.
     """
     number_of_geometries_provided = sum(
         geom is not None
@@ -606,7 +607,7 @@ def main(
 
     logging.disable(logging.CRITICAL)
     if pbf_file:
-        geoparquet_path = convert_pbf_to_gpq(
+        geoparquet_path = convert_pbf_to_parquet(
             pbf_path=pbf_file,
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
             keep_all_tags=keep_all_tags,
@@ -625,7 +626,7 @@ def main(
             verbosity_mode=verbosity_mode,
         )
     else:
-        geoparquet_path = convert_geometry_to_gpq(
+        geoparquet_path = convert_geometry_to_parquet(
             geometry_filter=geometry_filter_value,
             osm_extract_source=osm_extract_source,
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore

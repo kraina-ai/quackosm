@@ -15,7 +15,6 @@ def optional_packages() -> list[str]:
         "click",
         "osmnx",
         "h3",
-        "h3ronpy",
         "s2",
         "geohash",
     ]

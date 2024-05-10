@@ -201,7 +201,7 @@ def test_pbf_reader(
     expected_features_columns_length: int,
 ):
     """Test proper files loading in `PbfFileReader`."""
-    features_gdf = PbfFileReader(tags_filter=query).get_features_gdf(
+    features_gdf = PbfFileReader(tags_filter=query).convert_pbf_to_geodataframe(
         file_paths=[Path(__file__).parent.parent / "test_files" / test_file_name],
         explode_tags=True,
         ignore_cache=True,
@@ -254,7 +254,7 @@ def test_pbf_reader_proper_tags_reading(
 ):
     """Test proper tags reading with filtering on osm_id in `PbfFileReader`."""
     file_name = "monaco.osm.pbf"
-    features_gdf = PbfFileReader(tags_filter=osm_tags_filter).get_features_gdf(
+    features_gdf = PbfFileReader(tags_filter=osm_tags_filter).convert_pbf_to_geodataframe(
         file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
         ignore_cache=True,
         filter_osm_ids=[filter_osm_id],
@@ -895,7 +895,7 @@ def test_correct_osm_tags_filters(
 ):
     """Test proper tags reading with filtering in `PbfFileReader`."""
     file_name = "monaco.osm.pbf"
-    features_gdf = PbfFileReader(tags_filter=osm_tags_filter).get_features_gdf(
+    features_gdf = PbfFileReader(tags_filter=osm_tags_filter).convert_pbf_to_geodataframe(
         file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
         ignore_cache=True,
         explode_tags=True,
@@ -929,7 +929,7 @@ def test_incorrect_osm_tags_filters(
     """Test wrong tags reading with filtering in `PbfFileReader`."""
     with pytest.raises(ValueError):
         file_name = "monaco.osm.pbf"
-        PbfFileReader(tags_filter=osm_tags_filter).get_features_gdf(
+        PbfFileReader(tags_filter=osm_tags_filter).convert_pbf_to_geodataframe(
             file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
             ignore_cache=True,
             explode_tags=False,

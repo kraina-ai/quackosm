@@ -204,7 +204,7 @@ class PbfFileReader:
             else parse_dict_to_config_object(osm_way_polygon_features_config)
         )
 
-    def convert_pbf_to_gpq(
+    def convert_pbf_to_parquet(
         self,
         pbf_path: Union[str, Path],
         result_file_path: Optional[Union[str, Path]] = None,
@@ -362,7 +362,7 @@ class PbfFileReader:
 
         if len(matching_extracts) == 1:
             pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
-            return self.convert_pbf_to_gpq(
+            return self.convert_pbf_to_parquet(
                 pbf_files[0],
                 result_file_path=result_file_path,
                 keep_all_tags=keep_all_tags,
@@ -397,7 +397,7 @@ class PbfFileReader:
                 )
                 for file_idx, file_path in enumerate(pbf_files):
                     self.task_progress_tracker.reset_steps(file_idx + 1)
-                    parsed_geoparquet_file = self.convert_pbf_to_gpq(
+                    parsed_geoparquet_file = self.convert_pbf_to_parquet(
                         file_path,
                         keep_all_tags=keep_all_tags,
                         explode_tags=explode_tags,
@@ -460,7 +460,7 @@ class PbfFileReader:
 
         return Path(result_file_path)
 
-    def get_features_gdf(
+    def convert_pbf_to_geodataframe(
         self,
         file_paths: Union[str, Path, Iterable[Union[str, Path]]],
         keep_all_tags: bool = False,
@@ -514,7 +514,7 @@ class PbfFileReader:
         )
         for file_idx, file_path in enumerate(file_paths):
             self.task_progress_tracker.reset_steps(file_idx + 1)
-            parsed_geoparquet_file = self.convert_pbf_to_gpq(
+            parsed_geoparquet_file = self.convert_pbf_to_parquet(
                 file_path,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
@@ -566,7 +566,7 @@ class PbfFileReader:
 
         return gdf_parquet
 
-    def get_features_gdf_from_geometry(
+    def convert_geometry_to_geodataframe(
         self,
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
