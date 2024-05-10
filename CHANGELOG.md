@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed the `parquet` extension installation step after opening the DuckDB connection
+
 ## [0.8.0] - 2024-05-08
 
 ### Added
