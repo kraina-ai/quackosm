@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2024-05-11
+
 ### Added
 
 - Option to convert multiple `*.osm.pbf` files to a single `parquet` file
@@ -280,7 +282,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.1...HEAD
+
+[0.8.1]: https://github.com/kraina-ai/quackosm/compare/0.8.0...0.8.1
 
 [0.8.0]: https://github.com/kraina-ai/quackosm/compare/0.7.3...0.8.0
 
