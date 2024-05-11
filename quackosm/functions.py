@@ -101,8 +101,7 @@ def convert_pbf_to_parquet(
 
         Tags will be kept in a single column.
         >>> import quackosm as qosm
-        >>> gpq_path = qosm.convert_pbf_to_parquet(monaco_pbf_path)
-        Finished operation in ...
+        >>> gpq_path = qosm.convert_pbf_to_parquet(monaco_pbf_path) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
         'files/monaco_nofilter_noclip_compact.parquet'
 
@@ -149,8 +148,7 @@ def convert_pbf_to_parquet(
         >>> gpq_path = qosm.convert_pbf_to_parquet(
         ...     monaco_pbf_path,
         ...     tags_filter={"building": True, "amenity": True, "highway": True}
-        ... )
-        Finished operation in ...
+        ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
         'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.parquet'
 
@@ -201,8 +199,7 @@ def convert_pbf_to_parquet(
         ...         maxx=73.5215528,
         ...         maxy=4.1818121
         ...     )
-        ... )
-        Finished operation in ...
+        ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
         'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.parquet'
 
@@ -347,8 +344,7 @@ def convert_geometry_to_parquet(
         ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
-        >>> gpq_path = qosm.convert_geometry_to_parquet(from_wkt(wkt))
-        ...
+        >>> gpq_path = qosm.convert_geometry_to_parquet(from_wkt(wkt)) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
         'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
@@ -394,8 +390,7 @@ def convert_geometry_to_parquet(
         >>> gpq_path = qosm.convert_geometry_to_parquet(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
-        ... )
-        ...
+        ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
         'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
@@ -526,8 +521,7 @@ def convert_pbf_to_geodataframe(
 
         Tags will be kept in a single column.
         >>> import quackosm as qosm
-        >>> gdf = qosm.convert_pbf_to_geodataframe(monaco_pbf_path)
-        Finished operation in ...
+        >>> gdf = qosm.convert_pbf_to_geodataframe(monaco_pbf_path) # doctest: +IGNORE_RESULT
         >>> gdf.sort_index()
                                                       tags                      geometry
         feature_id
@@ -550,8 +544,7 @@ def convert_pbf_to_geodataframe(
         Tags will be split into separate columns because of applying the filter.
         >>> gdf = qosm.convert_pbf_to_geodataframe(
         ...     monaco_pbf_path, tags_filter={"building": True}
-        ... )
-        Finished operation in ...
+        ... ) # doctest: +IGNORE_RESULT
         >>> gdf.sort_index()
                               building                                           geometry
         feature_id
@@ -581,8 +574,7 @@ def convert_pbf_to_geodataframe(
         ...         maxx=73.5215528,
         ...         maxy=4.1818121
         ...     )
-        ... )
-        Finished operation in ...
+        ... ) # doctest: +IGNORE_RESULT
         >>> gdf.sort_index()
                                                    tags                                     geometry
         feature_id
@@ -619,8 +611,7 @@ def convert_pbf_to_geodataframe(
         ...         maxy=2.075240
         ...     ),
         ...     explode_tags=False,
-        ... )
-        Finished operation in ...
+        ... ) # doctest: +IGNORE_RESULT
         >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
@@ -734,8 +725,7 @@ def convert_geometry_to_geodataframe(
         ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
         ...     " 7.42378 43.73598, 7.41644 43.73598))"
         ... )
-        >>> gdf = qosm.convert_geometry_to_geodataframe(from_wkt(wkt))
-        ...
+        >>> gdf = qosm.convert_geometry_to_geodataframe(from_wkt(wkt)) # doctest: +IGNORE_RESULT
         >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
@@ -758,8 +748,7 @@ def convert_geometry_to_geodataframe(
         >>> gdf = qosm.convert_geometry_to_geodataframe(
         ...     from_wkt(wkt),
         ...     osm_extract_source='Geofabrik',
-        ... )
-        ...
+        ... ) # doctest: +IGNORE_RESULT
         >>> gdf.sort_index()
                                                   tags                                      geometry
         feature_id
