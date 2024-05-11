@@ -7,7 +7,7 @@ docs:
 	mkdocs serve --livereload -w quackosm
 
 test:
-	pytest --durations=20 --doctest-modules --doctest-continue-on-failure srai
-	pytest --durations=20 tests
+	pytest --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
+	pytest --durations=20 tests -n auto
 
 .PHONY: install docs test
