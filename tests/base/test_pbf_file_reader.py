@@ -336,11 +336,13 @@ def test_invalid_geometries(geometry: BaseGeometry):
 def test_geoparquet_deprecation_warning() -> None:
     """Test if warning is properly displayed."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result_path = Path("files/monaco_deprecated.parquet")
     convert_pbf_to_parquet(
         monaco_file_path,
         ignore_cache=True,
-        result_file_path="files/monaco_nofilter_noclip_compact.geoparquet",
+        result_file_path=result_path,
     )
+    result_path.rename(result_path.with_suffix(".geoparquet"))
     with pytest.warns(DeprecationWarning):
         convert_pbf_to_parquet(monaco_file_path, ignore_cache=False)
 
