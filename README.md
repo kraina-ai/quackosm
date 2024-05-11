@@ -117,7 +117,7 @@ Optional:
 
 ```python
 >>> import quackosm as qosm
->>> qosm.get_features_gdf(monaco_pbf_path)
+>>> qosm.convert_pbf_to_geodataframe(monaco_pbf_path)
                                               tags                      geometry
 feature_id
 node/10005045289                {'shop': 'bakery'}      POINT (7.42245 43.73105)
@@ -139,7 +139,7 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 
 ```python
 >>> import quackosm as qosm
->>> gpq_path = qosm.convert_pbf_to_gpq(monaco_pbf_path)
+>>> gpq_path = qosm.convert_pbf_to_parquet(monaco_pbf_path)
 >>> gpq_path.as_posix()
 'files/monaco_nofilter_noclip_compact.parquet'
 ```
@@ -238,7 +238,7 @@ files/monaco_nofilter_noclip_compact.parquet
 >>> import quackosm as qosm
 >>> import osmnx as ox
 >>> geometry = ox.geocode_to_gdf("Vatican City").unary_union
->>> qosm.get_features_gdf_from_geometry(geometry)
+>>> qosm.convert_geometry_to_geodataframe(geometry)
                                               tags                      geometry
 feature_id
 node/10253371713   {'crossing': 'uncontrolled',...     POINT (12.45603 41.90454)
@@ -264,7 +264,7 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 >>> geometry = from_wkt(
 ...     "POLYGON ((14.4861 35.9107, 14.4861 35.8811, 14.5331 35.8811, 14.5331 35.9107, 14.4861 35.9107))"
 ... )
->>> gpq_path = qosm.convert_geometry_to_gpq(geometry)
+>>> gpq_path = qosm.convert_geometry_to_parquet(geometry)
 >>> gpq_path.as_posix()
 'files/4b2967088a8fe31cdc15401e29bff9b7b882565cd8143e90443f39f2dc5fe6de_nofilter_compact.parquet'
 ```

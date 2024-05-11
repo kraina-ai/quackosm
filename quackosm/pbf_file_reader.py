@@ -28,6 +28,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
+from pandas.util._decorators import deprecate, deprecate_kwarg
 from pyarrow_ops import drop_duplicates
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
@@ -204,9 +205,37 @@ class PbfFileReader:
             else parse_dict_to_config_object(osm_way_polygon_features_config)
         )
 
-    def convert_pbf_to_gpq(
+        self.convert_pbf_to_gpq = deprecate(
+            "convert_pbf_to_gpq",
+            self.convert_pbf_to_parquet,
+            "0.8.1",
+            msg="Use `convert_pbf_to_parquet` instead. Deprecated since 0.8.1 version.",
+        )
+
+        self.convert_geometry_filter_to_gpq = deprecate(
+            "convert_geometry_filter_to_gpq",
+            self.convert_geometry_to_parquet,
+            "0.8.1",
+            msg="Use `convert_geometry_to_parquet` instead. Deprecated since 0.8.1 version.",
+        )
+
+        self.get_features_gdf = deprecate(
+            "get_features_gdf",
+            self.convert_pbf_to_geodataframe,
+            "0.8.1",
+            msg="Use `convert_pbf_to_geodataframe` instead. Deprecated since 0.8.1 version.",
+        )
+
+        self.get_features_gdf_from_geometry = deprecate(
+            "get_features_gdf_from_geometry",
+            self.convert_geometry_to_geodataframe,
+            "0.8.1",
+            msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
+        )
+
+    def convert_pbf_to_parquet(
         self,
-        pbf_path: Union[str, Path],
+        pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
         result_file_path: Optional[Union[str, Path]] = None,
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
@@ -218,7 +247,8 @@ class PbfFileReader:
         Convert PBF file to GeoParquet file.
 
         Args:
-            pbf_path (Union[str, Path]): Pbf file to be parsed to GeoParquet.
+            pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
+                Path or list of paths of `*.osm.pbf` files to be parsed.
             result_file_path (Union[str, Path], optional): Where to save
                 the geoparquet file. If not provided, will be generated based on hashes
                 from provided tags filter and geometry filter. Defaults to `None`.
@@ -242,13 +272,139 @@ class PbfFileReader:
         Returns:
             Path: Path to the generated GeoParquet file.
         """
-        created_task_progress_tracker = False
-        if self.task_progress_tracker is None or not self.task_progress_tracker.is_new():
-            created_task_progress_tracker = True
-            self.task_progress_tracker = TaskProgressTracker(
-                verbosity_mode=self.verbosity_mode, debug=self.debug_times
+        if isinstance(pbf_path, (str, Path)):
+            pbf_path = [pbf_path]
+        else:
+            pbf_path = list(pbf_path)
+
+        if filter_osm_ids is None:
+            filter_osm_ids = []
+
+        if explode_tags is None:
+            explode_tags = (
+                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
             )
 
+        parsed_geoparquet_files = []
+        total_files = len(pbf_path)
+        self.task_progress_tracker = TaskProgressTracker(
+            verbosity_mode=self.verbosity_mode,
+            total_major_steps=total_files,
+            debug=self.debug_memory,
+        )
+        if total_files == 1:
+            parsed_geoparquet_file = self._convert_single_pbf_to_parquet(
+                pbf_path[0],
+                result_file_path=result_file_path,
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                filter_osm_ids=filter_osm_ids,
+                save_as_wkt=save_as_wkt,
+            )
+            self.task_progress_tracker.stop()
+            return parsed_geoparquet_file
+        else:
+            result_file_path = Path(
+                result_file_path
+                or self._generate_result_file_path(
+                    pbf_path,
+                    filter_osm_ids=filter_osm_ids,
+                    keep_all_tags=keep_all_tags,
+                    explode_tags=explode_tags,
+                    save_as_wkt=save_as_wkt,
+                )
+            )
+
+            if result_file_path.exists() and not ignore_cache:
+                return result_file_path
+            elif result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
+                warnings.warn(
+                    (
+                        "Found existing result file with `.geoparquet` extension."
+                        " Users are enouraged to change the extension manually"
+                        " to `.parquet` for old files. Files with `.geoparquet`"
+                        " extension will be backwards supported, but reusing them"
+                        " will result in this warning."
+                    ),
+                    DeprecationWarning,
+                    stacklevel=0,
+                )
+                return result_file_path.with_suffix(".geoparquet")
+
+            for file_idx, single_pbf_path in enumerate(pbf_path):
+                self.task_progress_tracker.reset_steps(file_idx + 1)
+                parsed_geoparquet_file = self._convert_single_pbf_to_parquet(
+                    single_pbf_path,
+                    keep_all_tags=keep_all_tags,
+                    explode_tags=explode_tags,
+                    ignore_cache=ignore_cache,
+                    filter_osm_ids=filter_osm_ids,
+                    save_as_wkt=save_as_wkt,
+                )
+                parsed_geoparquet_files.append(parsed_geoparquet_file)
+
+            if parsed_geoparquet_files:
+                with tempfile.TemporaryDirectory(
+                    dir=self.working_directory.resolve()
+                ) as tmp_dir_name:
+                    if self.debug_memory:
+                        tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
+
+                    try:
+                        joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
+                            parsed_geoparquet_files
+                        )
+                    except pa.ArrowInvalid:
+                        tmp_dir_path = Path(tmp_dir_name)
+                        try:
+                            joined_parquet_table = self._drop_duplicated_features_in_joined_table(
+                                parsed_geoparquet_files, tmp_dir_path
+                            )
+                        except MemoryError:
+                            joined_parquet_table = (
+                                self._drop_duplicated_features_in_joined_table_one_by_one(
+                                    parsed_geoparquet_files, tmp_dir_path
+                                )
+                            )
+            else:
+                warnings.warn(
+                    "Found 0 extracts covering the geometry. Returning empty result.",
+                    EmptyResultWarning,
+                    stacklevel=0,
+                )
+                if save_as_wkt:
+                    geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
+                else:
+                    geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
+                joined_parquet_table = pa.table(
+                    [pa.array([], type=pa.string()), geometry_column],
+                    names=[FEATURES_INDEX, GEOMETRY_COLUMN],
+                )
+
+            if save_as_wkt:
+                pq.write_table(joined_parquet_table, result_file_path)
+            else:
+                io.write_geoparquet_table(
+                    joined_parquet_table,
+                    result_file_path,
+                    primary_geometry_column=GEOMETRY_COLUMN,
+                )
+
+            self.task_progress_tracker.stop()
+
+        return Path(result_file_path)
+
+    def _convert_single_pbf_to_parquet(
+        self,
+        pbf_path: Union[str, Path],
+        result_file_path: Optional[Union[str, Path]] = None,
+        keep_all_tags: bool = False,
+        explode_tags: Optional[bool] = None,
+        ignore_cache: bool = False,
+        filter_osm_ids: Optional[list[str]] = None,
+        save_as_wkt: bool = False,
+    ) -> Path:
         if filter_osm_ids is None:
             filter_osm_ids = []
 
@@ -288,10 +444,8 @@ class PbfFileReader:
                 if self.connection is not None:
                     self.connection.close()
                     self.connection = None
-                if created_task_progress_tracker:
-                    self.task_progress_tracker.stop()
 
-    def convert_geometry_filter_to_gpq(
+    def convert_geometry_to_parquet(
         self,
         result_file_path: Optional[Union[str, Path]] = None,
         keep_all_tags: bool = False,
@@ -354,115 +508,42 @@ class PbfFileReader:
             )
         )
 
+        if result_file_path.exists() and not ignore_cache:
+            return result_file_path
+        elif result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
+            warnings.warn(
+                (
+                    "Found existing result file with `.geoparquet` extension."
+                    " Users are enouraged to change the extension manually"
+                    " to `.parquet` for old files. Files with `.geoparquet`"
+                    " extension will be backwards supported, but reusing them"
+                    " will result in this warning."
+                ),
+                DeprecationWarning,
+                stacklevel=0,
+            )
+            return result_file_path.with_suffix(".geoparquet")
+
         matching_extracts = find_smallest_containing_extract(
             self.geometry_filter,
             self.osm_extract_source,
             allow_uncovered_geometry=self.allow_uncovered_geometry,
         )
+        pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
+        return self.convert_pbf_to_parquet(
+            pbf_files,
+            result_file_path=result_file_path,
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            filter_osm_ids=filter_osm_ids,
+            save_as_wkt=save_as_wkt,
+        )
 
-        if len(matching_extracts) == 1:
-            pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
-            return self.convert_pbf_to_gpq(
-                pbf_files[0],
-                result_file_path=result_file_path,
-                keep_all_tags=keep_all_tags,
-                explode_tags=explode_tags,
-                ignore_cache=ignore_cache,
-                filter_osm_ids=filter_osm_ids,
-                save_as_wkt=save_as_wkt,
-            )
-        else:
-            if result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
-                warnings.warn(
-                    (
-                        "Found existing result file with `.geoparquet` extension."
-                        " Users are enouraged to change the extension manually"
-                        " to `.parquet` for old files. Files with `.geoparquet`"
-                        " extension will be backwards supported, but reusing them"
-                        " will result in this warning."
-                    ),
-                    DeprecationWarning,
-                    stacklevel=0,
-                )
-                return result_file_path.with_suffix(".geoparquet")
-            if not result_file_path.exists() or ignore_cache:
-                pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
-
-                parsed_geoparquet_files = []
-                total_files = len(pbf_files)
-                self.task_progress_tracker = TaskProgressTracker(
-                    verbosity_mode=self.verbosity_mode,
-                    total_major_steps=total_files,
-                    debug=self.debug_times,
-                )
-                for file_idx, file_path in enumerate(pbf_files):
-                    self.task_progress_tracker.reset_steps(file_idx + 1)
-                    parsed_geoparquet_file = self.convert_pbf_to_gpq(
-                        file_path,
-                        keep_all_tags=keep_all_tags,
-                        explode_tags=explode_tags,
-                        ignore_cache=ignore_cache,
-                        filter_osm_ids=filter_osm_ids,
-                        save_as_wkt=save_as_wkt,
-                    )
-                    parsed_geoparquet_files.append(parsed_geoparquet_file)
-
-                if parsed_geoparquet_files:
-                    with tempfile.TemporaryDirectory(
-                        dir=self.working_directory.resolve()
-                    ) as tmp_dir_name:
-                        if self.debug_memory:
-                            tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
-
-                        try:
-                            joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
-                                parsed_geoparquet_files
-                            )
-                        except pa.ArrowInvalid:
-                            tmp_dir_path = Path(tmp_dir_name)
-                            try:
-                                joined_parquet_table = (
-                                    self._drop_duplicated_features_in_joined_table(
-                                        parsed_geoparquet_files, tmp_dir_path
-                                    )
-                                )
-                            except MemoryError:
-                                joined_parquet_table = (
-                                    self._drop_duplicated_features_in_joined_table_one_by_one(
-                                        parsed_geoparquet_files, tmp_dir_path
-                                    )
-                                )
-                else:
-                    warnings.warn(
-                        "Found 0 extracts covering the geometry. Returning empty result.",
-                        EmptyResultWarning,
-                        stacklevel=0,
-                    )
-                    if save_as_wkt:
-                        geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
-                    else:
-                        geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
-                    joined_parquet_table = pa.table(
-                        [pa.array([], type=pa.string()), geometry_column],
-                        names=[FEATURES_INDEX, GEOMETRY_COLUMN],
-                    )
-
-                if save_as_wkt:
-                    pq.write_table(joined_parquet_table, result_file_path)
-                else:
-                    io.write_geoparquet_table(
-                        joined_parquet_table,
-                        result_file_path,
-                        primary_geometry_column=GEOMETRY_COLUMN,
-                    )
-
-                self.task_progress_tracker.stop()
-
-        return Path(result_file_path)
-
-    def get_features_gdf(
+    @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
+    def convert_pbf_to_geodataframe(
         self,
-        file_paths: Union[str, Path, Iterable[Union[str, Path]]],
+        pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         ignore_cache: bool = False,
@@ -475,7 +556,7 @@ class PbfFileReader:
         OSM objects.
 
         Args:
-            file_paths (Union[str, Path, Iterable[Union[str, Path]]]):
+            pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
                 Path or list of paths of `*.osm.pbf` files to be parsed.
             keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
                 Whether to keep all tags related to the element, or return only those defined
@@ -494,79 +575,25 @@ class PbfFileReader:
         Returns:
             gpd.GeoDataFrame: GeoDataFrame with OSM features.
         """
-        if isinstance(file_paths, (str, Path)):
-            file_paths = [file_paths]
+        if isinstance(pbf_path, (str, Path)):
+            pbf_path = [pbf_path]
 
-        if filter_osm_ids is None:
-            filter_osm_ids = []
-
-        if explode_tags is None:
-            explode_tags = (
-                self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
-            )
-
-        parsed_geoparquet_files = []
-        total_files = len(list(file_paths))
-        self.task_progress_tracker = TaskProgressTracker(
-            verbosity_mode=self.verbosity_mode,
-            total_major_steps=total_files,
-            debug=self.debug_memory,
+        parsed_geoparquet_file = self.convert_pbf_to_parquet(
+            pbf_path=pbf_path,
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            filter_osm_ids=filter_osm_ids,
         )
-        for file_idx, file_path in enumerate(file_paths):
-            self.task_progress_tracker.reset_steps(file_idx + 1)
-            parsed_geoparquet_file = self.convert_pbf_to_gpq(
-                file_path,
-                keep_all_tags=keep_all_tags,
-                explode_tags=explode_tags,
-                ignore_cache=ignore_cache,
-                filter_osm_ids=filter_osm_ids,
-            )
-            parsed_geoparquet_files.append(parsed_geoparquet_file)
-
-        if parsed_geoparquet_files:
-            with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as tmp_dir_name:
-                if self.debug_memory:
-                    tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
-
-                try:
-                    joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
-                        parsed_geoparquet_files
-                    )
-                except pa.ArrowInvalid:
-                    tmp_dir_path = Path(tmp_dir_name)
-                    try:
-                        joined_parquet_table = self._drop_duplicated_features_in_joined_table(
-                            parsed_geoparquet_files, tmp_dir_path
-                        )
-                    except MemoryError:
-                        joined_parquet_table = (
-                            self._drop_duplicated_features_in_joined_table_one_by_one(
-                                parsed_geoparquet_files, tmp_dir_path
-                            )
-                        )
-
-                gdf_parquet = gpd.GeoDataFrame(
-                    data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(
-                        maps_as_pydicts="strict"
-                    ),
-                    geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
-                ).set_index(FEATURES_INDEX)
-        else:
-            warnings.warn(
-                "Found 0 extracts covering the geometry. Returning empty result.",
-                EmptyResultWarning,
-                stacklevel=0,
-            )
-            gdf_parquet = gpd.GeoDataFrame(
-                data={FEATURES_INDEX: []},
-                geometry=gpd.GeoSeries([], crs=WGS84_CRS),
-            ).set_index(FEATURES_INDEX)
-
-        self.task_progress_tracker.stop()
+        joined_parquet_table = io.read_geoparquet_table(parsed_geoparquet_file)
+        gdf_parquet = gpd.GeoDataFrame(
+            data=joined_parquet_table.drop(GEOMETRY_COLUMN).to_pandas(maps_as_pydicts="strict"),
+            geometry=ga.to_geopandas(joined_parquet_table.column(GEOMETRY_COLUMN)),
+        ).set_index(FEATURES_INDEX)
 
         return gdf_parquet
 
-    def get_features_gdf_from_geometry(
+    def convert_geometry_to_geodataframe(
         self,
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
@@ -597,7 +624,7 @@ class PbfFileReader:
         Returns:
             gpd.GeoDataFrame: GeoDataFrame with OSM features.
         """
-        parsed_geoparquet_file = self.convert_geometry_filter_to_gpq(
+        parsed_geoparquet_file = self.convert_geometry_to_parquet(
             keep_all_tags=keep_all_tags,
             explode_tags=explode_tags,
             ignore_cache=ignore_cache,
@@ -709,7 +736,9 @@ class PbfFileReader:
         ignore_cache: bool = False,
         save_as_wkt: bool = False,
     ) -> Path:
-        if result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
+        if result_file_path.exists() and not ignore_cache:
+            return result_file_path
+        elif result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
             warnings.warn(
                 (
                     "Found existing result file with `.geoparquet` extension."
@@ -723,116 +752,118 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
-        if not result_file_path.exists() or ignore_cache:
+        elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
 
-            elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
-
-            if self.tags_filter is None:
-                self.expanded_tags_filter = None
-                self.merged_tags_filter = None
-            else:
-                self.expanded_tags_filter = self._expand_osm_tags_filter(elements)
-                self.merged_tags_filter = merge_osm_tags_filter(
-                    cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.expanded_tags_filter)
-                )
-
-            converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
-
-            self._delete_directories(
-                [
-                    "nodes_filtered_non_distinct_ids",
-                    "nodes_prepared_ids",
-                    "ways_valid_ids",
-                    "ways_filtered_non_distinct_ids",
-                    "relations_valid_ids",
-                    "relations_ids",
-                ],
+        if self.tags_filter is None:
+            self.expanded_tags_filter = None
+            self.merged_tags_filter = None
+        else:
+            self.expanded_tags_filter = self._expand_osm_tags_filter(elements)
+            self.merged_tags_filter = merge_osm_tags_filter(
+                cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.expanded_tags_filter)
             )
 
-            filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
-                converted_osm_parquet_files
-            )
-            self._delete_directories("nodes_filtered_ids")
+        converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
-            filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
-                osm_parquet_files=converted_osm_parquet_files
-            )
-            required_ways_with_linestrings = self._get_required_ways_with_linestrings(
-                osm_parquet_files=converted_osm_parquet_files
-            )
-            self._delete_directories(
-                [
-                    "nodes_valid_with_tags",
-                    "ways_required_grouped",
-                    "ways_required_ids",
-                    "ways_with_unnested_nodes_refs",
-                    "required_ways_ids_grouped",
-                    "required_ways_grouped",
-                    "required_ways_tmp",
-                    "filtered_ways_ids_grouped",
-                    "filtered_ways_grouped",
-                    "filtered_ways_tmp",
-                ],
-            )
+        self._delete_directories(
+            [
+                "nodes_filtered_non_distinct_ids",
+                "nodes_prepared_ids",
+                "ways_valid_ids",
+                "ways_filtered_non_distinct_ids",
+                "relations_valid_ids",
+                "relations_ids",
+            ],
+        )
 
-            filtered_ways_with_proper_geometry_path = self._get_filtered_ways_with_proper_geometry(
-                converted_osm_parquet_files, filtered_ways_with_linestrings
-            )
-            self._delete_directories(
-                [
-                    "ways_prepared_ids",
-                    "ways_filtered_ids",
-                    "ways_all_with_tags",
-                    "filtered_ways_with_linestrings",
-                ],
-            )
+        filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
+            converted_osm_parquet_files
+        )
+        self._delete_directories("nodes_filtered_ids")
 
-            filtered_relations_with_geometry_path = self._get_filtered_relations_with_geometry(
-                converted_osm_parquet_files, required_ways_with_linestrings
-            )
-            self._delete_directories(
-                [
-                    "relations_all_with_tags",
-                    "relations_with_unnested_way_refs",
-                    "relations_filtered_ids",
-                    "required_ways_with_linestrings",
-                    "valid_relation_parts",
-                    "relation_inner_parts",
-                    "relation_outer_parts",
-                    "relation_outer_parts_with_holes",
-                    "relation_outer_parts_without_holes",
-                ],
-            )
+        filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
+            osm_parquet_files=converted_osm_parquet_files
+        )
+        required_ways_with_linestrings = self._get_required_ways_with_linestrings(
+            osm_parquet_files=converted_osm_parquet_files
+        )
+        self._delete_directories(
+            [
+                "nodes_valid_with_tags",
+                "ways_required_grouped",
+                "ways_required_ids",
+                "ways_with_unnested_nodes_refs",
+                "required_ways_ids_grouped",
+                "required_ways_grouped",
+                "required_ways_tmp",
+                "filtered_ways_ids_grouped",
+                "filtered_ways_grouped",
+                "filtered_ways_tmp",
+            ],
+        )
 
-            parsed_geometries = self.connection.sql(
-                f"""
-                SELECT * FROM read_parquet([
-                    '{filtered_nodes_with_geometry_path}/**',
-                    '{filtered_ways_with_proper_geometry_path}/**',
-                    '{filtered_relations_with_geometry_path}/**'
-                ]);
-                """
-            )
+        filtered_ways_with_proper_geometry_path = self._get_filtered_ways_with_proper_geometry(
+            converted_osm_parquet_files, filtered_ways_with_linestrings
+        )
+        self._delete_directories(
+            [
+                "ways_prepared_ids",
+                "ways_filtered_ids",
+                "ways_all_with_tags",
+                "filtered_ways_with_linestrings",
+            ],
+        )
 
-            self._concatenate_results_to_geoparquet(
-                parsed_geometries=parsed_geometries,
-                save_file_path=result_file_path,
-                keep_all_tags=keep_all_tags,
-                explode_tags=explode_tags,
-                save_as_wkt=save_as_wkt,
-            )
+        filtered_relations_with_geometry_path = self._get_filtered_relations_with_geometry(
+            converted_osm_parquet_files, required_ways_with_linestrings
+        )
+        self._delete_directories(
+            [
+                "relations_all_with_tags",
+                "relations_with_unnested_way_refs",
+                "relations_filtered_ids",
+                "required_ways_with_linestrings",
+                "valid_relation_parts",
+                "relation_inner_parts",
+                "relation_outer_parts",
+                "relation_outer_parts_with_holes",
+                "relation_outer_parts_without_holes",
+            ],
+        )
+
+        parsed_geometries = self.connection.sql(
+            f"""
+            SELECT * FROM read_parquet([
+                '{filtered_nodes_with_geometry_path}/**',
+                '{filtered_ways_with_proper_geometry_path}/**',
+                '{filtered_relations_with_geometry_path}/**'
+            ]);
+            """
+        )
+
+        self._concatenate_results_to_geoparquet(
+            parsed_geometries=parsed_geometries,
+            save_file_path=result_file_path,
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            save_as_wkt=save_as_wkt,
+        )
 
         return result_file_path
 
     def _generate_result_file_path(
         self,
-        pbf_file_path: Union[str, Path],
+        pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
         keep_all_tags: bool,
         explode_tags: bool,
         filter_osm_ids: list[str],
         save_as_wkt: bool,
     ) -> Path:
-        pbf_file_name = Path(pbf_file_path).name.removesuffix(".osm.pbf")
+        if isinstance(pbf_path, (str, Path)):
+            pbf_path = [pbf_path]
+        pbf_file_name = "_".join(
+            [Path(pbf_file_path).name.removesuffix(".osm.pbf") for pbf_file_path in pbf_path]
+        )
 
         osm_filter_tags_hash_part = "nofilter"
         if self.tags_filter is not None:

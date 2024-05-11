@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to convert multiple `*.osm.pbf` files to a single `parquet` file
+
+### Changed
+
+- Names of the functions have been unified to all start with `convert_` prefix
+- Simplified internal conversion API
+
+### Deprecated
+
+- Functions `convert_pbf_to_gpq`, `convert_geometry_to_gpq`/`convert_geometry_filter_to_gpq`, `get_features_gdf` and `get_features_gdf_from_geometry` have been deprecated in favor of `convert_pbf_to_parquet`, `convert_geometry_to_parquet`, `convert_pbf_to_geodataframe` and `convert_geometry_to_geodataframe`
+- Parameter `file_paths` has been replaced with `pbf_path`
+
 ### Fixed
 
 - Removed the `parquet` extension installation step after opening the DuckDB connection

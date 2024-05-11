@@ -2,8 +2,9 @@
 
 import json
 import warnings
+from functools import partial
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
@@ -31,7 +32,12 @@ from srai.geometry import remove_interiors
 from srai.loaders.download import download_file
 from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
-from quackosm import convert_geometry_to_gpq, convert_pbf_to_gpq, get_features_gdf
+from quackosm import (
+    convert_geometry_to_parquet,
+    convert_pbf_to_geodataframe,
+    convert_pbf_to_parquet,
+    functions,
+)
 from quackosm._constants import FEATURES_INDEX, WGS84_CRS
 from quackosm._exceptions import (
     GeometryNotCoveredError,
@@ -65,7 +71,7 @@ def test_pbf_to_geoparquet_parsing(
 ):
     """Test if pbf to geoparquet conversion works."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    PbfFileReader(tags_filter=tags_filter).convert_pbf_to_gpq(
+    PbfFileReader(tags_filter=tags_filter).convert_pbf_to_parquet(
         pbf_path=pbf_file,
         ignore_cache=True,
         explode_tags=explode_tags,
@@ -79,8 +85,8 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
     features_gdf = PbfFileReader(
         tags_filter=HEX2VEC_FILTER, geometry_filter=Polygon([(0, 0), (0, 1), (1, 1), (1, 0)])
-    ).get_features_gdf(
-        file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
+    ).convert_pbf_to_geodataframe(
+        pbf_path=[Path(__file__).parent.parent / "test_files" / file_name],
         explode_tags=True,
         ignore_cache=True,
     )
@@ -115,12 +121,12 @@ def test_geometry_hash_calculation(geometry: BaseGeometry):
 def test_unique_osm_ids_duplicated_file():  # type: ignore
     """Test if function returns results without duplicated features."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    result_gdf = PbfFileReader().get_features_gdf(
-        file_paths=[monaco_file_path, monaco_file_path], ignore_cache=True
+    result_gdf = PbfFileReader().convert_pbf_to_geodataframe(
+        pbf_path=[monaco_file_path, monaco_file_path], ignore_cache=True
     )
 
-    single_result_gdf = PbfFileReader().get_features_gdf(
-        file_paths=[monaco_file_path], ignore_cache=True
+    single_result_gdf = PbfFileReader().convert_pbf_to_geodataframe(
+        pbf_path=[monaco_file_path], ignore_cache=True
     )
 
     assert result_gdf.index.is_unique
@@ -136,7 +142,7 @@ def test_unique_osm_ids_real_example():  # type: ignore
     )
     result_gdf = PbfFileReader(
         geometry_filter=andorra_geometry, osm_extract_source=OsmExtractSource.any
-    ).get_features_gdf_from_geometry(ignore_cache=True)
+    ).convert_geometry_to_geodataframe(ignore_cache=True)
 
     assert result_gdf.index.is_unique
 
@@ -151,7 +157,7 @@ def test_antwerpen_and_brussels_invalid_linear_ring() -> None:
 
     result_gdf = PbfFileReader(
         geometry_filter=antwerpen_and_brussels_geometry, osm_extract_source=OsmExtractSource.bbbike
-    ).get_features_gdf_from_geometry(ignore_cache=True)
+    ).convert_geometry_to_geodataframe(ignore_cache=True)
 
     assert result_gdf.index.is_unique
 
@@ -178,21 +184,21 @@ def test_combining_files_different_techniques(
 
     if operation_mode == "gdf":
         monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-        result_gdf = get_features_gdf(
-            file_paths=[
+        result_gdf = convert_pbf_to_geodataframe(
+            pbf_path=[
                 monaco_file_path,
                 monaco_file_path,
             ],
             ignore_cache=True,
         )
-        single_result_gdf = PbfFileReader(debug_memory=True, debug_times=True).get_features_gdf(
-            file_paths=[monaco_file_path], ignore_cache=True
-        )
+        single_result_gdf = PbfFileReader(
+            debug_memory=True, debug_times=True
+        ).convert_pbf_to_geodataframe(pbf_path=[monaco_file_path], ignore_cache=True)
 
         assert result_gdf.index.is_unique
         assert len(result_gdf.index) == len(single_result_gdf.index)
     elif operation_mode == "gpq":
-        result = convert_geometry_to_gpq(
+        result = convert_geometry_to_parquet(
             geometry_filter=from_wkt(
                 "POLYGON ((4.331278527313799 51.173447782908625,"
                 " 4.331278527313799 50.89211829585622, 4.413826045759777 50.89211829585622,"
@@ -216,7 +222,7 @@ def test_schema_unification_real_example():  # type: ignore
     tags: OsmTagsFilter = {"military": ["airfield"], "leisure": ["park"]}
     result_gdf = PbfFileReader(
         tags_filter=tags, geometry_filter=geo, osm_extract_source=OsmExtractSource.geofabrik
-    ).get_features_gdf_from_geometry(explode_tags=True)
+    ).convert_geometry_to_geodataframe(explode_tags=True)
     assert result_gdf.index.is_unique
 
 
@@ -244,8 +250,8 @@ def test_schema_unification_real_example():  # type: ignore
 def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_result_length: int):
     """Test proper features ids filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
-    features_gdf = PbfFileReader().get_features_gdf(
-        file_paths=[Path(__file__).parent.parent / "test_files" / file_name],
+    features_gdf = PbfFileReader().convert_pbf_to_geodataframe(
+        pbf_path=[Path(__file__).parent.parent / "test_files" / file_name],
         ignore_cache=True,
         filter_osm_ids=filter_osm_ids,
     )
@@ -268,7 +274,7 @@ def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool)
         )
         features_gdf = PbfFileReader(
             geometry_filter=geometry, allow_uncovered_geometry=allow_uncovered_geometry
-        ).get_features_gdf_from_geometry(ignore_cache=True)
+        ).convert_geometry_to_geodataframe(ignore_cache=True)
         assert len(features_gdf) == 0
 
 
@@ -330,16 +336,16 @@ def test_invalid_geometries(geometry: BaseGeometry):
 def test_geoparquet_deprecation_warning() -> None:
     """Test if warning is properly displayed."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    convert_pbf_to_gpq(
+    result_path = convert_pbf_to_parquet(
         monaco_file_path,
         ignore_cache=True,
-        result_file_path="files/monaco_nofilter_noclip_compact.geoparquet",
     )
+    result_path.rename(result_path.with_suffix(".geoparquet"))
     with pytest.warns(DeprecationWarning):
-        convert_pbf_to_gpq(monaco_file_path, ignore_cache=False)
+        convert_pbf_to_parquet(monaco_file_path, ignore_cache=False)
 
     with pytest.warns(DeprecationWarning):
-        get_features_gdf(monaco_file_path, ignore_cache=False)
+        convert_pbf_to_geodataframe(monaco_file_path, ignore_cache=False)
 
 
 @pytest.mark.parametrize(  # type: ignore
@@ -368,6 +374,80 @@ def test_geometry_orienting(geometry: BaseGeometry):
     intersection_area = geometry.intersection(oriented_geometry).area
     iou = intersection_area / (geometry.area + oriented_geometry.area - intersection_area)
     ut.assertAlmostEqual(iou, 1, delta=1e-4)
+
+
+@pytest.mark.parametrize(  # type: ignore
+    "func,new_function_name",
+    [
+        (
+            partial(
+                functions.get_features_gdf,
+                file_paths=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            partial(
+                functions.get_features_gdf,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            partial(functions.get_features_gdf_from_geometry, geometry_filter=geometry_box()),
+            "convert_geometry_to_geodataframe",
+        ),
+        (
+            partial(
+                functions.convert_pbf_to_gpq,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_parquet",
+        ),
+        (
+            partial(
+                functions.convert_geometry_to_gpq,
+                geometry_filter=geometry_box(),
+            ),
+            "convert_geometry_to_parquet",
+        ),
+        (
+            partial(
+                PbfFileReader().get_features_gdf,
+                file_paths=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            partial(
+                PbfFileReader().get_features_gdf,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_geodataframe",
+        ),
+        (
+            PbfFileReader(geometry_filter=geometry_box()).get_features_gdf_from_geometry,
+            "convert_geometry_to_geodataframe",
+        ),
+        (
+            partial(
+                PbfFileReader().convert_pbf_to_gpq,
+                pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
+            ),
+            "convert_pbf_to_parquet",
+        ),
+        (
+            PbfFileReader(geometry_filter=geometry_box()).convert_geometry_filter_to_gpq,
+            "convert_geometry_to_parquet",
+        ),
+    ],
+)
+def test_deprecation(func: Callable[[], Any], new_function_name: str):
+    """Test if deprecation works."""
+    with pytest.warns(FutureWarning) as record:
+        func()
+
+    assert new_function_name in str(record[0].message)
 
 
 def check_if_relation_in_osm_is_valid_based_on_tags(pbf_file: str, relation_id: str) -> bool:
@@ -560,7 +640,9 @@ def test_gdal_parity(extract_name: str) -> None:
     download_file(gpq_file_download_url, str(gpq_file_path), force_download=True)
 
     reader = PbfFileReader()
-    duckdb_gdf = reader.get_features_gdf([pbf_file_path], explode_tags=False, ignore_cache=True)
+    duckdb_gdf = reader.convert_pbf_to_geodataframe(
+        [pbf_file_path], explode_tags=False, ignore_cache=True
+    )
     gdal_gdf = gpd.read_parquet(gpq_file_path)
     gdal_gdf["tags"] = gdal_gdf["tags"].apply(json.loads)
 

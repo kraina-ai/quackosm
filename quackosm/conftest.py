@@ -1,11 +1,27 @@
 """Fixtures for doctests."""
 
+import doctest
 import shutil
-import sys
 import urllib.request
+from doctest import OutputChecker
 from pathlib import Path
 
 import pytest
+
+IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
+
+
+class CustomOutputChecker(OutputChecker):
+    """Custom doctest OutputChecker for ignoring logs from functions."""
+
+    def check_output(self: doctest.OutputChecker, want: str, got: str, optionflags: int) -> bool:
+        """Skips output checking if IGNORE_RESULT flag is present."""
+        if IGNORE_RESULT & optionflags:
+            return True
+        return OutputChecker.check_output(self, want, got, optionflags)
+
+
+doctest.OutputChecker = CustomOutputChecker  # type: ignore
 
 LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files/"
 
@@ -24,44 +40,3 @@ def add_pbf_files(doctest_namespace):  # type: ignore
         urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
-
-
-@pytest.fixture  # type: ignore
-def optional_packages() -> list[str]:
-    """Get a list with optional packages."""
-    return [
-        "rich",
-    ]
-
-
-@pytest.fixture(autouse=True)  # type: ignore
-def cleanup_imports():
-    """Clean imports."""
-    yield
-    sys.modules.pop("quackosm", None)
-
-
-class PackageDiscarder:
-    """Mock class for discarding list of packages."""
-
-    def __init__(self) -> None:
-        """Init mock class."""
-        self.pkgnames: list[str] = []
-
-    def find_spec(self, fullname, path, target=None) -> None:  # type: ignore
-        """Throws ImportError if matching module."""
-        if fullname in self.pkgnames:
-            raise ImportError()
-
-
-@pytest.fixture(autouse=True)  # type: ignore
-def no_optional_dependencies(monkeypatch, optional_packages):
-    """Mock environment without optional dependencies."""
-    d = PackageDiscarder()
-
-    for package in optional_packages:
-        sys.modules.pop(package, None)
-        d.pkgnames.append(package)
-    sys.meta_path.insert(0, d)
-    yield
-    sys.meta_path.remove(d)
