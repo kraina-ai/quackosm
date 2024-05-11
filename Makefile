@@ -8,6 +8,6 @@ docs:
 
 test:
 	pytest --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
-	pytest --durations=20 tests -n logical
+	pytest --durations=20 tests
 
 .PHONY: install docs test

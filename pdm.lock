@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:527cb05941466448cfc752f7588fa8c71e78a252c9cd608168eca23bcf921a2a"
+content_hash = "sha256:18fee9a786c0aec34cb18f9b7237e359068dbb412a2efb5c8a42d2b428875cad"
 
 [[package]]
 name = "adjusttext"
@@ -719,16 +719,6 @@ summary = "Backport of PEP 654 (exception groups)"
 files = [
     {file = "exceptiongroup-1.2.1-py3-none-any.whl", hash = "sha256:5258b9ed329c5bbdd31a309f53cbfb0b155341807f6ff7606a1e801a891b29ad"},
     {file = "exceptiongroup-1.2.1.tar.gz", hash = "sha256:a4785e48b045528f5bfe627b6ad554ff32def154f42372786903b7abcfe1aa16"},
-]
-
-[[package]]
-name = "execnet"
-version = "2.1.1"
-requires_python = ">=3.8"
-summary = "execnet: rapid multi-Python deployment"
-files = [
-    {file = "execnet-2.1.1-py3-none-any.whl", hash = "sha256:26dee51f1b80cebd6d0ca8e74dd8745419761d3bef34163928cbebbdc4749fdc"},
-    {file = "execnet-2.1.1.tar.gz", hash = "sha256:5189b52c6121c24feae288166ab41b32549c7e2348652736540b9e6e7d4e72e3"},
 ]
 
 [[package]]
@@ -2932,35 +2922,6 @@ dependencies = [
 ]
 files = [
     {file = "pytest-parametrization-2022.2.1.tar.gz", hash = "sha256:057229ad7e284fe3435a717a8a58dc5f169b3d1e5aa946d94ec591d31bd78445"},
-]
-
-[[package]]
-name = "pytest-xdist"
-version = "3.6.1"
-requires_python = ">=3.8"
-summary = "pytest xdist plugin for distributed testing, most importantly across multiple CPUs"
-dependencies = [
-    "execnet>=2.1",
-    "pytest>=7.0.0",
-]
-files = [
-    {file = "pytest_xdist-3.6.1-py3-none-any.whl", hash = "sha256:9ed4adfb68a016610848639bb7e02c9352d5d9f03d04809919e2dafc3be4cca7"},
-    {file = "pytest_xdist-3.6.1.tar.gz", hash = "sha256:ead156a4db231eec769737f57668ef58a2084a34b2e55c4a8fa20d861107300d"},
-]
-
-[[package]]
-name = "pytest-xdist"
-version = "3.6.1"
-extras = ["psutil"]
-requires_python = ">=3.8"
-summary = "pytest xdist plugin for distributed testing, most importantly across multiple CPUs"
-dependencies = [
-    "psutil>=3.0",
-    "pytest-xdist==3.6.1",
-]
-files = [
-    {file = "pytest_xdist-3.6.1-py3-none-any.whl", hash = "sha256:9ed4adfb68a016610848639bb7e02c9352d5d9f03d04809919e2dafc3be4cca7"},
-    {file = "pytest_xdist-3.6.1.tar.gz", hash = "sha256:ead156a4db231eec769737f57668ef58a2084a34b2e55c4a8fa20d861107300d"},
 ]
 
 [[package]]
