@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Nodes intersection from `ST_Intersects` to an approximation using H3 cells for bigger scale transformations [#109](https://github.com/kraina-ai/quackosm/issues/109)
+
 ## [0.8.1] - 2024-05-11
 
 ### Added

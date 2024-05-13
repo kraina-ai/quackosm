@@ -111,7 +111,7 @@ class PbfFileReader:
         ] = None,
         parquet_compression: str = "snappy",
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
-        geometry_filter_intersection_h3_resolution: int = 10,
+        geometry_filter_intersection_h3_resolution: Optional[int] = None,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
         allow_uncovered_geometry: bool = False,
         debug_memory: bool = False,
@@ -149,7 +149,8 @@ class PbfFileReader:
                 intersections. First H3 cells are generated to cover given geometry and then
                 intersection is done based on H3 indexes, not using ST_Intersects. Higher resolution
                 will result in finer approximation of the original geometry, but might require more
-                memory during operations. Defaults to 11.
+                memory during operations. If `None`, will automatically determine the appropriate
+                value to cover geometries using less than 10 million H3 cells. Defaults to `None`.
             verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.
@@ -1109,7 +1110,7 @@ class PbfFileReader:
         # - select all from NI with tags filter
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
-            h3_cells_path = _transform_geometry_filter_to_h3(
+            h3_cells_path, determined_h3_resolution = _transform_geometry_filter_to_h3(
                 geometry=self.geometry_filter,
                 working_directory=self.tmp_dir_path,
                 h3_resolution=self.geometry_filter_intersection_h3_resolution,
@@ -1122,9 +1123,7 @@ class PbfFileReader:
                     sql_query=f"""
                     SELECT DISTINCT id FROM ({nodes_valid_with_tags.sql_query()}) n
                     SEMI JOIN '{h3_cells_path}'
-                    ON h3_latlng_to_cell(
-                        lat, lon, {self.geometry_filter_intersection_h3_resolution}
-                    ) = h3
+                    ON h3_latlng_to_cell(lat, lon, {determined_h3_resolution}) = h3
                     """,
                     file_path=self.tmp_dir_path / "nodes_intersecting_ids",
                 )

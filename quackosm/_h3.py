@@ -1,27 +1,55 @@
 import platform
 from pathlib import Path
+from typing import Optional
 
 import duckdb
 import pyarrow as pa
 import pyarrow.parquet as pq
 from h3ronpy.arrow.vector import ContainmentMode, wkb_to_cells
 from pooch import Decompress, retrieve
-from shapely.geometry.base import BaseGeometry
+from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
+
+START_H3_RESOLUTION = 4
+MAX_H3_RESOLUTION = 11
+MAX_H3_CELLS = 10_000_000
 
 
 def _transform_geometry_filter_to_h3(
-    geometry: BaseGeometry, working_directory: Path, h3_resolution: int = 11
-) -> Path:
+    geometry: BaseGeometry, working_directory: Path, h3_resolution: Optional[int] = None
+) -> tuple[Path, int]:
     """Fill geometry filter with H3 polygons and save them in a dedicated parquet file."""
     result_file_path = working_directory / "geometry_filter_h3_indexes.parquet"
-    h3_indexes = wkb_to_cells(
-        [sub_geometry.wkb for sub_geometry in geometry.geoms],
-        resolution=h3_resolution,
-        containment_mode=ContainmentMode.Covers,
-        flatten=True,
-    ).unique()
+    if isinstance(geometry, BaseMultipartGeometry):
+        wkb = [sub_geometry.wkb for sub_geometry in geometry.geoms]
+    else:
+        wkb = [geometry.wkb]
+
+    search_for_matching_resolution = False
+    if h3_resolution is None:
+        h3_resolution = START_H3_RESOLUTION
+        search_for_matching_resolution = True
+
+    finished_searching = False
+    while not finished_searching:
+        h3_indexes = wkb_to_cells(
+            wkb,
+            resolution=h3_resolution,
+            containment_mode=ContainmentMode.Covers,
+            flatten=True,
+        ).unique()
+
+        if not search_for_matching_resolution:
+            finished_searching = True
+        else:
+            number_of_cells = len(h3_indexes)
+            # Multiplying by 7, because thats the number of children in a parent cell.
+            if (number_of_cells * 7) > MAX_H3_CELLS or h3_resolution == MAX_H3_RESOLUTION:
+                finished_searching = True
+            else:
+                h3_resolution += 1
+
     pq.write_table(pa.table(dict(h3=h3_indexes)), result_file_path)
-    return result_file_path
+    return result_file_path, h3_resolution
 
 
 # Based on https://github.com/fusedio/udfs/blob/main/public/DuckDB_H3_Example/utils.py
