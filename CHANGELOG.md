@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- tqdm's `disable` parameter for non-TTY environments from `None` to `False`
+
 ## [0.8.1] - 2024-05-11
 
 ### Added
