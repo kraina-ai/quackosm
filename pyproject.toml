@@ -18,6 +18,7 @@ dependencies = [
     "requests",
     "polars>=0.19.4",
     "rich>=10.11.0",
+    "h3ronpy>=0.19.0"
 ]
 requires-python = ">=3.9"
 readme = "README.md"

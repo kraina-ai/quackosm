@@ -35,6 +35,7 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._exceptions import EmptyResultWarning, InvalidGeometryFilter
+from quackosm._h3 import _load_h3_duckdb_extension, _transform_geometry_filter_to_h3
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
     OsmTagsFilter,
@@ -110,6 +111,7 @@ class PbfFileReader:
         ] = None,
         parquet_compression: str = "snappy",
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
+        geometry_filter_intersection_h3_resolution: int = 10,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
         allow_uncovered_geometry: bool = False,
         debug_memory: bool = False,
@@ -143,6 +145,11 @@ class PbfFileReader:
             osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
                 downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
                 Defaults to `geofabrik`.
+            geometry_filter_intersection_h3_resolution (int, optional): A resolution used for faster
+                intersections. First H3 cells are generated to cover given geometry and then
+                intersection is done based on H3 indexes, not using ST_Intersects. Higher resolution
+                will result in finer approximation of the original geometry, but might require more
+                memory during operations. Defaults to 11.
             verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.
@@ -158,6 +165,7 @@ class PbfFileReader:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
         """
         self.geometry_filter = geometry_filter
+        self.geometry_filter_intersection_h3_resolution = geometry_filter_intersection_h3_resolution
         self._check_if_valid_geometry_filter()
 
         self.tags_filter = tags_filter
@@ -1101,16 +1109,27 @@ class PbfFileReader:
         # - select all from NI with tags filter
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
-            wkt = cast(BaseGeometry, self.geometry_filter).wkt
-            intersection_filter = f"ST_Intersects(ST_Point(lon, lat), ST_GeomFromText('{wkt}'))"
+            h3_cells_path = _transform_geometry_filter_to_h3(
+                geometry=self.geometry_filter,
+                working_directory=self.tmp_dir_path,
+                h3_resolution=self.geometry_filter_intersection_h3_resolution,
+            )
+            if self.debug_memory:
+                log_message(f"Saved to file: {h3_cells_path}")
+
             with self.task_progress_tracker.get_spinner("Filtering nodes - intersection"):
                 nodes_intersecting_ids = self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT DISTINCT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    WHERE {intersection_filter} = true
+                    SEMI JOIN '{h3_cells_path}'
+                    ON h3_latlng_to_cell(
+                        lat, lon, {self.geometry_filter_intersection_h3_resolution}
+                    ) = h3
                     """,
                     file_path=self.tmp_dir_path / "nodes_intersecting_ids",
                 )
+
+            self._delete_directories(h3_cells_path)
             with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
                 self._sql_to_parquet_file(
                     sql_query=f"""
@@ -2534,7 +2553,7 @@ def _set_up_duckdb_connection(
     local_db_file = "db.duckdb" if is_main_connection else f"{secrets.token_hex(16)}.duckdb"
     connection = duckdb.connect(
         database=str(tmp_dir_path / local_db_file),
-        config=dict(preserve_insertion_order=False),
+        config=dict(preserve_insertion_order=False, allow_unsigned_extensions=True),
     )
     connection.sql("SET enable_progress_bar = false;")
     connection.sql("SET enable_progress_bar_print = false;")
@@ -2542,6 +2561,8 @@ def _set_up_duckdb_connection(
     connection.install_extension("spatial")
     for extension_name in ("parquet", "spatial"):
         connection.load_extension(extension_name)
+
+    _load_h3_duckdb_extension(connection)
 
     connection.sql(
         """
