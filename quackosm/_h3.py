@@ -11,7 +11,7 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 START_H3_RESOLUTION = 4
 MAX_H3_RESOLUTION = 11
-MAX_H3_CELLS = 10_000_000
+MAX_H3_CELLS = 1_000_000
 
 
 def _transform_geometry_filter_to_h3(
