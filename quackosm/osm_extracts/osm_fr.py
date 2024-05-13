@@ -48,7 +48,7 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
     else:
         force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
         extracts = []
-        with tqdm(disable=True if force_terminal else None) as pbar:
+        with tqdm(disable=True if force_terminal else False) as pbar:
             extract_soup_objects = _gather_all_openstreetmap_fr_urls("osm_fr", "/", pbar)
             pbar.set_description("osm_fr")
             for soup_object, id_prefix, directory_url in extract_soup_objects:
