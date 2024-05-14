@@ -18,6 +18,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from time import sleep
 from typing import Any, Literal, NamedTuple, Optional, Union, cast
+from urllib.parse import urlparse
 
 import duckdb
 import geoarrow.pyarrow as ga
@@ -29,6 +30,7 @@ import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
+from pooch import retrieve
 from pyarrow_ops import drop_duplicates
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
@@ -248,7 +250,7 @@ class PbfFileReader:
 
         Args:
             pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
-                Path or list of paths of `*.osm.pbf` files to be parsed.
+                Path or list of paths of `*.osm.pbf` files to be parsed. Can be an URL.
             result_file_path (Union[str, Path], optional): Where to save
                 the geoparquet file. If not provided, will be generated based on hashes
                 from provided tags filter and geometry filter. Defaults to `None`.
@@ -557,7 +559,7 @@ class PbfFileReader:
 
         Args:
             pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
-                Path or list of paths of `*.osm.pbf` files to be parsed.
+                Path or list of paths of `*.osm.pbf` files to be parsed. Can be an URL.
             keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
                 Whether to keep all tags related to the element, or return only those defined
                 in the `tags_filter`. When `True`, will override the optional grouping defined
@@ -736,6 +738,15 @@ class PbfFileReader:
         ignore_cache: bool = False,
         save_as_wkt: bool = False,
     ) -> Path:
+        if not _is_local_path(pbf_path):
+            pbf_path = retrieve(
+                pbf_path,
+                fname=Path(pbf_path).name,
+                path=self.working_directory,
+                progressbar=True,
+                known_hash=None,
+            )
+
         if result_file_path.exists() and not ignore_cache:
             return result_file_path
         elif result_file_path.with_suffix(".geoparquet").exists() and not ignore_cache:
@@ -2579,3 +2590,10 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
     ).write_parquet(
         current_destination_path
     )
+
+
+def _is_local_path(url: Union[str, Path]) -> bool:
+    url_parsed = urlparse(str(url))
+    if url_parsed.scheme in ("file", ""):
+        return True
+    return False

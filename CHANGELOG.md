@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass URL directly as PBF path [#114](https://github.com/kraina-ai/quackosm/issues/114)
+
 ### Changed
 
 - tqdm's `disable` parameter for non-TTY environments from `None` to `False`

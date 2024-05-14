@@ -80,6 +80,15 @@ def test_pbf_to_geoparquet_parsing(
     )
 
 
+def test_pbf_reader_url_path():  # type: ignore
+    """Test proper spatial data filtering in `PbfFileReader`."""
+    file_name = "https://download.geofabrik.de/europe/monaco-latest.osm.pbf"
+    features_gdf = PbfFileReader().convert_pbf_to_geodataframe(
+        pbf_path=file_name, explode_tags=True, ignore_cache=True
+    )
+    assert len(features_gdf) > 0
+
+
 def test_pbf_reader_geometry_filtering():  # type: ignore
     """Test proper spatial data filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
