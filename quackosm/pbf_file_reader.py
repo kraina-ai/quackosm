@@ -13,6 +13,7 @@ import tempfile
 import time
 import warnings
 from collections.abc import Iterable
+from functools import reduce
 from math import floor
 from multiprocessing import Pool
 from pathlib import Path
@@ -22,11 +23,14 @@ from typing import Any, Literal, NamedTuple, Optional, Union, cast
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
+import numpy as np
 import polars as pl
 import psutil
 import pyarrow as pa
+import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
+from fast_crossing import point_in_polygon
 from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from pyarrow_ops import drop_duplicates
@@ -1138,29 +1142,54 @@ class PbfFileReader:
         # - select all from NI with tags filter
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
-            with self.task_progress_tracker.get_spinner("Filtering nodes - intersection"):
+            with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
                 if isinstance(self.geometry_filter, BaseMultipartGeometry):
-                    geometry_array = ga.array(
-                        [sub_geom.wkb for sub_geom in self.geometry_filter.geoms]
-                    )
+                    geometry_filter_geoms = list(self.geometry_filter.geoms)
                 else:
-                    geometry_array = ga.array([cast(BaseGeometry, self.geometry_filter).wkb])
+                    geometry_filter_geoms = [self.geometry_filter]
 
-                tab = pa.table([geometry_array], names=["geometry"])
+                polygons_points = [
+                    list(geometry_filter_geom.exterior.coords)
+                    for geometry_filter_geom in geometry_filter_geoms
+                ]
 
-                self.connection.from_arrow(tab).project(
-                    "ST_GeomFromWKB(geometry)::POLYGON_2D geometry"
-                ).to_table("geometry_filter")
+                pq_dataset = ds.dataset(self.tmp_dir_path / "nodes_valid_with_tags")
 
-                nodes_intersecting_ids = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    SEMI JOIN geometry_filter gf
-                    ON ST_Intersects_Extent(ST_Point2D(n.lon, n.lat), gf.geometry)
-                    AND ST_Within(ST_Point2D(n.lon, n.lat), gf.geometry)
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_intersecting_ids",
-                )
+                writer = None
+                for batch in bar.track(pq_dataset.to_batches()):
+                    if len(batch) == 0:
+                        continue
+
+                    ids = batch["id"]
+                    points = [
+                        (lon.as_py(), lat.as_py()) for lon, lat in zip(batch["lon"], batch["lat"])
+                    ]
+
+                    masks = [
+                        point_in_polygon(points=points, polygon=polygon_points) == 1
+                        for polygon_points in polygons_points
+                    ]
+
+                    total_mask = reduce(np.logical_or, masks)
+                    intersecting_ids_array = ids.filter(pa.array(total_mask))
+                    intersecting_ids_batch = pa.RecordBatch.from_arrays(
+                        [intersecting_ids_array], names=["id"]
+                    )
+                    if not writer:
+                        nodes_intersecting_path = (
+                            self.tmp_dir_path / "nodes_intersecting_ids" / "data.parquet"
+                        )
+                        nodes_intersecting_path.parent.mkdir(parents=True, exist_ok=True)
+                        writer = pq.ParquetWriter(
+                            nodes_intersecting_path,
+                            intersecting_ids_batch.schema,
+                        )
+
+                    writer.write_batch(intersecting_ids_batch)
+                if writer:
+                    writer.close()
+
+                nodes_intersecting_ids = self.connection.read_parquet(str(nodes_intersecting_path))
 
             with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
                 self._sql_to_parquet_file(
