@@ -1149,14 +1149,14 @@ class PbfFileReader:
                 tab = pa.table([geometry_array], names=["geometry"])
 
                 self.connection.from_arrow(tab).project(
-                    "ST_GeomFromWKB(geometry) geometry"
+                    "ST_GeomFromWKB(geometry)::POLYGON_2D geometry"
                 ).to_table("geometry_filter")
 
                 nodes_intersecting_ids = self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT DISTINCT id FROM ({nodes_valid_with_tags.sql_query()}) n
                     SEMI JOIN geometry_filter gf
-                    ON ST_Intersects(ST_Point(n.lon, n.lat), gf.geometry)
+                    ON ST_Within(ST_Point2D(n.lon, n.lat), gf.geometry)
                     """,
                     file_path=self.tmp_dir_path / "nodes_intersecting_ids",
                 )
