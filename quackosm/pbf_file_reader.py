@@ -1154,9 +1154,10 @@ class PbfFileReader:
 
                 nodes_intersecting_ids = self._sql_to_parquet_file(
                     sql_query=f"""
-                    SELECT DISTINCT id FROM ({nodes_valid_with_tags.sql_query()}) n
+                    SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
                     SEMI JOIN geometry_filter gf
-                    ON ST_Within(ST_Point2D(n.lon, n.lat), gf.geometry)
+                    ON ST_Intersects_Extent(ST_Point2D(n.lon, n.lat), gf.geometry)
+                    AND ST_Within(ST_Point2D(n.lon, n.lat), gf.geometry)
                     """,
                     file_path=self.tmp_dir_path / "nodes_intersecting_ids",
                 )
