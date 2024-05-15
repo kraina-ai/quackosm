@@ -13,7 +13,6 @@ import tempfile
 import time
 import warnings
 from collections.abc import Iterable
-from functools import reduce
 from math import floor
 from multiprocessing import Pool
 from pathlib import Path
@@ -23,17 +22,16 @@ from typing import Any, Literal, NamedTuple, Optional, Union, cast
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
-import numpy as np
 import polars as pl
 import psutil
 import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
-from fast_crossing import point_in_polygon
 from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from pyarrow_ops import drop_duplicates
+from shapely import contains_xy
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
@@ -1143,15 +1141,15 @@ class PbfFileReader:
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
             with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
-                if isinstance(self.geometry_filter, BaseMultipartGeometry):
-                    geometry_filter_geoms = list(self.geometry_filter.geoms)
-                else:
-                    geometry_filter_geoms = [self.geometry_filter]
+                # if isinstance(self.geometry_filter, BaseMultipartGeometry):
+                #     geometry_filter_geoms = list(self.geometry_filter.geoms)
+                # else:
+                #     geometry_filter_geoms = [self.geometry_filter]
 
-                polygons_points = [
-                    list(geometry_filter_geom.exterior.coords)
-                    for geometry_filter_geom in geometry_filter_geoms
-                ]
+                # polygons_points = [
+                #     list(geometry_filter_geom.exterior.coords)
+                #     for geometry_filter_geom in geometry_filter_geoms
+                # ]
 
                 pq_dataset = ds.dataset(self.tmp_dir_path / "nodes_valid_with_tags")
 
@@ -1161,17 +1159,26 @@ class PbfFileReader:
                         continue
 
                     ids = batch["id"]
-                    points = [
-                        (lon.as_py(), lat.as_py()) for lon, lat in zip(batch["lon"], batch["lat"])
-                    ]
+                    # points = [
+                    #     (lon.as_py(), lat.as_py()) for lon, lat in zip(batch["lon"], batch["lat"])
+                    # ]
 
-                    masks = [
-                        point_in_polygon(points=points, polygon=polygon_points) == 1
-                        for polygon_points in polygons_points
-                    ]
 
-                    total_mask = reduce(np.logical_or, masks)
-                    intersecting_ids_array = ids.filter(pa.array(total_mask))
+                    mask = contains_xy(self.geometry_filter, x=batch["lon"], y=batch["lat"])
+
+                    # pool.imap(f_wrapped, zip(da, repeat(db))), total=len(da)
+                    # with Pool() as pool:
+                    #     masks = pool.map(
+                    #         partial(_check_points_in_polygon, points=points), polygons_points
+                    #     )
+
+                    # masks = [
+                    #     point_in_polygon(points=points, polygon=polygon_points) == 1
+                    #     for polygon_points in polygons_points
+                    # ]
+
+                    # total_mask = reduce(np.logical_or, masks)
+                    intersecting_ids_array = ids.filter(pa.array(mask))
                     intersecting_ids_batch = pa.RecordBatch.from_arrays(
                         [intersecting_ids_array], names=["id"]
                     )
@@ -2659,3 +2666,7 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
     ).write_parquet(
         current_destination_path
     )
+
+# def _check_points_in_polygon(polygon, points)-> np.ndarray[bool]:
+#     mask = point_in_polygon(points, polygon) == 1
+#     return mask
