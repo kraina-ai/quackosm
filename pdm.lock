@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:9d9d20905512cf957a5128e77b5860495fcb163a9b5f0c33fe9691088324e62b"
+content_hash = "sha256:18fee9a786c0aec34cb18f9b7237e359068dbb412a2efb5c8a42d2b428875cad"
 
 [[package]]
 name = "adjusttext"
@@ -729,32 +729,6 @@ summary = "Get the currently executing AST node of a frame, and other informatio
 files = [
     {file = "executing-2.0.1-py2.py3-none-any.whl", hash = "sha256:eac49ca94516ccc753f9fb5ce82603156e590b27525a8bc32cce8ae302eb61bc"},
     {file = "executing-2.0.1.tar.gz", hash = "sha256:35afe2ce3affba8ee97f2d69927fa823b08b472b7b994e36a52a964b93d16147"},
-]
-
-[[package]]
-name = "fast-crossing"
-version = "0.0.8"
-summary = "fast crossing"
-dependencies = [
-    "numpy",
-]
-files = [
-    {file = "fast_crossing-0.0.8-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:831c7939ff9698f3cbea5d2f926d6e71b550204110bf5123e0789f2a388de992"},
-    {file = "fast_crossing-0.0.8-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:5fb7f16676aa46dc2f83a46460f67d5e112b2ed92cc6a9b37d4bc782e24caed4"},
-    {file = "fast_crossing-0.0.8-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:de3680339f3929819fe7a074c9c83e4e4516ae4ef502b504ce811375bc8c1a6d"},
-    {file = "fast_crossing-0.0.8-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f3f758621425fe2fdac51cf11878d77480afc6c95e67950b1645a1dbd13437ad"},
-    {file = "fast_crossing-0.0.8-cp310-cp310-win_amd64.whl", hash = "sha256:14816b6bfbe5496291b7623056d612c48f92d3aeab9efdcbd646a774885ddb9c"},
-    {file = "fast_crossing-0.0.8-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:086ffe4c34bc5132b8d28387194261197f981cec6aa5060c6c3800e3fa4317f3"},
-    {file = "fast_crossing-0.0.8-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:ff1e0bb4f8f8af288399165e8f6a5bc4e8e2bdcac41c7344f4f93049ee09e3ca"},
-    {file = "fast_crossing-0.0.8-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:a2897b42103f0c00d38328a59c1a35f00be47534ff093db5ae58566d1fd66434"},
-    {file = "fast_crossing-0.0.8-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0f74f99083941290557d9334ef0abdb2cea65efd5f48b7928f1a600ba873c3a1"},
-    {file = "fast_crossing-0.0.8-cp311-cp311-win_amd64.whl", hash = "sha256:4d9a48759c6784f78f04c5139434628c25e6571bee791744bbc24bab2e29639d"},
-    {file = "fast_crossing-0.0.8-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:a6031f0b0c9cbe24b373a4f9e1538da715e28df6aca65af196762224ec99a09e"},
-    {file = "fast_crossing-0.0.8-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:19a2b135b4c65c5e02034b4635949d140eb7713941c8401498b177217f4ee76a"},
-    {file = "fast_crossing-0.0.8-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:fbeece624113f428da6d15eeb234cb6985e7d44e0206ececda23e473d4269607"},
-    {file = "fast_crossing-0.0.8-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7f9d03bba21b6411a538267b86b95491e177cc7f17c865a1af1e8eb425554ac0"},
-    {file = "fast_crossing-0.0.8-cp39-cp39-win_amd64.whl", hash = "sha256:f219abe7cd33d031e319434984e1f1dd15815d57e95b5665b7fec1e710507967"},
-    {file = "fast_crossing-0.0.8.tar.gz", hash = "sha256:37c3d6c0e75c51e3e9ad4fb0b6a26dbe0f4ce5879f1913994bd638090860b846"},
 ]
 
 [[package]]

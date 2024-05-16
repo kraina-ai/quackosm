@@ -25,18 +25,17 @@ import geopandas as gpd
 import polars as pl
 import psutil
 import pyarrow as pa
-import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from pyarrow_ops import drop_duplicates
-from shapely import STRtree
-from shapely.geometry import LinearRing, Point, Polygon
+from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._exceptions import EmptyResultWarning, InvalidGeometryFilter
+from quackosm._intersection import intersect_nodes_with_geometry
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
     OsmTagsFilter,
@@ -577,6 +576,9 @@ class PbfFileReader:
             ignore_cache=ignore_cache,
             filter_osm_ids=filter_osm_ids,
             save_as_wkt=save_as_wkt,
+            pbf_extract_geometry=[
+                matching_extract.geometry for matching_extract in matching_extracts
+            ],
         )
 
     @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
@@ -1141,75 +1143,15 @@ class PbfFileReader:
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
             with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
-                # if isinstance(self.geometry_filter, BaseMultipartGeometry):
-                #     geometry_filter_geoms = list(self.geometry_filter.geoms)
-                # else:
-                #     geometry_filter_geoms = [self.geometry_filter]
+                intersect_nodes_with_geometry(
+                    tmp_dir_path=self.tmp_dir_path,
+                    geometry_filter=self.geometry_filter,
+                    progress_bar=bar,
+                )
 
-                # polygons_points = [
-                #     list(geometry_filter_geom.exterior.coords)
-                #     for geometry_filter_geom in geometry_filter_geoms
-                # ]
-
-                pq_dataset = ds.dataset(self.tmp_dir_path / "nodes_valid_with_tags")
-
-                writer = None
-                for batch in bar.track(pq_dataset.to_batches()):
-                    if len(batch) == 0:
-                        continue
-
-                    ids = batch["id"]
-                    # points = [
-                    #     (lon.as_py(), lat.as_py()) for lon, lat in zip(batch["lon"], batch["lat"])
-                    # ]
-
-                    tree = STRtree(
-                        [
-                            Point(lon.as_py(), lat.as_py())
-                            for lon, lat in zip(batch["lon"], batch["lat"])
-                        ]
-                    )
-
-                    # tree = STRtree([GeocodeGeometryParser().convert("Monaco-Ville, Monaco")])
-
-                    intersecting_ids_array = ids.take(
-                        tree.query(self.geometry_filter, predicate="intersects")
-                    )
-
-                    # mask = contains_xy(self.geometry_filter, x=batch["lon"], y=batch["lat"])
-
-                    # pool.imap(f_wrapped, zip(da, repeat(db))), total=len(da)
-                    # with Pool() as pool:
-                    #     masks = pool.map(
-                    #         partial(_check_points_in_polygon, points=points), polygons_points
-                    #     )
-
-                    # masks = [
-                    #     point_in_polygon(points=points, polygon=polygon_points) == 1
-                    #     for polygon_points in polygons_points
-                    # ]
-
-                    # total_mask = reduce(np.logical_or, masks)
-                    # intersecting_ids_array = ids.filter(pa.array(mask))
-                    # intersecting_ids_array = ids.filter(pa.array(mask))
-                    intersecting_ids_batch = pa.RecordBatch.from_arrays(
-                        [intersecting_ids_array], names=["id"]
-                    )
-                    if not writer:
-                        nodes_intersecting_path = (
-                            self.tmp_dir_path / "nodes_intersecting_ids" / "data.parquet"
-                        )
-                        nodes_intersecting_path.parent.mkdir(parents=True, exist_ok=True)
-                        writer = pq.ParquetWriter(
-                            nodes_intersecting_path,
-                            intersecting_ids_batch.schema,
-                        )
-
-                    writer.write_batch(intersecting_ids_batch)
-                if writer:
-                    writer.close()
-
-                nodes_intersecting_ids = self.connection.read_parquet(str(nodes_intersecting_path))
+                nodes_intersecting_ids = self.connection.read_parquet(
+                    str(self.tmp_dir_path / "nodes_intersecting_ids" / "*.parquet")
+                )
 
             with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
                 self._sql_to_parquet_file(
@@ -2679,8 +2621,3 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
     ).write_parquet(
         current_destination_path
     )
-
-
-# def _check_points_in_polygon(polygon, points)-> np.ndarray[bool]:
-#     mask = point_in_polygon(points, polygon) == 1
-#     return mask
