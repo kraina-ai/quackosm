@@ -282,17 +282,16 @@ class PbfFileReader:
         else:
             pbf_path = list(pbf_path)
 
-        pbf_extract_geometry = None
         if pbf_extract_geometry is not None:
-            if not isinstance(pbf_extract_geometry, BaseGeometry):
+            if isinstance(pbf_extract_geometry, BaseGeometry):
                 pbf_extract_geometry = [pbf_extract_geometry]
             else:
+                pbf_extract_geometry = list(pbf_extract_geometry)
                 if len(pbf_extract_geometry) != len(pbf_path):
                     raise AttributeError(
                         "Provided pbf_extract_geometry has a different length "
                         "than the list of pbf paths."
                     )
-                pbf_extract_geometry = list(pbf_extract_geometry)
 
         if filter_osm_ids is None:
             filter_osm_ids = []

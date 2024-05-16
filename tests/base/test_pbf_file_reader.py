@@ -3,6 +3,7 @@
 import json
 import warnings
 from functools import partial
+from itertools import permutations
 from pathlib import Path
 from typing import Any, Callable, Optional, Union, cast
 from unittest import TestCase
@@ -116,6 +117,30 @@ def test_geometry_hash_calculation(geometry: BaseGeometry):
         PbfFileReader(geometry_filter=oriented_a)._get_oriented_geometry_filter()
         == PbfFileReader(geometry_filter=oriented_b)._get_oriented_geometry_filter()
     )
+
+    assert (
+        PbfFileReader(geometry_filter=oriented_a)._generate_geometry_hash()
+        == PbfFileReader(geometry_filter=oriented_b)._generate_geometry_hash()
+    )
+
+
+def test_multipart_geometry_hash_calculation() -> None:
+    """Test if geometry hash is orientation-agnostic."""
+    geom_1 = geometry_box()
+    geom_2 = box(minx=0, miny=0, maxx=1, maxy=1)
+    geom_3 = GeocodeGeometryParser().convert("Monaco-Ville, Monaco")  # type: ignore
+    geom_4 = H3GeometryParser().convert("8a3969a40ac7fff,893969a4037ffff")  # type: ignore
+
+    geoms = []
+    for combination in permutations([geom_1, geom_2, geom_3, geom_4], 4):
+        geoms.append(GeometryCollection(combination))
+
+    hashes = [
+        PbfFileReader(geometry_filter=geom_filter)._generate_geometry_hash()
+        for geom_filter in geoms
+    ]
+
+    assert all(i == hashes[0] for i in hashes)
 
 
 def test_unique_osm_ids_duplicated_file():  # type: ignore
