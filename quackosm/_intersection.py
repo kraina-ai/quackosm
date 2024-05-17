@@ -2,6 +2,7 @@ import multiprocessing
 from pathlib import Path
 from queue import Queue
 from time import sleep
+from typing import Optional
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -14,7 +15,7 @@ from quackosm._rich_progress import TaskProgressBar, log_message  # type: ignore
 
 def _intersection_worker(
     queue: Queue[tuple[str, int]], save_path: Path, geometry_filter: BaseGeometry
-) -> None:
+) -> None:  # pragma: no cover
     current_pid = multiprocessing.current_process().pid
 
     filepath = save_path / f"{current_pid}.parquet"
@@ -55,7 +56,9 @@ def _intersection_worker(
 
 
 def intersect_nodes_with_geometry(
-    tmp_dir_path: Path, geometry_filter: BaseGeometry, progress_bar: TaskProgressBar
+    tmp_dir_path: Path,
+    geometry_filter: BaseGeometry,
+    progress_bar: Optional[TaskProgressBar] = None,
 ) -> None:
     """
     Intersects nodes points with geometry filter using spatial index with multiprocessing.
@@ -63,7 +66,8 @@ def intersect_nodes_with_geometry(
     Args:
         tmp_dir_path (Path): Path of the working directory.
         geometry_filter (BaseGeometry): Geometry used for filtering.
-        progress_bar (TaskProgressBar): Progress bar to show task status.
+        progress_bar (Optional[TaskProgressBar]): Progress bar to show task status.
+            Defaults to `None`
     """
     queue: Queue[tuple[str, int]] = multiprocessing.Manager().Queue()
 
@@ -90,9 +94,12 @@ def intersect_nodes_with_geometry(
     for p in processes:
         p.start()
 
-    progress_bar.create_manual_bar(total=total)
+    if progress_bar:  # pragma: no cover
+        progress_bar.create_manual_bar(total=total)
     while any(process.is_alive() for process in processes):
-        progress_bar.update_manual_bar(current_progress=total - queue.qsize())
+        if progress_bar:  # pragma: no cover
+            progress_bar.update_manual_bar(current_progress=total - queue.qsize())
         sleep(1)
 
-    progress_bar.update_manual_bar(current_progress=total)
+    if progress_bar:  # pragma: no cover
+        progress_bar.update_manual_bar(current_progress=total)
