@@ -35,7 +35,7 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._exceptions import EmptyResultWarning, InvalidGeometryFilter
-from quackosm._intersection import intersect_nodes_with_geometry_dask
+from quackosm._intersection import intersect_nodes_with_geometry
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
     OsmTagsFilter,
@@ -1141,16 +1141,12 @@ class PbfFileReader:
         # - select all from NI with tags filter
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
-            with self.task_progress_tracker.get_spinner("Filtering nodes - intersection"):
-                intersect_nodes_with_geometry_dask(
+            with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
+                intersect_nodes_with_geometry(
                     tmp_dir_path=self.tmp_dir_path,
                     geometry_filter=self.geometry_filter,
+                    progress_bar=bar,
                 )
-
-                if self.debug_memory:
-                    log_message(
-                        f'Saved to directory: {self.tmp_dir_path / "nodes_intersecting_ids"}'
-                    )
 
                 nodes_intersecting_ids = self.connection.read_parquet(
                     str(self.tmp_dir_path / "nodes_intersecting_ids" / "*.parquet")
