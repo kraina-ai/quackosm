@@ -18,6 +18,8 @@ dependencies = [
     "requests",
     "polars>=0.19.4",
     "rich>=10.11.0",
+    "dask-geopandas",
+    "dask<2024.3.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"

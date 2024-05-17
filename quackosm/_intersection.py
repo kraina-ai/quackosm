@@ -3,12 +3,45 @@ from pathlib import Path
 from queue import Queue
 from time import sleep
 
-import pyarrow as pa
-import pyarrow.parquet as pq
-from shapely import Point, STRtree
-from shapely.geometry.base import BaseGeometry
+import dask
 
-from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined]
+# TODO: update dask and dask-geopandas after https://github.com/geopandas/dask-geopandas/issues/284
+dask.config.set({"dataframe.query-planning-warning": False})
+
+import dask_geopandas  # noqa: E402
+import pyarrow as pa  # noqa: E402
+import pyarrow.parquet as pq  # noqa: E402
+from shapely import Point, STRtree  # noqa: E402
+from shapely.geometry.base import BaseGeometry  # noqa: E402
+
+from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined] # noqa: E402
+
+rows_per_partition = 100_000
+
+
+def intersect_nodes_with_geometry_dask(tmp_dir_path: Path, geometry_filter: BaseGeometry) -> None:
+    """
+    Intersects nodes points with geometry filter using spatial index with dask geopandas.
+
+    Args:
+        tmp_dir_path (Path): Path of the working directory.
+        geometry_filter (BaseGeometry): Geometry used for filtering.
+    """
+    nodes_intersecting_path = tmp_dir_path / "nodes_intersecting_ids"
+    nodes_intersecting_path.mkdir(parents=True, exist_ok=True)
+
+    pq_ds = pq.ParquetDataset(tmp_dir_path / "nodes_valid_with_tags")
+    total_rows = sum(frag.count_rows() for frag in pq_ds.fragments)
+
+    ddf = dask.dataframe.read_parquet(
+        tmp_dir_path / "nodes_valid_with_tags",
+        columns=["id", "lon", "lat"],
+    ).repartition(npartitions=total_rows // rows_per_partition)
+    ddf = dask_geopandas.from_dask_dataframe(
+        ddf, geometry=dask_geopandas.points_from_xy(ddf, "lon", "lat")
+    )
+    ddf = ddf[ddf.within(geometry_filter)]
+    ddf[["id"]].to_parquet(nodes_intersecting_path)
 
 
 def _intersection_worker(
