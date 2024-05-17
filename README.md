@@ -82,6 +82,8 @@ Required:
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries
 
+- `geoarrow-rust-core (>=0.2)`: For transforming Arrow data to Shapely objects
+
 - `polars (>=0.19.4)`: For faster OSM ways grouping operation
 
 - `typeguard (>=3.0)`: For internal validation of types

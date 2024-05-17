@@ -1,7 +1,5 @@
 """Tests for PbfFileReader."""
 
-# TODO: add intersections test
-
 import json
 import warnings
 from functools import partial

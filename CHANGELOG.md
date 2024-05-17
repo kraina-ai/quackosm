@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored nodes intersection step from `ST_Intersects` in DuckDB to Shapely's `STRtree` and multiprocessing
+- `PbfFileReader`'s internal `geometry_filter` is additionally clipped by PBF extract geometry to speed up intersections
+
+### Added
+
+- Test for hashing geometry filter with mixed order
+- Test for new intersection step
+- New `geoarrow-rust-core` dependency
+
 ## [0.8.1] - 2024-05-11
 
 ### Added
