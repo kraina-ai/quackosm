@@ -1,5 +1,7 @@
 """Tests for PbfFileReader."""
 
+# TODO: add intersections test
+
 import json
 import warnings
 from functools import partial
@@ -131,9 +133,10 @@ def test_multipart_geometry_hash_calculation() -> None:
     geom_3 = GeocodeGeometryParser().convert("Monaco-Ville, Monaco")  # type: ignore
     geom_4 = H3GeometryParser().convert("8a3969a40ac7fff,893969a4037ffff")  # type: ignore
 
-    geoms = []
-    for combination in permutations([geom_1, geom_2, geom_3, geom_4], 4):
-        geoms.append(GeometryCollection(combination))
+    geoms = [
+        GeometryCollection(combination)
+        for combination in permutations([geom_1, geom_2, geom_3, geom_4], 4)
+    ]
 
     hashes = [
         PbfFileReader(geometry_filter=geom_filter)._generate_geometry_hash()
