@@ -36,7 +36,7 @@ def intersect_nodes_with_geometry_dask(tmp_dir_path: Path, geometry_filter: Base
     ddf = dask.dataframe.read_parquet(
         tmp_dir_path / "nodes_valid_with_tags",
         columns=["id", "lon", "lat"],
-    ).repartition(npartitions=total_rows // rows_per_partition)
+    ).repartition(npartitions=(1 + total_rows // rows_per_partition))
     ddf = dask_geopandas.from_dask_dataframe(
         ddf, geometry=dask_geopandas.points_from_xy(ddf, "lon", "lat")
     )
