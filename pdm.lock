@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:eb907c88961fa4d13df2d73b8498cd0a9564e9ce389fdac6cf3870654262cbd4"
+content_hash = "sha256:40502c4e1d851fbe09a243e7f09ab5422ea870bba60a1121c3f25b9ed28bc6e7"
 
 [[package]]
 name = "adjusttext"
@@ -600,18 +600,17 @@ files = [
 
 [[package]]
 name = "dask-geopandas"
-version = "0.3.1"
-requires_python = ">=3.7"
+version = "0"
+requires_python = ">=3.9"
+git = "https://github.com/geopandas/dask-geopandas.git"
+revision = "aa1b52f70a464d47f5c562df2f8793f33bdcb6c9"
 summary = "Parallel GeoPandas with Dask"
 dependencies = [
-    "dask>=2021.06.0",
-    "distributed>=2021.06.0",
-    "geopandas>=0.10",
+    "dask>=2022.06.0",
+    "distributed>=2022.06.0",
+    "geopandas>=0.12",
     "packaging",
-]
-files = [
-    {file = "dask-geopandas-0.3.1.tar.gz", hash = "sha256:032012d1dfd4d47b0009c3f89995fe5ee434edbaac78cac398637ceade9b26c3"},
-    {file = "dask_geopandas-0.3.1-py3-none-any.whl", hash = "sha256:c375d85b28058e80a44b185ea9fd43bc70b92c4a56db4ba3f7acb7782313d505"},
+    "shapely>=2.0",
 ]
 
 [[package]]

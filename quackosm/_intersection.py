@@ -4,17 +4,16 @@ from queue import Queue
 from time import sleep
 
 import dask
+import dask_geopandas
+import pyarrow as pa
+import pyarrow.parquet as pq
+from shapely import Point, STRtree
+from shapely.geometry.base import BaseGeometry
+
+from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined]
 
 # TODO: update dask and dask-geopandas after https://github.com/geopandas/dask-geopandas/issues/284
-dask.config.set({"dataframe.query-planning-warning": False})
-
-import dask_geopandas  # noqa: E402
-import pyarrow as pa  # noqa: E402
-import pyarrow.parquet as pq  # noqa: E402
-from shapely import Point, STRtree  # noqa: E402
-from shapely.geometry.base import BaseGeometry  # noqa: E402
-
-from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined] # noqa: E402
+# dask.config.set({"dataframe.query-planning-warning": False})
 
 rows_per_partition = 100_000
 
