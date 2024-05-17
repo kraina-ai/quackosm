@@ -5,7 +5,7 @@
 groups = ["default", "dev", "docs", "license", "lint", "test", "cli", "cli-dev"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:18fee9a786c0aec34cb18f9b7237e359068dbb412a2efb5c8a42d2b428875cad"
+content_hash = "sha256:063d0250f963dbfe8ed2308871284c9803545f93f8d25713764978768a6a265f"
 
 [[package]]
 name = "adjusttext"
@@ -943,6 +943,20 @@ dependencies = [
 files = [
     {file = "geoarrow-pyarrow-0.1.2.tar.gz", hash = "sha256:318b3bd42e865b7b2cd7bcb0947c4053f07be15296153c297e94150a4be7357e"},
     {file = "geoarrow_pyarrow-0.1.2-py3-none-any.whl", hash = "sha256:c0be5545374fde7ded77f5aef2013cf1ab0e9001cbe4e3b489f55530c6f12c45"},
+]
+
+[[package]]
+name = "geoarrow-rust-core"
+version = "0.2.0"
+requires_python = ">=3.8"
+summary = "Efficient, vectorized geospatial operations in Python."
+files = [
+    {file = "geoarrow_rust_core-0.2.0-cp38-abi3-macosx_10_12_x86_64.whl", hash = "sha256:1b16edae465bd39a274918a42f052ec8ff279650d45e48923b2f05eb52480fd1"},
+    {file = "geoarrow_rust_core-0.2.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:68f0be67f362dcb97bc3ef48a741a2d3549a311e4489e8df38ef9efc23dd513c"},
+    {file = "geoarrow_rust_core-0.2.0-cp38-abi3-manylinux_2_28_x86_64.whl", hash = "sha256:824e184a3d5e29f652ef024fc34bcebc8aea8ae454d9999ed65aa1f2551ed3c1"},
+    {file = "geoarrow_rust_core-0.2.0-cp38-abi3-win32.whl", hash = "sha256:834eb61ae91aa6bdf402f4e924b1019526661d5e7d7efefff153c9c86a2272c1"},
+    {file = "geoarrow_rust_core-0.2.0-cp38-abi3-win_amd64.whl", hash = "sha256:80e2c773235e50e2bee1819c7b44cf3d298c37e334c47111ed58345804f09319"},
+    {file = "geoarrow_rust_core-0.2.0.tar.gz", hash = "sha256:4f293c7e36ff2206d3e7dd96342897c1b2634618c2cfb9175574ef2705ea825f"},
 ]
 
 [[package]]

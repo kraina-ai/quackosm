@@ -5,10 +5,11 @@ from time import sleep
 
 import pyarrow as pa
 import pyarrow.parquet as pq
-from shapely import Point, STRtree
+from geoarrow.rust.core import PointArray
+from shapely import STRtree
 from shapely.geometry.base import BaseGeometry
 
-from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined]
+from quackosm._rich_progress import TaskProgressBar, log_message  # type: ignore[attr-defined]
 
 
 def _intersection_worker(
@@ -20,6 +21,7 @@ def _intersection_worker(
     writer = None
     while not queue.empty():
         try:
+            file_name = None
             file_name, row_group_index = queue.get(block=True, timeout=1)
 
             pq_file = pq.ParquetFile(file_name)
@@ -27,12 +29,11 @@ def _intersection_worker(
             if len(row_group_table) == 0:
                 continue
 
-            tree = STRtree(
-                [
-                    Point(lon.as_py(), lat.as_py())
-                    for lon, lat in zip(row_group_table["lon"], row_group_table["lat"])
-                ]
+            points_array = PointArray.from_xy(
+                x=row_group_table["lon"].combine_chunks(), y=row_group_table["lat"].combine_chunks()
             )
+
+            tree = STRtree(points_array.to_shapely())
 
             intersecting_ids_array = row_group_table["id"].take(
                 tree.query(geometry_filter, predicate="intersects")
@@ -45,7 +46,9 @@ def _intersection_worker(
 
             writer.write_table(table)
         except Exception as ex:
-            print(ex)
+            log_message(ex)
+            if file_name is not None:
+                queue.put((file_name, row_group_index))
 
     if writer:
         writer.close()
