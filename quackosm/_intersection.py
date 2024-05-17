@@ -65,8 +65,7 @@ def intersect_nodes_with_geometry(
         geometry_filter (BaseGeometry): Geometry used for filtering.
         progress_bar (TaskProgressBar): Progress bar to show task status.
     """
-    manager = multiprocessing.Manager()
-    queue: Queue[tuple[str, int]] = manager.Queue()
+    queue: Queue[tuple[str, int]] = multiprocessing.Manager().Queue()
 
     dataset = pq.ParquetDataset(tmp_dir_path / "nodes_valid_with_tags")
 
