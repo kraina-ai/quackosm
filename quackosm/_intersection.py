@@ -82,24 +82,30 @@ def intersect_nodes_with_geometry(
     nodes_intersecting_path = tmp_dir_path / "nodes_intersecting_ids"
     nodes_intersecting_path.mkdir(parents=True, exist_ok=True)
 
-    processes = [
-        multiprocessing.Process(
-            target=_intersection_worker,
-            args=(queue, nodes_intersecting_path, geometry_filter),
-        )
-        for _ in range(multiprocessing.cpu_count())
-    ]
+    try:
+        processes = [
+            multiprocessing.Process(
+                target=_intersection_worker,
+                args=(queue, nodes_intersecting_path, geometry_filter),
+            )
+            for _ in range(multiprocessing.cpu_count())
+        ]
 
-    # Run processes
-    for p in processes:
-        p.start()
+        # Run processes
+        for p in processes:
+            p.start()
 
-    if progress_bar:  # pragma: no cover
-        progress_bar.create_manual_bar(total=total)
-    while any(process.is_alive() for process in processes):
         if progress_bar:  # pragma: no cover
-            progress_bar.update_manual_bar(current_progress=total - queue.qsize())
-        sleep(1)
+            progress_bar.create_manual_bar(total=total)
+        while any(process.is_alive() for process in processes):
+            if progress_bar:  # pragma: no cover
+                progress_bar.update_manual_bar(current_progress=total - queue.qsize())
+            sleep(1)
 
-    if progress_bar:  # pragma: no cover
-        progress_bar.update_manual_bar(current_progress=total)
+        if progress_bar:  # pragma: no cover
+            progress_bar.update_manual_bar(current_progress=total)
+    finally: # pragma: no cover
+        # In case of exception
+        for p in processes:
+            if p.is_alive():
+                p.terminate()
