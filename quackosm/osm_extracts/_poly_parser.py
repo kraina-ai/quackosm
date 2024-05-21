@@ -8,7 +8,7 @@ from shapely.geometry import MultiPolygon
 __all__ = ["parse_polygon_file"]
 
 
-def parse_polygon_file(polygon_url: str) -> Optional[MultiPolygon]:
+def parse_polygon_file(polygon_url: str) -> Optional[MultiPolygon]:  # pragma: no cover
     """
     Parse poly file from URL to geometry.
 
@@ -30,7 +30,7 @@ def parse_polygon_file(polygon_url: str) -> Optional[MultiPolygon]:
     return poly
 
 
-def parse_poly(lines: list[str]) -> MultiPolygon:
+def parse_poly(lines: list[str]) -> MultiPolygon:  # pragma: no cover
     """
     Parse an Osmosis polygon filter file.
 

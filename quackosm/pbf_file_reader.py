@@ -35,6 +35,7 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._exceptions import EmptyResultWarning, InvalidGeometryFilter
+from quackosm._intersection import intersect_nodes_with_geometry
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
     OsmTagsFilter,
@@ -242,6 +243,7 @@ class PbfFileReader:
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
         save_as_wkt: bool = False,
+        pbf_extract_geometry: Optional[Union[BaseGeometry, Iterable[BaseGeometry]]] = None,
     ) -> Path:
         """
         Convert PBF file to GeoParquet file.
@@ -268,6 +270,9 @@ class PbfFileReader:
             save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead
                 of WKB. If `True`, it will be saved as a `.parquet` file, because it won't be
                 in the GeoParquet standard. Defaults to `False`.
+            pbf_extract_geometry (Optional[Union[BaseGeometry, Iterable[BaseGeometry]]], optional):
+                List of geometries defining PBF extract. Used internally to speed up intersections
+                for complex filters. Defaults to `None`.
 
         Returns:
             Path: Path to the generated GeoParquet file.
@@ -276,6 +281,17 @@ class PbfFileReader:
             pbf_path = [pbf_path]
         else:
             pbf_path = list(pbf_path)
+
+        if pbf_extract_geometry is not None:
+            if isinstance(pbf_extract_geometry, BaseGeometry):
+                pbf_extract_geometry = [pbf_extract_geometry]
+            else:
+                pbf_extract_geometry = list(pbf_extract_geometry)
+                if len(pbf_extract_geometry) != len(pbf_path):
+                    raise AttributeError(
+                        "Provided pbf_extract_geometry has a different length "
+                        "than the list of pbf paths."
+                    )
 
         if filter_osm_ids is None:
             filter_osm_ids = []
@@ -290,9 +306,12 @@ class PbfFileReader:
         self.task_progress_tracker = TaskProgressTracker(
             verbosity_mode=self.verbosity_mode,
             total_major_steps=total_files,
-            debug=self.debug_memory,
+            debug=self.debug_times,
         )
         if total_files == 1:
+            single_pbf_extract_geometry = None
+            if pbf_extract_geometry is not None:
+                single_pbf_extract_geometry = pbf_extract_geometry[0]
             parsed_geoparquet_file = self._convert_single_pbf_to_parquet(
                 pbf_path[0],
                 result_file_path=result_file_path,
@@ -301,6 +320,7 @@ class PbfFileReader:
                 ignore_cache=ignore_cache,
                 filter_osm_ids=filter_osm_ids,
                 save_as_wkt=save_as_wkt,
+                pbf_extract_geometry=single_pbf_extract_geometry,
             )
             self.task_progress_tracker.stop()
             return parsed_geoparquet_file
@@ -334,6 +354,11 @@ class PbfFileReader:
 
             for file_idx, single_pbf_path in enumerate(pbf_path):
                 self.task_progress_tracker.reset_steps(file_idx + 1)
+
+                single_pbf_extract_geometry = None
+                if pbf_extract_geometry is not None:
+                    single_pbf_extract_geometry = pbf_extract_geometry[file_idx]
+
                 parsed_geoparquet_file = self._convert_single_pbf_to_parquet(
                     single_pbf_path,
                     keep_all_tags=keep_all_tags,
@@ -341,6 +366,7 @@ class PbfFileReader:
                     ignore_cache=ignore_cache,
                     filter_osm_ids=filter_osm_ids,
                     save_as_wkt=save_as_wkt,
+                    pbf_extract_geometry=single_pbf_extract_geometry,
                 )
                 parsed_geoparquet_files.append(parsed_geoparquet_file)
 
@@ -404,6 +430,7 @@ class PbfFileReader:
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
         save_as_wkt: bool = False,
+        pbf_extract_geometry: Optional[BaseGeometry] = None,
     ) -> Path:
         if filter_osm_ids is None:
             filter_osm_ids = []
@@ -422,6 +449,14 @@ class PbfFileReader:
             try:
                 self.encountered_query_exception = False
                 self.connection = _set_up_duckdb_connection(tmp_dir_path=self.tmp_dir_path)
+
+                original_geometry_filter = self.geometry_filter
+
+                if pbf_extract_geometry is not None:
+                    self.geometry_filter = cast(BaseGeometry, self.geometry_filter).intersection(
+                        cast(BaseGeometry, pbf_extract_geometry)
+                    )
+
                 result_file_path = result_file_path or self._generate_result_file_path(
                     pbf_path,
                     filter_osm_ids=filter_osm_ids,
@@ -438,6 +473,8 @@ class PbfFileReader:
                     ignore_cache=ignore_cache,
                     save_as_wkt=save_as_wkt,
                 )
+
+                self.geometry_filter = original_geometry_filter
 
                 return parsed_geoparquet_file
             finally:
@@ -538,6 +575,9 @@ class PbfFileReader:
             ignore_cache=ignore_cache,
             filter_osm_ids=filter_osm_ids,
             save_as_wkt=save_as_wkt,
+            pbf_extract_geometry=[
+                matching_extract.geometry for matching_extract in matching_extracts
+            ],
         )
 
     @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
@@ -1101,16 +1141,17 @@ class PbfFileReader:
         # - select all from NI with tags filter
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
-            wkt = cast(BaseGeometry, self.geometry_filter).wkt
-            intersection_filter = f"ST_Intersects(ST_Point(lon, lat), ST_GeomFromText('{wkt}'))"
-            with self.task_progress_tracker.get_spinner("Filtering nodes - intersection"):
-                nodes_intersecting_ids = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT DISTINCT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    WHERE {intersection_filter} = true
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_intersecting_ids",
+            with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
+                intersect_nodes_with_geometry(
+                    tmp_dir_path=self.tmp_dir_path,
+                    geometry_filter=self.geometry_filter,
+                    progress_bar=bar,
                 )
+
+                nodes_intersecting_ids = self.connection.read_parquet(
+                    str(self.tmp_dir_path / "nodes_intersecting_ids" / "*.parquet")
+                )
+
             with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
                 self._sql_to_parquet_file(
                     sql_query=f"""

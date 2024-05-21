@@ -38,7 +38,7 @@ def _load_geofabrik_index() -> gpd.GeoDataFrame:
 
     if save_path.exists():
         gdf = gpd.read_file(save_path)
-    else:
+    else:  # pragma: no cover
         result = requests.get(
             GEOFABRIK_INDEX_URL,
             headers={

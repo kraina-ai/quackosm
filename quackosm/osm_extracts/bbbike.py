@@ -43,7 +43,7 @@ def _load_bbbike_index() -> gpd.GeoDataFrame:
 
     if save_path.exists():
         gdf = gpd.read_file(save_path)
-    else:
+    else:  # pragma: no cover
         extracts = _iterate_bbbike_index()
         gdf = gpd.GeoDataFrame(
             data=[asdict(extract) for extract in extracts], geometry="geometry"
@@ -57,7 +57,7 @@ def _load_bbbike_index() -> gpd.GeoDataFrame:
     return gdf
 
 
-def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:
+def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
     """
     Iterate OpenStreetMap.fr extracts service page.
 
