@@ -59,7 +59,7 @@ class WorkerProcess(multiprocessing.Process):
         self._pconn, self._cconn = multiprocessing.Pipe()
         self._exception: Optional[tuple[Exception, str]] = None
 
-    def run(self) -> None:
+    def run(self) -> None: # pragma: no cover
         try:
             multiprocessing.Process.run(self)
             self._cconn.send(None)
@@ -123,7 +123,7 @@ def map_parquet_dataset(
         if progress_bar:  # pragma: no cover
             progress_bar.create_manual_bar(total=total)
         while any(process.is_alive() for process in processes):
-            if any(p.exception for p in processes):
+            if any(p.exception for p in processes): # pragma: no cover
                 break
 
             if progress_bar:  # pragma: no cover
