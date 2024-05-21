@@ -1,7 +1,7 @@
 import multiprocessing
 import traceback
 from pathlib import Path
-from queue import Queue
+from queue import Empty, Queue
 from time import sleep
 from typing import Callable, Optional
 
@@ -23,8 +23,8 @@ def _job(
     writer = None
     while not queue.empty():
         try:
-            file_name = None
-            file_name, row_group_index = queue.get(block=True, timeout=1)
+            file_name, row_group_index = None, None
+            file_name, row_group_index = queue.get_nowait()
 
             pq_file = pq.ParquetFile(file_name)
             row_group_table = pq_file.read_row_group(row_group_index, columns=columns)
@@ -37,8 +37,10 @@ def _job(
                 writer = pq.ParquetWriter(filepath, result_table.schema)
 
             writer.write_table(result_table)
+        except Empty:
+            pass
         except Exception as ex:
-            if file_name is not None:
+            if file_name is not None and row_group_index is not None:
                 queue.put((file_name, row_group_index))
 
             msg = (
