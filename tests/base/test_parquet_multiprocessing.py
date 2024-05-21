@@ -39,7 +39,7 @@ def test_exception_wrapping() -> None:
 
         def raise_error(pa: Any) -> Any:
             sleep(random())
-            raise KeyError("XD")
+            raise Exception("Quack!")
 
         with pytest.raises(RuntimeError):
             map_parquet_dataset(
