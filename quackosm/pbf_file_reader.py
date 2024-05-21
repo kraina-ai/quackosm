@@ -306,7 +306,7 @@ class PbfFileReader:
         self.task_progress_tracker = TaskProgressTracker(
             verbosity_mode=self.verbosity_mode,
             total_major_steps=total_files,
-            debug=self.debug_memory,
+            debug=self.debug_times,
         )
         if total_files == 1:
             single_pbf_extract_geometry = None

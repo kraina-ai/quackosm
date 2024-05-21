@@ -12,6 +12,11 @@ import pytest
 from quackosm._parquet_multiprocessing import map_parquet_dataset
 
 
+def raise_error(pa: Any) -> Any:
+    """Function for raising error."""
+    sleep(random())
+    raise Exception("Quack!")
+
 def test_exception_wrapping() -> None:
     """Test if multiprocessing exception raising works.."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
@@ -36,10 +41,6 @@ def test_exception_wrapping() -> None:
             )
             """
         )
-
-        def raise_error(pa: Any) -> Any:
-            sleep(random())
-            raise Exception("Quack!")
 
         with pytest.raises(RuntimeError):
             map_parquet_dataset(
