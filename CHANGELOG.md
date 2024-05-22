@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added new internal parquet dataset processing logic using multiprocessing
 - Refactored nodes intersection step from `ST_Intersects` in DuckDB to Shapely's `STRtree`
 - `PbfFileReader`'s internal `geometry_filter` is additionally clipped by PBF extract geometry to speed up intersections
+- `OsmTagsFilter` and `GroupedOsmTagsFilter` type from `dict` to `Mapping` to make it covariant
 
 ### Added
 
