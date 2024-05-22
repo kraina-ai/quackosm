@@ -45,7 +45,7 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
 
     if save_path.exists():
         gdf = gpd.read_file(save_path)
-    else:
+    else:  # pragma: no cover
         force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
         extracts = []
         with tqdm(disable=True if force_terminal else False) as pbar:
@@ -79,7 +79,9 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
     return gdf
 
 
-def _gather_all_openstreetmap_fr_urls(id_prefix: str, directory_url: str, pbar: tqdm) -> list[Any]:
+def _gather_all_openstreetmap_fr_urls(
+    id_prefix: str, directory_url: str, pbar: tqdm
+) -> list[Any]:  # pragma: no cover
     """
     Iterate OpenStreetMap.fr extracts service page.
 

@@ -147,38 +147,39 @@ class TaskProgressBar:
         self.progress_cls = progress_cls
         self.live_obj = live_obj
 
+    def _create_progress(self):
+        columns = [
+            SpinnerColumn(),
+            TextColumn(self.step_number),
+            TextColumn(
+                "[progress.description]{task.description}"
+                " [progress.percentage]{task.percentage:>3.0f}%"
+            ),
+            BarColumn(),
+            MofNCompleteColumn(),
+            TextColumn("•"),
+            TimeElapsedColumn(),
+            TextColumn("<"),
+            TimeRemainingColumn(),
+            TextColumn("•"),
+            SpeedColumn(),
+        ]
+
+        if self.skip_step_number:
+            columns.pop(1)
+
+        self.progress = self.progress_cls(
+            *columns,
+            live_obj=self.live_obj,
+            transient=self.transient_mode,
+            speed_estimate_period=1800,
+        )
+
     def __enter__(self):
         if self.silent_mode:
             self.progress = None
         else:
-
-            columns = [
-                SpinnerColumn(),
-                TextColumn(self.step_number),
-                TextColumn(
-                    "[progress.description]{task.description}"
-                    " [progress.percentage]{task.percentage:>3.0f}%"
-                ),
-                BarColumn(),
-                MofNCompleteColumn(),
-                TextColumn("•"),
-                TimeElapsedColumn(),
-                TextColumn("<"),
-                TimeRemainingColumn(),
-                TextColumn("•"),
-                SpeedColumn(),
-            ]
-
-            if self.skip_step_number:
-                columns.pop(1)
-
-            self.progress = self.progress_cls(
-                *columns,
-                live_obj=self.live_obj,
-                transient=self.transient_mode,
-                speed_estimate_period=1800,
-            )
-
+            self._create_progress()
             self.progress.__enter__()
 
         return self
@@ -188,6 +189,14 @@ class TaskProgressBar:
             self.progress.__exit__(exc_type, exc_value, exc_tb)
 
         self.progress = None
+
+    def create_manual_bar(self, total: int):
+        if self.progress:
+            self.progress.add_task(description=self.step_name, total=total)
+
+    def update_manual_bar(self, current_progress: int):
+        if self.progress:
+            self.progress.update(task_id=self.progress.task_ids[0], completed=current_progress)
 
     def track(self, iterable: Iterable):
         if self.progress is not None:

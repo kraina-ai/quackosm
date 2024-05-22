@@ -12,8 +12,8 @@ def main() -> None:
         )
         raise ImportError(error_msg) from exc
 
-    cli.app(prog_name=__app_name__)
+    cli.app(prog_name=__app_name__)  # pragma: no cover
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
