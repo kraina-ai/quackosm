@@ -1,13 +1,13 @@
 """Module contains a dedicated type alias for OSM tags filter."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Union, cast, overload
 
 from quackosm._typing import is_expected_type
 
-OsmTagsFilter = dict[str, Union[list[str], str, bool]]
+OsmTagsFilter = Mapping[str, Union[list[str], str, bool]]
 
-GroupedOsmTagsFilter = dict[str, OsmTagsFilter]
+GroupedOsmTagsFilter = Mapping[str, OsmTagsFilter]
 
 
 @overload
@@ -134,7 +134,7 @@ def _merge_multiple_osm_tags_filters(osm_tags_filters: Iterable[OsmTagsFilter]) 
             "Provided filter doesn't match required `Iterable[OsmTagsFilter]` definition."
         )
 
-    result: OsmTagsFilter = {}
+    result: dict[str, Union[list[str], str, bool]] = {}
     for osm_tags_filter in osm_tags_filters:
         for osm_tag_key, osm_tag_value in osm_tags_filter.items():
             if osm_tag_key not in result:
@@ -175,4 +175,4 @@ def _merge_multiple_osm_tags_filters(osm_tags_filters: Iterable[OsmTagsFilter]) 
                 new_values = [value for value in osm_tag_value if value not in current_values_list]
                 current_values_list.extend(new_values)
 
-    return result
+    return cast(OsmTagsFilter, result)

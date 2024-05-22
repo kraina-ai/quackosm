@@ -5,7 +5,7 @@ import warnings
 from functools import partial
 from itertools import permutations
 from pathlib import Path
-from typing import Any, Callable, Optional, Union, cast
+from typing import Any, Callable, Literal, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
@@ -121,6 +121,19 @@ def test_geometry_hash_calculation(geometry: BaseGeometry):
     assert (
         PbfFileReader(geometry_filter=oriented_a)._generate_geometry_hash()
         == PbfFileReader(geometry_filter=oriented_b)._generate_geometry_hash()
+    )
+
+
+@pytest.mark.parametrize("verbosity_mode", ["silent", "transient", "verbose"])  # type: ignore
+def test_verbosity_mode(verbosity_mode: Literal["silent", "transient", "verbose"]) -> None:
+    """Test if runs properly with different verbosity modes."""
+    pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    convert_pbf_to_parquet(
+        pbf_file,
+        geometry_filter=GeocodeGeometryParser().convert("Monaco-Ville, Monaco"),  # type: ignore
+        tags_filter={"amenity": True},
+        verbosity_mode=verbosity_mode,
+        ignore_cache=True,
     )
 
 
