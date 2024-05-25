@@ -10,6 +10,8 @@ import pyarrow.parquet as pq
 
 from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined]
 
+# Using `spawn` method to enable integration with Polars and probably other Rust-based libraries
+# https://docs.pola.rs/user-guide/misc/multiprocessing/
 ctx: multiprocessing.context.SpawnContext = multiprocessing.get_context("spawn")
 
 
