@@ -99,7 +99,7 @@ def map_parquet_dataset(
         progress_bar (Optional[TaskProgressBar]): Progress bar to show task status.
             Defaults to `None`.
     """
-    queue: multiprocessing.queues.Queue[tuple[str, int]] = ctx.Queue()
+    queue: Queue[tuple[str, int]] = ctx.Manager().Queue()
 
     dataset = pq.ParquetDataset(dataset_path)
 
