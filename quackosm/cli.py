@@ -238,8 +238,8 @@ def main(
     pbf_file: Annotated[
         Optional[str],
         typer.Argument(
-            help="PBF file to convert into GeoParquet",
-            metavar="PBF file path",
+            help="PBF file to convert into GeoParquet. Can be an URL.",
+            metavar="PBF file path.",
             callback=_empty_path_callback,
         ),
     ] = None,
