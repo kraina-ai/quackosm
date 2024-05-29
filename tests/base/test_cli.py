@@ -526,7 +526,7 @@ def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
 
 
 def test_proper_args_with_pbf_url() -> None:
-    """Test if runs properly with options."""
+    """Test if runs properly with an url path."""
     result = runner.invoke(cli.app, ["https://download.geofabrik.de/europe/monaco-latest.osm.pbf"])
     print(result.stdout)
 
