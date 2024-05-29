@@ -46,7 +46,7 @@ def convert_pbf_to_parquet(
 
     Args:
         pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
-            Path or list of paths of `*.osm.pbf` files to be parsed.
+            Path or list of paths of `*.osm.pbf` files to be parsed. Can be an URL.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -472,7 +472,7 @@ def convert_pbf_to_geodataframe(
 
     Args:
         pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
-            Path or list of paths of `*.osm.pbf` files to be parsed.
+            Path or list of paths of `*.osm.pbf` files to be parsed. Can be an URL.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).

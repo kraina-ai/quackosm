@@ -525,6 +525,15 @@ def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
     assert str(Path(expected_result)) in result.stdout
 
 
+def test_proper_args_with_pbf_url() -> None:
+    """Test if runs properly with an url path."""
+    result = runner.invoke(cli.app, ["https://download.geofabrik.de/europe/monaco-latest.osm.pbf"])
+    print(result.stdout)
+
+    assert result.exit_code == 0
+    assert str(Path("files/monaco-latest_nofilter_noclip_compact.parquet")) in result.stdout
+
+
 @P.parameters("args")  # type: ignore
 @P.case(
     "OSM tags filter malfunctioned JSON",

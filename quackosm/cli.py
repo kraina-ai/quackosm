@@ -23,6 +23,7 @@ from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
 from quackosm.functions import convert_geometry_to_parquet, convert_pbf_to_parquet
 from quackosm.osm_extracts import OsmExtractSource
+from quackosm.pbf_file_reader import _is_url_path
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
 
@@ -34,7 +35,7 @@ def _version_callback(value: bool) -> None:
 
 
 def _path_callback(ctx: typer.Context, value: Path) -> Path:
-    if not Path(value).exists():
+    if not _is_url_path(value) and not Path(value).exists():
         raise typer.BadParameter(f"File not found error: {value}")
     return value
 
@@ -235,10 +236,10 @@ def _filter_osm_ids_callback(value: str) -> Optional[list[str]]:
 @app.command()  # type: ignore
 def main(
     pbf_file: Annotated[
-        Optional[Path],
+        Optional[str],
         typer.Argument(
-            help="PBF file to convert into GeoParquet",
-            metavar="PBF file path",
+            help="PBF file to convert into GeoParquet. Can be an URL.",
+            metavar="PBF file path.",
             callback=_empty_path_callback,
         ),
     ] = None,

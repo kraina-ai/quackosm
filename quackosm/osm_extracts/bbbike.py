@@ -82,7 +82,7 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
 
     force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
     for extract_name in tqdm(
-        extract_names, desc="Iterating BBBike index", disable=True if force_terminal else None
+        extract_names, desc="Iterating BBBike index", disable=True if force_terminal else False
     ):
         poly_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.poly"
         polygon = parse_polygon_file(poly_url)

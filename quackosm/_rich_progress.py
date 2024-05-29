@@ -265,7 +265,7 @@ class TaskProgressTracker:
         if self.console and not self.console.is_interactive:
             self.console.print()
 
-        if not self.verbosity_mode == "silent":
+        if not self.verbosity_mode == "silent" and not self.is_new():
             end_time = time.time()
             elapsed_seconds = end_time - self.start_time
             show_total_elapsed_time(elapsed_seconds)
