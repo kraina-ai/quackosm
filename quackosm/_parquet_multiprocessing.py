@@ -57,7 +57,7 @@ def _job(
         writer.close()
 
 
-class WorkerProcess(ctx.Process): # type: ignore[name-defined,misc]
+class WorkerProcess(ctx.Process):  # type: ignore[name-defined,misc]
     def __init__(self, *args: Any, **kwargs: Any):
         multiprocessing.Process.__init__(self, *args, **kwargs)
         self._pconn, self._cconn = multiprocessing.Pipe()
@@ -119,36 +119,52 @@ def map_parquet_dataset(
             )
             for _ in range(min(multiprocessing.cpu_count(), total))
         ]
-
-        # Run processes
-        for p in processes:
-            p.start()
-
-        if progress_bar:  # pragma: no cover
-            progress_bar.create_manual_bar(total=total)
-        while any(process.is_alive() for process in processes):
-            if any(p.exception for p in processes):  # pragma: no cover
-                break
-
-            if progress_bar:  # pragma: no cover
-                progress_bar.update_manual_bar(current_progress=total - queue.qsize())
-            sleep(1)
-
-        if progress_bar:  # pragma: no cover
-            progress_bar.update_manual_bar(current_progress=total)
+        _run_processes(processes=processes, queue=queue, total=total, progress_bar=progress_bar)
     finally:  # pragma: no cover
-        # In case of exception
-        exceptions = []
-        for p in processes:
-            if p.is_alive():
-                p.terminate()
+        _report_exceptions(processes=processes)
 
-            if p.exception:
-                exceptions.append(p.exception)
 
-        if exceptions:
-            # use ExceptionGroup in Python3.11
-            _raise_multiple(exceptions)
+def _run_processes(
+    processes: list[WorkerProcess],
+    queue: Queue[tuple[str, int]],
+    total: int,
+    progress_bar: Optional[TaskProgressBar],
+) -> None:
+    # Run processes
+    for p in processes:
+        p.start()
+
+    if progress_bar:  # pragma: no cover
+        progress_bar.create_manual_bar(total=total)
+
+    sleep_time = 0.1
+    while any(process.is_alive() for process in processes):
+        if any(p.exception for p in processes):  # pragma: no cover
+            break
+
+        if progress_bar:  # pragma: no cover
+            progress_bar.update_manual_bar(current_progress=total - queue.qsize())
+
+        sleep(sleep_time)
+        sleep_time = min(1.0, sleep_time + 0.1)
+
+    if progress_bar:  # pragma: no cover
+        progress_bar.update_manual_bar(current_progress=total)
+
+
+def _report_exceptions(processes: list[WorkerProcess]) -> None:
+    # In case of exception
+    exceptions = []
+    for p in processes:
+        if p.is_alive():
+            p.terminate()
+
+        if p.exception:
+            exceptions.append(p.exception)
+
+    if exceptions:
+        # use ExceptionGroup in Python3.11
+        _raise_multiple(exceptions)
 
 
 def _raise_multiple(exceptions: list[tuple[Exception, str]]) -> None:
