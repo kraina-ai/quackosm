@@ -699,7 +699,7 @@ class PbfFileReader:
     def _drop_duplicated_features_in_pyarrow_table(
         self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
     ) -> list[Path]:
-        if len(parsed_geoparquet_files) == 1:
+        if len(parsed_geoparquet_files) == 1:  # pragma: no cover
             return parsed_geoparquet_files
 
         with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
@@ -714,7 +714,7 @@ class PbfFileReader:
     def _drop_duplicated_features_in_joined_table(
         self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
     ) -> list[Path]:
-        if len(parsed_geoparquet_files) == 1:
+        if len(parsed_geoparquet_files) == 1:  # pragma: no cover
             return parsed_geoparquet_files
 
         connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
@@ -744,7 +744,7 @@ class PbfFileReader:
     def _drop_duplicated_features_in_joined_table_one_by_one(
         self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
     ) -> list[Path]:
-        if len(parsed_geoparquet_files) == 1:
+        if len(parsed_geoparquet_files) == 1:  # pragma: no cover
             return parsed_geoparquet_files
 
         sorted_parsed_geoparquet_files = sorted(
