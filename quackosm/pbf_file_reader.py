@@ -2575,10 +2575,11 @@ class PbfFileReader:
                 f"SELECT {', '.join(columns_to_test)} FROM '{input_file}/*.parquet'"
             ).to_df()
 
-            columns_to_drop = []
-            for column_name, column_is_null in columns_to_test_result.iloc[0].items():
-                if column_is_null:
-                    columns_to_drop.append(column_name)
+            columns_to_drop = [
+                column_name
+                for column_name, column_is_null in columns_to_test_result.iloc[0].items()
+                if column_is_null
+            ]
 
             with self.task_progress_tracker.get_bar("Saving final geoparquet file") as bar:
                 dataset = pq.ParquetDataset(input_file)
@@ -2671,7 +2672,7 @@ class PbfFileReader:
 
 
 def _replace_geo_metadata_in_batch(batch: pa.RecordBatch) -> pa.RecordBatch:
-    metadata = batch.schema.metadata if batch.schema.metadata else {}
+    metadata = batch.schema.metadata or {}
     if b"geo" not in metadata and "geo" not in metadata:
         geo_meta = io._geoparquet_metadata_from_schema(
             batch.schema,
