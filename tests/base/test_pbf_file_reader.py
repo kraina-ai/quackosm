@@ -9,9 +9,11 @@ from typing import Any, Callable, Literal, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
+import geoarrow.pyarrow as ga
 import geopandas as gpd
 import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
@@ -39,7 +41,7 @@ from quackosm import (
     convert_pbf_to_parquet,
     functions,
 )
-from quackosm._constants import FEATURES_INDEX, WGS84_CRS
+from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
@@ -72,13 +74,24 @@ def test_pbf_to_geoparquet_parsing(
 ):
     """Test if pbf to geoparquet conversion works."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    PbfFileReader(tags_filter=tags_filter).convert_pbf_to_parquet(
+    result = PbfFileReader(tags_filter=tags_filter).convert_pbf_to_parquet(
         pbf_path=pbf_file,
         ignore_cache=True,
         explode_tags=explode_tags,
         keep_all_tags=keep_all_tags,
         save_as_wkt=save_as_wkt,
     )
+
+    if save_as_wkt:
+        tab = pq.read_table(result)
+        assert tab.column("geometry").type == ga.wkt()
+    else:
+        tab = pq.read_table(result)
+        assert b"geo" in tab.schema.metadata
+
+        decoded_geo_schema = json.loads(tab.schema.metadata[b"geo"].decode("utf-8"))
+        assert GEOMETRY_COLUMN == decoded_geo_schema["primary_column"]
+        assert GEOMETRY_COLUMN in decoded_geo_schema["columns"]
 
 
 def test_pbf_reader_url_path():  # type: ignore
@@ -238,10 +251,13 @@ def test_combining_files_different_techniques(
                 monaco_file_path,
             ],
             ignore_cache=True,
+            debug_memory=True,
+            debug_times=True,
+            verbosity_mode="verbose",
         )
-        single_result_gdf = PbfFileReader(
-            debug_memory=True, debug_times=True
-        ).convert_pbf_to_geodataframe(pbf_path=[monaco_file_path], ignore_cache=True)
+        single_result_gdf = convert_pbf_to_geodataframe(
+            pbf_path=[monaco_file_path], ignore_cache=True
+        )
 
         assert result_gdf.index.is_unique
         assert len(result_gdf.index) == len(single_result_gdf.index)
@@ -254,8 +270,18 @@ def test_combining_files_different_techniques(
             ),
             osm_extract_source="BBBike",
             ignore_cache=True,
+            debug_memory=True,
+            debug_times=True,
+            verbosity_mode="verbose",
         )
-        assert pd.read_parquet(result).set_index("feature_id").index.is_unique
+        assert gpd.read_parquet(result).set_index("feature_id").index.is_unique
+
+        tab = pq.read_table(result)
+        assert b"geo" in tab.schema.metadata
+
+        decoded_geo_schema = json.loads(tab.schema.metadata[b"geo"].decode("utf-8"))
+        assert GEOMETRY_COLUMN == decoded_geo_schema["primary_column"]
+        assert GEOMETRY_COLUMN in decoded_geo_schema["columns"]
     else:
         raise ValueError("Wrong operation_mode value.")
 
@@ -379,6 +405,16 @@ def test_invalid_geometries(geometry: BaseGeometry):
     """Test if invalid geometry filters raise errors."""
     with pytest.raises(InvalidGeometryFilter):
         PbfFileReader(geometry_filter=geometry)
+
+
+def test_empty_columns_dropping() -> None:
+    """Test if dropping empty columns work."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result = convert_pbf_to_geodataframe(
+        monaco_file_path, ignore_cache=True, tags_filter=GEOFABRIK_LAYERS, explode_tags=True
+    )
+    assert len(result.columns) == 28, result.columns
+    assert "unkown_roads" not in result.columns
 
 
 def test_geoparquet_deprecation_warning() -> None:

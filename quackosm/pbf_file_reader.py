@@ -17,7 +17,7 @@ from math import floor
 from multiprocessing import Pool
 from pathlib import Path
 from time import sleep
-from typing import Any, Literal, NamedTuple, Optional, Union, cast
+from typing import Any, Callable, Literal, NamedTuple, Optional, Union, cast
 
 import duckdb
 import geoarrow.pyarrow as ga
@@ -36,7 +36,11 @@ from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
-from quackosm._exceptions import EmptyResultWarning, InvalidGeometryFilter
+from quackosm._exceptions import (
+    EmptyResultWarning,
+    InvalidGeometryFilter,
+    MultiprocessingRuntimeError,
+)
 from quackosm._intersection import intersect_nodes_with_geometry
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
@@ -378,23 +382,36 @@ class PbfFileReader:
                 ) as tmp_dir_name:
                     if self.debug_memory:
                         tmp_dir_name = self._prepare_debug_directory()  # type: ignore[assignment] # noqa: PLW2901
+                    tmp_dir_path = Path(tmp_dir_name)
 
                     try:
-                        joined_parquet_table = self._drop_duplicated_features_in_pyarrow_table(
-                            parsed_geoparquet_files
-                        )
-                    except pa.ArrowInvalid:
-                        tmp_dir_path = Path(tmp_dir_name)
-                        try:
-                            joined_parquet_table = self._drop_duplicated_features_in_joined_table(
-                                parsed_geoparquet_files, tmp_dir_path
+                        parquet_files_without_duplicates = (
+                            self._drop_duplicated_features_in_pyarrow_table(
+                                parsed_geoparquet_files=parsed_geoparquet_files,
+                                tmp_dir_path=tmp_dir_path,
                             )
-                        except MemoryError:
-                            joined_parquet_table = (
-                                self._drop_duplicated_features_in_joined_table_one_by_one(
-                                    parsed_geoparquet_files, tmp_dir_path
+                        )
+                    except (pa.ArrowInvalid, MemoryError, MultiprocessingRuntimeError):
+                        try:
+                            parquet_files_without_duplicates = (
+                                self._drop_duplicated_features_in_joined_table(
+                                    parsed_geoparquet_files=parsed_geoparquet_files,
+                                    tmp_dir_path=tmp_dir_path,
                                 )
                             )
+                        except MemoryError:
+                            parquet_files_without_duplicates = (
+                                self._drop_duplicated_features_in_joined_table_one_by_one(
+                                    parsed_geoparquet_files=parsed_geoparquet_files,
+                                    tmp_dir_path=tmp_dir_path,
+                                )
+                            )
+
+                    self._combine_parquet_files(
+                        parquet_files_without_duplicates,
+                        result_file_path=result_file_path,
+                        save_as_wkt=save_as_wkt,
+                    )
             else:
                 warnings.warn(
                     "Found 0 extracts covering the geometry. Returning empty result.",
@@ -409,15 +426,14 @@ class PbfFileReader:
                     [pa.array([], type=pa.string()), geometry_column],
                     names=[FEATURES_INDEX, GEOMETRY_COLUMN],
                 )
-
-            if save_as_wkt:
-                pq.write_table(joined_parquet_table, result_file_path)
-            else:
-                io.write_geoparquet_table(
-                    joined_parquet_table,
-                    result_file_path,
-                    primary_geometry_column=GEOMETRY_COLUMN,
-                )
+                if save_as_wkt:
+                    pq.write_table(joined_parquet_table, result_file_path)
+                else:
+                    io.write_geoparquet_table(
+                        joined_parquet_table,
+                        result_file_path,
+                        primary_geometry_column=GEOMETRY_COLUMN,
+                    )
 
             self.task_progress_tracker.stop()
 
@@ -681,35 +697,30 @@ class PbfFileReader:
         return gdf_parquet
 
     def _drop_duplicated_features_in_pyarrow_table(
-        self, parsed_geoparquet_files: list[Path]
-    ) -> pa.Table:
-        if len(parsed_geoparquet_files) == 1:
-            return pq.read_table(parsed_geoparquet_files[0])
+        self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
+    ) -> list[Path]:
+        if len(parsed_geoparquet_files) == 1:  # pragma: no cover
+            return parsed_geoparquet_files
 
-        with self.task_progress_tracker.get_basic_spinner("Combining results"):
-            parquet_tables = [
-                pq.read_table(parsed_parquet_file)
-                for parsed_parquet_file in parsed_geoparquet_files
-            ]
-            joined_parquet_table: pa.Table = pa.concat_tables(
-                parquet_tables, promote_options="default"
+        with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
+            output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
+
+            _run_in_multiprocessing_pool(
+                _drop_duplicates_in_pyarrow_table, (parsed_geoparquet_files, output_file_name)
             )
-            if joined_parquet_table.num_rows > 0:
-                joined_parquet_table = drop_duplicates(
-                    joined_parquet_table, on=["feature_id"], keep="first"
-                )
-            return joined_parquet_table
+
+            return [output_file_name]
 
     def _drop_duplicated_features_in_joined_table(
         self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
-    ) -> pa.Table:
-        if len(parsed_geoparquet_files) == 1:
-            return pq.read_table(parsed_geoparquet_files[0])
+    ) -> list[Path]:
+        if len(parsed_geoparquet_files) == 1:  # pragma: no cover
+            return parsed_geoparquet_files
 
         connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
 
-        with self.task_progress_tracker.get_basic_spinner("Combining results"):
-            output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
+        with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
+            output_file_name = tmp_dir_path / "joined_features_without_duplicates"
             parquet_relation = connection.read_parquet(
                 [str(parsed_geoparquet_file) for parsed_geoparquet_file in parsed_geoparquet_files],
                 union_by_name=True,
@@ -728,13 +739,13 @@ class PbfFileReader:
             if self.debug_memory:
                 log_message(f"Saved to directory: {output_file_name}")
             self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
-            return pq.read_table(output_file_name)
+            return list(output_file_name.glob("*.parquet"))
 
     def _drop_duplicated_features_in_joined_table_one_by_one(
         self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
-    ) -> pa.Table:
-        if len(parsed_geoparquet_files) == 1:
-            return pq.read_table(parsed_geoparquet_files[0])
+    ) -> list[Path]:
+        if len(parsed_geoparquet_files) == 1:  # pragma: no cover
+            return parsed_geoparquet_files
 
         sorted_parsed_geoparquet_files = sorted(
             parsed_geoparquet_files, key=lambda pq_file: pq_file.stat().st_size, reverse=True
@@ -743,7 +754,7 @@ class PbfFileReader:
         connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
 
         result_parquet_files = [sorted_parsed_geoparquet_files[0]]
-        with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
+        with self.task_progress_tracker.get_basic_bar("Removing duplicates") as bar:
             for idx, parsed_geoparquet_file in bar.track(
                 enumerate(sorted_parsed_geoparquet_files[1:])
             ):
@@ -766,7 +777,7 @@ class PbfFileReader:
                     log_message(f"Saved to directory: {filtered_result_parquet_file}")
                 connection.sql(query)
                 result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
-        return pq.read_table(result_parquet_files)
+        return result_parquet_files
 
     def _parse_pbf_file(
         self,
@@ -1948,24 +1959,9 @@ class PbfFileReader:
             current_destination_path = destination_dir_path / f"group={group}" / "data.parquet"
             current_destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with Pool() as pool:
-                r = pool.apply_async(
-                    _group_ways_with_polars,
-                    args=(current_ways_group_path, current_destination_path),
-                )
-                actual_memory = psutil.virtual_memory()
-                percentage_threshold = 95
-                if (actual_memory.total * 0.05) > MEMORY_1GB:
-                    percentage_threshold = (
-                        100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
-                    )
-                while not r.ready():
-                    actual_memory = psutil.virtual_memory()
-                    if actual_memory.percent > percentage_threshold:
-                        raise MemoryError()
-
-                    sleep(0.5)
-                r.get()
+            _run_in_multiprocessing_pool(
+                _group_ways_with_polars, (current_ways_group_path, current_destination_path)
+            )
 
             if self.debug_memory:
                 log_message(f"Saved to file: {current_destination_path}")
@@ -2283,52 +2279,11 @@ class PbfFileReader:
             step_name="Saving all features",
         )
 
-        features_parquet_table = pq.read_table(features_parquet_path)
-
-        is_empty = features_parquet_table.num_rows == 0
-
-        if not is_empty and save_as_wkt:
-            geometry_column = ga.as_wkt(
-                ga.with_crs(features_parquet_table.column("geometry_wkb"), WGS84_CRS)
-            )
-        elif not is_empty:
-            geometry_column = ga.as_wkb(
-                ga.with_crs(features_parquet_table.column("geometry_wkb"), WGS84_CRS)
-            )
-        elif save_as_wkt:
-            geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
-        else:
-            geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
-
-        features_parquet_table = features_parquet_table.append_column(
-            GEOMETRY_COLUMN, geometry_column
-        ).drop("geometry_wkb")
-
-        is_empty = features_parquet_table.num_rows == 0
-
-        empty_columns = []
-        for column_name in features_parquet_table.column_names:
-            if column_name in (FEATURES_INDEX, GEOMETRY_COLUMN):
-                continue
-            if (
-                is_empty
-                or pa.compute.all(
-                    pa.compute.is_null(features_parquet_table.column(column_name))
-                ).as_py()
-            ):
-                empty_columns.append(column_name)
-
-        if empty_columns:
-            features_parquet_table = features_parquet_table.drop(empty_columns)
-
-        if save_as_wkt:
-            with self.task_progress_tracker.get_spinner("Saving final parquet file"):
-                pq.write_table(features_parquet_table, save_file_path)
-        else:
-            with self.task_progress_tracker.get_spinner("Saving final geoparquet file"):
-                io.write_geoparquet_table(
-                    features_parquet_table, save_file_path, primary_geometry_column=GEOMETRY_COLUMN
-                )
+        self._save_final_parquet_file(
+            input_file=features_parquet_path,
+            result_file_path=save_file_path,
+            save_as_wkt=save_as_wkt,
+        )
 
     def _generate_osm_tags_sql_select(
         self, parsed_geometries: "duckdb.DuckDBPyRelation", keep_all_tags: bool, explode_tags: bool
@@ -2579,6 +2534,155 @@ class PbfFileReader:
 
         return grouped_features_relation
 
+    def _save_final_parquet_file(
+        self, input_file: Path, result_file_path: Path, save_as_wkt: bool
+    ) -> None:
+        features_table = self.connection.read_parquet(str(input_file / "*.parquet"))
+        is_empty = features_table.count(FEATURES_INDEX).fetchone()[0] == 0
+
+        if is_empty:
+            with self.task_progress_tracker.get_spinner("Saving final geoparquet file"):
+                features_parquet_table = pq.read_table(input_file)
+
+                if save_as_wkt:
+                    geometry_column = ga.as_wkt(gpd.GeoSeries([], crs=WGS84_CRS))
+                else:
+                    geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
+
+                features_parquet_table = features_parquet_table.append_column(
+                    GEOMETRY_COLUMN, geometry_column
+                ).drop("geometry_wkb")
+
+                features_parquet_table = features_parquet_table.select(
+                    [FEATURES_INDEX, GEOMETRY_COLUMN]
+                )
+
+                if save_as_wkt:
+                    pq.write_table(features_parquet_table, result_file_path)
+                else:
+                    io.write_geoparquet_table(
+                        features_parquet_table,
+                        result_file_path,
+                        primary_geometry_column=GEOMETRY_COLUMN,
+                    )
+        else:
+            columns_to_test = [
+                f'COUNT_IF("{col}" IS NOT NULL) == 0 as "{col}"'
+                for col in features_table.columns
+                if col not in (FEATURES_INDEX, "geometry_wkb")
+            ]
+            columns_to_test_result = duckdb.sql(
+                f"SELECT {', '.join(columns_to_test)} FROM '{input_file}/*.parquet'"
+            ).to_df()
+
+            columns_to_drop = [
+                column_name
+                for column_name, column_is_null in columns_to_test_result.iloc[0].items()
+                if column_is_null
+            ]
+
+            with self.task_progress_tracker.get_bar("Saving final geoparquet file") as bar:
+                dataset = pq.ParquetDataset(input_file)
+
+                writer = None
+                for fragment in bar.track(dataset.fragments):
+                    if fragment.count_rows() == 0:
+                        continue
+
+                    for original_batch in fragment.to_batches():
+                        batch = original_batch
+                        batch = batch.drop_columns(columns_to_drop)
+
+                        if save_as_wkt:
+                            geometry_column = ga.as_wkt(
+                                ga.with_crs(batch.column("geometry_wkb"), WGS84_CRS)
+                            )
+                            batch = batch.drop_columns("geometry_wkb").append_column(
+                                GEOMETRY_COLUMN, geometry_column
+                            )
+                        else:
+                            geometry_column = ga.as_wkb(
+                                ga.with_crs(batch.column("geometry_wkb"), WGS84_CRS)
+                            )
+                            batch = batch.drop_columns("geometry_wkb").append_column(
+                                GEOMETRY_COLUMN, geometry_column
+                            )
+                            batch = _replace_geo_metadata_in_batch(batch)
+
+                        if not writer:
+                            writer = pq.ParquetWriter(result_file_path, schema=batch.schema)
+
+                        writer.write_batch(batch)
+
+                if writer:
+                    writer.close()
+
+    def _combine_parquet_files(
+        self, input_files: list[Path], result_file_path: Path, save_as_wkt: bool
+    ) -> None:
+        with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
+            dataset = pq.ParquetDataset(input_files)
+
+            main_schema = dataset.schema
+
+            writer = None
+            for fragment in bar.track(dataset.fragments):
+                if fragment.count_rows() == 0:
+                    continue
+
+                missing_columns = set(main_schema.names).difference(
+                    set(fragment.physical_schema.names)
+                )
+
+                for original_batch in fragment.to_batches():
+                    batch = original_batch
+                    for column_field in missing_columns:
+                        batch = batch.append_column(
+                            column_field,
+                            pa.nulls(
+                                size=batch.num_rows, type=main_schema.field(column_field).type
+                            ),
+                        )
+
+                    batch = batch.select([field.name for field in main_schema])
+
+                    if save_as_wkt:
+                        geometry_column = ga.as_wkt(
+                            ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
+                        )
+                        batch = batch.drop_columns(GEOMETRY_COLUMN).append_column(
+                            GEOMETRY_COLUMN, geometry_column
+                        )
+                    else:
+                        geometry_column = ga.as_wkb(
+                            ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
+                        )
+                        batch = batch.drop_columns(GEOMETRY_COLUMN).append_column(
+                            GEOMETRY_COLUMN, geometry_column
+                        )
+                        batch = _replace_geo_metadata_in_batch(batch)
+
+                    if not writer:
+                        writer = pq.ParquetWriter(result_file_path, schema=batch.schema)
+
+                    writer.write_batch(batch)
+
+            if writer:
+                writer.close()
+
+
+def _replace_geo_metadata_in_batch(batch: pa.RecordBatch) -> pa.RecordBatch:
+    metadata = batch.schema.metadata or {}
+    if b"geo" not in metadata and "geo" not in metadata:
+        geo_meta = io._geoparquet_metadata_from_schema(
+            batch.schema,
+            primary_geometry_column=GEOMETRY_COLUMN,
+            geometry_columns=[GEOMETRY_COLUMN],
+        )
+        metadata["geo"] = json.dumps(geo_meta)
+        batch = batch.replace_schema_metadata(metadata)
+    return batch
+
 
 def _set_up_duckdb_connection(
     tmp_dir_path: Path, is_main_connection: bool = True
@@ -2620,6 +2724,30 @@ def _run_query(sql_queries: Union[str, list[str]], tmp_dir_path: Path) -> None:
     conn.close()
 
 
+def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> None:
+    try:
+        with Pool() as pool:
+            r = pool.apply_async(
+                func=function,
+                args=args,
+            )
+            actual_memory = psutil.virtual_memory()
+            percentage_threshold = 95
+            if (actual_memory.total * 0.05) > MEMORY_1GB:
+                percentage_threshold = (
+                    100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+                )
+            while not r.ready():
+                actual_memory = psutil.virtual_memory()
+                if actual_memory.percent > percentage_threshold:
+                    raise MemoryError()
+
+                sleep(0.5)
+            r.get()
+    except Exception as ex:
+        raise MultiprocessingRuntimeError() from ex
+
+
 def _group_ways_with_polars(current_ways_group_path: Path, current_destination_path: Path) -> None:
     pl.scan_parquet(
         source=f"{current_ways_group_path}/*.parquet",
@@ -2631,6 +2759,20 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
     ).write_parquet(
         current_destination_path
     )
+
+
+def _drop_duplicates_in_pyarrow_table(
+    parsed_geoparquet_files: list[Path], output_file_name: Path
+) -> None:
+    parquet_tables = [
+        pq.read_table(parsed_parquet_file) for parsed_parquet_file in parsed_geoparquet_files
+    ]
+    joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
+    if joined_parquet_table.num_rows > 0:
+        joined_parquet_table = drop_duplicates(
+            joined_parquet_table, on=["feature_id"], keep="first"
+        )
+    pq.write_table(joined_parquet_table, output_file_name)
 
 
 def _is_url_path(path: Union[str, Path]) -> bool:
