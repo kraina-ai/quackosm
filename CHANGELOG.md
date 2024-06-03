@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test for parquet multiprocessing logic
 - Test for new intersection step
 - Option to pass URL directly as PBF path [#114](https://github.com/kraina-ai/quackosm/issues/114)
+- Dedicated `MultiprocessingRuntimeError` for multiprocessing errors
 
 ### Changed
 
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PbfFileReader`'s internal `geometry_filter` is additionally clipped by PBF extract geometry to speed up intersections [#116](https://github.com/kraina-ai/quackosm/issues/116)
 - `OsmTagsFilter` and `GroupedOsmTagsFilter` type from `dict` to `Mapping` to make it covariant
 - Tqdm's `disable` parameter for non-TTY environments from `None` to `False`
+- Refactored final GeoParquet file saving logic to greatly reduce memory usage
 
 ## [0.8.1] - 2024-05-11
 

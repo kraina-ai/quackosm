@@ -78,6 +78,8 @@ Required:
 
 - `geoarrow-pyarrow (>=0.1.2)`: For GeoParquet IO operations
 
+- `geoarrow-pandas (>=0.1.1)`: For GeoParquet integration with GeoPandas
+
 - `geopandas (>=0.6)`: For returning GeoDataFrames and reading Geo files
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries

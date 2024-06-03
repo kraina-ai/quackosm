@@ -9,7 +9,9 @@ from typing import Any
 import duckdb
 import pytest
 
+from quackosm._exceptions import MultiprocessingRuntimeError
 from quackosm._parquet_multiprocessing import map_parquet_dataset
+from quackosm.pbf_file_reader import _run_in_multiprocessing_pool
 
 
 def raise_error(pa: Any) -> Any:
@@ -17,8 +19,9 @@ def raise_error(pa: Any) -> Any:
     sleep(random())
     raise Exception("Quack!")
 
-def test_exception_wrapping() -> None:
-    """Test if multiprocessing exception raising works.."""
+
+def test_parquet_exception_wrapping() -> None:
+    """Test if parquet multiprocessing exception raising works."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
 
     with tempfile.TemporaryDirectory(dir=Path(__file__).parent.resolve()) as tmp_dir_name:
@@ -42,9 +45,15 @@ def test_exception_wrapping() -> None:
             """
         )
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(MultiprocessingRuntimeError):
             map_parquet_dataset(
                 dataset_path=nodes_destination,
                 destination_path=Path(tmp_dir_name) / "test",
                 function=raise_error,
             )
+
+
+def test_pool_exception_wrapping() -> None:
+    """Test if multiprocessing pool exception raising works."""
+    with pytest.raises(MultiprocessingRuntimeError):
+        _run_in_multiprocessing_pool(raise_error, (None,))

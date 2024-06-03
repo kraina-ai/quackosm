@@ -8,6 +8,7 @@ from typing import Any, Callable, Optional
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from quackosm._exceptions import MultiprocessingRuntimeError
 from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined]
 
 # Using `spawn` method to enable integration with Polars and probably other Rust-based libraries
@@ -51,7 +52,7 @@ def _job(
                 f"Error in worker (PID: {current_pid},"
                 f" Parquet: {file_name}, Row group: {row_group_index})"
             )
-            raise RuntimeError(msg) from ex
+            raise MultiprocessingRuntimeError(msg) from ex
 
     if writer:
         writer.close()
