@@ -411,13 +411,10 @@ def test_empty_columns_dropping() -> None:
     """Test if dropping empty columns work."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     result = convert_pbf_to_geodataframe(
-        monaco_file_path,
-        ignore_cache=True,
-        tags_filter=GEOFABRIK_LAYERS,
-        explode_tags=True,
-        debug_memory=True,
+        monaco_file_path, ignore_cache=True, tags_filter=GEOFABRIK_LAYERS, explode_tags=True
     )
     assert len(result.columns) == 28, result.columns
+    assert "unkown_roads" not in result.columns
 
 
 def test_geoparquet_deprecation_warning() -> None:
