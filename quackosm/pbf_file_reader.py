@@ -7,6 +7,7 @@ This module contains a reader capable of parsing a PBF file into a GeoDataFrame.
 import hashlib
 import itertools
 import json
+import multiprocessing
 import secrets
 import shutil
 import tempfile
@@ -14,7 +15,6 @@ import time
 import warnings
 from collections.abc import Iterable
 from math import floor
-from multiprocessing import Pool
 from pathlib import Path
 from time import sleep
 from typing import Any, Callable, Literal, NamedTuple, Optional, Union, cast
@@ -186,15 +186,8 @@ class PbfFileReader:
         self.debug_memory = debug_memory
         self.debug_times = debug_times
         self.task_progress_tracker: TaskProgressTracker = None
+        self.rows_per_group: int = 0
 
-        self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
-        actual_memory = psutil.virtual_memory()
-        # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
-        for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
-            if actual_memory.total >= (memory_gb * MEMORY_1GB):
-                self.rows_per_group = rows_per_group
-            else:
-                break
 
         self.parquet_compression = parquet_compression
 
@@ -813,6 +806,16 @@ class PbfFileReader:
                 stacklevel=0,
             )
             return result_file_path.with_suffix(".geoparquet")
+
+        self.encountered_query_exception = False
+        self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
+        actual_memory = psutil.virtual_memory()
+        # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
+        for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
+            if actual_memory.total >= (memory_gb * MEMORY_1GB):
+                self.rows_per_group = rows_per_group
+            else:
+                break
 
         elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
 
@@ -1598,7 +1601,7 @@ class PbfFileReader:
             sql_queries = [sql_queries]
 
         if run_in_separate_process:
-            with Pool() as pool:
+            with multiprocessing.get_context("spawn").Pool() as pool:
                 r = pool.apply_async(
                     _run_query, args=(sql_queries, tmp_dir_path or self.tmp_dir_path)
                 )
@@ -2571,7 +2574,7 @@ class PbfFileReader:
                 for col in features_table.columns
                 if col not in (FEATURES_INDEX, "geometry_wkb")
             ]
-            columns_to_test_result = duckdb.sql(
+            columns_to_test_result = self.connection.sql(
                 f"SELECT {', '.join(columns_to_test)} FROM '{input_file}/*.parquet'"
             ).to_df()
 
@@ -2726,7 +2729,7 @@ def _run_query(sql_queries: Union[str, list[str]], tmp_dir_path: Path) -> None:
 
 def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> None:
     try:
-        with Pool() as pool:
+        with multiprocessing.get_context("spawn").Pool() as pool:
             r = pool.apply_async(
                 func=function,
                 args=args,

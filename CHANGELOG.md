@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tqdm's `disable` parameter for non-TTY environments from `None` to `False`
 - Refactored final GeoParquet file saving logic to greatly reduce memory usage
 - Bumped minimal `pyarrow` version to 16.0
+- Default `multiprocessing.Pool` initialization mode from `fork` to `spawn`
 
 ## [0.8.1] - 2024-05-11
 
