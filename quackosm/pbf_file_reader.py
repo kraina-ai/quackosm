@@ -186,15 +186,8 @@ class PbfFileReader:
         self.debug_memory = debug_memory
         self.debug_times = debug_times
         self.task_progress_tracker: TaskProgressTracker = None
+        self.rows_per_group: int = 0
 
-        self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
-        actual_memory = psutil.virtual_memory()
-        # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
-        for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
-            if actual_memory.total >= (memory_gb * MEMORY_1GB):
-                self.rows_per_group = rows_per_group
-            else:
-                break
 
         self.parquet_compression = parquet_compression
 
@@ -813,6 +806,15 @@ class PbfFileReader:
                 stacklevel=0,
             )
             return result_file_path.with_suffix(".geoparquet")
+
+        self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
+        actual_memory = psutil.virtual_memory()
+        # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
+        for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
+            if actual_memory.total >= (memory_gb * MEMORY_1GB):
+                self.rows_per_group = rows_per_group
+            else:
+                break
 
         elements = self.connection.sql(f"SELECT * FROM ST_READOSM('{Path(pbf_path)}');")
 
