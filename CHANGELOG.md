@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2024-06-04
+
 ### Added
 
 - `geoarrow-rust-core` library to the main dependencies
@@ -302,7 +304,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.2...HEAD
+
+[0.8.2]: https://github.com/kraina-ai/quackosm/compare/0.8.1...0.8.2
 
 [0.8.1]: https://github.com/kraina-ai/quackosm/compare/0.8.0...0.8.1
 
