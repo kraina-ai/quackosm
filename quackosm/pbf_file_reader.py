@@ -807,6 +807,7 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
+        self.encountered_query_exception = False
         self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
         actual_memory = psutil.virtual_memory()
         # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
