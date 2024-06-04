@@ -72,7 +72,7 @@ Required:
 
 - `duckdb (>=0.10.2)`: For all DuckDB operations on PBF files
 
-- `pyarrow (>=14.0.0)`: For parquet files wrangling
+- `pyarrow (>=16.0.0)`: For parquet files wrangling
 
 - `pyarrow-ops`: For easy removal of duplicated features in parquet files
 
