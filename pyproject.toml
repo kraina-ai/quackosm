@@ -6,7 +6,7 @@ authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
     "geopandas>=0.6",
     "shapely>=2",
-    "pyarrow>=14.0.0",
+    "pyarrow>=16.0.0",
     "duckdb>=0.10.2",
     "geoarrow-pyarrow>=0.1.2",
     "geoarrow-pandas>=0.1.1",
