@@ -2571,7 +2571,7 @@ class PbfFileReader:
                 for col in features_table.columns
                 if col not in (FEATURES_INDEX, "geometry_wkb")
             ]
-            columns_to_test_result = duckdb.sql(
+            columns_to_test_result = self.connection.sql(
                 f"SELECT {', '.join(columns_to_test)} FROM '{input_file}/*.parquet'"
             ).to_df()
 
