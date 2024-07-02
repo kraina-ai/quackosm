@@ -2434,7 +2434,7 @@ class PbfFileReader:
         ):
             return features_relation
 
-        grouped_features_relation: "duckdb.DuckDBPyRelation"
+        grouped_features_relation: duckdb.DuckDBPyRelation
         grouped_tags_filter = cast(GroupedOsmTagsFilter, self.expanded_tags_filter)
 
         if explode_tags:
