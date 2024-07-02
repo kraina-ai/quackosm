@@ -105,13 +105,13 @@ Optional:
 
 - `typer[all] (>=0.9.0)` (click, colorama, rich, shellingham): Required in CLI
 
-- `osmnx (>=1.3.0)`: For geocoding of strings. Required in CLI 
+- `osmnx (>=1.3.0)`: For geocoding of strings. Required in CLI
 
-- `h3 (>=4.0.0b1)`: For reading H3 strings. Required in CLI 
+- `h3 (>=4.0.0b1)`: For reading H3 strings. Required in CLI
 
-- `s2 (>=0.1.9)`: For transforming S2 indexes into geometries. Required in CLI 
+- `s2 (>=0.1.9)`: For transforming S2 indexes into geometries. Required in CLI
 
-- `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries. Required in CLI 
+- `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries. Required in CLI
 
 ## Usage
 
