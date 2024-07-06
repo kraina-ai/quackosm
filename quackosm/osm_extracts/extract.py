@@ -4,7 +4,7 @@ import warnings
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, TypeVar, cast
+from typing import Callable, cast
 
 import geopandas as gpd
 import pandas as pd
@@ -42,9 +42,6 @@ class OsmExtractSource(str, Enum):
             if member.lower() == value:
                 return member
         return None
-
-
-F = TypeVar("F", bound=Callable[[], gpd.GeoDataFrame])
 
 
 def load_index_decorator(
