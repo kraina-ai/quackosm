@@ -7,7 +7,6 @@ This module contains wrapper for publically available OpenStreetMap.fr download 
 import os
 import re
 from dataclasses import asdict
-from pathlib import Path
 from typing import Any, Optional
 
 import geopandas as gpd
@@ -16,7 +15,11 @@ from tqdm import tqdm
 
 from quackosm._constants import WGS84_CRS
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
-from quackosm.osm_extracts.extract import OpenStreetMapExtract
+from quackosm.osm_extracts.extract import (
+    OpenStreetMapExtract,
+    OsmExtractSource,
+    load_index_decorator,
+)
 
 OPENSTREETMAP_FR_POLYGONS_INDEX_URL = "https://download.openstreetmap.fr/polygons"
 OPENSTREETMAP_FR_EXTRACTS_INDEX_URL = "https://download.openstreetmap.fr/extracts"
@@ -34,47 +37,43 @@ def _get_openstreetmap_fr_index() -> gpd.GeoDataFrame:
     return OPENSTREETMAP_FR_INDEX_GDF
 
 
-def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:
+@load_index_decorator(OsmExtractSource.osm_fr)
+def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:  # pragma: no cover
     """
     Load available extracts from OpenStreetMap.fr download service.
 
     Returns:
         gpd.GeoDataFrame: Extracts index with metadata.
     """
-    save_path = Path("cache/osm_fr_index.geojson")
-
-    if save_path.exists():
-        gdf = gpd.read_file(save_path)
-    else:  # pragma: no cover
-        force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
-        extracts = []
-        with tqdm(disable=True if force_terminal else False) as pbar:
-            extract_soup_objects = _gather_all_openstreetmap_fr_urls("osm_fr", "/", pbar)
-            pbar.set_description("osm_fr")
-            for soup_object, id_prefix, directory_url in extract_soup_objects:
-                link = soup_object.find_parent("tr").find("a")
-                name = link.text.replace("-latest.osm.pbf", "")
-                polygon = parse_polygon_file(
-                    f"{OPENSTREETMAP_FR_POLYGONS_INDEX_URL}/{directory_url}{name}.poly"
+    force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+    extracts = []
+    with tqdm(disable=True if force_terminal else False) as pbar:
+        extract_soup_objects = _gather_all_openstreetmap_fr_urls(
+            OsmExtractSource.osm_fr.value, "/", pbar
+        )
+        pbar.set_description(OsmExtractSource.osm_fr.value)
+        for soup_object, id_prefix, directory_url in extract_soup_objects:
+            link = soup_object.find_parent("tr").find("a")
+            name = link.text.replace("-latest.osm.pbf", "")
+            polygon = parse_polygon_file(
+                f"{OPENSTREETMAP_FR_POLYGONS_INDEX_URL}/{directory_url}{name}.poly"
+            )
+            if polygon is None:
+                continue
+            extracts.append(
+                OpenStreetMapExtract(
+                    id=f"{id_prefix}_{name}",
+                    name=name,
+                    parent=id_prefix,
+                    url=f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}{link['href']}",
+                    geometry=polygon,
                 )
-                if polygon is None:
-                    continue
-                extracts.append(
-                    OpenStreetMapExtract(
-                        id=f"{id_prefix}_{name}",
-                        url=f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}{link['href']}",
-                        geometry=polygon,
-                    )
-                )
-                pbar.update()
-        gdf = gpd.GeoDataFrame(
-            data=[asdict(extract) for extract in extracts], geometry="geometry"
-        ).set_crs(WGS84_CRS)
-        gdf["area"] = gdf.geometry.area
-        gdf.sort_values(by="area", ignore_index=True, inplace=True)
-
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        gdf.to_file(save_path, driver="GeoJSON")
+            )
+            pbar.set_description_str(id_prefix)
+            pbar.update()
+    gdf = gpd.GeoDataFrame(
+        data=[asdict(extract) for extract in extracts], geometry="geometry"
+    ).set_crs(WGS84_CRS)
 
     return gdf
 

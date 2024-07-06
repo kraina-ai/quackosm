@@ -8,7 +8,6 @@ repositories.
 import os
 import warnings
 from collections.abc import Iterable
-from enum import Enum
 from functools import partial
 from math import ceil
 from multiprocessing import cpu_count
@@ -22,7 +21,7 @@ from tqdm.contrib.concurrent import process_map
 
 from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
-from quackosm.osm_extracts.extract import OpenStreetMapExtract
+from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
 
@@ -34,23 +33,6 @@ __all__ = [
     "find_smallest_containing_bbbike_extracts",
     "OsmExtractSource",
 ]
-
-
-class OsmExtractSource(str, Enum):
-    """Enum of available OSM extract sources."""
-
-    any = "any"
-    geofabrik = "Geofabrik"
-    osm_fr = "osmfr"
-    bbbike = "BBBike"
-
-    @classmethod
-    def _missing_(cls, value):  # type: ignore
-        value = value.lower()
-        for member in cls:
-            if member.lower() == value:
-                return member
-        return None
 
 
 def download_extracts_pbf_files(
@@ -70,7 +52,7 @@ def download_extracts_pbf_files(
     for extract in extracts:
         file_path = retrieve(
             extract.url,
-            fname=f"{extract.id}.osm.pbf",
+            fname=f"{extract.file_name}.osm.pbf",
             path=download_directory,
             progressbar=True,
             known_hash=None,
@@ -427,13 +409,16 @@ def _filter_extracts(
         filtered_extracts_ids, sorted_extracts_gdf
     )
 
-    for _, extract_row in sorted_extracts_gdf.loc[
+    for extract_row in sorted_extracts_gdf.loc[
         sorted_extracts_gdf["id"].isin(simplified_extracts_ids)
-    ].iterrows():
+    ].to_dict(orient="records"):
         extract = OpenStreetMapExtract(
-            id=extract_row.id,
+            id=extract_row["id"],
+            name=extract_row["name"],
+            parent=extract_row["parent"],
             url=extract_row["url"],
-            geometry=extract_row.geometry,
+            geometry=extract_row["geometry"],
+            file_name=extract_row["file_name"],
         )
         filtered_extracts.append(extract)
 

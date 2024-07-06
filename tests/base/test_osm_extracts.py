@@ -2,17 +2,24 @@
 
 from unittest import TestCase
 
+import pandas as pd
 import pytest
 from parametrization import Parametrization as P
 from shapely import from_wkt
 from shapely.geometry.base import BaseGeometry
 
-from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
+from quackosm._exceptions import (
+    GeometryNotCoveredError,
+    GeometryNotCoveredWarning,
+    OsmExtractIndexOutdatedWarning,
+)
 from quackosm.osm_extracts import (
     OsmExtractSource,
     find_smallest_containing_extract,
     find_smallest_containing_extracts_total,
 )
+from quackosm.osm_extracts.extract import _get_cache_file_path, _get_full_file_name_function
+from quackosm.osm_extracts.geofabrik import _load_geofabrik_index
 
 ut = TestCase()
 
@@ -160,3 +167,36 @@ def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool)
         find_smallest_containing_extracts_total(
             geometry=geometry, allow_uncovered_geometry=allow_uncovered_geometry
         )
+
+
+def test_proper_cache_saving() -> None:
+    """Test if file is saved in cache properly."""
+    save_path = _get_cache_file_path(OsmExtractSource.geofabrik)
+    loaded_index = _load_geofabrik_index()
+    assert save_path.exists()
+    assert len(loaded_index.columns) == 6
+
+
+def test_wrong_cached_index() -> None:
+    """Test if cached file with missing columns is redownloaded again."""
+    save_path = _get_cache_file_path(OsmExtractSource.geofabrik)
+    column_to_remove = "id"
+
+    # load index first time
+    first_index = _load_geofabrik_index()
+
+    # remove the column and replace the file
+    first_index.drop(columns=[column_to_remove]).to_file(save_path, driver="GeoJSON")
+
+    with pytest.warns(OsmExtractIndexOutdatedWarning):
+        # load index again
+        second_index = _load_geofabrik_index()
+
+    assert column_to_remove in second_index.columns
+
+
+def test_proper_full_name() -> None:
+    """Test if full names for extracts are properly generated."""
+    test_index = pd.DataFrame({"id": ["1", "2"], "name": ["one", "two"], "parent": ["x", "1"]})
+    prepared_function = _get_full_file_name_function(test_index)
+    assert prepared_function("2") == "x_one_two"
