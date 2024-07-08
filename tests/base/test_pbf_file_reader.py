@@ -424,7 +424,7 @@ def test_geoparquet_deprecation_warning() -> None:
         monaco_file_path,
         ignore_cache=True,
     )
-    result_path.rename(result_path.with_suffix(".geoparquet"))
+    result_path.replace(result_path.with_suffix(".geoparquet"))
     with pytest.warns(DeprecationWarning):
         convert_pbf_to_parquet(monaco_file_path, ignore_cache=False)
 

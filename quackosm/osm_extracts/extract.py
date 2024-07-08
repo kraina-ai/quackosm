@@ -84,7 +84,7 @@ def load_index_decorator(
                     stacklevel=0,
                 )
                 # Invalidate previous cached index
-                cache_file_path.rename(cache_file_path.with_suffix(".geojson.old"))
+                cache_file_path.replace(cache_file_path.with_suffix(".geojson.old"))
                 # Download index again
                 index_gdf = wrapper()
 
