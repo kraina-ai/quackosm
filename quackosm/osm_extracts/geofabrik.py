@@ -9,6 +9,7 @@ import operator
 from typing import Optional
 
 import geopandas as gpd
+import pandas as pd
 import requests
 
 from quackosm.osm_extracts.extract import OsmExtractSource, load_index_decorator
@@ -42,11 +43,17 @@ def _load_geofabrik_index() -> gpd.GeoDataFrame:  # pragma: no cover
     )
     parsed_data = json.loads(result.text)
     gdf = gpd.GeoDataFrame.from_features(parsed_data["features"])
+
+    geofabrik_enum_value = OsmExtractSource.geofabrik.value
+
     gdf["url"] = gdf["urls"].apply(operator.itemgetter("pbf"))
     gdf["name"] = gdf["id"].str.replace("/", "_")
-    gdf["parent"] = gdf["parent"].fillna(OsmExtractSource.geofabrik.value)
+    gdf["id"] = f"{geofabrik_enum_value}_" + gdf["id"].astype(str)
+    gdf["parent"] = gdf["parent"].apply(
+        lambda x: (f"{geofabrik_enum_value}_{x}" if not pd.isna(x) else geofabrik_enum_value)
+    )
 
     # fix US extracts parent tree
-    gdf.loc[gdf["id"].str.startswith("us/"), "parent"] = "us"
+    gdf.loc[gdf["id"].str.startswith("us/"), "parent"] = f"{geofabrik_enum_value}_us"
 
     return gdf

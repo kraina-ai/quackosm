@@ -75,13 +75,14 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
     ]
 
     force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+
+    bbbike_enum_value = OsmExtractSource.bbbike.value
+
     with tqdm(
-        disable=True if force_terminal else False,
-        desc=OsmExtractSource.bbbike.value,
-        total=len(extract_names),
+        disable=True if force_terminal else False, desc=bbbike_enum_value, total=len(extract_names)
     ) as pbar:
         for extract_name in extract_names:
-            pbar.set_description(f"{OsmExtractSource.bbbike.value}_{extract_name}")
+            pbar.set_description(f"{bbbike_enum_value}_{extract_name}")
             poly_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.poly"
             polygon = parse_polygon_file(poly_url)
             if polygon is None:
@@ -89,9 +90,9 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
             pbf_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.osm.pbf"
             extracts.append(
                 OpenStreetMapExtract(
-                    id=extract_name,
+                    id=f"{bbbike_enum_value}_{extract_name}",
                     name=extract_name,
-                    parent=OsmExtractSource.bbbike.value,
+                    parent=bbbike_enum_value,
                     url=pbf_url,
                     geometry=polygon,
                 )

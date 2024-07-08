@@ -75,7 +75,7 @@ def test_wrong_osm_extract_source():  # type: ignore
         " 12.455878610023916 41.901790362263796, 12.455878610023916 41.904910802544634,"
         " 12.450637854252449 41.904910802544634))"
     ),
-    "centro",
+    "Geofabrik_centro",
 )  # type: ignore
 @P.case(
     "London - any",
@@ -85,7 +85,7 @@ def test_wrong_osm_extract_source():  # type: ignore
         " -0.1293785532031677 51.48926140694954, -0.1293785532031677 51.49843445562462,"
         " -0.1514787822171684 51.49843445562462))"
     ),
-    "greater-london",
+    "Geofabrik_greater-london",
 )  # type: ignore
 @P.case(
     "London - BBBike",
@@ -95,7 +95,7 @@ def test_wrong_osm_extract_source():  # type: ignore
         " -0.1293785532031677 51.48926140694954, -0.1293785532031677 51.49843445562462,"
         " -0.1514787822171684 51.49843445562462))"
     ),
-    "London",
+    "BBBike_London",
 )  # type: ignore
 @P.case(
     "Vancouver - any",
@@ -105,7 +105,7 @@ def test_wrong_osm_extract_source():  # type: ignore
         " -123.07449492760279 49.23700029433431, -123.07449492760279 49.29493379142323,"
         " -123.15817514738828 49.29493379142323))"
     ),
-    "Vancouver",
+    "BBBike_Vancouver",
 )  # type: ignore
 @P.case(
     "Vancouver - OSM.fr",
@@ -121,7 +121,7 @@ def test_single_smallest_extract(source: str, geometry: BaseGeometry, expected_e
     """Test if extracts matching works correctly for geometries within borders."""
     extracts = find_smallest_containing_extract(geometry, source)
     assert len(extracts) == 1
-    assert extracts[0].id == expected_extract_id
+    assert extracts[0].id == expected_extract_id, f"{extracts[0].id} vs {expected_extract_id}"
 
 
 @P.parameters("source", "geometry", "expected_extract_file_names")  # type: ignore
