@@ -41,7 +41,7 @@ def add_pbf_files(doctest_namespace):  # type: ignore
     for extract_name in EXTRACTS_NAMES:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
         pbf_file_path = download_directory / f"{extract_name}.osm.pbf"
-        geofabrik_download_path = geofabrik_index[geofabrik_index["id"] == extract_name].iloc[0][
+        geofabrik_download_path = geofabrik_index[geofabrik_index["name"] == extract_name].iloc[0][
             "file_name"
         ]
         geofabrik_pbf_file_path = download_directory / f"{geofabrik_download_path}.osm.pbf"
