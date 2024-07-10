@@ -54,6 +54,8 @@ def _load_geofabrik_index() -> gpd.GeoDataFrame:  # pragma: no cover
     )
 
     # fix US extracts parent tree
-    gdf.loc[gdf["id"].str.startswith("us/"), "parent"] = f"{geofabrik_enum_value}_us"
+    gdf.loc[gdf["id"].str.startswith(f"{geofabrik_enum_value}_us/"), "parent"] = (
+        f"{geofabrik_enum_value}_us"
+    )
 
     return gdf
