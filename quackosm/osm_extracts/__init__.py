@@ -5,6 +5,7 @@ This module contains iterators for publically available OpenStreetMap `*.osm.pbf
 repositories.
 """
 
+import difflib
 import os
 import warnings
 from collections.abc import Iterable
@@ -12,18 +13,26 @@ from functools import partial
 from math import ceil
 from multiprocessing import cpu_count
 from pathlib import Path
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
 from pooch import retrieve
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
 
-from quackosm._exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
+from quackosm._exceptions import (
+    GeometryNotCoveredError,
+    GeometryNotCoveredWarning,
+    OsmExtractMultipleMatchesError,
+    OsmExtractZeroMatchesError,
+)
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 __all__ = [
     "download_extracts_pbf_files",
@@ -31,6 +40,7 @@ __all__ = [
     "find_smallest_containing_geofabrik_extracts",
     "find_smallest_containing_openstreetmap_fr_extracts",
     "find_smallest_containing_bbbike_extracts",
+    "get_extract_by_name",
     "OsmExtractSource",
 ]
 
@@ -61,6 +71,106 @@ def download_extracts_pbf_files(
     return downloaded_extracts_paths
 
 
+@overload
+def get_extract_by_name(query: str) -> OpenStreetMapExtract: ...
+
+
+@overload
+def get_extract_by_name(
+    query: str, source: Union[OsmExtractSource, str]
+) -> OpenStreetMapExtract: ...
+
+
+def get_extract_by_name(
+    query: str, source: Union[OsmExtractSource, str] = "any"
+) -> OpenStreetMapExtract:
+    """
+    Find an OSM extract by name.
+
+    Args:
+        query (str): Query to search for a particular extract.
+        source (Union[OsmExtractSource, str]): OSM source name. Can be one of: 'any', 'Geofabrik',
+            'BBBike', 'OSM_fr'. Defaults to 'any'.
+
+    Returns:
+        OpenStreetMapExtract: Found extract.
+    """
+    try:
+        source_enum = OsmExtractSource(source)
+        index = OSM_EXTRACT_SOURCE_INDEX_FUNCTION.get(source_enum, _get_combined_index)()
+
+        matching_index_row: pd.Series = None
+
+        file_name_matched_rows = index["file_name"].str.lower() == query.lower().strip()
+        extract_name_matched_rows = index["name"].str.lower() == query.lower().strip()
+
+        # full file name matched
+        if sum(file_name_matched_rows) == 1:
+            matching_index_row = index[file_name_matched_rows].iloc[0]
+        # single name matched
+        elif sum(extract_name_matched_rows) == 1:
+            matching_index_row = index[extract_name_matched_rows].iloc[0]
+        # multiple names matched
+        elif extract_name_matched_rows.any():
+            matching_rows = index[extract_name_matched_rows]
+            matching_full_names = sorted(matching_rows["file_name"])
+            file_names = ", ".join(matching_full_names)
+            raise OsmExtractMultipleMatchesError(
+                f"Multiple extracts matched by query '{query.strip()}'. "
+                f"Please use one of the full names to specify the extract: {file_names}.",
+                matching_full_names=matching_full_names,
+            )
+        # zero names matched
+        elif not extract_name_matched_rows.any():
+            suggested_query_names = difflib.get_close_matches(
+                query.lower(), index["name"].str.lower().unique(), n=5, cutoff=0.7
+            )
+
+            if suggested_query_names:
+                suggested_names = ", ".join(suggested_query_names)
+                exception_message = (
+                    f"Zero extracts matched by query '{query}'. "
+                    f"Found names close to query: {suggested_names}."
+                )
+            else:
+                exception_message = (
+                    f"Zero extracts matched by query '{query}'. "
+                    "Zero close matches close have been found."
+                )
+
+            raise OsmExtractZeroMatchesError(
+                exception_message,
+                suggested_names=suggested_query_names,
+            )
+
+        return OpenStreetMapExtract(
+            id=matching_index_row["id"],
+            name=matching_index_row["name"],
+            parent=matching_index_row["parent"],
+            url=matching_index_row["url"],
+            geometry=matching_index_row["geometry"],
+            file_name=matching_index_row["file_name"],
+        )
+
+    except ValueError as ex:
+        raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
+
+
+OSM_EXTRACT_SOURCE_INDEX_FUNCTION = {
+    OsmExtractSource.bbbike: _get_bbbike_index,
+    OsmExtractSource.geofabrik: _get_geofabrik_index,
+    OsmExtractSource.osm_fr: _get_openstreetmap_fr_index,
+}
+
+
+def _get_combined_index() -> gpd.GeoDataFrame:
+    combined_index = gpd.pd.concat(
+        [get_index_function() for get_index_function in OSM_EXTRACT_SOURCE_INDEX_FUNCTION.values()]
+    )
+    combined_index.sort_values(by="area", ignore_index=True, inplace=True)
+    return combined_index
+
+
 def find_smallest_containing_extracts_total(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
     allow_uncovered_geometry: bool = False,
@@ -78,12 +188,10 @@ def find_smallest_containing_extracts_total(
     Returns:
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
-    indexes = gpd.pd.concat(
-        [_get_bbbike_index(), _get_geofabrik_index(), _get_openstreetmap_fr_index()]
-    )
-    indexes.sort_values(by="area", ignore_index=True, inplace=True)
     return _find_smallest_containing_extracts(
-        geometry, indexes, allow_uncovered_geometry=allow_uncovered_geometry
+        geometry=geometry,
+        polygons_index_gdf=_get_combined_index(),
+        allow_uncovered_geometry=allow_uncovered_geometry,
     )
 
 
@@ -105,7 +213,9 @@ def find_smallest_containing_geofabrik_extracts(
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
     return _find_smallest_containing_extracts(
-        geometry, _get_geofabrik_index(), allow_uncovered_geometry=allow_uncovered_geometry
+        geometry=geometry,
+        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.geofabrik],
+        allow_uncovered_geometry=allow_uncovered_geometry,
     )
 
 
@@ -127,7 +237,9 @@ def find_smallest_containing_openstreetmap_fr_extracts(
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
     return _find_smallest_containing_extracts(
-        geometry, _get_openstreetmap_fr_index(), allow_uncovered_geometry=allow_uncovered_geometry
+        geometry=geometry,
+        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.osm_fr],
+        allow_uncovered_geometry=allow_uncovered_geometry,
     )
 
 
@@ -149,16 +261,10 @@ def find_smallest_containing_bbbike_extracts(
         List[OpenStreetMapExtract]: List of extracts name, URL to download it and boundary polygon.
     """
     return _find_smallest_containing_extracts(
-        geometry, _get_bbbike_index(), allow_uncovered_geometry=allow_uncovered_geometry
+        geometry=geometry,
+        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.bbbike],
+        allow_uncovered_geometry=allow_uncovered_geometry,
     )
-
-
-OSM_EXTRACT_SOURCE_MATCHING_FUNCTION = {
-    OsmExtractSource.any: find_smallest_containing_extracts_total,
-    OsmExtractSource.bbbike: find_smallest_containing_bbbike_extracts,
-    OsmExtractSource.geofabrik: find_smallest_containing_geofabrik_extracts,
-    OsmExtractSource.osm_fr: find_smallest_containing_openstreetmap_fr_extracts,
-}
 
 
 def find_smallest_containing_extract(
@@ -183,8 +289,11 @@ def find_smallest_containing_extract(
     """
     try:
         source_enum = OsmExtractSource(source)
-        return OSM_EXTRACT_SOURCE_MATCHING_FUNCTION[source_enum](
-            geometry, allow_uncovered_geometry=allow_uncovered_geometry
+        index = OSM_EXTRACT_SOURCE_INDEX_FUNCTION.get(source_enum, _get_combined_index)()
+        return _find_smallest_containing_extracts(
+            geometry=geometry,
+            polygons_index_gdf=index,
+            allow_uncovered_geometry=allow_uncovered_geometry,
         )
     except ValueError as ex:
         raise ValueError(f"Unknown OSM extracts source: {source}.") from ex

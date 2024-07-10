@@ -1,5 +1,7 @@
 """Tests related to OSM extracts."""
 
+from contextlib import nullcontext as does_not_raise
+from typing import Any
 from unittest import TestCase
 
 import pandas as pd
@@ -12,11 +14,14 @@ from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
     OsmExtractIndexOutdatedWarning,
+    OsmExtractMultipleMatchesError,
+    OsmExtractZeroMatchesError,
 )
 from quackosm.osm_extracts import (
     OsmExtractSource,
     find_smallest_containing_extract,
     find_smallest_containing_extracts_total,
+    get_extract_by_name,
 )
 from quackosm.osm_extracts.extract import _get_cache_file_path, _get_full_file_name_function
 from quackosm.osm_extracts.geofabrik import _load_geofabrik_index
@@ -200,3 +205,103 @@ def test_proper_full_name() -> None:
     test_index = pd.DataFrame({"id": ["1", "2"], "name": ["one", "two"], "parent": ["x", "1"]})
     prepared_function = _get_full_file_name_function(test_index)
     assert prepared_function("2") == "x_one_two"
+
+
+@P.parameters("query", "source", "expectation", "matched_id", "exception_values")  # type: ignore
+@P.case(
+    "Proper full file name Geobfabrik",
+    "geofabrik_north-america_us",
+    "geofabrik",
+    does_not_raise(),
+    "Geofabrik_us",
+    [],
+)  # type: ignore
+@P.case(
+    "Proper full file name any",
+    "geofabrik_north-america_us",
+    "any",
+    does_not_raise(),
+    "Geofabrik_us",
+    [],
+)  # type: ignore
+@P.case(
+    "Proper name bbbike",
+    "London",
+    "BBBike",
+    does_not_raise(),
+    "BBBike_London",
+    [],
+)  # type: ignore
+@P.case(
+    "Proper name bbbike - upper case",
+    "LONDON",
+    "BBBike",
+    does_not_raise(),
+    "BBBike_London",
+    [],
+)  # type: ignore
+@P.case(
+    "Proper name any - with whitespaces",
+    "   tete  ",
+    "any",
+    does_not_raise(),
+    "osmfr_africa_mozambique_tete",
+    [],
+)  # type: ignore
+@P.case(
+    "Wrong query multiple matches - single source",
+    "northeast",
+    "any",
+    pytest.raises(OsmExtractMultipleMatchesError),
+    "",
+    [
+        "osmfr_north-america_us-midwest_illinois_northeast",
+        "osmfr_north-america_us-south_florida_northeast",
+        "osmfr_north-america_us-south_georgia_northeast",
+        "osmfr_north-america_us-south_north-carolina_northeast",
+        "osmfr_north-america_us-west_colorado_northeast",
+        "osmfr_south-america_brazil_northeast",
+    ],
+)  # type: ignore
+@P.case(
+    "Wrong query multiple matches - multiple sources",
+    "asia",
+    "any",
+    pytest.raises(OsmExtractMultipleMatchesError),
+    "",
+    ["geofabrik_asia", "osmfr_asia"],
+)  # type: ignore
+@P.case(
+    "Wrong query zero matches with suggestions",
+    "nrthest",
+    "any",
+    pytest.raises(OsmExtractZeroMatchesError),
+    "",
+    ["northwest", "northeast", "north_west", "north_east", "us-northeast"],
+)  # type: ignore
+@P.case(
+    "Wrong query zero matches without suggestions",
+    "empty_extract",
+    "any",
+    pytest.raises(OsmExtractZeroMatchesError),
+    "",
+    [],
+)  # type: ignore
+def test_extracts_finding(
+    query: str, source: str, expectation: Any, matched_id: str, exception_values: list[str]
+) -> None:
+    """Test if extracts finding by name works."""
+    with expectation as exception_info:
+        extract = get_extract_by_name(query, source)
+        # if properly found - check id
+        assert extract.id == matched_id
+
+    # if threw exception - check resulting arrays
+    if exception_info is not None and isinstance(
+        exception_info.value, OsmExtractMultipleMatchesError
+    ):
+        ut.assertListEqual(exception_info.value.matching_full_names, exception_values)
+    elif exception_info is not None and isinstance(
+        exception_info.value, OsmExtractZeroMatchesError
+    ):
+        ut.assertListEqual(exception_info.value.suggested_names, exception_values)
