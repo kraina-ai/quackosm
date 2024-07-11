@@ -13,7 +13,7 @@ from functools import partial
 from math import ceil
 from multiprocessing import cpu_count
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union, overload
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
 from pooch import retrieve
@@ -28,7 +28,10 @@ from quackosm._exceptions import (
 )
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
-from quackosm.osm_extracts.extracts_tree import _create_branch_dict, _create_branch_rich
+from quackosm.osm_extracts.extracts_tree import (
+    _create_branch_rich,
+    _print_branch_python,
+)
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
 
@@ -175,7 +178,7 @@ def get_extract_by_name(
 
 
 def display_available_extracts(
-    source: Union[OsmExtractSource, str], force_dict_format: bool = False
+    source: Union[OsmExtractSource, str], force_pure_python: bool = False
 ) -> None:
     # TODO: write tests
     # TODO: add function to CLI
@@ -184,13 +187,13 @@ def display_available_extracts(
     except ValueError as ex:
         raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
 
-    if force_dict_format:
-        _display_available_extracts_dict(source_enum)
+    if force_pure_python:
+        _display_available_extracts_python(source_enum)
     else:
         try:
             _display_available_extracts_rich(source_enum)
         except ImportError:
-            _display_available_extracts_dict(source_enum)
+            _display_available_extracts_python(source_enum)
 
 
 def _display_available_extracts_rich(source_enum: OsmExtractSource) -> None:
@@ -211,23 +214,12 @@ def _display_available_extracts_rich(source_enum: OsmExtractSource) -> None:
     rprint(root)
 
 
-def _display_available_extracts_dict(source_enum: OsmExtractSource) -> None:
-    import json
-
+def _display_available_extracts_python(source_enum: OsmExtractSource) -> None:
     if source_enum == OsmExtractSource.any:
-        root = {}
-        for other_source_enum, get_index_function in OSM_EXTRACT_SOURCE_INDEX_FUNCTION.items():
-            branch_id = other_source_enum.value
-            branch: dict[str, Any] = {}
-            _create_branch_dict(branch_id, branch, get_index_function())
-            root[branch_id] = branch
+        _print_branch_python("All extracts", _get_combined_index())
     else:
         root_id = source_enum.value
-        branch = {}
-        _create_branch_dict(root_id, branch, OSM_EXTRACT_SOURCE_INDEX_FUNCTION[source_enum]())
-        root = {root_id: branch}
-
-    print(json.dumps(root, indent=2))
+        _print_branch_python(root_id, OSM_EXTRACT_SOURCE_INDEX_FUNCTION[source_enum]())
 
 
 def find_smallest_containing_extracts_total(
