@@ -19,6 +19,7 @@ from quackosm._exceptions import (
 )
 from quackosm.osm_extracts import (
     OsmExtractSource,
+    display_available_extracts,
     find_smallest_containing_extract,
     find_smallest_containing_extracts_total,
     get_extract_by_name,
@@ -305,3 +306,25 @@ def test_extracts_finding(
         exception_info.value, OsmExtractZeroMatchesError
     ):
         ut.assertListEqual(exception_info.value.suggested_names, exception_values)
+
+
+@pytest.mark.parametrize(
+    "osm_source",
+    list(OsmExtractSource),
+)  # type: ignore
+def test_extracts_tree_printing(
+    capfd, osm_source: OsmExtractSource
+) -> None:
+    """Test if displaying available extracts works."""
+    display_available_extracts(osm_source)
+    output, error_output = capfd.readouterr()
+
+    assert len(output) > 0
+
+    if osm_source == OsmExtractSource.any:
+        assert output.startswith("All extracts")
+        assert all(src.value in output for src in OsmExtractSource if src != osm_source)
+    else:
+        assert output.startswith(osm_source.value)
+
+    assert error_output == ""

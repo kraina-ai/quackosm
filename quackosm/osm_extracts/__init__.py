@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
 from pooch import retrieve
+from rich import print as rprint
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
 
@@ -28,10 +29,7 @@ from quackosm._exceptions import (
 )
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
-from quackosm.osm_extracts.extracts_tree import (
-    _create_branch_rich,
-    _print_branch_python,
-)
+from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
 
@@ -45,6 +43,7 @@ __all__ = [
     "find_smallest_containing_openstreetmap_fr_extracts",
     "find_smallest_containing_bbbike_extracts",
     "get_extract_by_name",
+    "display_available_extracts",
     "OsmExtractSource",
 ]
 
@@ -177,49 +176,25 @@ def get_extract_by_name(
         raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
 
 
-def display_available_extracts(
-    source: Union[OsmExtractSource, str], force_pure_python: bool = False
-) -> None:
-    # TODO: write tests
+def display_available_extracts(source: Union[OsmExtractSource, str]) -> None:
+    """
+    Display all available OSM extracts in the form of a tree.
+
+    Output will be printed to the console.
+
+    Args:
+        source (Union[OsmExtractSource, str]): Source for which extracts should be displayed.
+
+    Raises:
+        ValueError: If provided source value cannot be parsed to OsmExtractSource.
+    """
     # TODO: add function to CLI
     try:
         source_enum = OsmExtractSource(source)
+        tree = get_available_extracts_as_rich_tree(source_enum, OSM_EXTRACT_SOURCE_INDEX_FUNCTION)
+        rprint(tree)
     except ValueError as ex:
         raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
-
-    if force_pure_python:
-        _display_available_extracts_python(source_enum)
-    else:
-        try:
-            _display_available_extracts_rich(source_enum)
-        except ImportError:
-            _display_available_extracts_python(source_enum)
-
-
-def _display_available_extracts_rich(source_enum: OsmExtractSource) -> None:
-    from rich import print as rprint
-    from rich.tree import Tree
-
-    if source_enum == OsmExtractSource.any:
-        root = Tree("All extracts")
-        for other_source_enum, get_index_function in OSM_EXTRACT_SOURCE_INDEX_FUNCTION.items():
-            branch_id = other_source_enum.value
-            branch = root.add(branch_id)
-            _create_branch_rich(branch_id, branch, get_index_function())
-    else:
-        root_id = source_enum.value
-        root = Tree(root_id)
-        _create_branch_rich(root_id, root, OSM_EXTRACT_SOURCE_INDEX_FUNCTION[source_enum]())
-
-    rprint(root)
-
-
-def _display_available_extracts_python(source_enum: OsmExtractSource) -> None:
-    if source_enum == OsmExtractSource.any:
-        _print_branch_python("All extracts", _get_combined_index())
-    else:
-        root_id = source_enum.value
-        _print_branch_python(root_id, OSM_EXTRACT_SOURCE_INDEX_FUNCTION[source_enum]())
 
 
 def find_smallest_containing_extracts_total(

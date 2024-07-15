@@ -106,8 +106,9 @@ def _get_cache_file_path(extract_source: OsmExtractSource) -> Path:
 
 def _calculate_geodetic_area(geometry: BaseGeometry) -> float:
     geod = Geod(ellps="WGS84")
-    poly_area, _ = geod.geometry_area_perimeter(orient(geometry, sign=1))
-    return cast(float, poly_area)
+    poly_area_m2, _ = geod.geometry_area_perimeter(orient(geometry, sign=1))
+    poly_area_km2 = round(poly_area_m2) / 1_000_000
+    return cast(float, poly_area_km2)
 
 
 def _get_full_file_name_function(index: pd.DataFrame) -> Callable[[str], str]:
