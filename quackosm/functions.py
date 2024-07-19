@@ -22,6 +22,8 @@ __all__ = [
     "convert_geometry_to_parquet",
     "convert_pbf_to_geodataframe",
     "convert_geometry_to_geodataframe",
+    "convert_osm_extract_to_parquet",
+    "convert_osm_extract_to_geodataframe",
 ]
 
 
@@ -467,7 +469,7 @@ def convert_osm_extract_to_parquet(
     debug_times: bool = False,
 ) -> Path:
     """
-    Convert PBF file to GeoParquet file.
+    Get a single OpenStreetMap extract from a given source and transform it to a GeoParquet file.
 
     Args:
         osm_extract_query (str):
@@ -764,7 +766,7 @@ def convert_geometry_to_geodataframe(
     debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
     """
-    Get a GeoParquet file with OpenStreetMap features within given geometry.
+    Get features GeoDataFrame with OpenStreetMap features within given geometry.
 
     Automatically downloads matching OSM extracts from different sources and returns a single file
     as a result.
@@ -901,7 +903,7 @@ def convert_osm_extract_to_geodataframe(
     debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
     """
-    Convert PBF file to GeoParquet file.
+    Get a single OpenStreetMap extract from a given source and return it as a GeoDataFrame.
 
     Args:
         osm_extract_query (str):
