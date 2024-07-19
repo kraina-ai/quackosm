@@ -14,7 +14,7 @@ from shapely.geometry.base import BaseGeometry
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
-from quackosm.osm_extracts import OsmExtractSource
+from quackosm.osm_extracts import OsmExtractSource, download_extract_by_query
 from quackosm.pbf_file_reader import PbfFileReader
 
 __all__ = [
@@ -449,6 +449,108 @@ def convert_geometry_to_parquet(
     )
 
 
+def convert_osm_extract_to_parquet(
+    osm_extract_query: str,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
+    geometry_filter: Optional[BaseGeometry] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    keep_all_tags: bool = False,
+    explode_tags: Optional[bool] = None,
+    ignore_cache: bool = False,
+    filter_osm_ids: Optional[list[str]] = None,
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+    save_as_wkt: bool = False,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    debug_memory: bool = False,
+    debug_times: bool = False,
+) -> Path:
+    """
+    Convert PBF file to GeoParquet file.
+
+    Args:
+        osm_extract_query (str):
+            Query to find an OpenStreetMap extract from available sources.
+        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
+            Defaults to `any`.
+        tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
+            specifying which tags to download.
+            The keys should be OSM tags (e.g. `building`, `amenity`).
+            The values should either be `True` for retrieving all objects with the tag,
+            string for retrieving a single tag-value pair
+            or list of strings for retrieving all values specified in the list.
+            `tags={'leisure': 'park}` would return parks from the area.
+            `tags={'leisure': 'park, 'amenity': True, 'shop': ['bakery', 'bicycle']}`
+            would return parks, all amenity types, bakeries and bicycle shops.
+            If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
+        geometry_filter (BaseGeometry, optional): Region which can be used to filter only
+            intersecting OSM objects. Defaults to `None`.
+        result_file_path (Union[str, Path], optional): Where to save
+            the geoparquet file. If not provided, will be generated based on hashes
+            from provided tags filter and geometry filter. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
+        explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+            Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+            Defaults to an empty list.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
+        save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead of WKB.
+            If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
+            standard. Defaults to `False`.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
+            for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
+
+    Returns:
+        Path: Path to the generated GeoParquet file.
+
+    Examples:
+        Get OSM data from a PBF file.
+
+        # TODO: add doctests
+    """
+    downloaded_osm_extract = download_extract_by_query(
+        query=osm_extract_query, source=osm_extract_source
+    )
+    return PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+        verbosity_mode=verbosity_mode,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
+    ).convert_pbf_to_parquet(
+        pbf_path=downloaded_osm_extract,
+        result_file_path=result_file_path,
+        keep_all_tags=keep_all_tags,
+        explode_tags=explode_tags,
+        ignore_cache=ignore_cache,
+        filter_osm_ids=filter_osm_ids,
+        save_as_wkt=save_as_wkt,
+    )
+
+
 @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
 def convert_pbf_to_geodataframe(
     pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -777,6 +879,103 @@ def convert_geometry_to_geodataframe(
         debug_memory=debug_memory,
         debug_times=debug_times,
     ).convert_geometry_to_geodataframe(
+        keep_all_tags=keep_all_tags,
+        explode_tags=explode_tags,
+        ignore_cache=ignore_cache,
+        filter_osm_ids=filter_osm_ids,
+    )
+
+def convert_osm_extract_to_geodataframe(
+    osm_extract_query: str,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
+    geometry_filter: Optional[BaseGeometry] = None,
+    keep_all_tags: bool = False,
+    explode_tags: Optional[bool] = None,
+    ignore_cache: bool = False,
+    filter_osm_ids: Optional[list[str]] = None,
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    debug_memory: bool = False,
+    debug_times: bool = False,
+) -> gpd.GeoDataFrame:
+    """
+    Convert PBF file to GeoParquet file.
+
+    Args:
+        osm_extract_query (str):
+            Query to find an OpenStreetMap extract from available sources.
+        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
+            Defaults to `any`.
+        tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
+            specifying which tags to download.
+            The keys should be OSM tags (e.g. `building`, `amenity`).
+            The values should either be `True` for retrieving all objects with the tag,
+            string for retrieving a single tag-value pair
+            or list of strings for retrieving all values specified in the list.
+            `tags={'leisure': 'park}` would return parks from the area.
+            `tags={'leisure': 'park, 'amenity': True, 'shop': ['bakery', 'bicycle']}`
+            would return parks, all amenity types, bakeries and bicycle shops.
+            If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
+        geometry_filter (BaseGeometry, optional): Region which can be used to filter only
+            intersecting OSM objects. Defaults to `None`.
+        result_file_path (Union[str, Path], optional): Where to save
+            the geoparquet file. If not provided, will be generated based on hashes
+            from provided tags filter and geometry filter. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
+        explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+            Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+            Defaults to an empty list.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
+        save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead of WKB.
+            If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
+            standard. Defaults to `False`.
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
+            for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
+
+    Returns:
+        gpd.GeoDataFrame: GeoDataFrame with OSM features.
+
+    Examples:
+        Get OSM data from a PBF file.
+
+        # TODO: add doctests
+    """
+    downloaded_osm_extract = download_extract_by_query(
+        query=osm_extract_query, source=osm_extract_source
+    )
+    return PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+        verbosity_mode=verbosity_mode,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
+    ).convert_pbf_to_geodataframe(
+        pbf_path=downloaded_osm_extract,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         ignore_cache=ignore_cache,

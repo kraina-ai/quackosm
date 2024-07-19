@@ -8,6 +8,8 @@ DuckDB spatial extension without GDAL.
 from quackosm.functions import (
     convert_geometry_to_geodataframe,
     convert_geometry_to_parquet,
+    convert_osm_extract_to_geodataframe,
+    convert_osm_extract_to_parquet,
     convert_pbf_to_geodataframe,
     convert_pbf_to_parquet,
 )
@@ -20,6 +22,8 @@ __all__ = [
     "PbfFileReader",
     "convert_pbf_to_parquet",
     "convert_geometry_to_parquet",
+    "convert_osm_extract_to_parquet",
     "convert_pbf_to_geodataframe",
     "convert_geometry_to_geodataframe",
+    "convert_osm_extract_to_geodataframe",
 ]

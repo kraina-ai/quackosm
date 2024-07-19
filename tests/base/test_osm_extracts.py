@@ -22,7 +22,7 @@ from quackosm.osm_extracts import (
     display_available_extracts,
     find_smallest_containing_extract,
     find_smallest_containing_extracts_total,
-    get_extract_by_name,
+    get_extract_by_query,
 )
 from quackosm.osm_extracts.extract import _get_cache_file_path, _get_full_file_name_function
 from quackosm.osm_extracts.geofabrik import _load_geofabrik_index
@@ -273,12 +273,28 @@ def test_proper_full_name() -> None:
     ["geofabrik_asia", "osmfr_asia"],
 )  # type: ignore
 @P.case(
-    "Wrong query zero matches with suggestions",
-    "nrthest",
+    "Wrong query zero matches with suggestions - north",
+    "nrth",
     "any",
     pytest.raises(OsmExtractZeroMatchesError),
     "",
-    ["northwest", "northeast", "north_west", "north_east", "us-northeast"],
+    [
+        "osmfr_north-america_us-midwest_illinois_north",
+        "osmfr_north-america_us-south_texas_north",
+        "osmfr_south-america_brazil_north",
+    ],
+)  # type: ignore
+@P.case(
+    "Wrong query zero matches with suggestions - prlnd",
+    "prlnd",
+    "any",
+    pytest.raises(OsmExtractZeroMatchesError),
+    "",
+    [
+        "bbbike_portland",
+        "osmfr_europe_poland",
+        "geofabrik_europe_poland",
+    ],
 )  # type: ignore
 @P.case(
     "Wrong query zero matches without suggestions",
@@ -293,28 +309,20 @@ def test_extracts_finding(
 ) -> None:
     """Test if extracts finding by name works."""
     with expectation as exception_info:
-        extract = get_extract_by_name(query, source)
+        extract = get_extract_by_query(query, source)
         # if properly found - check id
         assert extract.id == matched_id
 
     # if threw exception - check resulting arrays
-    if exception_info is not None and isinstance(
-        exception_info.value, OsmExtractMultipleMatchesError
-    ):
+    if exception_info is not None:
         ut.assertListEqual(exception_info.value.matching_full_names, exception_values)
-    elif exception_info is not None and isinstance(
-        exception_info.value, OsmExtractZeroMatchesError
-    ):
-        ut.assertListEqual(exception_info.value.suggested_names, exception_values)
 
 
 @pytest.mark.parametrize(
     "osm_source",
     list(OsmExtractSource),
 )  # type: ignore
-def test_extracts_tree_printing(
-    capfd, osm_source: OsmExtractSource
-) -> None:
+def test_extracts_tree_printing(capfd, osm_source: OsmExtractSource) -> None:
     """Test if displaying available extracts works."""
     display_available_extracts(osm_source)
     output, error_output = capfd.readouterr()

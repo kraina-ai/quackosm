@@ -42,7 +42,8 @@ __all__ = [
     "find_smallest_containing_geofabrik_extracts",
     "find_smallest_containing_openstreetmap_fr_extracts",
     "find_smallest_containing_bbbike_extracts",
-    "get_extract_by_name",
+    "get_extract_by_query",
+    "download_extract_by_query",
     "display_available_extracts",
     "OsmExtractSource",
 ]
@@ -90,19 +91,18 @@ def _get_combined_index() -> gpd.GeoDataFrame:
 
 
 @overload
-def get_extract_by_name(query: str) -> OpenStreetMapExtract: ...
+def get_extract_by_query(query: str) -> OpenStreetMapExtract: ...
 
 
 @overload
-def get_extract_by_name(
+def get_extract_by_query(
     query: str, source: Union[OsmExtractSource, str]
 ) -> OpenStreetMapExtract: ...
 
 
-def get_extract_by_name(
+def get_extract_by_query(
     query: str, source: Union[OsmExtractSource, str] = "any"
 ) -> OpenStreetMapExtract:
-    # TODO: add function to API
     # TODO: add functionality to CLI
     """
     Find an OSM extract by name.
@@ -134,33 +134,38 @@ def get_extract_by_name(
         elif extract_name_matched_rows.any():
             matching_rows = index[extract_name_matched_rows]
             matching_full_names = sorted(matching_rows["file_name"])
-            file_names = ", ".join(matching_full_names)
+            full_names = ", ".join(matching_full_names)
+
             raise OsmExtractMultipleMatchesError(
-                f"Multiple extracts matched by query '{query.strip()}'. "
-                f"Please use one of the full names to specify the extract: {file_names}.",
+                f"Multiple extracts matched by query '{query.strip()}'.\n"
+                f"Please use one of the full names to specify the extract: {full_names}.",
                 matching_full_names=matching_full_names,
             )
         # zero names matched
         elif not extract_name_matched_rows.any():
+            matching_full_names = []
             suggested_query_names = difflib.get_close_matches(
                 query.lower(), index["name"].str.lower().unique(), n=5, cutoff=0.7
             )
 
             if suggested_query_names:
-                suggested_names = ", ".join(suggested_query_names)
+                for suggested_query_name in suggested_query_names:
+                    found_extracts = index[index["name"].str.lower() == suggested_query_name]
+                    matching_full_names.extend(found_extracts["file_name"])
+                full_names = ", ".join(matching_full_names)
                 exception_message = (
-                    f"Zero extracts matched by query '{query}'. "
-                    f"Found names close to query: {suggested_names}."
+                    f"Zero extracts matched by query '{query}'.\n"
+                    f"Found full names close to query: {full_names}."
                 )
             else:
                 exception_message = (
-                    f"Zero extracts matched by query '{query}'. "
+                    f"Zero extracts matched by query '{query}'.\n"
                     "Zero close matches close have been found."
                 )
 
             raise OsmExtractZeroMatchesError(
                 exception_message,
-                suggested_names=suggested_query_names,
+                matching_full_names=matching_full_names,
             )
 
         return OpenStreetMapExtract(
@@ -174,6 +179,36 @@ def get_extract_by_name(
 
     except ValueError as ex:
         raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
+
+
+@overload
+def download_extract_by_query(query: str) -> Path: ...
+
+
+@overload
+def download_extract_by_query(query: str, source: Union[OsmExtractSource, str]) -> Path: ...
+
+
+def download_extract_by_query(
+    query: str,
+    source: Union[OsmExtractSource, str] = "any",
+    download_directory: Union[str, Path] = "files",
+) -> Path:
+    """
+    Download an OSM extract by name.
+
+    Args:
+        query (str): Query to search for a particular extract.
+        source (Union[OsmExtractSource, str]): OSM source name. Can be one of: 'any', 'Geofabrik',
+            'BBBike', 'OSM_fr'. Defaults to 'any'.
+        download_directory (Union[str, Path], optional): Directory where the file should be
+            downloaded. Defaults to "files".
+
+    Returns:
+        Path: Path to the downloaded OSM extract.
+    """
+    matching_extract = get_extract_by_query(query, source)
+    return download_extracts_pbf_files([matching_extract], Path(download_directory))[0]
 
 
 def display_available_extracts(source: Union[OsmExtractSource, str]) -> None:
