@@ -31,7 +31,7 @@ LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files
 EXTRACTS_NAMES = ["monaco", "kiribati", "maldives"]
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="session")
 def add_pbf_files(doctest_namespace):  # type: ignore
     """Download PBF files used in doctests."""
     download_directory = Path("files")
@@ -50,7 +50,7 @@ def add_pbf_files(doctest_namespace):  # type: ignore
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(autouse=True, scope="session")
 def install_spatial_extension():  # type: ignore
     """Install duckdb spatial extension."""
     duckdb.install_extension("spatial")
