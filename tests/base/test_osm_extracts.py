@@ -319,20 +319,35 @@ def test_extracts_finding(
 
 
 @pytest.mark.parametrize(
+    "use_full_names",
+    [False, True],
+)  # type: ignore
+@pytest.mark.parametrize(
     "osm_source",
     list(OsmExtractSource),
 )  # type: ignore
-def test_extracts_tree_printing(capfd, osm_source: OsmExtractSource) -> None:
+def test_extracts_tree_printing(capfd, osm_source: OsmExtractSource, use_full_names: bool) -> None:
     """Test if displaying available extracts works."""
-    display_available_extracts(osm_source)
+    display_available_extracts(osm_source, use_full_names)
     output, error_output = capfd.readouterr()
 
     assert len(output) > 0
 
+    osm_sources_without_any = [src for src in OsmExtractSource if src != OsmExtractSource.any]
+
     if osm_source == OsmExtractSource.any:
         assert output.startswith("All extracts")
-        assert all(src.value in output for src in OsmExtractSource if src != osm_source)
+        assert all(src.value in output for src in osm_sources_without_any)
     else:
         assert output.startswith(osm_source.value)
+
+    if use_full_names:
+        lines = output.lower().split("\n")
+
+        assert all(
+            any(src.value.lower() in line for src in osm_sources_without_any)
+            for line in lines
+            if len(line.strip()) > 0 and line != "all extracts"
+        )
 
     assert error_output == ""
