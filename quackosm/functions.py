@@ -527,9 +527,59 @@ def convert_osm_extract_to_parquet(
         Path: Path to the generated GeoParquet file.
 
     Examples:
-        Get OSM data from a PBF file.
+        Get OSM data for the Monaco.
 
-        # TODO: add doctests
+        >>> import quackosm as qosm
+        >>> gpq_path = qosm.convert_osm_extract_to_parquet(
+        ...     "monaco", osm_extract_source="geofabrik"
+        ... ) # doctest: +IGNORE_RESULT
+        >>> gpq_path.as_posix()
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet'
+
+        Inspect the file with duckdb
+        >>> import duckdb
+        >>> duckdb.load_extension('spatial')
+        >>> duckdb.read_parquet(str(gpq_path)).project(
+        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
+        ... ).order("feature_id") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10005045289 │ {shop=bakery}        │ POINT (7.4224498 43.7310532)                 │
+        │ node/10020887517 │ {leisure=swimming_…  │ POINT (7.4131561 43.7338391)                 │
+        │ node/10021298117 │ {leisure=swimming_…  │ POINT (7.4277743 43.7427669)                 │
+        │ node/10021298717 │ {leisure=swimming_…  │ POINT (7.4263029 43.7409734)                 │
+        │ node/10025656383 │ {ferry=yes, name=Q…  │ POINT (7.4254971 43.7369002)                 │
+        │ node/10025656390 │ {amenity=restauran…  │ POINT (7.4269287 43.7368818)                 │
+        │ node/10025656391 │ {name=Capitainerie…  │ POINT (7.4272127 43.7359593)                 │
+        │ node/10025656392 │ {name=Direction de…  │ POINT (7.4270392 43.7365262)                 │
+        │ node/10025656393 │ {name=IQOS, openin…  │ POINT (7.4275175 43.7373195)                 │
+        │ node/10025656394 │ {artist_name=Anna …  │ POINT (7.4293446 43.737448)                  │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │ way/986864693    │ {natural=bare_rock}  │ POLYGON ((7.4340482 43.745598, 7.4340263 4…  │
+        │ way/986864694    │ {barrier=wall}       │ LINESTRING (7.4327547 43.7445382, 7.432808…  │
+        │ way/986864695    │ {natural=bare_rock}  │ POLYGON ((7.4332994 43.7449315, 7.4332912 …  │
+        │ way/986864696    │ {barrier=wall}       │ LINESTRING (7.4356006 43.7464325, 7.435574…  │
+        │ way/986864697    │ {natural=bare_rock}  │ POLYGON ((7.4362767 43.74697, 7.4362983 43…  │
+        │ way/990669427    │ {amenity=shelter, …  │ POLYGON ((7.4146087 43.733883, 7.4146192 4…  │
+        │ way/990669428    │ {highway=secondary…  │ LINESTRING (7.4136598 43.7334433, 7.413640…  │
+        │ way/990669429    │ {highway=secondary…  │ LINESTRING (7.4137621 43.7334251, 7.413746…  │
+        │ way/990848785    │ {addr:city=Monaco,…  │ POLYGON ((7.4142551 43.7339622, 7.4143113 …  │
+        │ way/993121275    │ {building=yes, nam…  │ POLYGON ((7.4321416 43.7481309, 7.4321638 …  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 7906 rows (20 shown)                                                         3 columns │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+
+        Full name can also be used. Osm extract source can be skipped.
+
+        >>> gpq_path = qosm.convert_osm_extract_to_parquet(
+        ...     "geofabrik_europe_monaco"
+        ... ) # doctest: +IGNORE_RESULT
+        >>> gpq_path.as_posix()
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet'
     """
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source
@@ -961,9 +1011,50 @@ def convert_osm_extract_to_geodataframe(
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
 
     Examples:
-        Get OSM data from a PBF file.
+        Get OSM data for the Monaco.
 
-        # TODO: add doctests
+        >>> import quackosm as qosm
+        >>> gdf = qosm.convert_osm_extract_to_geodataframe(
+        ...     "monaco", osm_extract_source="geofabrik"
+        ... ) # doctest: +IGNORE_RESULT
+        >>> gdf.sort_index()
+                                                      tags                      geometry
+        feature_id
+        node/10005045289                {'shop': 'bakery'}      POINT (7.42245 43.73105)
+        node/10020887517  {'leisure': 'swimming_pool', ...      POINT (7.41316 43.73384)
+        node/10021298117  {'leisure': 'swimming_pool', ...      POINT (7.42777 43.74277)
+        node/10021298717  {'leisure': 'swimming_pool', ...      POINT (7.42630 43.74097)
+        node/10025656383  {'ferry': 'yes', 'name': 'Qua...      POINT (7.42550 43.73690)
+        ...                                            ...                           ...
+        way/990669427     {'amenity': 'shelter', 'shelt...  POLYGON ((7.41461 43.7338...
+        way/990669428     {'highway': 'secondary', 'jun...  LINESTRING (7.41366 43.73...
+        way/990669429     {'highway': 'secondary', 'jun...  LINESTRING (7.41376 43.73...
+        way/990848785     {'addr:city': 'Monaco', 'addr...  POLYGON ((7.41426 43.7339...
+        way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
+        <BLANKLINE>
+        [7906 rows x 2 columns]
+
+        Full name can also be used. Osm extract source can be skipped.
+
+        >>> gdf = qosm.convert_osm_extract_to_geodataframe(
+        ...     "geofabrik_europe_monaco"
+        ... ) # doctest: +IGNORE_RESULT
+        >>> gdf.sort_index()
+                                                      tags                      geometry
+        feature_id
+        node/10005045289                {'shop': 'bakery'}      POINT (7.42245 43.73105)
+        node/10020887517  {'leisure': 'swimming_pool', ...      POINT (7.41316 43.73384)
+        node/10021298117  {'leisure': 'swimming_pool', ...      POINT (7.42777 43.74277)
+        node/10021298717  {'leisure': 'swimming_pool', ...      POINT (7.42630 43.74097)
+        node/10025656383  {'ferry': 'yes', 'name': 'Qua...      POINT (7.42550 43.73690)
+        ...                                            ...                           ...
+        way/990669427     {'amenity': 'shelter', 'shelt...  POLYGON ((7.41461 43.7338...
+        way/990669428     {'highway': 'secondary', 'jun...  LINESTRING (7.41366 43.73...
+        way/990669429     {'highway': 'secondary', 'jun...  LINESTRING (7.41376 43.73...
+        way/990848785     {'addr:city': 'Monaco', 'addr...  POLYGON ((7.41426 43.7339...
+        way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
+        <BLANKLINE>
+        [7906 rows x 2 columns]
     """
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source
