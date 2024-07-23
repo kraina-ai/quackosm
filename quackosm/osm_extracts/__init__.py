@@ -227,7 +227,6 @@ def display_available_extracts(
     Raises:
         ValueError: If provided source value cannot be parsed to OsmExtractSource.
     """
-    # TODO: add function to CLI
     try:
         source_enum = OsmExtractSource(source)
         tree = get_available_extracts_as_rich_tree(

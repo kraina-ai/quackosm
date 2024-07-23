@@ -22,7 +22,7 @@ from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
 from quackosm.functions import convert_geometry_to_parquet, convert_pbf_to_parquet
-from quackosm.osm_extracts import OsmExtractSource
+from quackosm.osm_extracts import OsmExtractSource, display_available_extracts
 from quackosm.pbf_file_reader import _is_url_path
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -31,6 +31,16 @@ app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich
 def _version_callback(value: bool) -> None:
     if value:
         typer.echo(f"{__app_name__} {__version__}")
+        raise typer.Exit()
+
+
+def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
+    # TODO: write tests
+    if value:
+        param_values = {p.name: p.default for p in ctx.command.params}
+        param_values.update(ctx.params)
+        osm_source = cast(str, param_values.get("osm_extract_source"))
+        display_available_extracts(source=osm_source, use_full_names=True)
         raise typer.Exit()
 
 
@@ -421,9 +431,10 @@ def main(
                 " Can be Geofabrik, BBBike, OpenStreetMap.fr or any."
             ),
             case_sensitive=False,
-            show_default="geofabrik",
+            show_default="any",
+            is_eager=True,
         ),
-    ] = OsmExtractSource.geofabrik,
+    ] = OsmExtractSource.any,
     explode_tags: Annotated[
         Optional[bool],
         typer.Option(
@@ -539,6 +550,16 @@ def main(
             show_default=False,
         ),
     ] = False,
+    show_extracts: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--show-extracts",
+            "--show-osm-extracts",
+            help="Show available OSM extracts and exit.",
+            callback=_display_osm_extracts_callback,
+            is_eager=False,
+        ),
+    ] = None,
     version: Annotated[
         Optional[bool],
         typer.Option(
