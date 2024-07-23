@@ -40,7 +40,7 @@ def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
         param_values = {p.name: p.default for p in ctx.command.params}
         param_values.update(ctx.params)
         osm_source = cast(str, param_values.get("osm_extract_source"))
-        display_available_extracts(source=osm_source, use_full_names=True)
+        display_available_extracts(source=osm_source, use_full_names=True, use_pager=True)
         raise typer.Exit()
 
 

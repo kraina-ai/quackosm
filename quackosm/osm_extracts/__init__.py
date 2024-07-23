@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
 from pooch import retrieve
+from rich import get_console
 from rich import print as rprint
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
@@ -212,7 +213,9 @@ def download_extract_by_query(
 
 
 def display_available_extracts(
-    source: Union[OsmExtractSource, str], use_full_names: bool = True
+    source: Union[OsmExtractSource, str],
+    use_full_names: bool = True,
+    use_pager: bool = False,
 ) -> None:
     """
     Display all available OSM extracts in the form of a tree.
@@ -223,6 +226,8 @@ def display_available_extracts(
         source (Union[OsmExtractSource, str]): Source for which extracts should be displayed.
         use_full_names (bool, optional): Whether to display full name, or short name of the extract.
             Full name contains all parents of the extract. Defaults to `True`.
+        use_pager (bool, optional): Whether to display long output using Rich pager
+            or just print to output. Defaults to `False`.
 
     Raises:
         ValueError: If provided source value cannot be parsed to OsmExtractSource.
@@ -232,7 +237,12 @@ def display_available_extracts(
         tree = get_available_extracts_as_rich_tree(
             source_enum, OSM_EXTRACT_SOURCE_INDEX_FUNCTION, use_full_names
         )
-        rprint(tree)
+        if not use_pager:
+            rprint(tree)
+        else:
+            console = get_console()
+            with console.pager():
+                console.print(tree)
     except ValueError as ex:
         raise ValueError(f"Unknown OSM extracts source: {source}.") from ex
 
