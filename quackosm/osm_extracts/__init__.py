@@ -212,7 +212,7 @@ def download_extract_by_query(
 
 
 def display_available_extracts(
-    source: Union[OsmExtractSource, str], use_full_names: bool = False
+    source: Union[OsmExtractSource, str], use_full_names: bool = True
 ) -> None:
     """
     Display all available OSM extracts in the form of a tree.
@@ -222,7 +222,7 @@ def display_available_extracts(
     Args:
         source (Union[OsmExtractSource, str]): Source for which extracts should be displayed.
         use_full_names (bool, optional): Whether to display full name, or short name of the extract.
-            Full name contains all parents of the extract. Defaults to `False`.
+            Full name contains all parents of the extract. Defaults to `True`.
 
     Raises:
         ValueError: If provided source value cannot be parsed to OsmExtractSource.
