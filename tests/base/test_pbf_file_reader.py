@@ -842,19 +842,21 @@ def test_gdal_parity(extract_name: str) -> None:
     # Check if geometries are almost equal - same geom type, same points
     invalid_geometries_df.loc[
         invalid_geometries_df["geometry_both_closed_or_not"], "geometry_almost_equals"
-    ] = gpd.GeoSeries(
-        invalid_geometries_df.loc[
-            invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
-        ],
-        crs=WGS84_CRS,
-    ).geom_equals_exact(
+    ] = (
         gpd.GeoSeries(
             invalid_geometries_df.loc[
-                invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
+                invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
             ],
-            crs=WGS84_CRS,
-        ),
-        tolerance=tolerance,
+        )
+        .set_crs(WGS84_CRS)
+        .geom_equals_exact(
+            gpd.GeoSeries(
+                invalid_geometries_df.loc[
+                    invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
+                ],
+            ).set_crs(WGS84_CRS),
+            tolerance=tolerance,
+        )
     )
     invalid_geometries_df = invalid_geometries_df.loc[
         ~(
@@ -868,17 +870,19 @@ def test_gdal_parity(extract_name: str) -> None:
     # Check geometries equality - same geom type, same points
     invalid_geometries_df.loc[
         invalid_geometries_df["geometry_both_closed_or_not"], "geometry_equals"
-    ] = gpd.GeoSeries(
-        invalid_geometries_df.loc[
-            invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
-        ],
-        crs=WGS84_CRS,
-    ).geom_equals(
+    ] = (
         gpd.GeoSeries(
             invalid_geometries_df.loc[
-                invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
+                invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
             ],
-            crs=WGS84_CRS,
+        )
+        .set_crs(WGS84_CRS)
+        .geom_equals(
+            gpd.GeoSeries(
+                invalid_geometries_df.loc[
+                    invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
+                ],
+            ).set_crs(WGS84_CRS)
         )
     )
     invalid_geometries_df = invalid_geometries_df.loc[
@@ -904,13 +908,14 @@ def test_gdal_parity(extract_name: str) -> None:
     invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"] = (
         gpd.GeoSeries(
             invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
-            crs=WGS84_CRS,
+            # crs=WGS84_CRS,
         )
+        .set_crs(WGS84_CRS)
         .intersection(
             gpd.GeoSeries(
                 invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
-                crs=WGS84_CRS,
-            ),
+                # crs=WGS84_CRS,
+            ).set_crs(WGS84_CRS),
         )
         .area
     )
@@ -922,12 +927,16 @@ def test_gdal_parity(extract_name: str) -> None:
     ] / (
         gpd.GeoSeries(
             invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
-            crs=WGS84_CRS,
-        ).area
+            # crs=WGS84_CRS,
+        )
+        .set_crs(WGS84_CRS)
+        .area
         + gpd.GeoSeries(
             invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
-            crs=WGS84_CRS,
-        ).area
+            # crs=WGS84_CRS,
+        )
+        .set_crs(WGS84_CRS)
+        .area
         - invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
     )
 
