@@ -21,7 +21,7 @@ def geocode_to_geometry(query: str) -> BaseGeometry: ...
 @overload
 def geocode_to_geometry(query: list[str]) -> BaseGeometry: ...
 
-# TODO: tests
+
 def geocode_to_geometry(query: Union[str, list[str]]) -> BaseGeometry:
     """Geocode a query to a (Multi)Polygon geometry using Nominatim."""
     if not isinstance(query, str):
