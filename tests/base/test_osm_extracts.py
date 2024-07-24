@@ -7,6 +7,8 @@ from unittest import TestCase
 import pandas as pd
 import pytest
 from parametrization import Parametrization as P
+from pytest_mock import MockerFixture
+from rich.console import Console
 from shapely import from_wkt
 from shapely.geometry.base import BaseGeometry
 
@@ -326,8 +328,11 @@ def test_extracts_finding(
     "osm_source",
     list(OsmExtractSource),
 )  # type: ignore
-def test_extracts_tree_printing(capfd, osm_source: OsmExtractSource, use_full_names: bool) -> None:
+def test_extracts_tree_printing(
+    capfd, mocker: MockerFixture, osm_source: OsmExtractSource, use_full_names: bool
+) -> None:
     """Test if displaying available extracts works."""
+    mocker.patch("rich.get_console", return_value=Console(width=999))
     display_available_extracts(osm_source, use_full_names)
     output, error_output = capfd.readouterr()
 
