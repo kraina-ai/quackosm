@@ -261,7 +261,7 @@ def convert_pbf_to_parquet(
 
 def convert_geometry_to_parquet(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
@@ -286,7 +286,7 @@ def convert_geometry_to_parquet(
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
             downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `geofabrik`.
+            Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -802,7 +802,7 @@ def convert_pbf_to_geodataframe(
 
 def convert_geometry_to_geodataframe(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
@@ -825,7 +825,7 @@ def convert_geometry_to_geodataframe(
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
         osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
             downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `geofabrik`.
+            Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).

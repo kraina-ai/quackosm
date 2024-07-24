@@ -116,7 +116,7 @@ class PbfFileReader:
             Union[OsmWayPolygonConfig, dict[str, Any]]
         ] = None,
         parquet_compression: str = "snappy",
-        osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
+        osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
         allow_uncovered_geometry: bool = False,
         debug_memory: bool = False,
@@ -149,7 +149,7 @@ class PbfFileReader:
                 Defaults to "snappy".
             osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
                 downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-                Defaults to `geofabrik`.
+                Defaults to `any`.
             verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.
