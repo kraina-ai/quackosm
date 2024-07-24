@@ -11,6 +11,7 @@ from quackosm.functions import (
     convert_pbf_to_geodataframe,
     convert_pbf_to_parquet,
 )
+from quackosm.geocode import geocode_to_geometry
 from quackosm.pbf_file_reader import PbfFileReader
 
 __app_name__ = "QuackOSM"
@@ -22,4 +23,5 @@ __all__ = [
     "convert_geometry_to_parquet",
     "convert_pbf_to_geodataframe",
     "convert_geometry_to_geodataframe",
+    "geocode_to_geometry",
 ]

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced `OSMnx` dependency with `GeoPy` for geometry geocoding [#135](https://github.com/kraina-ai/quackosm/issues/135)
+
 ## [0.8.2] - 2024-06-04
 
 ### Added
