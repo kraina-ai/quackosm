@@ -1067,7 +1067,7 @@ def test_gdal_parity(extract_name: str) -> None:
     ].apply(
         lambda x: (
             remove_interiors(unary_union(polygons))
-            if len(polygons := extract_polygons_from_geometry(x)) > 0
+            if (polygons := extract_polygons_from_geometry(x))
             else None
         )
     )
@@ -1076,7 +1076,7 @@ def test_gdal_parity(extract_name: str) -> None:
     ].apply(
         lambda x: (
             remove_interiors(unary_union(polygons))
-            if len(polygons := extract_polygons_from_geometry(x)) > 0
+            if (polygons := extract_polygons_from_geometry(x))
             else None
         )
     )

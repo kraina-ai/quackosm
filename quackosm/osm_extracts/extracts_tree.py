@@ -72,6 +72,6 @@ def human_format(num: float) -> str:
         magnitude += 1
         num /= 1000.0
     return "{}{}".format(
-        f"{num:f}".rstrip("0").rstrip("."),
+        f"{num:f}".rstrip(".0"),
         ["", "K", "M", "B"][magnitude],
     )
