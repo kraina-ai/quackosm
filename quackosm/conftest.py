@@ -6,6 +6,7 @@ import urllib.request
 from doctest import OutputChecker
 from pathlib import Path
 
+import pandas
 import pytest
 
 IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
@@ -40,3 +41,10 @@ def add_pbf_files(doctest_namespace):  # type: ignore
         urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
+
+
+@pytest.fixture(autouse=True, scope="session")  # type: ignore
+def pandas_terminal_width() -> None:
+    """Change pandas dataframe display options."""
+    pandas.set_option("display.width", 90)
+    pandas.set_option("display.max_colwidth", 35)
