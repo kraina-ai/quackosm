@@ -344,7 +344,7 @@ def test_extracts_tree_printing(capfd, osm_source: OsmExtractSource, use_full_na
     if use_full_names:
         lines = output.lower().split("\n")
         # DEBUG START
-        print(lines)
+        print(output.lower())
         # DEBUG END
 
         assert all(
