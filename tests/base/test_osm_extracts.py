@@ -344,7 +344,12 @@ def test_extracts_tree_printing(capfd, osm_source: OsmExtractSource, use_full_na
     if use_full_names:
         lines = output.lower().split("\n")
         # DEBUG START
-        print(output.lower())
+        # print(output.lower())
+        for x, line in enumerate(lines):
+            if not (len(line.strip()) > 0 and line != "all extracts"):
+                continue
+            if not any(src.value.lower() in line for src in osm_sources_without_any):
+                print(x, line)
         # DEBUG END
 
         assert all(
