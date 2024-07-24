@@ -428,7 +428,7 @@ def main(
             "--pbf-download-source",
             help=(
                 "Source where to download the PBF file from."
-                " Can be Geofabrik, BBBike, OpenStreetMap.fr or any."
+                " Can be Geofabrik, BBBike, OSMfr (OpenStreetMap.fr) or any."
             ),
             case_sensitive=False,
             show_default="any",

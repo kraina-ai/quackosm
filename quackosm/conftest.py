@@ -8,7 +8,9 @@ from pathlib import Path
 
 import duckdb
 import pytest
+from pooch import retrieve
 
+from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 
 IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
@@ -48,6 +50,30 @@ def add_pbf_files(doctest_namespace):  # type: ignore
         urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def download_osm_extracts_indexes():  # type: ignore
+    """Download OSM extract indexes files to cache."""
+    download_directory = Path("cache")
+    download_directory.mkdir(parents=True, exist_ok=True)
+
+    for osm_extract in OsmExtractSource:
+        if osm_extract == OsmExtractSource.any:
+            continue
+
+        file_name = f"{osm_extract.value.lower()}_index.geojson"
+        file_download_url = LFS_DIRECTORY_URL + file_name
+
+        print("downloading index", file_name)
+
+        retrieve(
+            file_download_url,
+            fname=file_name,
+            path=download_directory,
+            progressbar=True,
+            known_hash=None,
+        )
 
 
 @pytest.fixture(autouse=True, scope="session")
