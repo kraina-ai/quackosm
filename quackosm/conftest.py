@@ -65,8 +65,6 @@ def download_osm_extracts_indexes():  # type: ignore
         file_name = f"{osm_extract.value.lower()}_index.geojson"
         file_download_url = LFS_DIRECTORY_URL + file_name
 
-        print("downloading index", file_name)
-
         retrieve(
             file_download_url,
             fname=file_name,
