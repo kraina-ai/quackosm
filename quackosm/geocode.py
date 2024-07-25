@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional, Union, cast, overload
 
-from geopy.geocoders import Nominatim
+from geopy.geocoders.nominatim import Nominatim
 from geopy.location import Location
 from shapely.geometry import shape
 from shapely.geometry.base import BaseGeometry
