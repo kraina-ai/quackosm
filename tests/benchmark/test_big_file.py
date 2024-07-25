@@ -3,12 +3,11 @@
 import shutil
 from pathlib import Path
 
-from osmnx import geocode_to_gdf
 from parametrization import Parametrization as P
 from srai.loaders.download import download_file
 
+from quackosm import PbfFileReader, geocode_to_geometry
 from quackosm._osm_tags_filters import OsmTagsFilter
-from quackosm.pbf_file_reader import PbfFileReader
 
 
 @P.parameters("extract_name", "geocode_filter", "tags_filter")  # type: ignore
@@ -31,7 +30,7 @@ def test_big_file(extract_name: str, geocode_filter: list[str], tags_filter: Osm
         working_directory=files_dir,
         verbosity_mode="verbose",
         tags_filter=tags_filter,
-        geometry_filter=geocode_to_gdf(geocode_filter).unary_union,
+        geometry_filter=geocode_to_geometry(geocode_filter),
     )
     # Reset rows_per_group value to test automatic downscaling
     reader.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[24]
