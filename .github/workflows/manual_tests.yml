@@ -52,7 +52,7 @@ jobs:
         run: pip install pdm
       - name: Generate lock with oldest dependencies
         run: pdm lock --lockfile pdm.oldest.lock --strategy no_cross_platform,direct_minimal_versions -dG:all
-      - name: Install srai and tests dependencies
+      - name: Install quackosm and tests dependencies
         run: pdm install --lockfile pdm.oldest.lock -dG:all --skip=post_install
       - name: Run tests with pytest
         run: |
