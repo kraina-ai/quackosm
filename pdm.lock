@@ -5,7 +5,7 @@
 groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = []
 lock_version = "4.5.0"
-content_hash = "sha256:0eee639aa301d5cdff522c22b0adb344ceec022c8feb15a7ca9f504a7023d96e"
+content_hash = "sha256:daef061fdd6dc8ee068acff0558de0341e8458b234be2938f526b73158232fdb"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
