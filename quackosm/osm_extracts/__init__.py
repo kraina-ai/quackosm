@@ -104,7 +104,6 @@ def get_extract_by_query(
 def get_extract_by_query(
     query: str, source: Union[OsmExtractSource, str] = "any"
 ) -> OpenStreetMapExtract:
-    # TODO: add functionality to CLI
     """
     Find an OSM extract by name.
 
