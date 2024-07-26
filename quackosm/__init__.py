@@ -15,7 +15,7 @@ from quackosm.geocode import geocode_to_geometry
 from quackosm.pbf_file_reader import PbfFileReader
 
 __app_name__ = "QuackOSM"
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 
 __all__ = [
     "PbfFileReader",
