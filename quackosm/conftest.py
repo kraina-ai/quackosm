@@ -6,7 +6,11 @@ import urllib.request
 from doctest import OutputChecker
 from pathlib import Path
 
+
 import duckdb
+
+import pandas
+
 import pytest
 from pooch import retrieve
 
@@ -52,6 +56,7 @@ def add_pbf_files(doctest_namespace):  # type: ignore
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
 
 
+
 @pytest.fixture(autouse=True, scope="session")
 def download_osm_extracts_indexes():  # type: ignore
     """Download OSM extract indexes files to cache."""
@@ -78,3 +83,10 @@ def download_osm_extracts_indexes():  # type: ignore
 def install_spatial_extension():  # type: ignore
     """Install duckdb spatial extension."""
     duckdb.install_extension("spatial")
+
+@pytest.fixture(autouse=True, scope="session")  # type: ignore
+def pandas_terminal_width() -> None:
+    """Change pandas dataframe display options."""
+    pandas.set_option("display.width", 90)
+    pandas.set_option("display.max_colwidth", 35)
+

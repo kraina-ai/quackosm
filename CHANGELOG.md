@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] - 2024-07-25
+
+### Changed
+
+- Replaced `OSMnx` dependency with `GeoPy` for geometry geocoding [#135](https://github.com/kraina-ai/quackosm/issues/135)
+
 ## [0.8.2] - 2024-06-04
 
 ### Added
@@ -304,7 +310,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.8.3...HEAD
+
+[0.8.3]: https://github.com/kraina-ai/quackosm/compare/0.8.2...0.8.3
 
 [0.8.2]: https://github.com/kraina-ai/quackosm/compare/0.8.1...0.8.2
 

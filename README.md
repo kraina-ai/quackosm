@@ -105,7 +105,7 @@ Optional:
 
 - `typer[all] (>=0.9.0)` (click, colorama, rich, shellingham): Required in CLI
 
-- `osmnx (>=1.3.0)`: For geocoding of strings. Required in CLI
+- `geopy (>=2.0.0)`: For geocoding of strings. Required in CLI
 
 - `h3 (>=4.0.0b1)`: For reading H3 strings. Required in CLI
 
@@ -238,8 +238,7 @@ files/monaco_nofilter_noclip_compact.parquet
 
 ```python
 >>> import quackosm as qosm
->>> import osmnx as ox
->>> geometry = ox.geocode_to_gdf("Vatican City").unary_union
+>>> geometry = qosm.geocode_to_geometry("Vatican City")
 >>> qosm.convert_geometry_to_geodataframe(geometry)
                                               tags                      geometry
 feature_id

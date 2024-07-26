@@ -9,7 +9,6 @@ from typing import Annotated, Literal, Optional, Union, cast
 import click
 import geopandas as gpd
 import h3
-import osmnx as ox
 import typer
 from click import Argument
 from click.exceptions import MissingParameter
@@ -22,7 +21,12 @@ from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
 from quackosm.functions import convert_geometry_to_parquet, convert_pbf_to_parquet
+
 from quackosm.osm_extracts import OsmExtractSource, display_available_extracts
+
+from quackosm.geocode import geocode_to_geometry
+
+
 from quackosm.pbf_file_reader import _is_url_path
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -116,8 +120,7 @@ class GeocodeGeometryParser(click.ParamType):  # type: ignore
             return None
 
         try:
-            gdf = ox.geocode_to_gdf(query=value, which_result=None)
-            return gdf.unary_union
+            return geocode_to_geometry(value)
         except Exception:
             raise typer.BadParameter("Cannot geocode provided Nominatim query") from None
 
@@ -323,7 +326,7 @@ def main(
             help=(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]string to geocode[/bold dark_orange] format - it will be"
-                " geocoded to the geometry using Nominatim API (OSMnx library)."
+                " geocoded to the geometry using Nominatim API (GeoPy library)."
                 " Cannot be used together with"
                 " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
                 " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
