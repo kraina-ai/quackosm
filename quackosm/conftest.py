@@ -6,11 +6,8 @@ import urllib.request
 from doctest import OutputChecker
 from pathlib import Path
 
-
 import duckdb
-
 import pandas
-
 import pytest
 from pooch import retrieve
 
@@ -89,4 +86,3 @@ def pandas_terminal_width() -> None:
     """Change pandas dataframe display options."""
     pandas.set_option("display.width", 90)
     pandas.set_option("display.max_colwidth", 35)
-

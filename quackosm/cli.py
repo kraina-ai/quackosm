@@ -21,12 +21,8 @@ from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
 from quackosm.functions import convert_geometry_to_parquet, convert_pbf_to_parquet
-
-from quackosm.osm_extracts import OsmExtractSource, display_available_extracts
-
 from quackosm.geocode import geocode_to_geometry
-
-
+from quackosm.osm_extracts import OsmExtractSource, display_available_extracts
 from quackosm.pbf_file_reader import _is_url_path
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
