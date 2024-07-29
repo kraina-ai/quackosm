@@ -59,7 +59,7 @@ from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
     OsmExtractSource,
     download_extracts_pbf_files,
-    find_smallest_containing_extract,
+    find_smallest_containing_extracts,
 )
 
 __all__ = [
@@ -572,7 +572,7 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
-        matching_extracts = find_smallest_containing_extract(
+        matching_extracts = find_smallest_containing_extracts(
             self.geometry_filter,
             self.osm_extract_source,
             allow_uncovered_geometry=self.allow_uncovered_geometry,

@@ -342,7 +342,7 @@ def find_smallest_containing_bbbike_extracts(
     )
 
 
-def find_smallest_containing_extract(
+def find_smallest_containing_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
     source: Union[OsmExtractSource, str],
     allow_uncovered_geometry: bool = False,

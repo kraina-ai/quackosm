@@ -22,7 +22,7 @@ from quackosm._exceptions import (
 from quackosm.osm_extracts import (
     OsmExtractSource,
     display_available_extracts,
-    find_smallest_containing_extract,
+    find_smallest_containing_extracts,
     find_smallest_containing_extracts_total,
     get_extract_by_query,
 )
@@ -127,7 +127,7 @@ def test_wrong_osm_extract_source():  # type: ignore
 )  # type: ignore
 def test_single_smallest_extract(source: str, geometry: BaseGeometry, expected_extract_id: str):
     """Test if extracts matching works correctly for geometries within borders."""
-    extracts = find_smallest_containing_extract(geometry, source)
+    extracts = find_smallest_containing_extracts(geometry, source)
     assert len(extracts) == 1
     assert extracts[0].id == expected_extract_id, f"{extracts[0].id} vs {expected_extract_id}"
 
@@ -153,7 +153,7 @@ def test_multiple_smallest_extracts(
     source: str, geometry: BaseGeometry, expected_extract_file_names: list[str]
 ):
     """Test if extracts matching works correctly for geometries between borders."""
-    extracts = find_smallest_containing_extract(geometry, source)
+    extracts = find_smallest_containing_extracts(geometry, source)
     assert len(extracts) == len(expected_extract_file_names)
     ut.assertListEqual([extract.file_name for extract in extracts], expected_extract_file_names)
 
