@@ -141,6 +141,7 @@ def test_single_smallest_extract(source: str, geometry: BaseGeometry, expected_e
         " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
         " 1.382599544073372 42.67676873293743))"
     ),
+    # TODO: change allow_uncovered_geometry flag
     [
         "osmfr_europe_spain_catalunya_lleida",
         "osmfr_europe_spain_catalunya_girona",

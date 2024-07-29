@@ -484,7 +484,8 @@ def _find_smallest_containing_extracts_for_single_geometry(
     if polygons_index_gdf is None:
         raise RuntimeError("Extracts index is empty.")
 
-    extracts_ids: set[str] = set()
+    selected_extracts_ids: set[str] = set()
+    skipped_extracts_ids: set[str] = set()
     if geometry.geom_type == "Polygon":
         geometry_to_cover = geometry.buffer(0)
     else:
@@ -494,13 +495,13 @@ def _find_smallest_containing_extracts_for_single_geometry(
         polygons_index_gdf.geometry.geom_equals_exact(geometry, tolerance=1e-6)
     ]
     if len(exactly_matching_geometry) == 1:
-        extracts_ids.add(exactly_matching_geometry.iloc[0].id)
-        return extracts_ids
+        selected_extracts_ids.add(exactly_matching_geometry.iloc[0].id)
+        return selected_extracts_ids
 
     iterations = 100
     while not geometry_to_cover.is_empty and iterations > 0:
         matching_rows = polygons_index_gdf.loc[
-            (~polygons_index_gdf["id"].isin(extracts_ids))
+            (~polygons_index_gdf["id"].isin(selected_extracts_ids.union(skipped_extracts_ids)))
             & (polygons_index_gdf.intersects(geometry_to_cover))
         ]
         if 0 in (len(matching_rows), iterations):
@@ -518,11 +519,30 @@ def _find_smallest_containing_extracts_for_single_geometry(
             )
             break
 
-        smallest_extract = matching_rows.iloc[0]
-        geometry_to_cover = geometry_to_cover.difference(smallest_extract.geometry)
-        extracts_ids.add(smallest_extract.id)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            geometry_intersection_area = matching_rows.geometry.intersection(geometry_to_cover).area
+            matching_rows["iou_metric"] = geometry_intersection_area / (
+                matching_rows.geometry.area + geometry_to_cover.area - geometry_intersection_area
+            )
+
+        best_matching_extract = matching_rows.sort_values(by="iou_metric", ascending=False).iloc[0]
+        geometry_to_cover = geometry_to_cover.difference(best_matching_extract.geometry)
+        if best_matching_extract.iou_metric >= 0.01 or not selected_extracts_ids:
+            selected_extracts_ids.add(best_matching_extract.id)
+        else:
+            skipped_extracts_ids.add(best_matching_extract.id)
+            warnings.warn(
+                (
+                    "Skipping extract because of low IoU value "
+                    f"({best_matching_extract.file_name}, {best_matching_extract.iou_metric:.3f})."
+                ),
+                GeometryNotCoveredWarning,
+                stacklevel=0,
+            )
+
         iterations -= 1
-    return extracts_ids
+    return selected_extracts_ids
 
 
 def _filter_extracts(
