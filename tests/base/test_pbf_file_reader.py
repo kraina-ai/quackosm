@@ -907,14 +907,12 @@ def test_gdal_parity(extract_name: str) -> None:
     )
     invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"] = (
         gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
-            # crs=WGS84_CRS,
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
         )
         .set_crs(WGS84_CRS)
         .intersection(
             gpd.GeoSeries(
-                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
-                # crs=WGS84_CRS,
+                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
             ).set_crs(WGS84_CRS),
         )
         .area
@@ -926,14 +924,12 @@ def test_gdal_parity(extract_name: str) -> None:
         matching_polygon_geometries_mask, "geometry_intersection_area"
     ] / (
         gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
-            # crs=WGS84_CRS,
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
         )
         .set_crs(WGS84_CRS)
         .area
         + gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
-            # crs=WGS84_CRS,
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
         )
         .set_crs(WGS84_CRS)
         .area
