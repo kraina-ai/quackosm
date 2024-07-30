@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
+from pandas.util._decorators import deprecate
 from pooch import retrieve
 from rich import get_console
 from rich import print as rprint
@@ -707,3 +708,11 @@ def _flatten_geometry(geometry: BaseGeometry) -> list[BaseGeometry]:
             geometries.extend(_flatten_geometry(sub_geom))
         return geometries
     return [geometry]
+
+# TODO: add to changelog
+find_smallest_containing_extract = deprecate(
+    "find_smallest_containing_extract",
+    find_smallest_containing_extracts,
+    "0.9.0",
+    msg="Use `find_smallest_containing_extracts` instead. Deprecated since 0.9.0 version.",
+)
