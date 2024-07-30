@@ -18,9 +18,14 @@ from shapely import from_geojson, from_wkt
 from shapely.geometry import Polygon, box
 
 from quackosm import __app_name__, __version__
+from quackosm._exceptions import OsmExtractSearchError
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._typing import is_expected_type
-from quackosm.functions import convert_geometry_to_parquet, convert_pbf_to_parquet
+from quackosm.functions import (
+    convert_geometry_to_parquet,
+    convert_osm_extract_to_parquet,
+    convert_pbf_to_parquet,
+)
 from quackosm.geocode import geocode_to_geometry
 from quackosm.osm_extracts import OsmExtractSource, display_available_extracts
 from quackosm.pbf_file_reader import _is_url_path
@@ -248,7 +253,7 @@ def main(
         Optional[str],
         typer.Argument(
             help="PBF file to convert into GeoParquet. Can be an URL.",
-            metavar="PBF file path.",
+            metavar="PBF file path",
             callback=_empty_path_callback,
         ),
     ] = None,
@@ -418,6 +423,17 @@ def main(
                 " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan]."
             ),
             click_type=WktGeometryParser(),
+        ),
+    ] = None,
+    osm_extract_query: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "Query to find an OpenStreetMap extract from available sources. "
+                "Will automatically find and download OSM extract. "
+                "Can be used instead of [bold yellow]PBF file path[/bold yellow] argument."
+            ),
+            case_sensitive=False,
         ),
     ] = None,
     osm_extract_source: Annotated[
@@ -601,14 +617,17 @@ def main(
         or geom_filter_wkt
     )
 
-    if pbf_file is None and geometry_filter_value is None:  # noqa: FURB124
+    if (
+        pbf_file is None and osm_extract_query is None and geometry_filter_value is None
+    ):  # noqa: FURB124
         raise MissingParameter(
             message=(
-                "QuackOSM requires either the path to the pbf file or a geometry filter"
+                "QuackOSM requires either the path to the pbf file,"
+                " an OSM extract query (--osm-extract-query) or a geometry filter"
                 " (one of --geom-filter-file, --geom-filter-geocode,"
                 " --geom-filter-geojson, --geom-filter-index-geohash,"
                 " --geom-filter-index-h3, --geom-filter-index-s2, --geom-filter-wkt)"
-                " to download the file automatically. Both cannot be empty at once."
+                " to download the file automatically. All three cannot be empty at once."
             ),
             param=Argument(["pbf_file"], type=Path, metavar="PBF file path"),
         )
@@ -646,6 +665,39 @@ def main(
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
+    elif osm_extract_query:
+        try:
+            # TODO: write tests
+            geoparquet_path = convert_osm_extract_to_parquet(
+                osm_extract_query=osm_extract_query,
+                osm_extract_source=osm_extract_source,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                geometry_filter=geometry_filter_value,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+                save_as_wkt=wkt_result,
+                verbosity_mode=verbosity_mode,
+            )
+        except OsmExtractSearchError as ex:
+            # TODO: fix
+            # message = ex.message
+            # typer.secho(geoparquet_path, fg="green")
+            # raise ex.with_traceback(None) from None
+            # rprint(Traceback.from_exception(type(ex), ex, None))
+            # typer.echo(Traceback.from_exception(type(ex), ex, None))
+            # rprint(Traceback.from_exception(type(ex), ex, None))
+            # raise UsageError(ex.message)  # from ex
+            raise typer.Exit() from ex
+            # raise typer.Exit() from None
     else:
         geoparquet_path = convert_geometry_to_parquet(
             geometry_filter=geometry_filter_value,
