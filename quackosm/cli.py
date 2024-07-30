@@ -617,9 +617,7 @@ def main(
         or geom_filter_wkt
     )
 
-    if (
-        pbf_file is None and osm_extract_query is None and geometry_filter_value is None
-    ):  # noqa: FURB124
+    if pbf_file is osm_extract_query is geometry_filter_value is None:
         raise MissingParameter(
             message=(
                 "QuackOSM requires either the path to the pbf file,"
