@@ -13,6 +13,7 @@ import typer
 from click import Argument
 from click.exceptions import MissingParameter
 from geohash import bbox as geohash_bbox
+from rich.console import Console
 from s2 import s2
 from shapely import from_geojson, from_wkt
 from shapely.geometry import Polygon, box
@@ -40,7 +41,6 @@ def _version_callback(value: bool) -> None:
 
 
 def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
-    # TODO: write tests
     if value:
         param_values = {p.name: p.default for p in ctx.command.params}
         param_values.update(ctx.params)
@@ -667,7 +667,6 @@ def main(
         )
     elif osm_extract_query:
         try:
-            # TODO: write tests
             geoparquet_path = convert_osm_extract_to_parquet(
                 osm_extract_query=osm_extract_query,
                 osm_extract_source=osm_extract_source,
@@ -688,16 +687,9 @@ def main(
                 verbosity_mode=verbosity_mode,
             )
         except OsmExtractSearchError as ex:
-            # TODO: fix
-            # message = ex.message
-            # typer.secho(geoparquet_path, fg="green")
-            # raise ex.with_traceback(None) from None
-            # rprint(Traceback.from_exception(type(ex), ex, None))
-            # typer.echo(Traceback.from_exception(type(ex), ex, None))
-            # rprint(Traceback.from_exception(type(ex), ex, None))
-            # raise UsageError(ex.message)  # from ex
-            raise typer.Exit() from ex
-            # raise typer.Exit() from None
+            err_console = Console(stderr=True)
+            err_console.print(ex)
+            raise typer.Exit(code=1) from None
     else:
         geoparquet_path = convert_geometry_to_parquet(
             geometry_filter=geometry_filter_value,

@@ -134,11 +134,11 @@ def get_extract_by_query(
         elif extract_name_matched_rows.any():
             matching_rows = index[extract_name_matched_rows]
             matching_full_names = sorted(matching_rows["file_name"])
-            full_names = ", ".join(matching_full_names)
+            full_names = ", ".join(f'"{full_name}"' for full_name in matching_full_names)
 
             raise OsmExtractMultipleMatchesError(
-                f"Multiple extracts matched by query '{query.strip()}'.\n"
-                f"Please use one of the full names to specify the extract: {full_names}.",
+                f'Multiple extracts matched by query "{query.strip()}".\n'
+                f"Matching extracts full names: {full_names}.",
                 matching_full_names=matching_full_names,
             )
         # zero names matched
@@ -153,14 +153,15 @@ def get_extract_by_query(
                     found_extracts = index[index["name"].str.lower() == suggested_query_name]
                     matching_full_names.extend(found_extracts["file_name"])
                 full_names = ", ".join(matching_full_names)
+                full_names = ", ".join(f'"{full_name}"' for full_name in matching_full_names)
                 exception_message = (
-                    f"Zero extracts matched by query '{query}'.\n"
+                    f'Zero extracts matched by query "{query}".\n'
                     f"Found full names close to query: {full_names}."
                 )
             else:
                 exception_message = (
-                    f"Zero extracts matched by query '{query}'.\n"
-                    "Zero close matches close have been found."
+                    f'Zero extracts matched by query "{query}".\n'
+                    "Zero close matches have been found."
                 )
 
             raise OsmExtractZeroMatchesError(
