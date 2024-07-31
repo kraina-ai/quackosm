@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
+from pytest_mock import MockerFixture
+from rich.console import Console
 from typer.testing import CliRunner
 
 from quackosm import cli
@@ -693,9 +695,13 @@ def random_str() -> str:
     ["show-extracts", "show-osm-extracts"],
 )  # type: ignore
 def test_displaying_osm_extracts(
-    command: str, osm_source: Optional[OsmExtractSource], capsys: pytest.CaptureFixture
+    command: str,
+    osm_source: Optional[OsmExtractSource],
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture,
 ) -> None:
     """Test if displaying OSM extracts works."""
+    mocker.patch("rich.get_console", return_value=Console(width=999))
     with capsys.disabled():
         osm_source_command = ["--osm-extract-source", osm_source.value] if osm_source else []
         result = runner.invoke(cli.app, [f"--{command}", *osm_source_command])
@@ -713,7 +719,6 @@ def test_displaying_osm_extracts(
             assert output.startswith(osm_source.value)
 
         lines = output.lower().split("\n")
-        print(lines)
 
         assert all(
             any(src.value.lower() in line for src in osm_sources_without_any)
