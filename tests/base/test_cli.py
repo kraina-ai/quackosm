@@ -6,7 +6,6 @@ from typing import Optional
 
 import pytest
 from pytest_mock import MockerFixture
-from rich.console import Console
 from typer.testing import CliRunner
 
 from quackosm import cli
@@ -701,7 +700,6 @@ def test_displaying_osm_extracts(
     capsys: pytest.CaptureFixture,
 ) -> None:
     """Test if displaying OSM extracts works."""
-    mocker.patch("rich.get_console", return_value=Console(width=999))
     with capsys.disabled():
         osm_source_command = ["--osm-extract-source", osm_source.value] if osm_source else []
         result = runner.invoke(cli.app, [f"--{command}", *osm_source_command])
@@ -709,9 +707,6 @@ def test_displaying_osm_extracts(
 
         assert result.exit_code == 0
         assert len(output) > 0
-        from rich import get_console
-
-        print(get_console().width)
 
         osm_sources_without_any = [src for src in OsmExtractSource if src != OsmExtractSource.any]
 
