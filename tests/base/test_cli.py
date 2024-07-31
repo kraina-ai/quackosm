@@ -709,6 +709,9 @@ def test_displaying_osm_extracts(
 
         assert result.exit_code == 0
         assert len(output) > 0
+        from rich import get_console
+
+        print(get_console().width)
 
         osm_sources_without_any = [src for src in OsmExtractSource if src != OsmExtractSource.any]
 
@@ -719,6 +722,7 @@ def test_displaying_osm_extracts(
             assert output.startswith(osm_source.value)
 
         lines = output.lower().split("\n")
+        print(lines)
 
         assert all(
             any(src.value.lower() in line for src in osm_sources_without_any)
