@@ -4,15 +4,12 @@ import warnings
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Callable, cast
+from typing import TYPE_CHECKING, Callable, cast
 
-import geopandas as gpd
-import pandas as pd
-from pyproj import Geod
-from shapely.geometry.base import BaseGeometry
-from shapely.ops import orient
-
-from quackosm._exceptions import OsmExtractIndexOutdatedWarning
+if TYPE_CHECKING:
+    from geopandas import GeoDataFrame
+    from pandas import DataFrame
+    from shapely.geometry.base import BaseGeometry
 
 
 @dataclass
@@ -23,7 +20,7 @@ class OpenStreetMapExtract:
     name: str
     parent: str
     url: str
-    geometry: BaseGeometry
+    geometry: "BaseGeometry"
     file_name: str = ""
 
 
@@ -46,7 +43,7 @@ class OsmExtractSource(str, Enum):
 
 def load_index_decorator(
     extract_source: OsmExtractSource,
-) -> Callable[[Callable[[], gpd.GeoDataFrame]], Callable[[], gpd.GeoDataFrame]]:
+) -> Callable[[Callable[[], "GeoDataFrame"]], Callable[[], "GeoDataFrame"]]:
     """
     Decorator for loading OSM extracts index.
 
@@ -55,13 +52,15 @@ def load_index_decorator(
             Used to save the index to cache.
     """
 
-    def inner(function: Callable[[], gpd.GeoDataFrame]) -> Callable[[], gpd.GeoDataFrame]:
-        def wrapper() -> gpd.GeoDataFrame:
+    def inner(function: Callable[[], "GeoDataFrame"]) -> Callable[[], "GeoDataFrame"]:
+        def wrapper() -> "GeoDataFrame":
             cache_file_path = _get_cache_file_path(extract_source)
             expected_columns = ["id", "name", "file_name", "parent", "geometry", "area", "url"]
 
             # Check if index exists in cache
             if cache_file_path.exists():
+                import geopandas as gpd
+
                 index_gdf = gpd.read_file(cache_file_path)
             # Download index
             else:  # pragma: no cover
@@ -78,6 +77,8 @@ def load_index_decorator(
 
             # Check if columns are right
             if set(expected_columns).symmetric_difference(index_gdf.columns):
+                from quackosm._exceptions import OsmExtractIndexOutdatedWarning
+
                 warnings.warn(
                     "Existing cached index has outdated structure. New index will be redownloaded.",
                     OsmExtractIndexOutdatedWarning,
@@ -104,15 +105,20 @@ def _get_cache_file_path(extract_source: OsmExtractSource) -> Path:
     return Path(f"cache/{extract_source.value.lower()}_index.geojson")
 
 
-def _calculate_geodetic_area(geometry: BaseGeometry) -> float:
+def _calculate_geodetic_area(geometry: "BaseGeometry") -> float:
+    from pyproj import Geod
+    from shapely.ops import orient
+
     geod = Geod(ellps="WGS84")
     poly_area_m2, _ = geod.geometry_area_perimeter(orient(geometry, sign=1))
     poly_area_km2 = round(poly_area_m2) / 1_000_000
     return cast(float, poly_area_km2)
 
 
-def _get_full_file_name_function(index: pd.DataFrame) -> Callable[[str], str]:
-    ids_index = pd.Index(index["id"])
+def _get_full_file_name_function(index: "DataFrame") -> Callable[[str], str]:
+    from pandas import Index
+
+    ids_index = Index(index["id"])
 
     def inner_function(id: str) -> str:
         current_id = id
