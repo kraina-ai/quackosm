@@ -232,7 +232,7 @@ Finished operation in 0:00:03
 files/monaco_nofilter_noclip_compact.parquet
 ```
 
-### Let the QuackOSM automatically download the required OSM PBF files for you based on geometry🔎🌍
+### Let the QuackOSM automatically download the required OSM PBF files for you based on geometry 🔎🌍
 
 #### Load data as a GeoDataFrame
 
