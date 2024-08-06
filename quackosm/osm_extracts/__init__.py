@@ -122,8 +122,14 @@ def get_extract_by_query(
 
         matching_index_row: pd.Series = None
 
-        file_name_matched_rows = index["file_name"].str.lower() == query.lower().strip()
-        extract_name_matched_rows = index["name"].str.lower() == query.lower().strip()
+        file_name_matched_rows = (index["file_name"].str.lower() == query.lower().strip()) | (
+            index["file_name"].str.replace("_", " ").str.lower()
+            == query.lower().replace("_", " ").strip()
+        )
+        extract_name_matched_rows = (index["name"].str.lower() == query.lower().strip()) | (
+            index["name"].str.replace("_", " ").str.lower()
+            == query.lower().replace("_", " ").strip()
+        )
 
         # full file name matched
         if sum(file_name_matched_rows) == 1:
@@ -708,6 +714,7 @@ def _flatten_geometry(geometry: BaseGeometry) -> list[BaseGeometry]:
             geometries.extend(_flatten_geometry(sub_geom))
         return geometries
     return [geometry]
+
 
 # TODO: add to changelog
 find_smallest_containing_extract = deprecate(
