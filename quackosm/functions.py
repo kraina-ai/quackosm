@@ -974,9 +974,6 @@ def convert_osm_extract_to_geodataframe(
             If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
         geometry_filter (BaseGeometry, optional): Region which can be used to filter only
             intersecting OSM objects. Defaults to `None`.
-        result_file_path (Union[str, Path], optional): Where to save
-            the geoparquet file. If not provided, will be generated based on hashes
-            from provided tags filter and geometry filter. Defaults to `None`.
         keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
             Whether to keep all tags related to the element, or return only those defined
             in the `tags_filter`. When `True`, will override the optional grouping defined
@@ -996,9 +993,6 @@ def convert_osm_extract_to_geodataframe(
             Config used to determine which closed way features are polygons.
             Modifications to this config left are left for experienced OSM users.
             Defaults to predefined "osm_way_polygon_features.json".
-        save_as_wkt (bool): Whether to save the file with geometry in the WKT form instead of WKB.
-            If `True`, it will be saved as a `.parquet` file, because it won't be in the GeoParquet
-            standard. Defaults to `False`.
         verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
