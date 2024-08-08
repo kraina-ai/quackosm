@@ -5,18 +5,17 @@ This module contains wrapper for publically available BBBike download server.
 """
 
 import os
-from dataclasses import asdict
 from typing import Optional
 
 import geopandas as gpd
 import requests
 from tqdm import tqdm
 
-from quackosm._constants import WGS84_CRS
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,
     OsmExtractSource,
+    extracts_to_geodataframe,
     load_index_decorator,
 )
 
@@ -44,9 +43,7 @@ def _load_bbbike_index() -> gpd.GeoDataFrame:  # pragma: no cover
         gpd.GeoDataFrame: Extracts index with metadata.
     """
     extracts = _iterate_bbbike_index()
-    gdf = gpd.GeoDataFrame(
-        data=[asdict(extract) for extract in extracts], geometry="geometry"
-    ).set_crs(WGS84_CRS)
+    gdf = extracts_to_geodataframe(extracts)
 
     return gdf
 

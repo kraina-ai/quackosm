@@ -1,10 +1,12 @@
 """OpenStreetMap extract class."""
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, cast
+
+from quackosm._constants import WGS84_CRS
 
 if TYPE_CHECKING:
     from geopandas import GeoDataFrame
@@ -99,6 +101,15 @@ def load_index_decorator(
         return wrapper
 
     return inner
+
+
+def extracts_to_geodataframe(extracts: list[OpenStreetMapExtract]) -> "GeoDataFrame":
+    """Transforms a list of OpenStreetMapExtracts to a GeoDataFrame."""
+    import geopandas as gpd
+
+    return gpd.GeoDataFrame(
+        data=[asdict(extract) for extract in extracts], geometry="geometry"
+    ).set_crs(WGS84_CRS)
 
 
 def _get_cache_file_path(extract_source: OsmExtractSource) -> Path:

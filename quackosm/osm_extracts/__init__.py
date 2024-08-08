@@ -256,6 +256,7 @@ def display_available_extracts(
 
 def find_smallest_containing_extracts_total(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
@@ -263,8 +264,17 @@ def find_smallest_containing_extracts_total(
 
     Iterates all indexes and finds smallest extracts that covers a given geometry.
 
+    Extracts are selected based on the highest value of the Intersection over Union metric with
+    geometry. Some extracts might be discarded because of low IoU metric value leaving some parts
+    of the geometry uncovered.
+
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between
+            0 and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Defaults to `False`.
 
@@ -274,12 +284,14 @@ def find_smallest_containing_extracts_total(
     return _find_smallest_containing_extracts(
         geometry=geometry,
         polygons_index_gdf=_get_combined_index(),
+        geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
     )
 
 
 def find_smallest_containing_geofabrik_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
@@ -287,8 +299,17 @@ def find_smallest_containing_geofabrik_extracts(
 
     Iterates a geofabrik index and finds smallest extracts that covers a given geometry.
 
+    Extracts are selected based on the highest value of the Intersection over Union metric with
+    geometry. Some extracts might be discarded because of low IoU metric value leaving some parts
+    of the geometry uncovered.
+
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between
+            0 and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Defaults to `False`.
 
@@ -298,12 +319,14 @@ def find_smallest_containing_geofabrik_extracts(
     return _find_smallest_containing_extracts(
         geometry=geometry,
         polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.geofabrik],
+        geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
     )
 
 
 def find_smallest_containing_openstreetmap_fr_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
@@ -311,8 +334,17 @@ def find_smallest_containing_openstreetmap_fr_extracts(
 
     Iterates an osm.fr index and finds smallest extracts that covers a given geometry.
 
+    Extracts are selected based on the highest value of the Intersection over Union metric with
+    geometry. Some extracts might be discarded because of low IoU metric value leaving some parts
+    of the geometry uncovered.
+
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between
+            0 and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Defaults to `False`.
 
@@ -322,12 +354,14 @@ def find_smallest_containing_openstreetmap_fr_extracts(
     return _find_smallest_containing_extracts(
         geometry=geometry,
         polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.osm_fr],
+        geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
     )
 
 
 def find_smallest_containing_bbbike_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
@@ -335,8 +369,17 @@ def find_smallest_containing_bbbike_extracts(
 
     Iterates an BBBike index and finds smallest extracts that covers a given geometry.
 
+    Extracts are selected based on the highest value of the Intersection over Union metric with
+    geometry. Some extracts might be discarded because of low IoU metric value leaving some parts
+    of the geometry uncovered.
+
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between
+            0 and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Defaults to `False`.
 
@@ -346,6 +389,7 @@ def find_smallest_containing_bbbike_extracts(
     return _find_smallest_containing_extracts(
         geometry=geometry,
         polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.bbbike],
+        geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
     )
 
@@ -353,6 +397,7 @@ def find_smallest_containing_bbbike_extracts(
 def find_smallest_containing_extracts(
     geometry: Union[BaseGeometry, BaseMultipartGeometry],
     source: Union[OsmExtractSource, str],
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
@@ -360,10 +405,19 @@ def find_smallest_containing_extracts(
 
     Iterates an OSM source index and finds smallest extracts that covers a given geometry.
 
+    Extracts are selected based on the highest value of the Intersection over Union metric with
+    geometry. Some extracts might be discarded because of low IoU metric value leaving some parts
+    of the geometry uncovered.
+
     Args:
         geometry (Union[BaseGeometry, BaseMultipartGeometry]): Geometry to be covered.
         source (Union[OsmExtractSource, str]): OSM source name. Can be one of: 'any', 'Geofabrik',
-            'BBBike', 'OSM_fr'.
+            'BBBike', 'OSMfr'.
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between
+            0 and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Defaults to `False`.
 
@@ -376,6 +430,7 @@ def find_smallest_containing_extracts(
         return _find_smallest_containing_extracts(
             geometry=geometry,
             polygons_index_gdf=index,
+            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
     except ValueError as ex:
@@ -387,6 +442,7 @@ def _find_smallest_containing_extracts(
     polygons_index_gdf: gpd.GeoDataFrame,
     num_of_multiprocessing_workers: int = -1,
     multiprocessing_activation_threshold: Optional[int] = None,
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
 ) -> list[OpenStreetMapExtract]:
     """
@@ -394,6 +450,10 @@ def _find_smallest_containing_extracts(
 
     Iterates a provided extracts index and searches for a smallest set that cover a given geometry.
     It's not guaranteed that this set will be the smallest and there will be no overlaps.
+
+    Extracts are selected based on the highest value of the Intersection over Union metric with
+    geometry. Some extracts might be discarded because of low IoU metric value leaving some parts
+    of the geometry uncovered.
 
     Geometry will be flattened into singluar geometries if it's `BaseMultipartGeometry`.
 
@@ -407,6 +467,11 @@ def _find_smallest_containing_extracts(
         multiprocessing_activation_threshold (int, optional): Number of gometries required to start
             processing on multiple processes. Activating multiprocessing for a small
             amount of points might not be feasible. Defaults to 100.
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between
+            0 and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Defaults to `False`.
 
@@ -434,6 +499,7 @@ def _find_smallest_containing_extracts(
         find_extracts_func = partial(
             _find_smallest_containing_extracts_for_single_geometry,
             polygons_index_gdf=polygons_index_gdf,
+            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
 
@@ -453,6 +519,7 @@ def _find_smallest_containing_extracts(
                 _find_smallest_containing_extracts_for_single_geometry(
                     geometry=sub_geometry,
                     polygons_index_gdf=polygons_index_gdf,
+                    geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
                     allow_uncovered_geometry=allow_uncovered_geometry,
                 )
             )
@@ -471,26 +538,40 @@ def _find_smallest_containing_extracts(
 def _find_smallest_containing_extracts_for_single_geometry(
     geometry: BaseGeometry,
     polygons_index_gdf: gpd.GeoDataFrame,
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
 ) -> set[str]:
     """
     Find smallest set of extracts covering a given singular geometry.
 
+    Extracts are selected based on the highest value of the Intersection over Union metric with
+    geometry. Some extracts might be discarded because of low IoU metric value leaving some parts
+    of the geometry uncovered.
+
     Args:
         geometry (BaseGeometry): Geometry to be covered.
         polygons_index_gdf (gpd.GeoDataFrame): Index of available extracts.
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between
+            0 and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Defaults to `False`.
 
     Raises:
         RuntimeError: If provided extracts index is empty.
         RuntimeError: If there is no extracts covering a given geometry (singularly or in group).
+        ValueError: If geometry_coverage_iou_threshold is outside bounds [0, 1].
 
     Returns:
         Set[str]: Selected extract index string values.
     """
     if polygons_index_gdf is None:
         raise RuntimeError("Extracts index is empty.")
+
+    if geometry_coverage_iou_threshold < 0 or geometry_coverage_iou_threshold > 1:
+        raise ValueError("geometry_coverage_iou_threshold is outside required bounds [0, 1]")
 
     selected_extracts_ids: set[str] = set()
     skipped_extracts_ids: set[str] = set()
@@ -534,9 +615,14 @@ def _find_smallest_containing_extracts_for_single_geometry(
                 matching_rows.geometry.area + geometry_to_cover.area - geometry_intersection_area
             )
 
-        best_matching_extract = matching_rows.sort_values(by="iou_metric", ascending=False).iloc[0]
+        best_matching_extract = matching_rows.sort_values(
+            by=["iou_metric", "area"], ascending=[False, True]
+        ).iloc[0]
         geometry_to_cover = geometry_to_cover.difference(best_matching_extract.geometry)
-        if best_matching_extract.iou_metric >= 0.01 or not selected_extracts_ids:
+        if (
+            best_matching_extract.iou_metric >= geometry_coverage_iou_threshold
+            or not selected_extracts_ids
+        ):
             selected_extracts_ids.add(best_matching_extract.id)
         else:
             skipped_extracts_ids.add(best_matching_extract.id)

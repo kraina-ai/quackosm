@@ -272,6 +272,7 @@ def convert_geometry_to_parquet(
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
@@ -326,6 +327,11 @@ def convert_geometry_to_parquet(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between 0
+            and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
@@ -438,6 +444,7 @@ def convert_geometry_to_parquet(
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
+        geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -811,6 +818,7 @@ def convert_geometry_to_geodataframe(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
@@ -859,6 +867,11 @@ def convert_geometry_to_geodataframe(
             verbosity mode. Can be one of: silent, transient and verbose. Silent disables
             output completely. Transient tracks progress, but removes output after finished.
             Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between 0
+            and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
         allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
             by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
             automatically. Defaults to `False`.
@@ -927,6 +940,7 @@ def convert_geometry_to_geodataframe(
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
+        geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,

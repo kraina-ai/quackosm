@@ -678,6 +678,20 @@ def test_proper_args_with_pbf_url() -> None:
         "nonexistent_extract",
     ],
 )  # type: ignore
+@P.case(
+    "Wrong IoU threshold value",
+    [
+        "--iou-threshold",
+        "1.2",
+    ],
+)  # type: ignore
+@P.case(
+    "Wrong IoU threshold value",
+    [
+        "--iou-threshold",
+        "-0.2",
+    ],
+)  # type: ignore
 def test_wrong_args(args: list[str], capsys: pytest.CaptureFixture) -> None:
     """Test if doesn't run properly with options."""
     # Fix for the I/O error from the Click repository

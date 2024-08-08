@@ -563,6 +563,23 @@ def main(
             show_default=False,
         ),
     ] = False,
+    geometry_coverage_iou_threshold: Annotated[
+        float,
+        typer.Option(
+            "--iou-threshold",
+            help=(
+                "Minimal value of the Intersection over Union metric for selecting the matching OSM"
+                " extracts. Is best matching extract has value lower than the threshold, it is"
+                " discarded (except the first one). Has to be in range between 0 and 1."
+                " Value of 0 will allow every intersected extract, value of 1 will only allow"
+                " extracts that match the geometry exactly. Works only when PbfFileReader is asked"
+                " to download OSM extracts automatically."
+            ),
+            show_default=0.01,
+            min=0,
+            max=1,
+        ),
+    ] = 0.01,
     allow_uncovered_geometry: Annotated[
         bool,
         typer.Option(
@@ -727,6 +744,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
+            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
     typer.secho(geoparquet_path, fg="green")

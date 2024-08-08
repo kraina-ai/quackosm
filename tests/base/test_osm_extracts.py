@@ -19,6 +19,7 @@ from quackosm._exceptions import (
     OsmExtractMultipleMatchesError,
     OsmExtractZeroMatchesError,
 )
+from quackosm.geocode import geocode_to_geometry
 from quackosm.osm_extracts import (
     OsmExtractSource,
     display_available_extracts,
@@ -132,16 +133,34 @@ def test_single_smallest_extract(source: str, geometry: BaseGeometry, expected_e
     assert extracts[0].id == expected_extract_id, f"{extracts[0].id} vs {expected_extract_id}"
 
 
-@P.parameters("source", "geometry", "expected_extract_file_names")  # type: ignore
+@P.parameters(
+    "source", "geometry", "geometry_coverage_iou_threshold", "expected_extract_file_names"
+)  # type: ignore
 @P.case(
-    "Andorra - any",
+    "Andorra bbox, any, iou default",
     "any",
     from_wkt(
         "POLYGON ((1.382599544073372 42.67676873293743, 1.382599544073372 42.40065303248514,"
         " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
         " 1.382599544073372 42.67676873293743))"
     ),
-    # TODO: change allow_uncovered_geometry flag
+    0.01,
+    [
+        "osmfr_europe_spain_catalunya_lleida",
+        "osmfr_europe_france_midi_pyrenees_ariege",
+        "osmfr_europe_france_languedoc_roussillon_pyrenees_orientales",
+        "geofabrik_europe_andorra",
+    ],
+)  # type: ignore
+@P.case(
+    "Andorra bbox, any, iou 0",
+    "any",
+    from_wkt(
+        "POLYGON ((1.382599544073372 42.67676873293743, 1.382599544073372 42.40065303248514,"
+        " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
+        " 1.382599544073372 42.67676873293743))"
+    ),
+    0,
     [
         "osmfr_europe_spain_catalunya_lleida",
         "osmfr_europe_spain_catalunya_girona",
@@ -150,23 +169,46 @@ def test_single_smallest_extract(source: str, geometry: BaseGeometry, expected_e
         "geofabrik_europe_andorra",
     ],
 )  # type: ignore
+@P.case(
+    "Andorra geocode, geofabrik, iou default",
+    "geofabrik",
+    geocode_to_geometry("Andorra"),
+    0.01,
+    ["geofabrik_europe_andorra"],
+)  # type: ignore
+@P.case(
+    "Andorra geocode, osmfr, iou 0",
+    "osmfr",
+    geocode_to_geometry("Andorra"),
+    0,
+    ["osmfr_europe"],
+)  # type: ignore
 def test_multiple_smallest_extracts(
-    source: str, geometry: BaseGeometry, expected_extract_file_names: list[str]
+    source: str,
+    geometry: BaseGeometry,
+    geometry_coverage_iou_threshold: float,
+    expected_extract_file_names: list[str],
 ):
     """Test if extracts matching works correctly for geometries between borders."""
-    extracts = find_smallest_containing_extracts(geometry, source)
-    assert len(extracts) == len(expected_extract_file_names)
+    extracts = find_smallest_containing_extracts(
+        geometry, source, geometry_coverage_iou_threshold=geometry_coverage_iou_threshold
+    )
     ut.assertListEqual([extract.file_name for extract in extracts], expected_extract_file_names)
 
 
 @pytest.mark.parametrize(
-    "expectation,allow_uncovered_geometry",
+    "expectation,allow_uncovered_geometry,geometry_coverage_iou_threshold",
     [
-        (pytest.raises(GeometryNotCoveredError), False),
-        (pytest.warns(GeometryNotCoveredWarning), True),
+        (pytest.raises(GeometryNotCoveredError), False, 0.01),
+        (pytest.raises(ValueError), False, -0.1),
+        (pytest.raises(ValueError), False, 1.2),
+        (pytest.raises(ValueError), True, 1.2),
+        (pytest.warns(GeometryNotCoveredWarning), True, 0.01),
     ],
 )  # type: ignore
-def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool):
+def test_uncovered_geometry_extract(
+    expectation, allow_uncovered_geometry: bool, geometry_coverage_iou_threshold: float
+):
     """Test if raises errors as expected when geometry can't be covered."""
     with expectation:
         geometry = from_wkt(
@@ -174,7 +216,9 @@ def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool)
             " -43.017 29.673, -43.064 29.673))"
         )
         find_smallest_containing_extracts_total(
-            geometry=geometry, allow_uncovered_geometry=allow_uncovered_geometry
+            geometry=geometry,
+            allow_uncovered_geometry=allow_uncovered_geometry,
+            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         )
 
 
