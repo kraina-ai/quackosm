@@ -232,7 +232,7 @@ Finished operation in 0:00:03
 files/monaco_nofilter_noclip_compact.parquet
 ```
 
-### Let the QuackOSM automatically download the required OSM PBF files for you 🔎🌍
+### Let the QuackOSM automatically download the required OSM PBF files for you based on geometry 🔎🌍
 
 #### Load data as a GeoDataFrame
 
@@ -353,6 +353,124 @@ $ quackosm --geom-filter-geocode "Shibuya, Tokyo"
 ⠋ [  32/32] Saving final geoparquet file • 0:00:00
 Finished operation in 0:00:13
 files/78580cf29b5ba1073366a257e1909bfeee43c9f5859e48fb3b2d592028bb58aa_nofilter_compact.parquet
+```
+
+### Let the QuackOSM automatically find the required OSM PBF file for you based on text query 🔎📄
+
+#### Load data as a GeoDataFrame
+
+```python
+>>> import quackosm as qosm
+>>> qosm.convert_osm_extract_to_geodataframe("Vatican City")
+                                              tags                      geometry
+feature_id
+node/4227893563    {'addr:housenumber': '139', ...      POINT (12.45966 41.9039)
+node/4227893564    {'amenity': 'fast_food', 'na...     POINT (12.45952 41.90391)
+node/4227893565    {'name': 'Ferramenta Pieroni...     POINT (12.46042 41.90385)
+node/4227893566    {'amenity': 'ice_cream', 'na...     POINT (12.45912 41.90394)
+node/4227893568    {'amenity': 'cafe', 'name': ...     POINT (12.46112 41.90381)
+...                                            ...                           ...
+relation/2939617   {'building': 'yes', 'type': ...  POLYGON ((12.45269 41.908...
+relation/11839271  {'building': 'yes', 'type': ...  POLYGON ((12.44939 41.897...
+relation/12988851  {'access': 'private', 'ameni...  POLYGON ((12.45434 41.903...
+relation/13571840  {'layer': '1', 'man_made': '...  POLYGON ((12.45132 41.899...
+relation/3256168   {'building': 'yes', 'type': ...  POLYGON ((12.46061 41.907...
+
+[8318 rows x 2 columns]
+```
+
+#### Just convert geometry to GeoParquet
+
+```python
+>>> import quackosm as qosm
+>>> gpq_path = qosm.convert_osm_extract_to_parquet("Paris", osm_extract_source="OSMfr")
+>>> gpq_path.as_posix()
+'files/osmfr_europe_france_ile_de_france_paris_nofilter_noclip_compact.parquet'
+```
+
+#### Inspect the file with duckdb
+
+```python
+>>> import duckdb
+>>> duckdb.load_extension('spatial')
+>>> duckdb.read_parquet(str(gpq_path)).project(
+...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
+... ).order("feature_id")
+┌──────────────────┬────────────────────────────┬──────────────────────────────┐
+│    feature_id    │            tags            │           geometry           │
+│     varchar      │   map(varchar, varchar)    │           geometry           │
+├──────────────────┼────────────────────────────┼──────────────────────────────┤
+│ node/10000001235 │ {information=guidepost, …  │ POINT (2.3423756 48.8635788) │
+│ node/10000001236 │ {barrier=bollard}          │ POINT (2.3423613 48.8635746) │
+│ node/10000001237 │ {barrier=bollard}          │ POINT (2.3423555 48.8635657) │
+│ node/10000001238 │ {barrier=bollard}          │ POINT (2.34235 48.8635575)   │
+│ node/10000001239 │ {barrier=bollard}          │ POINT (2.3423438 48.8635481) │
+│ node/10000005002 │ {amenity=vending_machine…  │ POINT (2.3438906 48.8642058) │
+│ node/10000005003 │ {addr:city=Paris, addr:h…  │ POINT (2.3441257 48.8642723) │
+│ node/10000005297 │ {emergency=fire_hydrant,…  │ POINT (2.2943897 48.8356289) │
+│ node/10000034353 │ {name=Elisa&Marie, shop=…  │ POINT (2.3476407 48.8636628) │
+│ node/10000079406 │ {emergency=fire_hydrant,…  │ POINT (2.2951077 48.8349097) │
+│        ·         │         ·                  │              ·               │
+│        ·         │         ·                  │              ·               │
+│        ·         │         ·                  │              ·               │
+│ node/10180452313 │ {highway=crossing}         │ POINT (2.2668596 48.8351167) │
+│ node/10180457217 │ {amenity=charging_statio…  │ POINT (2.2996381 48.8654136) │
+│ node/10180457222 │ {advertising=poster_box,…  │ POINT (2.2996126 48.8651971) │
+│ node/10180457223 │ {advertising=poster_box,…  │ POINT (2.2990548 48.8651713) │
+│ node/10180457224 │ {advertising=poster_box,…  │ POINT (2.3002578 48.8651435) │
+│ node/10180457225 │ {advertising=poster_box,…  │ POINT (2.3001396 48.8649086) │
+│ node/10180457226 │ {advertising=column, col…  │ POINT (2.3002337 48.8648869) │
+│ node/10180457227 │ {advertising=poster_box,…  │ POINT (2.3004355 48.8648103) │
+│ node/10180457247 │ {advertising=poster_box,…  │ POINT (2.3006468 48.8647237) │
+│ node/10180457248 │ {advertising=poster_box,…  │ POINT (2.3008908 48.8643751) │
+├──────────────────┴────────────────────────────┴──────────────────────────────┤
+│ ? rows (>9999 rows, 20 shown)                                      3 columns │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Use as CLI
+
+```console
+$ quackosm --geom-filter-geocode "Gibraltar"
+100%|█████████████████████████████████████| 1.57M/1.57M [00:00<00:00, 8.66GB/s]
+⠙ [   1/32] Reading nodes • 0:00:00
+⠋ [   2/32] Filtering nodes - intersection • 0:00:00
+⠙ [   3/32] Filtering nodes - tags • 0:00:00
+⠋ [   4/32] Calculating distinct filtered nodes ids • 0:00:00
+⠙ [   5/32] Reading ways • 0:00:00
+⠋ [   6/32] Unnesting ways • 0:00:00
+⠹ [   7/32] Filtering ways - valid refs • 0:00:00
+⠋ [   8/32] Filtering ways - intersection • 0:00:00
+⠙ [   9/32] Filtering ways - tags • 0:00:00
+⠋ [  10/32] Calculating distinct filtered ways ids • 0:00:00
+⠙ [  11/32] Reading relations • 0:00:00
+⠙ [  12/32] Unnesting relations • 0:00:00
+⠼ [  13/32] Filtering relations - valid refs • 0:00:00
+⠋ [  14/32] Filtering relations - intersection • 0:00:00
+⠙ [  15/32] Filtering relations - tags • 0:00:00
+⠙ [  16/32] Calculating distinct filtered relations ids • 0:00:00
+⠙ [  17/32] Loading required ways - by relations • 0:00:00
+⠙ [  18/32] Calculating distinct required ways ids • 0:00:00
+⠙ [  19/32] Saving filtered nodes with geometries • 0:00:00
+⠋ [20.1/32] Grouping filtered ways - assigning groups • 0:00:00
+⠸ [20.2/32] Grouping filtered ways - joining with nodes • 0:00:10
+⠙ [20.3/32] Grouping filtered ways - partitioning by group • 0:00:00
+  [  21/32] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:11 < 0:00:00 •
+⠙ [22.1/32] Grouping required ways - assigning groups • 0:00:00
+⠹ [22.2/32] Grouping required ways - joining with nodes • 0:00:12
+⠙ [22.3/32] Grouping required ways - partitioning by group • 0:00:00
+  [  23/32] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:11 < 0:00:00 •
+⠹ [  24/32] Saving filtered ways with geometries • 0:00:00
+⠸ [  25/32] Saving valid relations parts • 0:00:00
+⠋ [  26/32] Saving relations inner parts • 0:00:00
+⠋ [  27/32] Saving relations outer parts • 0:00:00
+⠙ [  28/32] Saving relations outer parts with holes • 0:00:00
+⠙ [  29/32] Saving relations outer parts without holes • 0:00:00
+⠹ [  30/32] Saving filtered relations with geometries • 0:00:00
+⠹ [  31/32] Saving all features • 0:00:00
+  [  32/32] Saving final geoparquet file 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16/16 • 0:00:00 < 0:00:00 • 163.96 it/s
+Finished operation in 0:00:50
+files/osmfr_europe_gibraltar_nofilter_noclip_compact.parquet
 ```
 
 CLI Help output (`QuackOSM -h`):

@@ -1,8 +1,19 @@
 """Common components for tests."""
+
 from pathlib import Path
 
 from shapely import to_geojson, to_wkt
 from shapely.geometry import Polygon, box
+
+from quackosm.conftest import download_osm_extracts_indexes
+
+__all__ = [
+    "download_osm_extracts_indexes",
+    "geometry_box",
+    "geometry_wkt",
+    "geometry_geojson",
+    "geometry_boundary_file_path",
+]
 
 
 def geometry_box() -> Polygon:

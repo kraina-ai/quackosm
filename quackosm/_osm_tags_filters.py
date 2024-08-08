@@ -151,8 +151,8 @@ def _merge_multiple_osm_tags_filters(osm_tags_filters: Iterable[OsmTagsFilter]) 
                 is_current_value_negative and osm_tag_value != False  # noqa: E712
             ):
                 raise ValueError(
-                    "Provided OSM tags filter values cannot be merged."
-                    f" There is a conflict between the following values with '{osm_tag_key}' key:"
+                    "Provided OSM tags filter values cannot be merged.\n"
+                    f"There is a conflict between the following values with '{osm_tag_key}' key:"
                     f" {result[osm_tag_key]} and {osm_tag_value}."
                 )
 

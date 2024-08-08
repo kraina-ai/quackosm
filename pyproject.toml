@@ -207,4 +207,5 @@ ignore_licenses = ["UNKNOWN"]
 ignore_packages = [
     'docformatter',             # uses MIT license, has mismatched license in analysis
     'mkdocs-jupyter',           # uses Apache-2.0 license, has mismatched license in analysis
+    'python-geohash',           # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
 ]

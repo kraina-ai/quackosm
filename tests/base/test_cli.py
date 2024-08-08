@@ -2,21 +2,29 @@
 
 import uuid
 from pathlib import Path
+from typing import Optional
 
 import pytest
 from parametrization import Parametrization as P
+from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
 from quackosm import __app_name__, __version__, cli
+from quackosm.osm_extracts.extract import OsmExtractSource
 from tests.base.conftest import geometry_boundary_file_path, geometry_geojson, geometry_wkt
 
 runner = CliRunner()
 
 
-@pytest.fixture()  # type: ignore
 def monaco_pbf_file_path() -> str:
-    """Monaco PBF file path fixture."""
+    """Monaco PBF file path."""
     return str(Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf")
+
+
+@pytest.fixture()  # type: ignore
+def monaco_pbf_file_path_fixture() -> str:
+    """Monaco PBF file path fixture."""
+    return monaco_pbf_file_path()
 
 
 def osm_tags_filter_file_path() -> str:
@@ -52,25 +60,25 @@ def test_pbf_file_or_geometry_filter_is_required() -> None:
     assert "Missing argument 'PBF file path'." in result.stdout
 
 
-def test_basic_run(monaco_pbf_file_path: str) -> None:
+def test_basic_run(monaco_pbf_file_path_fixture: str) -> None:
     """Test if runs properly without options."""
-    result = runner.invoke(cli.app, [monaco_pbf_file_path])
+    result = runner.invoke(cli.app, [monaco_pbf_file_path_fixture])
 
     assert result.exit_code == 0
     assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) in result.stdout
 
 
-def test_silent_mode(monaco_pbf_file_path: str) -> None:
+def test_silent_mode(monaco_pbf_file_path_fixture: str) -> None:
     """Test if runs properly without reporting status."""
-    result = runner.invoke(cli.app, [monaco_pbf_file_path, "--ignore-cache", "--silent"])
+    result = runner.invoke(cli.app, [monaco_pbf_file_path_fixture, "--ignore-cache", "--silent"])
 
     assert result.exit_code == 0
     assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) == result.stdout.strip()
 
 
-def test_transient_mode(monaco_pbf_file_path: str) -> None:
+def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
     """Test if runs properly without reporting status."""
-    result = runner.invoke(cli.app, [monaco_pbf_file_path, "--ignore-cache", "--transient"])
+    result = runner.invoke(cli.app, [monaco_pbf_file_path_fixture, "--ignore-cache", "--transient"])
     output_lines = result.stdout.strip().split("\n")
     assert result.exit_code == 0
     assert len(result.stdout.strip().split("\n")) == 2
@@ -253,10 +261,12 @@ def test_transient_mode(monaco_pbf_file_path: str) -> None:
 @P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
 @P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
 def test_proper_args_with_pbf(
-    monaco_pbf_file_path: str, args: list[str], expected_result: str
+    monaco_pbf_file_path_fixture: str, args: list[str], expected_result: str
 ) -> None:
     """Test if runs properly with options."""
-    result = runner.invoke(cli.app, [monaco_pbf_file_path, *args, "--osm-extract-source", "any"])
+    result = runner.invoke(
+        cli.app, [monaco_pbf_file_path_fixture, *args, "--osm-extract-source", "any"]
+    )
     print(result.stdout)
 
     assert result.exit_code == 0
@@ -320,18 +330,8 @@ def test_proper_args_with_pbf(
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_exploded.parquet",
 )  # type: ignore
 @P.case(
-    "Explode short",
-    ["--geom-filter-file", geometry_boundary_file_path(), "--explode"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_exploded.parquet",
-)  # type: ignore
-@P.case(
     "Compact",
     ["--geom-filter-file", geometry_boundary_file_path(), "--compact-tags"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
-)  # type: ignore
-@P.case(
-    "Compact short",
-    ["--geom-filter-file", geometry_boundary_file_path(), "--compact"],
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
@@ -345,11 +345,6 @@ def test_proper_args_with_pbf(
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
-    "Ignore cache short",
-    ["--geom-filter-file", geometry_boundary_file_path(), "--no-cache"],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
-)  # type: ignore
-@P.case(
     "Output",
     [
         "--geom-filter-file",
@@ -357,11 +352,6 @@ def test_proper_args_with_pbf(
         "--output",
         "files/monaco_output.parquet",
     ],
-    "files/monaco_output.parquet",
-)  # type: ignore
-@P.case(
-    "Output short",
-    ["--geom-filter-file", geometry_boundary_file_path(), "-o", "files/monaco_output.parquet"],
     "files/monaco_output.parquet",
 )  # type: ignore
 @P.case(
@@ -393,27 +383,6 @@ def test_proper_args_with_pbf(
         geometry_boundary_file_path(),
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
-        "--compact",
-    ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_compact.parquet",
-)  # type: ignore
-@P.case(
-    "OSM tags filter file",
-    [
-        "--geom-filter-file",
-        geometry_boundary_file_path(),
-        "--osm-tags-filter-file",
-        osm_tags_filter_file_path(),
-    ],
-    "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_exploded.parquet",
-)  # type: ignore
-@P.case(
-    "OSM tags filter file compact",
-    [
-        "--geom-filter-file",
-        geometry_boundary_file_path(),
-        "--osm-tags-filter-file",
-        osm_tags_filter_file_path(),
         "--compact",
     ],
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_compact.parquet",
@@ -516,9 +485,74 @@ def test_proper_args_with_pbf(
     ],
     "files/fa44926c5f128cd438ecbe06d29644849a9de323703076b8ac62ffd7a0747e50_nofilter_compact.parquet",
 )  # type: ignore
-def test_proper_args_without_pbf(args: list[str], expected_result: str) -> None:
+def test_proper_args_with_geometry_filter(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
     result = runner.invoke(cli.app, [*args, "--osm-extract-source", "any"])
+    print(result.stdout)
+
+    assert result.exit_code == 0
+    assert str(Path(expected_result)) in result.stdout
+
+
+@P.parameters("args", "expected_result")  # type: ignore
+@P.case(
+    "Full name",
+    [
+        "--osm-extract-query",
+        "geofabrik_europe_monaco",
+    ],
+    "files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet",
+)  # type: ignore
+@P.case(
+    "Find in geofabrik",
+    [
+        "--osm-extract-query",
+        "Monaco",
+        "--osm-extract-source",
+        "Geofabrik",
+    ],
+    "files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet",
+)  # type: ignore
+@P.case(
+    "Explode",
+    ["--osm-extract-query", "geofabrik_europe_monaco", "--explode-tags"],
+    "files/geofabrik_europe_monaco_nofilter_noclip_exploded.parquet",
+)  # type: ignore
+@P.case(
+    "Compact",
+    [
+        "--osm-extract-query",
+        "geofabrik_europe_monaco",
+        "--compact-tags",
+    ],
+    "files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet",
+)  # type: ignore
+@P.case(
+    "Output",
+    [
+        "--osm-extract-query",
+        "geofabrik_europe_monaco",
+        "--ignore-cache",
+        "--output",
+        "files/gfbrk_monaco_output.parquet",
+    ],
+    "files/gfbrk_monaco_output.parquet",
+)  # type: ignore
+@P.case(
+    "OSM tags filter and geometry filter",
+    [
+        "--osm-extract-query",
+        "geofabrik_europe_monaco",
+        "--geom-filter-file",
+        geometry_boundary_file_path(),
+        "--osm-tags-filter",
+        '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
+    ],
+    "files/geofabrik_europe_monaco_a9dd1c3c2e3d6a94354464e9a1a536ef44cca77eebbd882f48ca52799eb4ca91_6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_exploded.parquet",
+)  # type: ignore
+def test_proper_args_with_osm_extract(args: list[str], expected_result: str) -> None:
+    """Test if runs properly with options."""
+    result = runner.invoke(cli.app, [*args])
     print(result.stdout)
 
     assert result.exit_code == 0
@@ -538,6 +572,7 @@ def test_proper_args_with_pbf_url() -> None:
 @P.case(
     "OSM tags filter malfunctioned JSON",
     [
+        monaco_pbf_file_path(),
         "--osm-tags-filter",
         '{"building": True, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
@@ -545,6 +580,7 @@ def test_proper_args_with_pbf_url() -> None:
 @P.case(
     "OSM tags filter malfunctioned JSON",
     [
+        monaco_pbf_file_path(),
         "--osm-tags-filter",
         '{"building": true, highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
@@ -552,6 +588,7 @@ def test_proper_args_with_pbf_url() -> None:
 @P.case(
     "OSM tags filter malfunctioned JSON",
     [
+        monaco_pbf_file_path(),
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"',
     ],
@@ -559,6 +596,7 @@ def test_proper_args_with_pbf_url() -> None:
 @P.case(
     "OSM tags filter wrong type",
     [
+        monaco_pbf_file_path(),
         "--osm-tags-filter",
         (
             '{"super_group": {"group": {"building": true, "highway": ["primary", "secondary"],'
@@ -569,6 +607,7 @@ def test_proper_args_with_pbf_url() -> None:
 @P.case(
     "OSM tags filter wrong type",
     [
+        monaco_pbf_file_path(),
         "--osm-tags-filter",
         '{"group": [{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}] }',
     ],
@@ -576,6 +615,7 @@ def test_proper_args_with_pbf_url() -> None:
 @P.case(
     "OSM tags two filters",
     [
+        monaco_pbf_file_path(),
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--osm-tags-filter-file",
@@ -584,7 +624,7 @@ def test_proper_args_with_pbf_url() -> None:
 )  # type: ignore
 @P.case(
     "OSM tags nonexistent file filter",
-    ["--osm-tags-filter-file", "nonexistent_json_file.json"],
+    [monaco_pbf_file_path(), "--osm-tags-filter-file", "nonexistent_json_file.json"],
 )  # type: ignore
 @P.case("Geometry WKT filter with GeoJSON", ["--geom-filter-wkt", geometry_geojson()])  # type: ignore
 @P.case("Geometry GeoJSON filter with WKT", ["--geom-filter-geojson", geometry_wkt()])  # type: ignore
@@ -605,27 +645,97 @@ def test_proper_args_with_pbf_url() -> None:
     "Geometry wrong file filter",
     ["--geom-filter-file", osm_tags_filter_file_path()],
 )  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "w/124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "w124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "way124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "n/124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "n124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "node124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "r/124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "r124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "relation124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "node/124;way/124;relation/124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "node/124|way/124|relation/124"])  # type: ignore
-@P.case("Filter OSM", ["--filter-osm-ids", "node/124 way/124 relation/124"])  # type: ignore
-@P.case("OSM way polygon config", ["--osm-way-polygon-config", "nonexistent_json_file.json"])  # type: ignore
-@P.case("Silent and transient", ["--silent", "--transient"])  # type: ignore
-def test_wrong_args(
-    monaco_pbf_file_path: str, args: list[str], capsys: pytest.CaptureFixture
-) -> None:
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "w/124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "w124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "way124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "n/124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "n124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "node124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "r/124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "r124"])  # type: ignore
+@P.case("Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "relation124"])  # type: ignore
+@P.case(
+    "Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "node/124;way/124;relation/124"]
+)  # type: ignore
+@P.case(
+    "Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "node/124|way/124|relation/124"]
+)  # type: ignore
+@P.case(
+    "Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "node/124 way/124 relation/124"]
+)  # type: ignore
+@P.case(
+    "OSM way polygon config",
+    [monaco_pbf_file_path(), "--osm-way-polygon-config", "nonexistent_json_file.json"],
+)  # type: ignore
+@P.case("Silent and transient", [monaco_pbf_file_path(), "--silent", "--transient"])  # type: ignore
+@P.case("OSM extracts with multiple matches", ["--osm-extract-query", "Monaco"])  # type: ignore
+@P.case("OSM extracts with zero matches - some close matches", ["--osm-extract-query", "Prlnd"])  # type: ignore
+@P.case(
+    "OSM extracts with zero matches - without close matches",
+    [
+        "--osm-extract-query",
+        "nonexistent_extract",
+    ],
+)  # type: ignore
+@P.case(
+    "Wrong IoU threshold value",
+    [
+        "--iou-threshold",
+        "1.2",
+    ],
+)  # type: ignore
+@P.case(
+    "Wrong IoU threshold value",
+    [
+        "--iou-threshold",
+        "-0.2",
+    ],
+)  # type: ignore
+def test_wrong_args(args: list[str], capsys: pytest.CaptureFixture) -> None:
     """Test if doesn't run properly with options."""
     # Fix for the I/O error from the Click repository
     # https://github.com/pallets/click/issues/824#issuecomment-1583293065
     with capsys.disabled():
-        result = runner.invoke(cli.app, [monaco_pbf_file_path, *args])
+        result = runner.invoke(cli.app, args)
         assert result.exit_code != 0
+
+
+@pytest.mark.parametrize(
+    "osm_source",
+    [None, *list(OsmExtractSource)],
+)  # type: ignore
+@pytest.mark.parametrize(
+    "command",
+    ["show-extracts", "show-osm-extracts"],
+)  # type: ignore
+def test_displaying_osm_extracts(
+    command: str,
+    osm_source: Optional[OsmExtractSource],
+    mocker: MockerFixture,
+    capsys: pytest.CaptureFixture,
+) -> None:
+    """Test if displaying OSM extracts works."""
+    with capsys.disabled():
+        osm_source_command = ["--osm-extract-source", osm_source.value] if osm_source else []
+        result = runner.invoke(cli.app, [f"--{command}", *osm_source_command])
+        output = result.stdout
+
+        assert result.exit_code == 0
+        assert len(output) > 0
+
+        osm_sources_without_any = [src for src in OsmExtractSource if src != OsmExtractSource.any]
+
+        if osm_source == OsmExtractSource.any or not osm_source:
+            assert output.startswith("All extracts")
+            assert all(src.value in output for src in osm_sources_without_any)
+        else:
+            assert output.startswith(osm_source.value)
+
+        lines = output.lower().split("\n")
+
+        assert all(
+            any(src.value.lower() in line for src in osm_sources_without_any)
+            for line in lines
+            if len(line.strip()) > 0 and line != "all extracts"
+        )

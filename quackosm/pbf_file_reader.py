@@ -59,7 +59,7 @@ from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
     OsmExtractSource,
     download_extracts_pbf_files,
-    find_smallest_containing_extract,
+    find_smallest_containing_extracts,
 )
 
 __all__ = [
@@ -116,8 +116,9 @@ class PbfFileReader:
             Union[OsmWayPolygonConfig, dict[str, Any]]
         ] = None,
         parquet_compression: str = "snappy",
-        osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.geofabrik,
+        osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
         verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+        geometry_coverage_iou_threshold: float = 0.01,
         allow_uncovered_geometry: bool = False,
         debug_memory: bool = False,
         debug_times: bool = False,
@@ -149,11 +150,16 @@ class PbfFileReader:
                 Defaults to "snappy".
             osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
                 downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-                Defaults to `geofabrik`.
+                Defaults to `any`.
             verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.
                 Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+            geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union
+                metric for selecting the matching OSM extracts. Is best matching extract has value
+                lower than the threshold, it is discarded (except the first one). Has to be in range
+                between 0 and 1. Value of 0 will allow every intersected extract, value of 1 will
+                only allow extracts that match the geometry exactly. Defaults to 0.01.
             allow_uncovered_geometry (bool, optional): Suppress an error if some geometry parts
                 aren't covered by any OSM extract. Defaults to `False`.
             debug_memory (bool, optional): If turned on, will keep all temporary files after
@@ -176,6 +182,7 @@ class PbfFileReader:
         self.expanded_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
         self.merged_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
 
+        self.geometry_coverage_iou_threshold = geometry_coverage_iou_threshold
         self.allow_uncovered_geometry = allow_uncovered_geometry
         self.osm_extract_source = osm_extract_source
         self.working_directory = Path(working_directory)
@@ -187,7 +194,6 @@ class PbfFileReader:
         self.debug_times = debug_times
         self.task_progress_tracker: TaskProgressTracker = None
         self.rows_per_group: int = 0
-
 
         self.parquet_compression = parquet_compression
 
@@ -572,9 +578,10 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
-        matching_extracts = find_smallest_containing_extract(
+        matching_extracts = find_smallest_containing_extracts(
             self.geometry_filter,
             self.osm_extract_source,
+            geometry_coverage_iou_threshold=self.geometry_coverage_iou_threshold,
             allow_uncovered_geometry=self.allow_uncovered_geometry,
         )
         pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)

@@ -29,6 +29,8 @@ jobs:
             ${{ runner.os }}-pip-dev-
       - name: Install pdm
         run: pip install pdm
+      - name: Regenerate lock with environment markers
+        run: pdm lock --update-reuse --strategy inherit_metadata
       - name: Generate requirements.txt
         run: pdm export --no-default -G docs -G visualization -G cli-dev -f requirements -o requirements.txt
       - name: Install dependencies

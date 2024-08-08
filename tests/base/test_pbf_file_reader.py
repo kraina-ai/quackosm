@@ -424,7 +424,7 @@ def test_geoparquet_deprecation_warning() -> None:
         monaco_file_path,
         ignore_cache=True,
     )
-    result_path.rename(result_path.with_suffix(".geoparquet"))
+    result_path.replace(result_path.with_suffix(".geoparquet"))
     with pytest.warns(DeprecationWarning):
         convert_pbf_to_parquet(monaco_file_path, ignore_cache=False)
 
@@ -907,14 +907,12 @@ def test_gdal_parity(extract_name: str) -> None:
     )
     invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"] = (
         gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
-            # crs=WGS84_CRS,
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
         )
         .set_crs(WGS84_CRS)
         .intersection(
             gpd.GeoSeries(
-                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
-                # crs=WGS84_CRS,
+                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
             ).set_crs(WGS84_CRS),
         )
         .area
@@ -926,14 +924,12 @@ def test_gdal_parity(extract_name: str) -> None:
         matching_polygon_geometries_mask, "geometry_intersection_area"
     ] / (
         gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"],
-            # crs=WGS84_CRS,
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
         )
         .set_crs(WGS84_CRS)
         .area
         + gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"],
-            # crs=WGS84_CRS,
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
         )
         .set_crs(WGS84_CRS)
         .area
@@ -1076,7 +1072,7 @@ def test_gdal_parity(extract_name: str) -> None:
     ].apply(
         lambda x: (
             remove_interiors(unary_union(polygons))
-            if len(polygons := extract_polygons_from_geometry(x)) > 0
+            if (polygons := extract_polygons_from_geometry(x))
             else None
         )
     )
@@ -1085,7 +1081,7 @@ def test_gdal_parity(extract_name: str) -> None:
     ].apply(
         lambda x: (
             remove_interiors(unary_union(polygons))
-            if len(polygons := extract_polygons_from_geometry(x)) > 0
+            if (polygons := extract_polygons_from_geometry(x))
             else None
         )
     )
