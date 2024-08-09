@@ -587,13 +587,12 @@ def _find_smallest_containing_extracts_for_single_geometry(
         selected_extracts_ids.add(exactly_matching_geometry.iloc[0].id)
         return selected_extracts_ids
 
-    iterations = 100
-    while not geometry_to_cover.is_empty and iterations > 0:
+    while not geometry_to_cover.is_empty:
         matching_rows = polygons_index_gdf.loc[
             (~polygons_index_gdf["id"].isin(selected_extracts_ids.union(skipped_extracts_ids)))
             & (polygons_index_gdf.intersects(geometry_to_cover))
         ]
-        if 0 in (len(matching_rows), iterations):
+        if not len(matching_rows):
             if not allow_uncovered_geometry:
                 raise GeometryNotCoveredError(
                     "Couldn't find extracts covering given geometry."
@@ -635,7 +634,6 @@ def _find_smallest_containing_extracts_for_single_geometry(
                 stacklevel=0,
             )
 
-        iterations -= 1
     return selected_extracts_ids
 
 
