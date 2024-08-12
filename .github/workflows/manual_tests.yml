@@ -23,9 +23,9 @@ jobs:
       - name: Install pdm
         run: pip install pdm
       - name: Generate lock with newest dependencies
-        run: pdm lock --lockfile pdm.newest.lock --strategy no_cross_platform -dG:all
+        run: pdm lock --lockfile pdm.newest.lock --strategy no_cross_platform -G cli -dG test
       - name: Install quackosm and tests dependencies
-        run: pdm install --lockfile pdm.newest.lock -dG:all --skip=post_install
+        run: pdm install --lockfile pdm.newest.lock -G cli -dG test --skip=post_install
       - name: Run tests with pytest
         run: |
           pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
@@ -43,6 +43,7 @@ jobs:
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
+      COLUMNS: 120
     steps:
       - uses: actions/checkout@v3
       - name: Setup Python ${{ matrix.python-version }}
@@ -52,9 +53,9 @@ jobs:
       - name: Install pdm
         run: pip install pdm
       - name: Generate lock with oldest dependencies
-        run: pdm lock --lockfile pdm.oldest.lock --strategy no_cross_platform,direct_minimal_versions -dG:all
+        run: pdm lock --lockfile pdm.oldest.lock --strategy no_cross_platform,direct_minimal_versions -G cli -dG test
       - name: Install quackosm and tests dependencies
-        run: pdm install --lockfile pdm.oldest.lock -dG:all --skip=post_install
+        run: pdm install --lockfile pdm.oldest.lock -G cli -dG test --skip=post_install
       - name: Run tests with pytest
         run: |
           pdm run pytest -v -s --durations=20 tests/base
