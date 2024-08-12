@@ -379,7 +379,7 @@ relation/3256168   {'building': 'yes', 'type': ...  POLYGON ((12.46061 41.907...
 [8318 rows x 2 columns]
 ```
 
-#### Just convert geometry to GeoParquet
+#### Just convert OSM extract to GeoParquet
 
 ```python
 >>> import quackosm as qosm
