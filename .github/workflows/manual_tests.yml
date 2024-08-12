@@ -43,6 +43,7 @@ jobs:
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
+      COLUMNS: 120
     steps:
       - uses: actions/checkout@v3
       - name: Setup Python ${{ matrix.python-version }}
