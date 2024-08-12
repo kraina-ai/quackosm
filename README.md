@@ -94,7 +94,7 @@ Required:
 
 - `pooch (>=1.6.0)`: For downloading `*.osm.pbf` files
 
-- `rich (>=10.11.0)` & `tqdm (>=4.42.0)`: For showing progress bars
+- `rich (>=12.0.0)` & `tqdm (>=4.42.0)`: For showing progress bars
 
 - `requests`: For iterating OSM PBF files services
 
