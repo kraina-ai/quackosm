@@ -35,7 +35,7 @@ from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_t
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
 
-if TYPE_CHECKING:
+if TYPE_CHECKING: # pragma: no cover
     import pandas as pd
 
 __all__ = [

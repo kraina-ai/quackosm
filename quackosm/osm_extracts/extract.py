@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Callable, cast
 
 from quackosm._constants import WGS84_CRS
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from geopandas import GeoDataFrame
     from pandas import DataFrame
     from shapely.geometry.base import BaseGeometry
