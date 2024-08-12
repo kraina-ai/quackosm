@@ -838,7 +838,6 @@ def _flatten_geometry(geometry: BaseGeometry) -> list[BaseGeometry]:
     return [geometry]
 
 
-# TODO: add to changelog
 find_smallest_containing_extract = deprecate(
     "find_smallest_containing_extract",
     find_smallest_containing_extracts,
