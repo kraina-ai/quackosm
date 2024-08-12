@@ -7,7 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Functions `convert_osm_extract_to_parquet` and `convert_osm_extract_to_geodataframe` with option to search and download OSM extracts by text query [#119](https://github.com/kraina-ai/quackosm/issues/119)
+- Function for downloading an OSM extract PBF file using a text query (`quackosm.osm_extracts.download_extract_by_query`)
+- Function for displaying available OSM extracts from multiple sources (`quackosm.osm_extracts.display_available_extracts` and `--show-extracts` / `--show-osm-extracts` in cli) in the form of a tree
+- New parameter `geometry_coverage_iou_threshold` (and `--iou-threshold` in cli) to enable configuration of the Intersection over Union metric value sensitivity for covering the geometry with OSM extracts
+- Two new notebook examples for documentation purposes - basic usage and OSM extracts deep dive
+- Improved tests configuration by downloading precalculated extracts indexes from a dedicated repository
+
+### Changed
+
+- Refactored searching OSM extracts for a given geometry filter to utilize Intersection over Union metric [#110](https://github.com/kraina-ai/quackosm/issues/110) [#115](https://github.com/kraina-ai/quackosm/issues/115)
+- Moved multiple modules imports inside certain functions to speed up CLI responsiveness
+- Replaced default `Geofabrik` OSM extract download source with `any` to include all available resources
+- Refactored OSM extracts sources cache files to calculate area in kilometers squared and added `parent` and `file_name` fields
+
+### Deprecated
+
+- Function `find_smallest_containing_extract` from `quackosm.osm_extracts` have been deprecated in favor of `find_smallest_containing_extracts`
+
 ## [0.8.3] - 2024-07-25
+
+### Added
+
+- New function `quackosm.geocode_to_geometry` for quick geocoding of the text query to a geometry
 
 ### Changed
 
