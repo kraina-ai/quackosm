@@ -318,7 +318,7 @@ def find_smallest_containing_geofabrik_extracts(
     """
     return _find_smallest_containing_extracts(
         geometry=geometry,
-        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.geofabrik],
+        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.geofabrik](),
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
     )
@@ -353,7 +353,7 @@ def find_smallest_containing_openstreetmap_fr_extracts(
     """
     return _find_smallest_containing_extracts(
         geometry=geometry,
-        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.osm_fr],
+        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.osm_fr](),
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
     )
@@ -388,7 +388,7 @@ def find_smallest_containing_bbbike_extracts(
     """
     return _find_smallest_containing_extracts(
         geometry=geometry,
-        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.bbbike],
+        polygons_index_gdf=OSM_EXTRACT_SOURCE_INDEX_FUNCTION[OsmExtractSource.bbbike](),
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
     )
@@ -573,8 +573,58 @@ def _find_smallest_containing_extracts_for_single_geometry(
     if geometry_coverage_iou_threshold < 0 or geometry_coverage_iou_threshold > 1:
         raise ValueError("geometry_coverage_iou_threshold is outside required bounds [0, 1]")
 
+    checked_extracts_ids, iou_metric_values = _cover_geometry_with_extracts(
+        geometry=geometry,
+        polygons_index_gdf=polygons_index_gdf,
+        allow_uncovered_geometry=allow_uncovered_geometry,
+    )
+
     selected_extracts_ids: set[str] = set()
-    skipped_extracts_ids: set[str] = set()
+    for extract_id, iou_metric_value in zip(checked_extracts_ids, iou_metric_values):
+        if iou_metric_value >= geometry_coverage_iou_threshold or not selected_extracts_ids:
+            selected_extracts_ids.add(extract_id)
+        else:
+            skipped_extract = polygons_index_gdf[polygons_index_gdf.id == extract_id].iloc[0]
+            warnings.warn(
+                (
+                    "Skipping extract because of low IoU value "
+                    f"({skipped_extract.file_name}, {iou_metric_value:.3g})."
+                ),
+                GeometryNotCoveredWarning,
+                stacklevel=0,
+            )
+
+    return selected_extracts_ids
+
+
+def _cover_geometry_with_extracts(
+    geometry: BaseGeometry,
+    polygons_index_gdf: gpd.GeoDataFrame,
+    allow_uncovered_geometry: bool = False,
+) -> tuple[list[str], list[float]]:
+    """
+    Intersect a geometry with extracts and return the IoU coverage.
+
+    Args:
+        geometry (BaseGeometry): Geometry to be covered.
+        polygons_index_gdf (gpd.GeoDataFrame): Index of available extracts.
+        allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Defaults to `False`.
+
+    Raises:
+        RuntimeError: If provided extracts index is empty.
+        RuntimeError: If there is no extracts covering a given geometry (singularly or in group).
+
+    Returns:
+        tuple[list[str], list[float]]: List of extracts index string values with a list
+            of IoU metric values.
+    """
+    if polygons_index_gdf is None:
+        raise RuntimeError("Extracts index is empty.")
+
+    checked_extracts_ids: list[str] = []
+    iou_metric_values: list[float] = []
+
     if geometry.geom_type == "Polygon":
         geometry_to_cover = geometry.buffer(0)
     else:
@@ -584,12 +634,13 @@ def _find_smallest_containing_extracts_for_single_geometry(
         polygons_index_gdf.geometry.geom_equals_exact(geometry, tolerance=1e-6)
     ]
     if len(exactly_matching_geometry) == 1:
-        selected_extracts_ids.add(exactly_matching_geometry.iloc[0].id)
-        return selected_extracts_ids
+        checked_extracts_ids.append(exactly_matching_geometry.iloc[0].id)
+        iou_metric_values.append(1.0)
+        return checked_extracts_ids, iou_metric_values
 
     while not geometry_to_cover.is_empty:
         matching_rows = polygons_index_gdf.loc[
-            (~polygons_index_gdf["id"].isin(selected_extracts_ids.union(skipped_extracts_ids)))
+            (~polygons_index_gdf["id"].isin(checked_extracts_ids))
             & (polygons_index_gdf.intersects(geometry_to_cover))
         ]
         if not len(matching_rows):
@@ -618,23 +669,10 @@ def _find_smallest_containing_extracts_for_single_geometry(
             by=["iou_metric", "area"], ascending=[False, True]
         ).iloc[0]
         geometry_to_cover = geometry_to_cover.difference(best_matching_extract.geometry)
-        if (
-            best_matching_extract.iou_metric >= geometry_coverage_iou_threshold
-            or not selected_extracts_ids
-        ):
-            selected_extracts_ids.add(best_matching_extract.id)
-        else:
-            skipped_extracts_ids.add(best_matching_extract.id)
-            warnings.warn(
-                (
-                    "Skipping extract because of low IoU value "
-                    f"({best_matching_extract.file_name}, {best_matching_extract.iou_metric:.3f})."
-                ),
-                GeometryNotCoveredWarning,
-                stacklevel=0,
-            )
+        checked_extracts_ids.append(best_matching_extract.id)
+        iou_metric_values.append(best_matching_extract.iou_metric)
 
-    return selected_extracts_ids
+    return checked_extracts_ids, iou_metric_values
 
 
 def _filter_extracts(

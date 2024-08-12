@@ -107,6 +107,7 @@ docs = [
     "seaborn>=0.10.0",
     "py-cpuinfo",
     "adjustText",
+    "contextily",
 ]
 license = ["licensecheck"]
 cli-dev = [
