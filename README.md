@@ -431,7 +431,7 @@ relation/3256168   {'building': 'yes', 'type': ...  POLYGON ((12.46061 41.907...
 #### Use as CLI
 
 ```console
-$ quackosm --geom-filter-geocode "Gibraltar"
+$ quackosm --osm-extract-query "Gibraltar"
 100%|█████████████████████████████████████| 1.57M/1.57M [00:00<00:00, 8.66GB/s]
 ⠙ [   1/32] Reading nodes • 0:00:00
 ⠋ [   2/32] Filtering nodes - intersection • 0:00:00
