@@ -2,27 +2,14 @@
 
 import json
 import logging
-import re
 from pathlib import Path
 from typing import Annotated, Literal, Optional, Union, cast
 
 import click
-import geopandas as gpd
-import h3
 import typer
-from click import Argument
-from click.exceptions import MissingParameter
-from geohash import bbox as geohash_bbox
-from s2 import s2
-from shapely import from_geojson, from_wkt
-from shapely.geometry import Polygon, box
 
-from quackosm import __app_name__, __version__
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
-from quackosm._typing import is_expected_type
-from quackosm.functions import convert_geometry_to_parquet, convert_pbf_to_parquet
-from quackosm.geocode import geocode_to_geometry
-from quackosm.osm_extracts import OsmExtractSource
+from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -30,7 +17,20 @@ app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich
 
 def _version_callback(value: bool) -> None:
     if value:
+        from quackosm import __app_name__, __version__
+
         typer.echo(f"{__app_name__} {__version__}")
+        raise typer.Exit()
+
+
+def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
+    if value:
+        from quackosm.osm_extracts import display_available_extracts
+
+        param_values = {p.name: p.default for p in ctx.command.params}
+        param_values.update(ctx.params)
+        osm_source = cast(str, param_values.get("osm_extract_source"))
+        display_available_extracts(source=osm_source, use_full_names=True, use_pager=True)
         raise typer.Exit()
 
 
@@ -56,6 +56,8 @@ class WktGeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
         try:
+            from shapely import from_wkt
+
             return from_wkt(value)
         except Exception:
             raise typer.BadParameter("Cannot parse provided WKT") from None
@@ -71,6 +73,8 @@ class GeoJsonGeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
         try:
+            from shapely import from_geojson
+
             return from_geojson(value)
         except Exception:
             raise typer.BadParameter("Cannot parse provided GeoJSON") from None
@@ -89,6 +93,8 @@ class GeoFileGeometryParser(click.ParamType):  # type: ignore
         value = _path_callback(ctx=ctx, value=value)
 
         try:
+            import geopandas as gpd
+
             gdf = gpd.read_file(value)
             return gdf.unary_union
         except Exception:
@@ -106,6 +112,8 @@ class GeocodeGeometryParser(click.ParamType):  # type: ignore
             return None
 
         try:
+            from quackosm.geocode import geocode_to_geometry
+
             return geocode_to_geometry(value)
         except Exception:
             raise typer.BadParameter("Cannot geocode provided Nominatim query") from None
@@ -122,6 +130,10 @@ class GeohashGeometryParser(click.ParamType):  # type: ignore
             return None
 
         try:
+            import geopandas as gpd
+            from geohash import bbox as geohash_bbox
+            from shapely.geometry import box
+
             geometries = []
             for geohash in value.split(","):
                 bounds = geohash_bbox(geohash.strip())
@@ -144,6 +156,10 @@ class H3GeometryParser(click.ParamType):  # type: ignore
             return None
 
         try:
+            import geopandas as gpd
+            import h3
+            from shapely.geometry import Polygon
+
             geometries = []  # noqa: FURB138
             for h3_cell in value.split(","):
                 geometries.append(
@@ -165,6 +181,10 @@ class S2GeometryParser(click.ParamType):  # type: ignore
             return None
 
         try:
+            import geopandas as gpd
+            from s2 import s2
+            from shapely.geometry import Polygon
+
             geometries = []  # noqa: FURB138
             for s2_index in value.split(","):
                 geometries.append(
@@ -188,6 +208,8 @@ class OsmTagsFilterJsonParser(click.ParamType):  # type: ignore
             parsed_dict = json.loads(value)
         except Exception:
             raise typer.BadParameter("Cannot parse provided OSM tags filter") from None
+
+        from quackosm._typing import is_expected_type
 
         if not is_expected_type(parsed_dict, OsmTagsFilter) and not is_expected_type(
             parsed_dict, GroupedOsmTagsFilter
@@ -218,6 +240,8 @@ def _filter_osm_ids_callback(value: str) -> Optional[list[str]]:
     if not value:
         return None
 
+    import re
+
     osm_ids = value.split(",")
     matcher = re.compile(r"^(node|way|relation)\/\d*$")
     parsed_osm_ids = []
@@ -238,7 +262,7 @@ def main(
         Optional[str],
         typer.Argument(
             help="PBF file to convert into GeoParquet. Can be an URL.",
-            metavar="PBF file path.",
+            metavar="PBF file path",
             callback=_empty_path_callback,
         ),
     ] = None,
@@ -410,6 +434,17 @@ def main(
             click_type=WktGeometryParser(),
         ),
     ] = None,
+    osm_extract_query: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "Query to find an OpenStreetMap extract from available sources. "
+                "Will automatically find and download OSM extract. "
+                "Can be used instead of [bold yellow]PBF file path[/bold yellow] argument."
+            ),
+            case_sensitive=False,
+        ),
+    ] = None,
     osm_extract_source: Annotated[
         OsmExtractSource,
         typer.Option(
@@ -417,12 +452,13 @@ def main(
             "--pbf-download-source",
             help=(
                 "Source where to download the PBF file from."
-                " Can be Geofabrik, BBBike, OpenStreetMap.fr or any."
+                " Can be Geofabrik, BBBike, OSMfr (OpenStreetMap.fr) or any."
             ),
             case_sensitive=False,
-            show_default="geofabrik",
+            show_default="any",
+            is_eager=True,
         ),
-    ] = OsmExtractSource.geofabrik,
+    ] = OsmExtractSource.any,
     explode_tags: Annotated[
         Optional[bool],
         typer.Option(
@@ -527,6 +563,23 @@ def main(
             show_default=False,
         ),
     ] = False,
+    geometry_coverage_iou_threshold: Annotated[
+        float,
+        typer.Option(
+            "--iou-threshold",
+            help=(
+                "Minimal value of the Intersection over Union metric for selecting the matching OSM"
+                " extracts. Is best matching extract has value lower than the threshold, it is"
+                " discarded (except the first one). Has to be in range between 0 and 1."
+                " Value of 0 will allow every intersected extract, value of 1 will only allow"
+                " extracts that match the geometry exactly. Works only when PbfFileReader is asked"
+                " to download OSM extracts automatically."
+            ),
+            show_default=0.01,
+            min=0,
+            max=1,
+        ),
+    ] = 0.01,
     allow_uncovered_geometry: Annotated[
         bool,
         typer.Option(
@@ -538,6 +591,16 @@ def main(
             show_default=False,
         ),
     ] = False,
+    show_extracts: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--show-extracts",
+            "--show-osm-extracts",
+            help="Show available OSM extracts and exit.",
+            callback=_display_osm_extracts_callback,
+            is_eager=False,
+        ),
+    ] = None,
     version: Annotated[
         Optional[bool],
         typer.Option(
@@ -552,8 +615,8 @@ def main(
     """
     QuackOSM CLI.
 
-    Wraps convert_pbf_to_parquet and convert_geometry_to_parquet functions and prints final path to
-    the saved geoparquet file at the end.
+    Wraps convert_pbf_to_parquet, convert_geometry_to_parquet and convert_osm_extract_to_parquet
+    functions and prints final path to the saved geoparquet file at the end.
     """
     number_of_geometries_provided = sum(
         geom is not None
@@ -580,14 +643,18 @@ def main(
         or geom_filter_wkt
     )
 
-    if pbf_file is None and geometry_filter_value is None:  # noqa: FURB124
+    if pbf_file is osm_extract_query is geometry_filter_value is None:
+        from click import Argument
+        from click.exceptions import MissingParameter
+
         raise MissingParameter(
             message=(
-                "QuackOSM requires either the path to the pbf file or a geometry filter"
+                "QuackOSM requires either the path to the pbf file,"
+                " an OSM extract query (--osm-extract-query) or a geometry filter"
                 " (one of --geom-filter-file, --geom-filter-geocode,"
                 " --geom-filter-geojson, --geom-filter-index-geohash,"
                 " --geom-filter-index-h3, --geom-filter-index-s2, --geom-filter-wkt)"
-                " to download the file automatically. Both cannot be empty at once."
+                " to download the file automatically. All three cannot be empty at once."
             ),
             param=Argument(["pbf_file"], type=Path, metavar="PBF file path"),
         )
@@ -607,6 +674,8 @@ def main(
 
     logging.disable(logging.CRITICAL)
     if pbf_file:
+        from quackosm.functions import convert_pbf_to_parquet
+
         geoparquet_path = convert_pbf_to_parquet(
             pbf_path=pbf_file,
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
@@ -625,7 +694,39 @@ def main(
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
+    elif osm_extract_query:
+        from quackosm._exceptions import OsmExtractSearchError
+        from quackosm.functions import convert_osm_extract_to_parquet
+
+        try:
+            geoparquet_path = convert_osm_extract_to_parquet(
+                osm_extract_query=osm_extract_query,
+                osm_extract_source=osm_extract_source,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                geometry_filter=geometry_filter_value,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+                save_as_wkt=wkt_result,
+                verbosity_mode=verbosity_mode,
+            )
+        except OsmExtractSearchError as ex:
+            from rich.console import Console
+
+            err_console = Console(stderr=True)
+            err_console.print(ex)
+            raise typer.Exit(code=1) from None
     else:
+        from quackosm.functions import convert_geometry_to_parquet
+
         geoparquet_path = convert_geometry_to_parquet(
             geometry_filter=geometry_filter_value,
             osm_extract_source=osm_extract_source,
@@ -643,6 +744,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
+            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
     typer.secho(geoparquet_path, fg="green")

@@ -1,6 +1,6 @@
 [project]
 name = "QuackOSM"
-version = "0.8.3"
+version = "0.9.0"
 description = "An open-source tool for reading OpenStreetMap PBF files using DuckDB"
 authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
@@ -18,7 +18,7 @@ dependencies = [
     "pyarrow-ops",
     "requests",
     "polars>=0.19.4",
-    "rich>=10.11.0",
+    "rich>=12.0.0",
     "geoarrow-rust-core>=0.2.0",
 ]
 requires-python = ">=3.9"
@@ -78,12 +78,12 @@ lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>
 test = [
     "pytest>=7.0.0",
-    "tox-pdm",
+    "tox-pdm>=0.7.2",
     "pytest-mock>=3.3.0",
-    "requests-mock",
-    "pytest-check",
-    "pytest-parametrization",
-    "pytest-doctestplus",
+    "requests-mock>=1.12.1",
+    "pytest-check>=2.3.1",
+    "pytest-parametrization>=2022.2.1",
+    "pytest-doctestplus>=1.2.1",
     "srai>=0.6.2",
     "osmnx>=1.3.0"
 ]
@@ -107,6 +107,7 @@ docs = [
     "seaborn>=0.10.0",
     "py-cpuinfo",
     "adjustText",
+    "contextily",
 ]
 license = ["licensecheck"]
 cli-dev = [
@@ -180,7 +181,7 @@ close-quotes-on-newline = true
 wrap-one-line = true
 
 [tool.bumpver]
-current_version = "0.8.3"
+current_version = "0.9.0"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
 commit = true
@@ -207,4 +208,5 @@ ignore_licenses = ["UNKNOWN"]
 ignore_packages = [
     'docformatter',             # uses MIT license, has mismatched license in analysis
     'mkdocs-jupyter',           # uses Apache-2.0 license, has mismatched license in analysis
+    'python-geohash',           # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
 ]

@@ -94,7 +94,7 @@ Required:
 
 - `pooch (>=1.6.0)`: For downloading `*.osm.pbf` files
 
-- `rich (>=10.11.0)` & `tqdm (>=4.42.0)`: For showing progress bars
+- `rich (>=12.0.0)` & `tqdm (>=4.42.0)`: For showing progress bars
 
 - `requests`: For iterating OSM PBF files services
 
@@ -232,7 +232,7 @@ Finished operation in 0:00:03
 files/monaco_nofilter_noclip_compact.parquet
 ```
 
-### Let the QuackOSM automatically download the required OSM PBF files for you 🔎🌍
+### Let the QuackOSM automatically download the required OSM PBF files for you based on geometry 🔎🌍
 
 #### Load data as a GeoDataFrame
 
@@ -355,8 +355,211 @@ Finished operation in 0:00:13
 files/78580cf29b5ba1073366a257e1909bfeee43c9f5859e48fb3b2d592028bb58aa_nofilter_compact.parquet
 ```
 
-CLI Help output (`QuackOSM -h`):
-![CLI Help output](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/cli_help.png)
+### Let the QuackOSM automatically find the required OSM PBF file for you based on text query 🔎📄
+
+#### Load data as a GeoDataFrame
+
+```python
+>>> import quackosm as qosm
+>>> qosm.convert_osm_extract_to_geodataframe("Vatican City")
+                                              tags                      geometry
+feature_id
+node/4227893563    {'addr:housenumber': '139', ...      POINT (12.45966 41.9039)
+node/4227893564    {'amenity': 'fast_food', 'na...     POINT (12.45952 41.90391)
+node/4227893565    {'name': 'Ferramenta Pieroni...     POINT (12.46042 41.90385)
+node/4227893566    {'amenity': 'ice_cream', 'na...     POINT (12.45912 41.90394)
+node/4227893568    {'amenity': 'cafe', 'name': ...     POINT (12.46112 41.90381)
+...                                            ...                           ...
+relation/2939617   {'building': 'yes', 'type': ...  POLYGON ((12.45269 41.908...
+relation/11839271  {'building': 'yes', 'type': ...  POLYGON ((12.44939 41.897...
+relation/12988851  {'access': 'private', 'ameni...  POLYGON ((12.45434 41.903...
+relation/13571840  {'layer': '1', 'man_made': '...  POLYGON ((12.45132 41.899...
+relation/3256168   {'building': 'yes', 'type': ...  POLYGON ((12.46061 41.907...
+
+[8318 rows x 2 columns]
+```
+
+#### Just convert OSM extract to GeoParquet
+
+```python
+>>> import quackosm as qosm
+>>> gpq_path = qosm.convert_osm_extract_to_parquet("Paris", osm_extract_source="OSMfr")
+>>> gpq_path.as_posix()
+'files/osmfr_europe_france_ile_de_france_paris_nofilter_noclip_compact.parquet'
+```
+
+#### Inspect the file with duckdb
+
+```python
+>>> import duckdb
+>>> duckdb.load_extension('spatial')
+>>> duckdb.read_parquet(str(gpq_path)).project(
+...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
+... ).order("feature_id")
+┌──────────────────┬────────────────────────────┬──────────────────────────────┐
+│    feature_id    │            tags            │           geometry           │
+│     varchar      │   map(varchar, varchar)    │           geometry           │
+├──────────────────┼────────────────────────────┼──────────────────────────────┤
+│ node/10000001235 │ {information=guidepost, …  │ POINT (2.3423756 48.8635788) │
+│ node/10000001236 │ {barrier=bollard}          │ POINT (2.3423613 48.8635746) │
+│ node/10000001237 │ {barrier=bollard}          │ POINT (2.3423555 48.8635657) │
+│ node/10000001238 │ {barrier=bollard}          │ POINT (2.34235 48.8635575)   │
+│ node/10000001239 │ {barrier=bollard}          │ POINT (2.3423438 48.8635481) │
+│ node/10000005002 │ {amenity=vending_machine…  │ POINT (2.3438906 48.8642058) │
+│ node/10000005003 │ {addr:city=Paris, addr:h…  │ POINT (2.3441257 48.8642723) │
+│ node/10000005297 │ {emergency=fire_hydrant,…  │ POINT (2.2943897 48.8356289) │
+│ node/10000034353 │ {name=Elisa&Marie, shop=…  │ POINT (2.3476407 48.8636628) │
+│ node/10000079406 │ {emergency=fire_hydrant,…  │ POINT (2.2951077 48.8349097) │
+│        ·         │         ·                  │              ·               │
+│        ·         │         ·                  │              ·               │
+│        ·         │         ·                  │              ·               │
+│ node/10180452313 │ {highway=crossing}         │ POINT (2.2668596 48.8351167) │
+│ node/10180457217 │ {amenity=charging_statio…  │ POINT (2.2996381 48.8654136) │
+│ node/10180457222 │ {advertising=poster_box,…  │ POINT (2.2996126 48.8651971) │
+│ node/10180457223 │ {advertising=poster_box,…  │ POINT (2.2990548 48.8651713) │
+│ node/10180457224 │ {advertising=poster_box,…  │ POINT (2.3002578 48.8651435) │
+│ node/10180457225 │ {advertising=poster_box,…  │ POINT (2.3001396 48.8649086) │
+│ node/10180457226 │ {advertising=column, col…  │ POINT (2.3002337 48.8648869) │
+│ node/10180457227 │ {advertising=poster_box,…  │ POINT (2.3004355 48.8648103) │
+│ node/10180457247 │ {advertising=poster_box,…  │ POINT (2.3006468 48.8647237) │
+│ node/10180457248 │ {advertising=poster_box,…  │ POINT (2.3008908 48.8643751) │
+├──────────────────┴────────────────────────────┴──────────────────────────────┤
+│ ? rows (>9999 rows, 20 shown)                                      3 columns │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Use as CLI
+
+```console
+$ quackosm --osm-extract-query "Gibraltar"
+100%|█████████████████████████████████████| 1.57M/1.57M [00:00<00:00, 8.66GB/s]
+⠙ [   1/32] Reading nodes • 0:00:00
+⠋ [   2/32] Filtering nodes - intersection • 0:00:00
+⠙ [   3/32] Filtering nodes - tags • 0:00:00
+⠋ [   4/32] Calculating distinct filtered nodes ids • 0:00:00
+⠙ [   5/32] Reading ways • 0:00:00
+⠋ [   6/32] Unnesting ways • 0:00:00
+⠹ [   7/32] Filtering ways - valid refs • 0:00:00
+⠋ [   8/32] Filtering ways - intersection • 0:00:00
+⠙ [   9/32] Filtering ways - tags • 0:00:00
+⠋ [  10/32] Calculating distinct filtered ways ids • 0:00:00
+⠙ [  11/32] Reading relations • 0:00:00
+⠙ [  12/32] Unnesting relations • 0:00:00
+⠼ [  13/32] Filtering relations - valid refs • 0:00:00
+⠋ [  14/32] Filtering relations - intersection • 0:00:00
+⠙ [  15/32] Filtering relations - tags • 0:00:00
+⠙ [  16/32] Calculating distinct filtered relations ids • 0:00:00
+⠙ [  17/32] Loading required ways - by relations • 0:00:00
+⠙ [  18/32] Calculating distinct required ways ids • 0:00:00
+⠙ [  19/32] Saving filtered nodes with geometries • 0:00:00
+⠋ [20.1/32] Grouping filtered ways - assigning groups • 0:00:00
+⠸ [20.2/32] Grouping filtered ways - joining with nodes • 0:00:10
+⠙ [20.3/32] Grouping filtered ways - partitioning by group • 0:00:00
+  [  21/32] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:11 < 0:00:00 •
+⠙ [22.1/32] Grouping required ways - assigning groups • 0:00:00
+⠹ [22.2/32] Grouping required ways - joining with nodes • 0:00:12
+⠙ [22.3/32] Grouping required ways - partitioning by group • 0:00:00
+  [  23/32] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:11 < 0:00:00 •
+⠹ [  24/32] Saving filtered ways with geometries • 0:00:00
+⠸ [  25/32] Saving valid relations parts • 0:00:00
+⠋ [  26/32] Saving relations inner parts • 0:00:00
+⠋ [  27/32] Saving relations outer parts • 0:00:00
+⠙ [  28/32] Saving relations outer parts with holes • 0:00:00
+⠙ [  29/32] Saving relations outer parts without holes • 0:00:00
+⠹ [  30/32] Saving filtered relations with geometries • 0:00:00
+⠹ [  31/32] Saving all features • 0:00:00
+  [  32/32] Saving final geoparquet file 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16/16 • 0:00:00 < 0:00:00 • 163.96 it/s
+Finished operation in 0:00:50
+files/osmfr_europe_gibraltar_nofilter_noclip_compact.parquet
+```
+
+<details>
+  <summary>CLI Help output (<code>QuackOSM -h</code>)</summary>
+
+```console
+ Usage: QuackOSM [OPTIONS] PBF file path
+
+ QuackOSM CLI.
+ Wraps convert_pbf_to_parquet, convert_geometry_to_parquet and convert_osm_extract_to_parquet
+ functions and prints final path to the saved geoparquet file at the end.
+
+╭─ Arguments ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│   pbf_file      PBF file path  PBF file to convert into GeoParquet. Can be an URL. [default: None]                                                                                                                                │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --osm-tags-filter                                                           TEXT (JSON)                   OSM tags used to filter the data in the JSON text form. Can take the form of a flat or grouped dict (look:              │
+│                                                                                                           OsmTagsFilter and GroupedOsmTagsFilter). Cannot be used together with osm-tags-filter-file.                             │
+│                                                                                                           [default: None]                                                                                                         │
+│ --osm-tags-filter-file                                                      PATH                          OSM tags used to filter the data in the JSON file form. Can take the form of a flat or grouped dict (look:              │
+│                                                                                                           OsmTagsFilter and GroupedOsmTagsFilter). Cannot be used together with osm-tags-filter.                                  │
+│                                                                                                           [default: None]                                                                                                         │
+│ --keep-all-tags,--all-tags                                                                                Whether to keep all tags while filtering with OSM tags. Doesn't work when there is no OSM tags filter applied           │
+│                                                                                                           (osm-tags-filter or osm-tags-filter-file). Will override grouping if GroupedOsmTagsFilter has been passed as a filter.  │
+│ --geom-filter-file                                                          PATH                          Geometry to use as a filter in the file format - any that can be opened by GeoPandas. Will return the unary union of    │
+│                                                                                                           the geometries in the file. Cannot be used together with geom-filter-geocode or geom-filter-geojson or                  │
+│                                                                                                           geom-filter-index-geohash or geom-filter-index-h3 or geom-filter-index-s2 or geom-filter-wkt.                           │
+│                                                                                                           [default: None]                                                                                                         │
+│ --geom-filter-geocode                                                       TEXT                          Geometry to use as a filter in the string to geocode format - it will be geocoded to the geometry using Nominatim API   │
+│                                                                                                           (GeoPy library). Cannot be used together with geom-filter-file or geom-filter-geojson or geom-filter-index-geohash or   │
+│                                                                                                           geom-filter-index-h3 or geom-filter-index-s2 or geom-filter-wkt.                                                        │
+│                                                                                                           [default: None]                                                                                                         │
+│ --geom-filter-geojson                                                       TEXT (GEOJSON)                Geometry to use as a filter in the GeoJSON format. Cannot be used used together with geom-filter-file or                │
+│                                                                                                           geom-filter-geocode or geom-filter-index-geohash or geom-filter-index-h3 or geom-filter-index-s2 or geom-filter-wkt.    │
+│                                                                                                           [default: None]                                                                                                         │
+│ --geom-filter-index-geohash                                                 TEXT (GEOHASH)                Geometry to use as a filter in the Geohash index format. Separate multiple values with a comma. Cannot be used used     │
+│                                                                                                           together with geom-filter-file or geom-filter-geocode or geom-filter-geojson or geom-filter-index-h3 or                 │
+│                                                                                                           geom-filter-index-s2 or geom-filter-wkt.                                                                                │
+│                                                                                                           [default: None]                                                                                                         │
+│ --geom-filter-index-h3                                                      TEXT (H3)                     Geometry to use as a filter in the H3 index format. Separate multiple values with a comma. Cannot be used used together │
+│                                                                                                           with geom-filter-file or geom-filter-geocode or geom-filter-geojson or geom-filter-index-geohash or                     │
+│                                                                                                           geom-filter-index-s2 or geom-filter-wkt.                                                                                │
+│                                                                                                           [default: None]                                                                                                         │
+│ --geom-filter-index-s2                                                      TEXT (S2)                     Geometry to use as a filter in the S2 index format. Separate multiple values with a comma. Cannot be used used together │
+│                                                                                                           with geom-filter-file or geom-filter-geocode or geom-filter-geojson or geom-filter-index-geohash or                     │
+│                                                                                                           geom-filter-index-h3 or geom-filter-wkt.                                                                                │
+│                                                                                                           [default: None]                                                                                                         │
+│ --geom-filter-wkt                                                           TEXT (WKT)                    Geometry to use as a filter in the WKT format. Cannot be used together with geom-filter-file or geom-filter-geocode or  │
+│                                                                                                           geom-filter-geojson or geom-filter-index-geohash or geom-filter-index-h3 or geom-filter-index-s2.                       │
+│                                                                                                           [default: None]                                                                                                         │
+│ --osm-extract-query                                                         TEXT                          Query to find an OpenStreetMap extract from available sources. Will automatically find and download OSM extract. Can be │
+│                                                                                                           used instead of PBF file path argument.                                                                                 │
+│                                                                                                           [default: None]                                                                                                         │
+│ --osm-extract-source,--pbf-download-source                                  [any|Geofabrik|osmfr|BBBike]  Source where to download the PBF file from. Can be Geofabrik, BBBike, OSMfr (OpenStreetMap.fr) or any. [default: (any)] │
+│ --explode-tags,--explode                        --compact-tags,--compact                                  Whether to split tags into columns based on the OSM tag keys. If None, it will be set based on the                      │
+│                                                                                                           osm-tags-filter/osm-tags-filter-file and keep-all-tags parameters. If there is a tags filter applied without            │
+│                                                                                                           keep-all-tags then it'll be set to explode-tags (True). Otherwise it'll be set to compact-tags (False).                 │
+│ --output                                    -o                              PATH                          Path where to save final geoparquet file. If not provided, it will be generated automatically based on the input pbf    │
+│                                                                                                           file name.                                                                                                              │
+│                                                                                                           [default: None]                                                                                                         │
+│ --ignore-cache,--no-cache                                                                                 Whether to ignore previously precalculated geoparquet files or not.                                                     │
+│ --working-directory,--work-dir                                              PATH                          Directory where to save the parsed parquet and geoparquet files. Will be created if doesn't exist. [default: files]     │
+│ --osm-way-polygon-config                                                    PATH                          Config where alternative OSM way polygon features config is defined. Will determine how to parse way features based on  │
+│                                                                                                           tags. Option is intended for experienced users. It's recommended to disable cache (no-cache) when using this option,    │
+│                                                                                                           since file names don't contain information what config file has been used for file generation.                          │
+│                                                                                                           [default: None]                                                                                                         │
+│ --filter-osm-ids                                                            TEXT                          List of OSM features IDs to read from the file. Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.   │
+│                                                                                                           Separate multiple values with a comma.                                                                                  │
+│                                                                                                           [default: None]                                                                                                         │
+│ --wkt-result,--wkt                                                                                        Whether to save the geometry as a WKT string instead of WKB blob.                                                       │
+│ --silent                                                                                                  Whether to disable progress reporting.                                                                                  │
+│ --transient                                                                                               Whether to make more transient (concise) progress reporting.                                                            │
+│ --iou-threshold                                                             FLOAT RANGE [0<=x<=1]         Minimal value of the Intersection over Union metric for selecting the matching OSM extracts. Is best matching extract   │
+│                                                                                                           has value lower than the threshold, it is discarded (except the first one). Has to be in range between 0 and 1. Value   │
+│                                                                                                           of 0 will allow every intersected extract, value of 1 will only allow extracts that match the geometry exactly. Works   │
+│                                                                                                           only when PbfFileReader is asked to download OSM extracts automatically.                                                │
+│                                                                                                           [default: 0.01]                                                                                                         │
+│ --allow-uncovered-geometry                                                                                Suppresses an error if some geometry parts aren't covered by any OSM extract. Works only when PbfFileReader is asked to │
+│                                                                                                           download OSM extracts automatically.                                                                                    │
+│ --show-extracts,--show-osm-extracts                                                                       Show available OSM extracts and exit.                                                                                   │
+│ --version                                   -v                                                            Show the application's version and exit.                                                                                │
+│ --install-completion                                                                                      Install completion for the current shell.                                                                               │
+│ --show-completion                                                                                         Show completion for the current shell, to copy it or customize the installation.                                        │
+│ --help                                      -h                                                            Show this message and exit.                                                                                             │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```
+</details>
+
+---
 
 You can find full API + more examples in the [docs](https://kraina-ai.github.io/quackosm/).
 
