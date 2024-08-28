@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2024-08-28
+
 ### Fix
 
 - Changed `geopy` dependency to required, to fix missing import for `quackosm.geocode_to_geometry` function
@@ -340,7 +342,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.9.1...HEAD
+
+[0.9.1]: https://github.com/kraina-ai/quackosm/compare/0.9.0...0.9.1
 
 [0.9.0]: https://github.com/kraina-ai/quackosm/compare/0.8.3...0.9.0
 
