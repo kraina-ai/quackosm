@@ -74,8 +74,6 @@ Required:
 
 - `pyarrow (>=16.0.0)`: For parquet files wrangling
 
-- `pyarrow-ops`: For easy removal of duplicated features in parquet files
-
 - `geoarrow-pyarrow (>=0.1.2)`: For GeoParquet IO operations
 
 - `geoarrow-pandas (>=0.1.1)`: For GeoParquet integration with GeoPandas

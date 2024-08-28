@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed `pyarrow-ops` dependency and replaced it with simpler implementation
+
 ## [0.9.1] - 2024-08-28
 
 ### Fix

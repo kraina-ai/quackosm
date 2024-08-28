@@ -22,6 +22,7 @@ from typing import Any, Callable, Literal, NamedTuple, Optional, Union, cast
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
+import numpy as np
 import polars as pl
 import psutil
 import pyarrow as pa
@@ -31,7 +32,6 @@ from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from pooch import retrieve
 from pooch.utils import parse_url
-from pyarrow_ops import drop_duplicates
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
@@ -2255,7 +2255,7 @@ class PbfFileReader:
         save_as_wkt: bool,
     ) -> None:
         select_clauses = [
-            "feature_id",
+            FEATURES_INDEX,
             *self._generate_osm_tags_sql_select(
                 parsed_geometries, keep_all_tags=keep_all_tags, explode_tags=explode_tags
             ),
@@ -2779,9 +2779,17 @@ def _drop_duplicates_in_pyarrow_table(
     ]
     joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
     if joined_parquet_table.num_rows > 0:
-        joined_parquet_table = drop_duplicates(
-            joined_parquet_table, on=["feature_id"], keep="first"
+        # based on https://github.com/TomScheffers/pyarrow_ops/blob/main/pyarrow_ops/ops.py#L45
+        vectorized_hash = np.vectorize(hash)
+        hashed_array = vectorized_hash(
+            joined_parquet_table.column(FEATURES_INDEX)
+            .combine_chunks()
+            .to_numpy(zero_copy_only=False)
         )
+        _, counts = np.unique(hashed_array, return_counts=True)
+        sort_idxs = np.argsort(hashed_array)
+        begin_idxs = [0] + np.cumsum(counts)[:-1].tolist()
+        joined_parquet_table = joined_parquet_table.take(sort_idxs[begin_idxs])
     pq.write_table(joined_parquet_table, output_file_name)
 
 
