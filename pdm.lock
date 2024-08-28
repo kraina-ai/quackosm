@@ -5,7 +5,7 @@
 groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:112b60773421fe29129967d99ef7a1e6c571109ef3bbdc8dfbb8e54e14c87db8"
+content_hash = "sha256:9f988e1e7b75f967d67ee7e50150c6bc8204f9460ce4d2b7df649575b78f5d52"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -1050,7 +1050,7 @@ name = "geographiclib"
 version = "2.0"
 requires_python = ">=3.7"
 summary = "The geodesic routines from GeographicLib"
-groups = ["cli", "docs"]
+groups = ["default", "docs"]
 files = [
     {file = "geographiclib-2.0-py3-none-any.whl", hash = "sha256:6b7225248e45ff7edcee32becc4e0a1504c606ac5ee163a5656d482e0cd38734"},
     {file = "geographiclib-2.0.tar.gz", hash = "sha256:f7f41c85dc3e1c2d3d935ec86660dc3b2c848c83e17f9a9e51ba9d5146a15859"},
@@ -1090,7 +1090,7 @@ name = "geopy"
 version = "2.4.1"
 requires_python = ">=3.7"
 summary = "Python Geocoding Toolbox"
-groups = ["cli", "docs"]
+groups = ["default", "docs"]
 dependencies = [
     "geographiclib<3,>=1.52",
 ]
@@ -1886,6 +1886,7 @@ name = "looseversion"
 version = "1.3.0"
 summary = "Version numbering for anarchists and software realists"
 groups = ["dev"]
+marker = "python_version >= \"3.5\""
 files = [
     {file = "looseversion-1.3.0-py2.py3-none-any.whl", hash = "sha256:781ef477b45946fc03dd4c84ea87734b21137ecda0e1e122bcb3c8d16d2a56e0"},
     {file = "looseversion-1.3.0.tar.gz", hash = "sha256:ebde65f3f6bb9531a81016c6fef3eb95a61181adc47b7f949e9c0ea47911669e"},
@@ -2798,6 +2799,32 @@ files = [
     {file = "pillow-10.4.0-pp39-pypy39_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:f7baece4ce06bade126fb84b8af1c33439a76d8a6fd818970215e0560ca28c27"},
     {file = "pillow-10.4.0-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:cfdd747216947628af7b259d274771d84db2268ca062dd5faf373639d00113a3"},
     {file = "pillow-10.4.0.tar.gz", hash = "sha256:166c1cd4d24309b30d61f79f4a9114b7b2313d7450912277855ff5dfd7cd4a06"},
+]
+
+[[package]]
+name = "pip"
+version = "24.2"
+requires_python = ">=3.8"
+summary = "The PyPA recommended tool for installing Python packages."
+groups = ["license"]
+files = [
+    {file = "pip-24.2-py3-none-any.whl", hash = "sha256:2cd581cf58ab7fcfca4ce8efa6dcacd0de5bf8d0a3eb9ec927e07405f4d9e2a2"},
+    {file = "pip-24.2.tar.gz", hash = "sha256:5b5e490b5e9cb275c879595064adce9ebd31b854e3e803740b72f9ccf34a45b8"},
+]
+
+[[package]]
+name = "pipdeptree"
+version = "2.23.1"
+requires_python = ">=3.8"
+summary = "Command line utility to show dependency tree of packages."
+groups = ["license"]
+dependencies = [
+    "packaging>=23.1",
+    "pip>=23.1.2",
+]
+files = [
+    {file = "pipdeptree-2.23.1-py3-none-any.whl", hash = "sha256:b610a1232eca8c2c0232fff03a88afe6fed01706c73a314615c368f023313a12"},
+    {file = "pipdeptree-2.23.1.tar.gz", hash = "sha256:ebc9b232d7e8ca061826f1875fd4ccc823930f84f327d302019d2ca856f50973"},
 ]
 
 [[package]]

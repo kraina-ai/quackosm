@@ -8,14 +8,14 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from geoarrow.rust.core import PointArray
 
+from quackosm import geocode_to_geometry
 from quackosm._intersection import intersect_nodes_with_geometry
-from quackosm.cli import GeocodeGeometryParser
 
 
 def test_nodes_intersection() -> None:
     """Test if multiprocessing implementation works the same as local."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-    geom_filter = GeocodeGeometryParser().convert("Monaco-Ville, Monaco")  # type: ignore
+    geom_filter = geocode_to_geometry("Monaco-Ville, Monaco")
 
     with tempfile.TemporaryDirectory(dir=Path(__file__).parent.resolve()) as tmp_dir_name:
         duckdb.install_extension("spatial")

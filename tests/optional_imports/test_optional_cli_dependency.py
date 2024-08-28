@@ -13,7 +13,6 @@ def optional_packages() -> list[str]:
     return [
         "typer",
         "click",
-        "geopy",
         "h3",
         "s2",
         "geohash",

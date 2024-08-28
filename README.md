@@ -100,12 +100,11 @@ Required:
 
 - `beautifulsoup4`: For parsing HTML files and scraping required information
 
+- `geopy (>=2.0.0)`: For geocoding of strings
 
 Optional:
 
 - `typer[all] (>=0.9.0)` (click, colorama, rich, shellingham): Required in CLI
-
-- `geopy (>=2.0.0)`: For geocoding of strings. Required in CLI
 
 - `h3 (>=4.0.0b1)`: For reading H3 strings. Required in CLI
 
