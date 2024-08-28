@@ -1,6 +1,7 @@
 """Tests for PbfFileReader."""
 
 import json
+import urllib.request
 import warnings
 from functools import partial
 from itertools import permutations
@@ -31,9 +32,6 @@ from shapely.geometry import (
 )
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import unary_union
-from srai.geometry import remove_interiors
-from srai.loaders.download import download_file
-from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm import (
     convert_geometry_to_parquet,
@@ -57,6 +55,7 @@ from quackosm.cli import (
 from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
 from tests.base.conftest import geometry_box
+from tests.base.full_osm_filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 ut = TestCase()
 LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files/"
@@ -718,10 +717,10 @@ def test_gdal_parity(extract_name: str) -> None:
     """
     pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
     pbf_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.osm.pbf"
-    download_file(pbf_file_download_url, str(pbf_file_path), force_download=True)
+    urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
     gpq_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.geoparquet"
     gpq_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.parquet"
-    download_file(gpq_file_download_url, str(gpq_file_path), force_download=True)
+    urllib.request.urlretrieve(gpq_file_download_url, gpq_file_path)
 
     reader = PbfFileReader()
     duckdb_gdf = reader.convert_pbf_to_geodataframe(
@@ -1071,7 +1070,7 @@ def test_gdal_parity(extract_name: str) -> None:
         "duckdb_geometry"
     ].apply(
         lambda x: (
-            remove_interiors(unary_union(polygons))
+            _remove_interiors(unary_union(polygons))
             if (polygons := extract_polygons_from_geometry(x))
             else None
         )
@@ -1080,7 +1079,7 @@ def test_gdal_parity(extract_name: str) -> None:
         "gdal_geometry"
     ].apply(
         lambda x: (
-            remove_interiors(unary_union(polygons))
+            _remove_interiors(unary_union(polygons))
             if (polygons := extract_polygons_from_geometry(x))
             else None
         )
@@ -1143,3 +1142,12 @@ def test_gdal_parity(extract_name: str) -> None:
         f"Geometries aren't equal - ({[t[FEATURES_INDEX] for t in invalid_features]}). Full debug"
         f" output: ({invalid_features})"
     )
+
+
+# https://stackoverflow.com/a/70387141/7766101
+def _remove_interiors(geometry: Union[Polygon, MultiPolygon]) -> Polygon:
+    if isinstance(geometry, MultiPolygon):
+        return unary_union([_remove_interiors(sub_polygon) for sub_polygon in geometry.geoms])
+    if geometry.interiors:
+        return Polygon(list(geometry.exterior.coords))
+    return geometry

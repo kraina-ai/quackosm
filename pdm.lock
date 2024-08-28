@@ -5,7 +5,7 @@
 groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:9f988e1e7b75f967d67ee7e50150c6bc8204f9460ce4d2b7df649575b78f5d52"
+content_hash = "sha256:9a2290b7a9e95820d2bbceb540939918d60c0362b65b0cb2ced7f15d40cf1a3b"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -701,17 +701,6 @@ files = [
 ]
 
 [[package]]
-name = "dill"
-version = "0.3.8"
-requires_python = ">=3.8"
-summary = "serialize all of Python"
-groups = ["test"]
-files = [
-    {file = "dill-0.3.8-py3-none-any.whl", hash = "sha256:c36ca9ffb54365bdd2f8eb3eff7d2a21237f8452b57ace88b1ac615b7e815bd7"},
-    {file = "dill-0.3.8.tar.gz", hash = "sha256:3ebe3c479ad625c4553aca177444d89b486b1d84982eeacded644afc0cf797ca"},
-]
-
-[[package]]
 name = "distlib"
 version = "0.3.8"
 summary = "Distribution utilities"
@@ -942,7 +931,7 @@ name = "future"
 version = "1.0.0"
 requires_python = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
 summary = "Clean single-source support for Python 3 and 2"
-groups = ["cli", "test"]
+groups = ["cli"]
 files = [
     {file = "future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216"},
     {file = "future-1.0.0.tar.gz", hash = "sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05"},
@@ -1076,16 +1065,6 @@ files = [
 ]
 
 [[package]]
-name = "geoparquet"
-version = "0.0.3"
-summary = "GeoPandas API for Parquet file format."
-groups = ["test"]
-files = [
-    {file = "geoparquet-0.0.3-py3-none-any.whl", hash = "sha256:6aaee13d802d02d73c14a981bc73482c0074a5af671557971187890070fc7da9"},
-    {file = "geoparquet-0.0.3.tar.gz", hash = "sha256:2968c0cd65fe5781abc057252e71bb364b5d18ecbf26c32d753a98df01196a65"},
-]
-
-[[package]]
 name = "geopy"
 version = "2.4.1"
 requires_python = ">=3.7"
@@ -1146,7 +1125,7 @@ files = [
 name = "h3"
 version = "4.0.0b5"
 summary = "Hierarchical hexagonal geospatial indexing system"
-groups = ["cli", "test"]
+groups = ["cli"]
 files = [
     {file = "h3-4.0.0b5-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e7f2faa1affac39f72151217e0b05db8c92cc889aa60156cc60ece0947954760"},
     {file = "h3-4.0.0b5-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:113d64ddaa77135deed5358d9c5a1348d202da3eac9c3887ebe618c8ab3891ac"},
@@ -1173,24 +1152,6 @@ files = [
     {file = "h3-4.0.0b5-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:1da967fff0c91664578de18831c9172aaceaf0c661b82fe55e0c809147e27e89"},
     {file = "h3-4.0.0b5-cp39-cp39-win_amd64.whl", hash = "sha256:1ff74c15bde588f98da9aa91106c88b3de3e9af3dbb6543b80db09cff9a815da"},
     {file = "h3-4.0.0b5.tar.gz", hash = "sha256:f194e1e4e88a7904ab4aef8835ba7e65839f1f1138bd349181a4d2784e4beb54"},
-]
-
-[[package]]
-name = "h3ronpy"
-version = "0.21.0"
-summary = "Data science toolkit for the H3 geospatial grid"
-groups = ["test"]
-dependencies = [
-    "Shapely>=1.7",
-    "numpy<2",
-    "pyarrow>=10.0",
-]
-files = [
-    {file = "h3ronpy-0.21.0-cp38-abi3-macosx_10_14_x86_64.whl", hash = "sha256:49ac8d38a0cb8e2c9ea598473268b22fa99787669a141c8a20fc006ae1879602"},
-    {file = "h3ronpy-0.21.0-cp38-abi3-macosx_11_0_arm64.whl", hash = "sha256:ca20696ea508268c1666f6aa9ebb4df4563e5c6dedb50e158dcafcca19ababf0"},
-    {file = "h3ronpy-0.21.0-cp38-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c38489065e325da510fc1d552e4f096d0c7886ca3c52aeae5f7d5d720577462c"},
-    {file = "h3ronpy-0.21.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:5161bc3b4678df105fdb966e8561d5f28fbd6e6d2a0c0bffc6d798611a0857b0"},
-    {file = "h3ronpy-0.21.0-cp38-abi3-win_amd64.whl", hash = "sha256:a76042a1c13ddfc35d37b0180b56e1a293744fe14b81205b3d5e15222a98dc17"},
 ]
 
 [[package]]
@@ -1253,7 +1214,7 @@ name = "importlib-metadata"
 version = "8.1.0"
 requires_python = ">=3.8"
 summary = "Read metadata from Python packages"
-groups = ["default", "docs", "license", "test"]
+groups = ["default", "docs", "license"]
 marker = "python_version < \"3.10\""
 dependencies = [
     "typing-extensions>=3.6.4; python_version < \"3.8\"",
@@ -1886,7 +1847,6 @@ name = "looseversion"
 version = "1.3.0"
 summary = "Version numbering for anarchists and software realists"
 groups = ["dev"]
-marker = "python_version >= \"3.5\""
 files = [
     {file = "looseversion-1.3.0-py2.py3-none-any.whl", hash = "sha256:781ef477b45946fc03dd4c84ea87734b21137ecda0e1e122bcb3c8d16d2a56e0"},
     {file = "looseversion-1.3.0.tar.gz", hash = "sha256:ebde65f3f6bb9531a81016c6fef3eb95a61181adc47b7f949e9c0ea47911669e"},
@@ -2976,7 +2936,7 @@ name = "pyarrow"
 version = "17.0.0"
 requires_python = ">=3.8"
 summary = "Python library for Apache Arrow"
-groups = ["default", "test"]
+groups = ["default"]
 dependencies = [
     "numpy>=1.16.6",
 ]
@@ -3045,21 +3005,6 @@ groups = ["docs"]
 files = [
     {file = "pycparser-2.22-py3-none-any.whl", hash = "sha256:c3702b6d3dd8c7abc1afa565d7e63d53a1d0bd86cdc24edd75470f4de499cfcc"},
     {file = "pycparser-2.22.tar.gz", hash = "sha256:491c8be9c040f5390f5bf44a5b07752bd07f56edf992381b05c701439eec10f6"},
-]
-
-[[package]]
-name = "pyfunctional"
-version = "1.5.0"
-requires_python = ">=3.8.0,<4.0.0"
-summary = "Package for creating data pipelines with chain functional programming"
-groups = ["test"]
-dependencies = [
-    "dill>=0.2.5",
-    "tabulate<=1.0.0",
-]
-files = [
-    {file = "pyfunctional-1.5.0-py3-none-any.whl", hash = "sha256:dfee0f4110f4167801bb12f8d497230793392f694655103b794460daefbebf2b"},
-    {file = "pyfunctional-1.5.0.tar.gz", hash = "sha256:e184f3d7167e5822b227c95292c3557cf59edf258b1f06a08c8e82991de98769"},
 ]
 
 [[package]]
@@ -3805,25 +3750,6 @@ files = [
 ]
 
 [[package]]
-name = "rtree"
-version = "1.3.0"
-requires_python = ">=3.8"
-summary = "R-Tree spatial index for Python GIS"
-groups = ["test"]
-files = [
-    {file = "Rtree-1.3.0-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:80879d9db282a2273ca3a0d896c84583940e9777477727a277624ebfd424c517"},
-    {file = "Rtree-1.3.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:4328e9e421797c347e6eb08efbbade962fe3664ebd60c1dffe82c40911b1e125"},
-    {file = "Rtree-1.3.0-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:037130d3ce1fc029de81941ec416ba5546f66228380ba19bb41f2ea1294e8423"},
-    {file = "Rtree-1.3.0-py3-none-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:864a05d0c3b7ce6c5e34378b7ab630057603b79179368bc50624258bdf2ff631"},
-    {file = "Rtree-1.3.0-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:ec2ed6d1635753dab966e68f592a9c4896f3f4ec6ad2b09b776d592eacd883a9"},
-    {file = "Rtree-1.3.0-py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:b4485fb3e5c5e85b94a95f0a930a3848e040d2699cfb012940ba5b0130f1e09a"},
-    {file = "Rtree-1.3.0-py3-none-musllinux_1_2_i686.whl", hash = "sha256:7e2e9211f4fb404c06a08fd2cbebb03234214f73c51913bb371c3d9954e99cc9"},
-    {file = "Rtree-1.3.0-py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:c021f4772b25cc24915da8073e553ded6fa8d0b317caa4202255ed26b2344c1c"},
-    {file = "Rtree-1.3.0-py3-none-win_amd64.whl", hash = "sha256:97f835801d24c10bbf02381abe5e327345c8296ec711dde7658792376abafc66"},
-    {file = "rtree-1.3.0.tar.gz", hash = "sha256:b36e9dd2dc60ffe3d02e367242d2c26f7281b00e1aaf0c39590442edaaadd916"},
-]
-
-[[package]]
 name = "ruff"
 version = "0.5.4"
 requires_python = ">=3.7"
@@ -3855,7 +3781,7 @@ name = "s2"
 version = "0.1.9"
 requires_python = ">=3"
 summary = "Python bindings for S2, a hierarchical square geospatial indexing system."
-groups = ["cli", "test"]
+groups = ["cli"]
 dependencies = [
     "s2sphere",
     "shapely",
@@ -3869,7 +3795,7 @@ files = [
 name = "s2sphere"
 version = "0.2.5"
 summary = "Python implementation of the S2 Geometry Library"
-groups = ["cli", "test"]
+groups = ["cli"]
 dependencies = [
     "future>=0.15",
 ]
@@ -4085,35 +4011,6 @@ files = [
 ]
 
 [[package]]
-name = "srai"
-version = "0.7.5"
-requires_python = ">=3.9"
-summary = "A set of python modules for geospatial machine learning and data mining"
-groups = ["test"]
-dependencies = [
-    "geopandas",
-    "geoparquet",
-    "h3>=4.0.0b1",
-    "h3ronpy>=0.18.0",
-    "numpy",
-    "osmnx",
-    "pandas",
-    "pyarrow>=13.0.0",
-    "pyfunctional",
-    "requests",
-    "rtree",
-    "s2",
-    "shapely",
-    "topojson",
-    "tqdm",
-    "typeguard",
-]
-files = [
-    {file = "srai-0.7.5-py3-none-any.whl", hash = "sha256:def039914cbc345697d22ea8a6bca87a3c47d247eccf83cecc918e15d67c2583"},
-    {file = "srai-0.7.5.tar.gz", hash = "sha256:abc4052767bf8df18373d6e1685cf2f5acfddb3a74db54fa5ff0c7c118b6aa8a"},
-]
-
-[[package]]
 name = "stack-data"
 version = "0.6.3"
 summary = "Extract data from python stack frames and tracebacks for informative displays"
@@ -4126,17 +4023,6 @@ dependencies = [
 files = [
     {file = "stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695"},
     {file = "stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9"},
-]
-
-[[package]]
-name = "tabulate"
-version = "0.9.0"
-requires_python = ">=3.7"
-summary = "Pretty-print tabular data"
-groups = ["test"]
-files = [
-    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
-    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
 ]
 
 [[package]]
@@ -4203,22 +4089,6 @@ files = [
 ]
 
 [[package]]
-name = "topojson"
-version = "1.9"
-requires_python = ">=3.8"
-summary = "topojson - a powerful library to encode geographic data as topology in Python!🌍"
-groups = ["test"]
-dependencies = [
-    "numpy",
-    "packaging",
-    "shapely",
-]
-files = [
-    {file = "topojson-1.9-py3-none-any.whl", hash = "sha256:122e6e91fb422549644504580eee86f8a37703dc5ccb1a8e6d8928b750706fe7"},
-    {file = "topojson-1.9.tar.gz", hash = "sha256:5a8389ff576d5540660d4430dab56fcadef7c1f90b9f1aa486b1cb140033ff3b"},
-]
-
-[[package]]
 name = "tornado"
 version = "6.4.1"
 requires_python = ">=3.8"
@@ -4281,7 +4151,7 @@ name = "tqdm"
 version = "4.66.4"
 requires_python = ">=3.7"
 summary = "Fast, Extensible Progress Meter"
-groups = ["default", "test"]
+groups = ["default"]
 dependencies = [
     "colorama; platform_system == \"Windows\"",
 ]
@@ -4306,7 +4176,7 @@ name = "typeguard"
 version = "4.3.0"
 requires_python = ">=3.8"
 summary = "Run-time type checker for Python"
-groups = ["default", "test"]
+groups = ["default"]
 dependencies = [
     "importlib-metadata>=3.6; python_version < \"3.10\"",
     "typing-extensions>=4.10.0",
@@ -4378,7 +4248,7 @@ name = "typing-extensions"
 version = "4.12.2"
 requires_python = ">=3.8"
 summary = "Backported and Experimental Type Hints for Python 3.8+"
-groups = ["default", "cli", "cli-dev", "docs", "license", "lint", "test"]
+groups = ["default", "cli", "cli-dev", "docs", "license", "lint"]
 files = [
     {file = "typing_extensions-4.12.2-py3-none-any.whl", hash = "sha256:04e5ca0351e0f3f85c6853954072df659d0d13fac324d0072316b67d7794700d"},
     {file = "typing_extensions-4.12.2.tar.gz", hash = "sha256:1a7ead55c7e559dd4dee8856e3a88b41225abfe1ce8df57b7c13915fe121ffb8"},
@@ -4601,7 +4471,7 @@ name = "zipp"
 version = "3.19.2"
 requires_python = ">=3.8"
 summary = "Backport of pathlib-compatible object wrapper for zip files"
-groups = ["default", "cli-dev", "docs", "license", "test"]
+groups = ["default", "cli-dev", "docs", "license"]
 marker = "python_version < \"3.10\""
 files = [
     {file = "zipp-3.19.2-py3-none-any.whl", hash = "sha256:f091755f667055f2d02b32c53771a7a6c8b47e1fdbc4b72a8b9072b3eef8015c"},
