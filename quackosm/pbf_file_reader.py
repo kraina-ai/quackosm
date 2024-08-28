@@ -18,20 +18,22 @@ from math import floor
 from pathlib import Path
 from time import sleep
 from typing import Any, Callable, Literal, NamedTuple, Optional, Union, cast
+from uuid import uuid4
 
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
+import numpy as np
 import polars as pl
 import psutil
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from pooch import retrieve
 from pooch.utils import parse_url
-from pyarrow_ops import drop_duplicates
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
@@ -2255,7 +2257,7 @@ class PbfFileReader:
         save_as_wkt: bool,
     ) -> None:
         select_clauses = [
-            "feature_id",
+            FEATURES_INDEX,
             *self._generate_osm_tags_sql_select(
                 parsed_geometries, keep_all_tags=keep_all_tags, explode_tags=explode_tags
             ),
@@ -2779,9 +2781,22 @@ def _drop_duplicates_in_pyarrow_table(
     ]
     joined_parquet_table: pa.Table = pa.concat_tables(parquet_tables, promote_options="default")
     if joined_parquet_table.num_rows > 0:
-        joined_parquet_table = drop_duplicates(
-            joined_parquet_table, on=["feature_id"], keep="first"
-        )
+        # source: https://gist.github.com/nmehran/57f264bd951b2f77af08f760eafea40e
+        index_column = f"index_{uuid4().hex}"
+        index_aggregate_column = f"{index_column}_first"
+
+        # Create row numbers
+        num_rows = joined_parquet_table.num_rows
+        row_numbers = pa.array(np.arange(num_rows, dtype=np.int64))
+
+        # Append row numbers, group by specified columns, and aggregate
+        unique_indices = (
+            joined_parquet_table.append_column(index_column, row_numbers)
+            .group_by(FEATURES_INDEX, use_threads=False)
+            .aggregate([(index_column, "first")])
+        ).column(index_aggregate_column)
+
+        joined_parquet_table = pc.take(joined_parquet_table, unique_indices, boundscheck=False)
     pq.write_table(joined_parquet_table, output_file_name)
 
 

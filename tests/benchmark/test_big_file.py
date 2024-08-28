@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 from parametrization import Parametrization as P
-from srai.loaders.download import download_file
+from pooch import retrieve
 
 from quackosm import PbfFileReader, geocode_to_geometry
 from quackosm._osm_tags_filters import OsmTagsFilter
@@ -22,8 +22,12 @@ def test_big_file(extract_name: str, geocode_filter: list[str], tags_filter: Osm
     files_dir = Path("files")
     shutil.rmtree(files_dir)
     file_name = files_dir / f"{extract_name}.osm.pbf"
-    download_file(
-        f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf", str(file_name)
+    retrieve(
+        f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf",
+        fname=f"{extract_name}.osm.pbf",
+        path=files_dir,
+        progressbar=True,
+        known_hash=None,
     )
 
     reader = PbfFileReader(

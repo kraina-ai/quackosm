@@ -6,10 +6,10 @@ from typing import Union
 from unittest import TestCase
 
 import pytest
-from srai.loaders.osm_loaders.filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter, merge_osm_tags_filter
 from quackosm.pbf_file_reader import PbfFileReader
+from tests.base.full_osm_filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 ut = TestCase()
 

@@ -15,7 +15,6 @@ dependencies = [
     "pooch>=1.6.0",
     "tqdm>=4.42.0",
     "beautifulsoup4",
-    "pyarrow-ops",
     "requests",
     "polars>=0.19.4",
     "rich>=12.0.0",
@@ -80,7 +79,6 @@ test = [
     "pytest-check>=2.3.1",
     "pytest-parametrization>=2022.2.1",
     "pytest-doctestplus>=1.2.1",
-    "srai>=0.6.2",
     "osmnx>=1.3.0",
 ]
 # pdm add -dG docs <library>
