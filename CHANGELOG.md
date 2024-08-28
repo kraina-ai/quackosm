@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fix
 
-- Changed `geopy` dependency to required, to fix missing import for `quackosm.geocode_to_geometry` function.
+- Changed `geopy` dependency to required, to fix missing import for `quackosm.geocode_to_geometry` function
 
 ## [0.9.0] - 2024-08-12
 
