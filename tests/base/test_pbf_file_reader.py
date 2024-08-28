@@ -716,10 +716,12 @@ def test_gdal_parity(extract_name: str) -> None:
     files repository.
     """
     pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
-    pbf_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.osm.pbf"
+    files_directory = Path(__file__).parent.parent / "files"
+    files_directory.mkdir(exist_ok=True, parents=True)
+    pbf_file_path = files_directory / f"{extract_name}.osm.pbf"
     urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
     gpq_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.geoparquet"
-    gpq_file_path = Path(__file__).parent.parent / "files" / f"{extract_name}.parquet"
+    gpq_file_path = files_directory / f"{extract_name}.parquet"
     urllib.request.urlretrieve(gpq_file_download_url, gpq_file_path)
 
     reader = PbfFileReader()
