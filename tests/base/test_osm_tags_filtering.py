@@ -9,7 +9,7 @@ import pytest
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter, merge_osm_tags_filter
 from quackosm.pbf_file_reader import PbfFileReader
-from tests.base.full_osm_filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
+from tests.base.conftest import GEOFABRIK_LAYERS, HEX2VEC_FILTER
 
 ut = TestCase()
 

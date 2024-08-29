@@ -54,8 +54,7 @@ from quackosm.cli import (
 )
 from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
-from tests.base.conftest import geometry_box
-from tests.base.full_osm_filters import GEOFABRIK_LAYERS, HEX2VEC_FILTER
+from tests.base.conftest import GEOFABRIK_LAYERS, HEX2VEC_FILTER, geometry_box
 
 ut = TestCase()
 LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files/"
