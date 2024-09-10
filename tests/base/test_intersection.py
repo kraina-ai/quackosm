@@ -38,9 +38,6 @@ def test_nodes_intersection() -> None:
             """
         )
         nodes_points = pq.ParquetDataset(nodes_destination).read()
-        # points_array = PointArray.from_xy(
-        #     x=nodes_points["lon"].combine_chunks(), y=nodes_points["lat"].combine_chunks()
-        # ).to_shapely()
         points_array = ga.to_geopandas(
             ga.point().from_geobuffers(
                 None,
