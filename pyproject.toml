@@ -18,7 +18,6 @@ dependencies = [
     "requests",
     "polars>=0.19.4",
     "rich>=12.0.0",
-    "geoarrow-rust-core>=0.2.0",
     "geopy>=2.0.0",
     "numpy>=1.26.0",
 ]

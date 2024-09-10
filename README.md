@@ -74,15 +74,13 @@ Required:
 
 - `pyarrow (>=16.0.0)`: For parquet files wrangling
 
-- `geoarrow-pyarrow (>=0.1.2)`: For GeoParquet IO operations
+- `geoarrow-pyarrow (>=0.1.2)`: For GeoParquet IO operations and transforming Arrow data to Shapely objects
 
 - `geoarrow-pandas (>=0.1.1)`: For GeoParquet integration with GeoPandas
 
 - `geopandas (>=0.6)`: For returning GeoDataFrames and reading Geo files
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries
-
-- `geoarrow-rust-core (>=0.2)`: For transforming Arrow data to Shapely objects
 
 - `polars (>=0.19.4)`: For faster OSM ways grouping operation
 
