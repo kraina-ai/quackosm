@@ -4,9 +4,9 @@ import tempfile
 from pathlib import Path
 
 import duckdb
+import geoarrow.pyarrow as ga
 import pyarrow as pa
 import pyarrow.parquet as pq
-from geoarrow.rust.core import PointArray
 
 from quackosm import geocode_to_geometry
 from quackosm._intersection import intersect_nodes_with_geometry
@@ -38,9 +38,14 @@ def test_nodes_intersection() -> None:
             """
         )
         nodes_points = pq.ParquetDataset(nodes_destination).read()
-        points_array = PointArray.from_xy(
-            x=nodes_points["lon"].combine_chunks(), y=nodes_points["lat"].combine_chunks()
-        ).to_shapely()
+        points_array = ga.to_geopandas(
+            ga.point().from_geobuffers(
+                None,
+                x=nodes_points["lon"].to_numpy(),
+                y=nodes_points["lat"].to_numpy(),
+            )
+        )
+
         intersecting_points_mask = geom_filter.intersects(points_array)
 
         intersecting_ids_array = (
