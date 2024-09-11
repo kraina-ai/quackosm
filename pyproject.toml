@@ -109,6 +109,9 @@ cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
 [tool.pdm.scripts]
 post_install = "pre-commit install"
 
+[tool.pdm.build]
+excludes = ["quackosm/conftest.py"]
+
 [tool.black]
 line-length = 100
 target-version = ["py39", "py310", "py311", "py312"]

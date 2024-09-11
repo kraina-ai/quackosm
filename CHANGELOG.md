@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Bumped minimal DuckDB version to `1.1.0`
+- Excluded `conftest.py` file from the final library build
 
 ## [0.9.3] - 2024-09-10
 
