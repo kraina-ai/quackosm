@@ -70,7 +70,7 @@ QuackOSM supports **Python >= 3.9**
 
 Required:
 
-- `duckdb (>=0.10.2)`: For all DuckDB operations on PBF files
+- `duckdb (>=1.1.0)`: For all DuckDB operations on PBF files
 
 - `pyarrow (>=16.0.0)`: For parquet files wrangling
 
@@ -148,9 +148,7 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 ```python
 >>> import duckdb
 >>> duckdb.load_extension('spatial')
->>> duckdb.read_parquet(str(gpq_path)).project(
-...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-... ).order("feature_id")
+>>> duckdb.read_parquet(str(gpq_path)).order("feature_id")
 ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
 │    feature_id    │         tags         │                   geometry                   │
 │     varchar      │ map(varchar, varch…  │                   geometry                   │
@@ -270,9 +268,7 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 ```python
 >>> import duckdb
 >>> duckdb.load_extension('spatial')
->>> duckdb.read_parquet(str(gpq_path)).project(
-...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-... ).order("feature_id")
+>>> duckdb.read_parquet(str(gpq_path)).order("feature_id")
 ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
 │    feature_id    │         tags         │                   geometry                   │
 │     varchar      │ map(varchar, varch…  │                   geometry                   │
@@ -388,9 +384,7 @@ relation/3256168   {'building': 'yes', 'type': ...  POLYGON ((12.46061 41.907...
 ```python
 >>> import duckdb
 >>> duckdb.load_extension('spatial')
->>> duckdb.read_parquet(str(gpq_path)).project(
-...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-... ).order("feature_id")
+>>> duckdb.read_parquet(str(gpq_path)).order("feature_id")
 ┌──────────────────┬────────────────────────────┬──────────────────────────────┐
 │    feature_id    │            tags            │           geometry           │
 │     varchar      │   map(varchar, varchar)    │           geometry           │
