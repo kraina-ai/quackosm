@@ -32,6 +32,7 @@ import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
+from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
 from shapely.geometry import LinearRing, Polygon
@@ -792,6 +793,9 @@ class PbfFileReader:
         save_as_wkt: bool = False,
     ) -> Path:
         if _is_url_path(pbf_path):
+            logger = get_pooch_logger()
+            logger.setLevel("WARNING")
+
             pbf_path = retrieve(
                 pbf_path,
                 fname=Path(pbf_path).name,
