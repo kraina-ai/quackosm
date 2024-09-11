@@ -2256,7 +2256,7 @@ class PbfFileReader:
             *self._generate_osm_tags_sql_select(
                 parsed_geometries, keep_all_tags=keep_all_tags, explode_tags=explode_tags
             ),
-            "geometry",
+            GEOMETRY_COLUMN,
         ]
 
         unioned_features = self.connection.sql(
