@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2024-09-11
+
 ### Changed
 
 - Excluded DuckDB `1.1.0` version from dependencies
@@ -360,7 +362,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.9.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.9.4...HEAD
+
+[0.9.4]: https://github.com/kraina-ai/quackosm/compare/0.9.3...0.9.4
 
 [0.9.3]: https://github.com/kraina-ai/quackosm/compare/0.9.2...0.9.3
 
