@@ -2228,7 +2228,7 @@ class PbfFileReader:
                 f"""
                 COPY (
                     SELECT
-                        * EXCLUDE (geometry), ST_AsWKB(ST_MakeValid(geometry)) geometry_wkb
+                        * EXCLUDE (geometry), ST_AsWKB(ST_MakeValid(geometry)) geometry
                     FROM ({relation.sql_query()})
                 ) TO '{file_path}' (
                     FORMAT 'parquet',
@@ -2241,12 +2241,7 @@ class PbfFileReader:
             if self.debug_memory:
                 log_message(f"Saved to directory: {file_path}")
 
-        return self.connection.sql(
-            f"""
-            SELECT * EXCLUDE (geometry_wkb), ST_GeomFromWKB(geometry_wkb) geometry
-            FROM read_parquet('{file_path}/**')
-            """
-        )
+        return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
     def _concatenate_results_to_geoparquet(
         self,
@@ -2261,7 +2256,7 @@ class PbfFileReader:
             *self._generate_osm_tags_sql_select(
                 parsed_geometries, keep_all_tags=keep_all_tags, explode_tags=explode_tags
             ),
-            "ST_GeomFromWKB(geometry_wkb) AS geometry",
+            "geometry",
         ]
 
         unioned_features = self.connection.sql(
@@ -2561,9 +2556,11 @@ class PbfFileReader:
                 else:
                     geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
 
-                features_parquet_table = features_parquet_table.append_column(
-                    GEOMETRY_COLUMN, geometry_column
-                ).drop("geometry_wkb")
+                features_parquet_table = features_parquet_table.set_column(
+                    features_parquet_table.schema.get_field_index(GEOMETRY_COLUMN),
+                    GEOMETRY_COLUMN,
+                    geometry_column,
+                )
 
                 features_parquet_table = features_parquet_table.select(
                     [FEATURES_INDEX, GEOMETRY_COLUMN]
@@ -2581,7 +2578,7 @@ class PbfFileReader:
             columns_to_test = [
                 f'COUNT_IF("{col}" IS NOT NULL) == 0 as "{col}"'
                 for col in features_table.columns
-                if col not in (FEATURES_INDEX, "geometry_wkb")
+                if col not in (FEATURES_INDEX, GEOMETRY_COLUMN)
             ]
             columns_to_test_result = self.connection.sql(
                 f"SELECT {', '.join(columns_to_test)} FROM '{input_file}/*.parquet'"
@@ -2607,17 +2604,21 @@ class PbfFileReader:
 
                         if save_as_wkt:
                             geometry_column = ga.as_wkt(
-                                ga.with_crs(batch.column("geometry_wkb"), WGS84_CRS)
+                                ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                             )
-                            batch = batch.drop_columns("geometry_wkb").append_column(
-                                GEOMETRY_COLUMN, geometry_column
+                            batch = batch.set_column(
+                                batch.schema.get_field_index(GEOMETRY_COLUMN),
+                                GEOMETRY_COLUMN,
+                                geometry_column,
                             )
                         else:
                             geometry_column = ga.as_wkb(
-                                ga.with_crs(batch.column("geometry_wkb"), WGS84_CRS)
+                                ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                             )
-                            batch = batch.drop_columns("geometry_wkb").append_column(
-                                GEOMETRY_COLUMN, geometry_column
+                            batch = batch.set_column(
+                                batch.schema.get_field_index(GEOMETRY_COLUMN),
+                                GEOMETRY_COLUMN,
+                                geometry_column,
                             )
                             batch = _replace_geo_metadata_in_batch(batch)
 
@@ -2662,15 +2663,19 @@ class PbfFileReader:
                         geometry_column = ga.as_wkt(
                             ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                         )
-                        batch = batch.drop_columns(GEOMETRY_COLUMN).append_column(
-                            GEOMETRY_COLUMN, geometry_column
+                        batch = batch.set_column(
+                            batch.schema.get_field_index(GEOMETRY_COLUMN),
+                            GEOMETRY_COLUMN,
+                            geometry_column,
                         )
                     else:
                         geometry_column = ga.as_wkb(
                             ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                         )
-                        batch = batch.drop_columns(GEOMETRY_COLUMN).append_column(
-                            GEOMETRY_COLUMN, geometry_column
+                        batch = batch.set_column(
+                            batch.schema.get_field_index(GEOMETRY_COLUMN),
+                            GEOMETRY_COLUMN,
+                            geometry_column,
                         )
                         batch = _replace_geo_metadata_in_batch(batch)
 

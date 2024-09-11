@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped minimal DuckDB version to `1.1.0`
+
 ## [0.9.3] - 2024-09-10
 
 ### Removed
