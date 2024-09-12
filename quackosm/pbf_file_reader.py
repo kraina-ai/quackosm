@@ -2026,7 +2026,9 @@ class PbfFileReader:
                         -- if first and last nodes are the same
                         ST_Equals(linestring[1]::POINT_2D, linestring[-1]::POINT_2D)
                         -- if linestring has at least 3 points
-                        AND len(linestring) >= 3
+                        AND ST_NumPoints(ST_RemoveRepeatedPoints(
+                            linestring::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
+                        )) >= 4
                         -- if the element doesn't have any tags leave it as a Linestring
                         AND raw_tags IS NOT NULL
                         -- if the element is specifically tagged 'area':'no' -> LineString
@@ -2714,13 +2716,15 @@ def _set_up_duckdb_connection(
     connection.sql(
         """
         CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
-        ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D::GEOMETRY;
+        ST_RemoveRepeatedPoints(
+            ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
+        )::GEOMETRY;
     """
     )
     connection.sql(
         """
         CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
-        [ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]]::POLYGON_2D::GEOMETRY;
+        ST_MakePolygon(linestring_to_linestring_geometry(ls));
     """
     )
 
