@@ -104,6 +104,12 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
 @P.case("Ignore cache short", ["--no-cache"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case("Output", ["--output", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
 @P.case("Output short", ["-o", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
+@P.case("DuckDB explicit export", ["--duckdb"], "files/monaco_nofilter_noclip.duckdb")  # type: ignore
+@P.case(
+    "DuckDB explicit export with table name",
+    ["--duckdb", "--duckdb_table_name test"],
+    "files/monaco_nofilter_noclip.duckdb",
+)  # type: ignore
 @P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case("Transient", ["--transient"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case(

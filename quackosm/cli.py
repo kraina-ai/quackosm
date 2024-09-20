@@ -491,6 +491,20 @@ def main(
             ),
         ),
     ] = None,
+    duckdb: Annotated[
+        bool,
+        typer.Option(
+            "--duckdb",
+            help="Export to duckdb database",
+        ),
+    ] = None,
+    duckdb_table_name: Annotated[
+        Optional[str],
+        typer.Option(
+            "--duckdb-table-name",
+            help="Table name which the data will be imported into in the DuckDB database.",
+        ),
+    ] = "quackosm",
     ignore_cache: Annotated[
         bool,
         typer.Option(
@@ -674,34 +688,35 @@ def main(
 
     logging.disable(logging.CRITICAL)
     if pbf_file:
-        from quackosm.functions import convert_pbf_to_parquet
+        # export to DuckDB database
+        if (result_file_path and result_file_path.suffix in [".duckdb", ".db"]) or duckdb:
+            from quackosm.functions import convert_pbf_to_duckdb
 
-        geoparquet_path = convert_pbf_to_parquet(
-            pbf_path=pbf_file,
-            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
-            keep_all_tags=keep_all_tags,
-            geometry_filter=geometry_filter_value,
-            explode_tags=explode_tags,
-            ignore_cache=ignore_cache,
-            working_directory=working_directory,
-            result_file_path=result_file_path,
-            osm_way_polygon_features_config=(
-                json.loads(Path(osm_way_polygon_features_config).read_text())
-                if osm_way_polygon_features_config
-                else None
-            ),
-            filter_osm_ids=filter_osm_ids,  # type: ignore
-            save_as_wkt=wkt_result,
-            verbosity_mode=verbosity_mode,
-        )
-    elif osm_extract_query:
-        from quackosm._exceptions import OsmExtractSearchError
-        from quackosm.functions import convert_osm_extract_to_parquet
+            result_path = convert_pbf_to_duckdb(
+                pbf_path=pbf_file,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                geometry_filter=geometry_filter_value,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+                duckdb_table_name=duckdb_table_name,
+                verbosity_mode=verbosity_mode,
+            )
 
-        try:
-            geoparquet_path = convert_osm_extract_to_parquet(
-                osm_extract_query=osm_extract_query,
-                osm_extract_source=osm_extract_source,
+        # export to parquet
+        else:
+            from quackosm.functions import convert_pbf_to_parquet
+
+            result_path = convert_pbf_to_parquet(
+                pbf_path=pbf_file,
                 tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
                 keep_all_tags=keep_all_tags,
                 geometry_filter=geometry_filter_value,
@@ -718,33 +733,120 @@ def main(
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
             )
-        except OsmExtractSearchError as ex:
-            from rich.console import Console
+    elif osm_extract_query:
+        # export to DuckDB database
+        if (result_file_path and result_file_path.suffix in [".duckdb", ".db"]) or duckdb:
+            from quackosm._exceptions import OsmExtractSearchError
+            from quackosm.functions import convert_osm_extract_to_duckdb
 
-            err_console = Console(stderr=True)
-            err_console.print(ex)
-            raise typer.Exit(code=1) from None
+            try:
+                result_path = convert_osm_extract_to_duckdb(
+                    osm_extract_query=osm_extract_query,
+                    osm_extract_source=osm_extract_source,
+                    tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                    keep_all_tags=keep_all_tags,
+                    geometry_filter=geometry_filter_value,
+                    explode_tags=explode_tags,
+                    ignore_cache=ignore_cache,
+                    working_directory=working_directory,
+                    result_file_path=result_file_path,
+                    osm_way_polygon_features_config=(
+                        json.loads(Path(osm_way_polygon_features_config).read_text())
+                        if osm_way_polygon_features_config
+                        else None
+                    ),
+                    filter_osm_ids=filter_osm_ids,  # type: ignore
+                    duckdb_table_name=duckdb_table_name,
+                    save_as_wkt=wkt_result,
+                    verbosity_mode=verbosity_mode,
+                )
+            except OsmExtractSearchError as ex:
+                from rich.console import Console
+
+                err_console = Console(stderr=True)
+                err_console.print(ex)
+                raise typer.Exit(code=1) from None
+
+        # export to parquet
+        else:
+            from quackosm._exceptions import OsmExtractSearchError
+            from quackosm.functions import convert_osm_extract_to_parquet
+
+            try:
+                result_path = convert_osm_extract_to_parquet(
+                    osm_extract_query=osm_extract_query,
+                    osm_extract_source=osm_extract_source,
+                    tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                    keep_all_tags=keep_all_tags,
+                    geometry_filter=geometry_filter_value,
+                    explode_tags=explode_tags,
+                    ignore_cache=ignore_cache,
+                    working_directory=working_directory,
+                    result_file_path=result_file_path,
+                    osm_way_polygon_features_config=(
+                        json.loads(Path(osm_way_polygon_features_config).read_text())
+                        if osm_way_polygon_features_config
+                        else None
+                    ),
+                    filter_osm_ids=filter_osm_ids,  # type: ignore
+                    save_as_wkt=wkt_result,
+                    verbosity_mode=verbosity_mode,
+                )
+            except OsmExtractSearchError as ex:
+                from rich.console import Console
+
+                err_console = Console(stderr=True)
+                err_console.print(ex)
+                raise typer.Exit(code=1) from None
     else:
-        from quackosm.functions import convert_geometry_to_parquet
+        # export to DuckDB database
+        if (result_file_path and result_file_path.suffix in [".duckdb", ".db"]) or duckdb:
+            from quackosm.functions import convert_geometry_to_duckdb
 
-        geoparquet_path = convert_geometry_to_parquet(
-            geometry_filter=geometry_filter_value,
-            osm_extract_source=osm_extract_source,
-            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
-            keep_all_tags=keep_all_tags,
-            explode_tags=explode_tags,
-            ignore_cache=ignore_cache,
-            working_directory=working_directory,
-            result_file_path=result_file_path,
-            osm_way_polygon_features_config=(
-                json.loads(Path(osm_way_polygon_features_config).read_text())
-                if osm_way_polygon_features_config
-                else None
-            ),
-            filter_osm_ids=filter_osm_ids,  # type: ignore
-            save_as_wkt=wkt_result,
-            verbosity_mode=verbosity_mode,
-            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
-            allow_uncovered_geometry=allow_uncovered_geometry,
-        )
-    typer.secho(geoparquet_path, fg="green")
+            result_path = convert_geometry_to_duckdb(
+                geometry_filter=geometry_filter_value,
+                osm_extract_source=osm_extract_source,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+                duckdb_table_name=duckdb_table_name,
+                save_as_wkt=wkt_result,
+                verbosity_mode=verbosity_mode,
+                geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
+                allow_uncovered_geometry=allow_uncovered_geometry,
+            )
+
+        # export to parquet
+        else:
+            from quackosm.functions import convert_geometry_to_parquet
+
+            result_path = convert_geometry_to_parquet(
+                geometry_filter=geometry_filter_value,
+                osm_extract_source=osm_extract_source,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+                save_as_wkt=wkt_result,
+                verbosity_mode=verbosity_mode,
+                geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
+                allow_uncovered_geometry=allow_uncovered_geometry,
+            )
+    typer.secho(result_path, fg="green")
