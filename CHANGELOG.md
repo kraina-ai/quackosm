@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to export to DuckDB database [#94](https://github.com/kraina-ai/quackosm/issues/119)
+
 ## [0.9.4] - 2024-09-11
 
 ### Changed

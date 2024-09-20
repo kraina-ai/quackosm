@@ -755,9 +755,9 @@ class PbfFileReader:
             result_file_path
             or self._generate_result_file_path(
                 pbf_path=pbf_path,
-                filter_osm_ids=filter_osm_ids,
+                filter_osm_ids=filter_osm_ids or [""],
                 keep_all_tags=keep_all_tags,
-                explode_tags=explode_tags,
+                explode_tags=explode_tags or False,
                 save_as_wkt=False,
             ).with_suffix(".duckdb")
         )
@@ -824,9 +824,9 @@ class PbfFileReader:
         result_file_path = Path(
             result_file_path
             or self._generate_result_file_path_from_geometry(
-                filter_osm_ids=filter_osm_ids,
+                filter_osm_ids=filter_osm_ids or [""],
                 keep_all_tags=keep_all_tags,
-                explode_tags=explode_tags,
+                explode_tags=explode_tags or False,
                 save_as_wkt=False,
             ).with_suffix(".duckdb")
         )

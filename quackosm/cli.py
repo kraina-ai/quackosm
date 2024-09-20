@@ -497,7 +497,7 @@ def main(
             "--duckdb",
             help="Export to duckdb database",
         ),
-    ] = None,
+    ] = False,
     duckdb_table_name: Annotated[
         Optional[str],
         typer.Option(
@@ -707,7 +707,7 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
-                duckdb_table_name=duckdb_table_name,
+                duckdb_table_name=duckdb_table_name or "quackosm",
                 verbosity_mode=verbosity_mode,
             )
 
@@ -756,7 +756,7 @@ def main(
                         else None
                     ),
                     filter_osm_ids=filter_osm_ids,  # type: ignore
-                    duckdb_table_name=duckdb_table_name,
+                    duckdb_table_name=duckdb_table_name or "quackosm",
                     save_as_wkt=wkt_result,
                     verbosity_mode=verbosity_mode,
                 )
@@ -818,7 +818,7 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
-                duckdb_table_name=duckdb_table_name,
+                duckdb_table_name=duckdb_table_name or "quackosm",
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
                 geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
