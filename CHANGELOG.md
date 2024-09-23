@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2024-09-23
+
 ### Changed
 
 - **BREAKING** Changed required minimal number of points in polygon from 3 to 4
@@ -371,7 +373,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.9.4...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.10.0...HEAD
+
+[0.10.0]: https://github.com/kraina-ai/quackosm/compare/0.9.4...0.10.0
 
 [0.9.4]: https://github.com/kraina-ai/quackosm/compare/0.9.3...0.9.4
 
