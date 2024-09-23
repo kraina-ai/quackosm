@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING** Changed required minimal number of points in polygon from 3 to 4
 - Added removal of repeated points in linestrings
 
 ### Fixed
