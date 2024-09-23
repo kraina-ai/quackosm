@@ -2041,7 +2041,9 @@ class PbfFileReader:
                         -- if first and last nodes are the same
                         ST_Equals(linestring[1]::POINT_2D, linestring[-1]::POINT_2D)
                         -- if linestring has at least 3 points
-                        AND len(linestring) >= 3
+                        AND ST_NPoints(ST_RemoveRepeatedPoints(
+                           linestring::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
+                        )) >= 4
                         -- if the element doesn't have any tags leave it as a Linestring
                         AND raw_tags IS NOT NULL
                         -- if the element is specifically tagged 'area':'no' -> LineString
@@ -2121,7 +2123,7 @@ class PbfFileReader:
                     GROUP BY id, ref_role
                 ) x
                 JOIN any_outer_refs aor ON aor.id = x.id
-                WHERE ST_NPoints(geom) >= 4
+                WHERE ST_NPoints(ST_RemoveRepeatedPoints(geom)) >= 4
             ),
             valid_relations AS (
                 SELECT id, is_valid
@@ -2147,7 +2149,7 @@ class PbfFileReader:
         )
         relation_inner_parts = self.connection.sql(
             f"""
-            SELECT id, geometry_id, ST_MakePolygon(geometry) geometry
+            SELECT id, geometry_id, ST_MakePolygon(ST_RemoveRepeatedPoints(geometry)) geometry
             FROM ({valid_relation_parts_parquet.sql_query()})
             WHERE ref_role = 'inner'
             """
@@ -2160,7 +2162,7 @@ class PbfFileReader:
         any_relation_inner_parts = relation_inner_parts_parquet.count("id").fetchone()[0] != 0
         relation_outer_parts = self.connection.sql(
             f"""
-            SELECT id, geometry_id, ST_MakePolygon(geometry) geometry
+            SELECT id, geometry_id, ST_MakePolygon(ST_RemoveRepeatedPoints(geometry)) geometry
             FROM ({valid_relation_parts_parquet.sql_query()})
             WHERE ref_role = 'outer'
             """
@@ -2742,13 +2744,15 @@ def _set_up_duckdb_connection(
     connection.sql(
         """
         CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
-        ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D::GEOMETRY;
+        ST_RemoveRepeatedPoints(
+            ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
+        )::GEOMETRY;
     """
     )
     connection.sql(
         """
         CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
-        [ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]]::POLYGON_2D::GEOMETRY;
+        ST_MakePolygon(linestring_to_linestring_geometry(ls));
     """
     )
 
