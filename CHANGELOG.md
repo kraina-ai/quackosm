@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added removal of repeated points in linestrings
 
+### Fixed
+
+- Removed support for yanked polars version `1.7.0`
+
 ## [0.9.4] - 2024-09-11
 
 ### Changed
