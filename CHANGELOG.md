@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING** Changed required minimal number of points in polygon from 3 to 4
+- Added removal of repeated points in linestrings
+
+### Fixed
+
+- Removed support for yanked polars version `1.7.0`
+
 ## [0.9.4] - 2024-09-11
 
 ### Changed
