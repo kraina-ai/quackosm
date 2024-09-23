@@ -56,30 +56,26 @@ jobs:
           ./duckdb :memory: "SELECT 1"
           QuackOSM -h
       - name: Execute jupyter notebooks
-        # run: |
-        #   mv ./duckdb ./examples/duckdb
-        #   jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
-        #   rm ./examples/duckdb\
         run: |
           mv ./duckdb ./examples/duckdb
-          jupyter nbconvert --to notebook --inplace --execute examples/advanced_examples/osm_extracts.ipynb --ExecutePreprocessor.kernel_name='python3'
+          jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
           rm ./examples/duckdb
-      # - uses: jannekem/run-python-script-action@v1
-      #   name: Replace copyright date
-      #   with:
-      #     script: |
-      #       import time
-      #       file_name = "mkdocs.yml"
-      #       with open(file_name) as f:
-      #           data = f.read().replace('{current_year}', time.strftime("%Y"))
-      #       with open(file_name, "w") as f:
-      #           f.write(data)
-      # - name: Create remote for quackosm-docs repository
-      #   run: git remote add origin-quackosm-docs https://github.com/kraina-ai/quackosm-docs
-      # - name: Fetch gh-pages branch
-      #   run: git fetch origin-quackosm-docs gh-pages --depth=1
-      # - name: Publish dev documentation
-      #   run: mike deploy --remote origin-quackosm-docs --rebase --push dev
+      - uses: jannekem/run-python-script-action@v1
+        name: Replace copyright date
+        with:
+          script: |
+            import time
+            file_name = "mkdocs.yml"
+            with open(file_name) as f:
+                data = f.read().replace('{current_year}', time.strftime("%Y"))
+            with open(file_name, "w") as f:
+                f.write(data)
+      - name: Create remote for quackosm-docs repository
+        run: git remote add origin-quackosm-docs https://github.com/kraina-ai/quackosm-docs
+      - name: Fetch gh-pages branch
+        run: git fetch origin-quackosm-docs gh-pages --depth=1
+      - name: Publish dev documentation
+        run: mike deploy --remote origin-quackosm-docs --rebase --push dev
 
   deploy-docs-test:
     name: Deploy documentation 📄 to Github Pages 🌐
