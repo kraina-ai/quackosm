@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2024-09-23
+
+### Changed
+
+- **BREAKING** Changed required minimal number of points in polygon from 3 to 4
+- Added removal of repeated points in linestrings
+
+### Fixed
+
+- Removed support for yanked polars version `1.7.0`
+
+## [0.9.4] - 2024-09-11
+
+### Changed
+
+- Excluded DuckDB `1.1.0` version from dependencies
+
+## [0.9.3] - 2024-09-10
+
+### Removed
+
+- `geoarrow-rust-core` from dependencies
+
 ## [0.9.2] - 2024-08-28
 
 ### Changed
@@ -350,7 +373,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.9.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.10.0...HEAD
+
+[0.10.0]: https://github.com/kraina-ai/quackosm/compare/0.9.4...0.10.0
+
+[0.9.4]: https://github.com/kraina-ai/quackosm/compare/0.9.3...0.9.4
+
+[0.9.3]: https://github.com/kraina-ai/quackosm/compare/0.9.2...0.9.3
 
 [0.9.2]: https://github.com/kraina-ai/quackosm/compare/0.9.1...0.9.2
 

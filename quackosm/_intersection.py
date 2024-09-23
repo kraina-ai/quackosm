@@ -2,8 +2,8 @@ from functools import partial
 from pathlib import Path
 from typing import Optional
 
+import geoarrow.pyarrow as ga
 import pyarrow as pa
-from geoarrow.rust.core import PointArray
 from shapely import STRtree
 from shapely.geometry.base import BaseGeometry
 
@@ -15,11 +15,15 @@ def _intersect_nodes(
     table: pa.Table,
     geometry_filter: BaseGeometry,
 ) -> pa.Table:  # pragma: no cover
-    points_array = PointArray.from_xy(
-        x=table["lon"].combine_chunks(), y=table["lat"].combine_chunks()
+    points_array = ga.to_geopandas(
+        ga.point().from_geobuffers(
+            None,
+            x=table["lon"].to_numpy(),
+            y=table["lat"].to_numpy(),
+        )
     )
 
-    tree = STRtree(points_array.to_shapely())
+    tree = STRtree(points_array)
 
     intersecting_ids_array = table["id"].take(tree.query(geometry_filter, predicate="intersects"))
 
