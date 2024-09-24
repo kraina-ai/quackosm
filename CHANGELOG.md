@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2024-09-24
+
 ### Changed
 
 - Bumped minimal DuckDB version to `1.1.0`
@@ -381,7 +383,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.0...HEAD
+
+[0.11.0]: https://github.com/kraina-ai/quackosm/compare/0.10.0...0.11.0
 
 [0.10.0]: https://github.com/kraina-ai/quackosm/compare/0.9.4...0.10.0
 
