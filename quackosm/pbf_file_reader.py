@@ -2259,7 +2259,7 @@ class PbfFileReader:
                 f"""
                 COPY (
                     SELECT
-                        * EXCLUDE (geometry), ST_MakeValid(geometry) geometry
+                        * EXCLUDE (geometry), ST_MakeValid(geometry::GEOMETRY) geometry
                     FROM ({relation.sql_query()})
                 ) TO '{file_path}' (
                     FORMAT 'parquet',
