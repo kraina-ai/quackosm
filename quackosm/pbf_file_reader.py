@@ -32,6 +32,7 @@ import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
 from pandas.util._decorators import deprecate, deprecate_kwarg
+from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
 from shapely.geometry import LinearRing, Polygon
@@ -792,6 +793,9 @@ class PbfFileReader:
         save_as_wkt: bool = False,
     ) -> Path:
         if _is_url_path(pbf_path):
+            logger = get_pooch_logger()
+            logger.setLevel("WARNING")
+
             pbf_path = retrieve(
                 pbf_path,
                 fname=Path(pbf_path).name,
@@ -911,7 +915,7 @@ class PbfFileReader:
                 '{filtered_nodes_with_geometry_path}/**',
                 '{filtered_ways_with_proper_geometry_path}/**',
                 '{filtered_relations_with_geometry_path}/**'
-            ]);
+            ], union_by_name=True);
             """
         )
 
@@ -1597,6 +1601,11 @@ class PbfFileReader:
         self._run_query(query, run_in_separate_process)
         if self.debug_memory:
             log_message(f"Saved to directory: {file_path}")
+
+        is_empty = not any(file_path.iterdir())
+        if is_empty:
+            relation.to_parquet(str(file_path / "empty.parquet"))
+
         return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
     def _run_query(
@@ -1646,10 +1655,12 @@ class PbfFileReader:
         if result_path is None:
             result_path = file_path / "distinct"
 
+        relation = self.connection.sql(f"SELECT id FROM read_parquet('{file_path}/**') GROUP BY id")
+
         self.connection.sql(
             f"""
             COPY (
-                SELECT id FROM read_parquet('{file_path}/**') GROUP BY id
+                {relation.sql_query()}
             ) TO '{result_path}' (
                 FORMAT 'parquet',
                 PER_THREAD_OUTPUT true,
@@ -1660,6 +1671,10 @@ class PbfFileReader:
         )
         if self.debug_memory:
             log_message(f"Saved to directory: {result_path}")
+
+        is_empty = not any(result_path.iterdir())
+        if is_empty:
+            relation.to_parquet(str(result_path / "empty.parquet"))
 
         return self.connection.sql(f"SELECT * FROM read_parquet('{result_path}/**')")
 
@@ -2144,6 +2159,7 @@ class PbfFileReader:
             file_path=self.tmp_dir_path / "relation_inner_parts",
             step_name="Saving relations inner parts",
         )
+        any_relation_inner_parts = relation_inner_parts_parquet.count("id").fetchone()[0] != 0
         relation_outer_parts = self.connection.sql(
             f"""
             SELECT id, geometry_id, ST_MakePolygon(ST_RemoveRepeatedPoints(geometry)) geometry
@@ -2156,18 +2172,31 @@ class PbfFileReader:
             file_path=self.tmp_dir_path / "relation_outer_parts",
             step_name="Saving relations outer parts",
         )
-        relation_outer_parts_with_holes = self.connection.sql(
-            f"""
-            SELECT
-                og.id,
-                og.geometry_id,
-                ST_Difference(any_value(og.geometry), ST_Union_Agg(ig.geometry)) geometry
-            FROM ({relation_outer_parts_parquet.sql_query()}) og
-            JOIN ({relation_inner_parts_parquet.sql_query()}) ig
-            ON og.id = ig.id AND ST_WITHIN(ig.geometry, og.geometry)
-            GROUP BY og.id, og.geometry_id
-            """
-        )
+        if any_relation_inner_parts:
+            relation_outer_parts_with_holes = self.connection.sql(
+                f"""
+                SELECT
+                    og.id,
+                    og.geometry_id,
+                    ST_Difference(any_value(og.geometry), ST_Union_Agg(ig.geometry)) geometry
+                FROM ({relation_outer_parts_parquet.sql_query()}) og
+                JOIN ({relation_inner_parts_parquet.sql_query()}) ig
+                ON og.id = ig.id AND ST_WITHIN(ig.geometry, og.geometry)
+                GROUP BY og.id, og.geometry_id
+                """
+            )
+        else:
+            # Fake empty relation
+            relation_outer_parts_with_holes = self.connection.sql(
+                f"""
+                SELECT
+                    og.id,
+                    og.geometry_id,
+                    og.geometry
+                FROM ({relation_outer_parts_parquet.sql_query()}) og
+                WHERE og.id IS NULL
+                """
+            )
         relation_outer_parts_with_holes_parquet = self._save_parquet_file_with_geometry(
             relation=relation_outer_parts_with_holes,
             file_path=self.tmp_dir_path / "relation_outer_parts_with_holes",
@@ -2230,7 +2259,7 @@ class PbfFileReader:
                 f"""
                 COPY (
                     SELECT
-                        * EXCLUDE (geometry), ST_AsWKB(ST_MakeValid(geometry)) geometry_wkb
+                        * EXCLUDE (geometry), ST_MakeValid(geometry::GEOMETRY) geometry
                     FROM ({relation.sql_query()})
                 ) TO '{file_path}' (
                     FORMAT 'parquet',
@@ -2243,12 +2272,17 @@ class PbfFileReader:
             if self.debug_memory:
                 log_message(f"Saved to directory: {file_path}")
 
-        return self.connection.sql(
-            f"""
-            SELECT * EXCLUDE (geometry_wkb), ST_GeomFromWKB(geometry_wkb) geometry
-            FROM read_parquet('{file_path}/**')
-            """
-        )
+        is_empty = not any(file_path.iterdir())
+        if is_empty:
+            relation.to_parquet(str(file_path / "empty.parquet"))
+            return self.connection.sql(
+                f"""
+                SELECT * REPLACE (ST_GeomFromWKB(geometry) AS geometry)
+                FROM read_parquet('{file_path}/**')
+                """
+            )
+
+        return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
     def _concatenate_results_to_geoparquet(
         self,
@@ -2263,7 +2297,7 @@ class PbfFileReader:
             *self._generate_osm_tags_sql_select(
                 parsed_geometries, keep_all_tags=keep_all_tags, explode_tags=explode_tags
             ),
-            "ST_GeomFromWKB(geometry_wkb) AS geometry",
+            GEOMETRY_COLUMN,
         ]
 
         unioned_features = self.connection.sql(
@@ -2277,18 +2311,9 @@ class PbfFileReader:
             unioned_features, keep_all_tags=keep_all_tags, explode_tags=explode_tags
         )
 
-        features_full_relation = self.connection.sql(
-            f"""
-            SELECT
-                * EXCLUDE (geometry),
-                ST_MakeValid(geometry) geometry
-            FROM ({grouped_features.sql_query()})
-            """
-        )
-
         features_parquet_path = self.tmp_dir_path / "osm_valid_elements"
         self._save_parquet_file_with_geometry(
-            features_full_relation,
+            grouped_features,
             features_parquet_path,
             step_name="Saving all features",
         )
@@ -2563,9 +2588,11 @@ class PbfFileReader:
                 else:
                     geometry_column = ga.as_wkb(gpd.GeoSeries([], crs=WGS84_CRS))
 
-                features_parquet_table = features_parquet_table.append_column(
-                    GEOMETRY_COLUMN, geometry_column
-                ).drop("geometry_wkb")
+                features_parquet_table = features_parquet_table.set_column(
+                    features_parquet_table.schema.get_field_index(GEOMETRY_COLUMN),
+                    GEOMETRY_COLUMN,
+                    geometry_column,
+                )
 
                 features_parquet_table = features_parquet_table.select(
                     [FEATURES_INDEX, GEOMETRY_COLUMN]
@@ -2583,7 +2610,7 @@ class PbfFileReader:
             columns_to_test = [
                 f'COUNT_IF("{col}" IS NOT NULL) == 0 as "{col}"'
                 for col in features_table.columns
-                if col not in (FEATURES_INDEX, "geometry_wkb")
+                if col not in (FEATURES_INDEX, GEOMETRY_COLUMN)
             ]
             columns_to_test_result = self.connection.sql(
                 f"SELECT {', '.join(columns_to_test)} FROM '{input_file}/*.parquet'"
@@ -2609,17 +2636,21 @@ class PbfFileReader:
 
                         if save_as_wkt:
                             geometry_column = ga.as_wkt(
-                                ga.with_crs(batch.column("geometry_wkb"), WGS84_CRS)
+                                ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                             )
-                            batch = batch.drop_columns("geometry_wkb").append_column(
-                                GEOMETRY_COLUMN, geometry_column
+                            batch = batch.set_column(
+                                batch.schema.get_field_index(GEOMETRY_COLUMN),
+                                GEOMETRY_COLUMN,
+                                geometry_column,
                             )
                         else:
                             geometry_column = ga.as_wkb(
-                                ga.with_crs(batch.column("geometry_wkb"), WGS84_CRS)
+                                ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                             )
-                            batch = batch.drop_columns("geometry_wkb").append_column(
-                                GEOMETRY_COLUMN, geometry_column
+                            batch = batch.set_column(
+                                batch.schema.get_field_index(GEOMETRY_COLUMN),
+                                GEOMETRY_COLUMN,
+                                geometry_column,
                             )
                             batch = _replace_geo_metadata_in_batch(batch)
 
@@ -2664,15 +2695,19 @@ class PbfFileReader:
                         geometry_column = ga.as_wkt(
                             ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                         )
-                        batch = batch.drop_columns(GEOMETRY_COLUMN).append_column(
-                            GEOMETRY_COLUMN, geometry_column
+                        batch = batch.set_column(
+                            batch.schema.get_field_index(GEOMETRY_COLUMN),
+                            GEOMETRY_COLUMN,
+                            geometry_column,
                         )
                     else:
                         geometry_column = ga.as_wkb(
                             ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
                         )
-                        batch = batch.drop_columns(GEOMETRY_COLUMN).append_column(
-                            GEOMETRY_COLUMN, geometry_column
+                        batch = batch.set_column(
+                            batch.schema.get_field_index(GEOMETRY_COLUMN),
+                            GEOMETRY_COLUMN,
+                            geometry_column,
                         )
                         batch = _replace_geo_metadata_in_batch(batch)
 
@@ -2710,8 +2745,7 @@ def _set_up_duckdb_connection(
     connection.sql("SET enable_progress_bar_print = false;")
 
     connection.install_extension("spatial")
-    for extension_name in ("parquet", "spatial"):
-        connection.load_extension(extension_name)
+    connection.load_extension("spatial")
 
     connection.sql(
         """

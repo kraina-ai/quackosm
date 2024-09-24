@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped minimal DuckDB version to `1.1.0`
+- Refactored geoparquet operations for compatibility with new DuckDB version
+- Excluded `conftest.py` file from the final library build
+- Replaced `unary_union` calls with `union_all()` on all GeoDataFrames
+- Silenced `pooch` library warnings regarding empty SHA hash
+
 ## [0.10.0] - 2024-09-23
 
 ### Changed

@@ -677,7 +677,7 @@ def get_tags_from_osm_element(pbf_file: str, feature_id: str) -> dict[str, str]:
     raw_tags = duckdb.sql(
         f"SELECT tags FROM ST_READOSM('{pbf_file}') WHERE kind = '{kind}' AND id = {osm_id}"
     ).fetchone()[0]
-    return dict(zip(raw_tags["key"], raw_tags["value"]))
+    return cast(dict[str, str], raw_tags)
 
 
 def extract_polygons_from_geometry(geometry: BaseGeometry) -> list[Union[Polygon, MultiPolygon]]:
