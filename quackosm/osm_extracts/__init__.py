@@ -30,6 +30,7 @@ from quackosm._exceptions import (
     OsmExtractMultipleMatchesError,
     OsmExtractZeroMatchesError,
 )
+from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
 from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree
@@ -817,9 +818,13 @@ def _simplify_selected_extracts(
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=FutureWarning)
-                other_geometries = matching_extracts.loc[
+                other_geometries_gdf = matching_extracts.loc[
                     sorted_extracts_gdf["id"] != extract_id
-                ].union_all()
+                ]
+                if GEOPANDAS_NEW_API:
+                    other_geometries = other_geometries_gdf.union_all()
+                else:
+                    other_geometries = other_geometries_gdf.unary_union
             if extract_geometry.covered_by(other_geometries):
                 extract_to_remove = extract_id
                 simplify_again = True

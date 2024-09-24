@@ -7,6 +7,7 @@ from osmnx.geocoder import geocode_to_gdf
 
 from quackosm import geocode_to_geometry
 from quackosm._exceptions import QueryNotGeocodedError
+from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
 
 
 @pytest.mark.parametrize(  # type: ignore
@@ -21,7 +22,10 @@ from quackosm._exceptions import QueryNotGeocodedError
 )
 def test_geocoding(query: Union[str, list[str]]) -> None:
     """Test if geocoding works the same as osmnx."""
-    assert geocode_to_gdf(query).union_all().equals(geocode_to_geometry(query))
+    if GEOPANDAS_NEW_API:
+        assert geocode_to_gdf(query).union_all().equals(geocode_to_geometry(query))
+    else:
+        assert geocode_to_gdf(query).unary_union.equals(geocode_to_geometry(query))
 
 
 @pytest.mark.parametrize(  # type: ignore
