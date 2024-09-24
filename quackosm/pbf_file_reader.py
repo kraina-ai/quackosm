@@ -2275,6 +2275,12 @@ class PbfFileReader:
         is_empty = not any(file_path.iterdir())
         if is_empty:
             relation.to_parquet(str(file_path / "empty.parquet"))
+            return self.connection.sql(
+                f"""
+                SELECT * REPLACE (ST_GeomFromWKB(geometry) AS geometry)
+                FROM read_parquet('{file_path}/**')
+                """
+            )
 
         return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
 
