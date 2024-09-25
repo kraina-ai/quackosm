@@ -8,6 +8,7 @@ from typing import Annotated, Literal, Optional, Union, cast
 import click
 import typer
 
+from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
@@ -96,7 +97,10 @@ class GeoFileGeometryParser(click.ParamType):  # type: ignore
             import geopandas as gpd
 
             gdf = gpd.read_file(value)
-            return gdf.unary_union
+            if GEOPANDAS_NEW_API:
+                return gdf.union_all()
+            else:
+                return gdf.unary_union
         except Exception:
             raise typer.BadParameter("Cannot parse provided geo file") from None
 
@@ -140,9 +144,13 @@ class GeohashGeometryParser(click.ParamType):  # type: ignore
                 geometries.append(
                     box(minx=bounds["w"], miny=bounds["s"], maxx=bounds["e"], maxy=bounds["n"])
                 )
-            return gpd.GeoSeries(geometries).unary_union
+            if GEOPANDAS_NEW_API:
+                return gpd.GeoSeries(geometries).union_all()
+            else:
+                return gpd.GeoSeries(geometries).unary_union
         except Exception:
-            raise typer.BadParameter(f"Cannot parse provided Geohash value: {geohash}") from None
+            raise
+            # raise typer.BadParameter(f"Cannot parse provided Geohash value: {geohash}") from None
 
 
 class H3GeometryParser(click.ParamType):  # type: ignore
@@ -165,7 +173,10 @@ class H3GeometryParser(click.ParamType):  # type: ignore
                 geometries.append(
                     Polygon([coords[::-1] for coords in h3.cell_to_boundary(h3_cell.strip())])
                 )
-            return gpd.GeoSeries(geometries).unary_union
+            if GEOPANDAS_NEW_API:
+                return gpd.GeoSeries(geometries).union_all()
+            else:
+                return gpd.GeoSeries(geometries).unary_union
         except Exception as ex:
             raise typer.BadParameter(f"Cannot parse provided H3 values: {value}") from ex
 
@@ -190,7 +201,10 @@ class S2GeometryParser(click.ParamType):  # type: ignore
                 geometries.append(
                     Polygon(s2.s2_to_geo_boundary(s2_index.strip(), geo_json_conformant=True))
                 )
-            return gpd.GeoSeries(geometries).unary_union
+            if GEOPANDAS_NEW_API:
+                return gpd.GeoSeries(geometries).union_all()
+            else:
+                return gpd.GeoSeries(geometries).unary_union
         except Exception:
             raise typer.BadParameter(f"Cannot parse provided S2 value: {s2_index}") from None
 

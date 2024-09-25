@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Option to export to DuckDB database [#94](https://github.com/kraina-ai/quackosm/issues/119)
 
+## [0.11.0] - 2024-09-24
+
+### Changed
+
+- Bumped minimal DuckDB version to `1.1.0`
+- Refactored geoparquet operations for compatibility with new DuckDB version
+- Excluded `conftest.py` file from the final library build
+- Replaced `unary_union` calls with `union_all()` on all GeoDataFrames
+- Silenced `pooch` library warnings regarding empty SHA hash
+
+## [0.10.0] - 2024-09-23
+
+### Changed
+
+- **BREAKING** Changed required minimal number of points in polygon from 3 to 4
+- Added removal of repeated points in linestrings
+
+### Fixed
+
+- Removed support for yanked polars version `1.7.0`
+
 ## [0.9.4] - 2024-09-11
 
 ### Changed
@@ -366,7 +387,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.9.4...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.0...HEAD
+
+[0.11.0]: https://github.com/kraina-ai/quackosm/compare/0.10.0...0.11.0
+
+[0.10.0]: https://github.com/kraina-ai/quackosm/compare/0.9.4...0.10.0
 
 [0.9.4]: https://github.com/kraina-ai/quackosm/compare/0.9.3...0.9.4
 

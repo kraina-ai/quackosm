@@ -679,9 +679,7 @@ def convert_pbf_to_parquet(
         Inspect the file with duckdb
         >>> import duckdb
         >>> duckdb.load_extension('spatial')
-        >>> duckdb.read_parquet(str(gpq_path)).project(
-        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-        ... ).order("feature_id") # doctest: +SKIP
+        >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
         ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
         │    feature_id    │         tags         │                   geometry                   │
         │     varchar      │ map(varchar, varch…  │                   geometry                   │
@@ -724,9 +722,7 @@ def convert_pbf_to_parquet(
         'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_exploded.parquet'
 
         Inspect the file with duckdb
-        >>> duckdb.read_parquet(str(gpq_path)).project(
-        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-        ... ).order("feature_id") # doctest: +SKIP
+        >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
         ┌──────────────────┬──────────┬────────────┬─────────────┬───────────────────────────────┐
         │    feature_id    │ building │  amenity   │   highway   │           geometry            │
         │     varchar      │ varchar  │  varchar   │   varchar   │           geometry            │
@@ -775,9 +771,7 @@ def convert_pbf_to_parquet(
         'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.parquet'
 
         Inspect the file with duckdb
-        >>> duckdb.read_parquet(str(gpq_path)).project(
-        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-        ... ).order("feature_id") # doctest: +SKIP
+        >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
         ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
         │    feature_id    │         tags         │                   geometry                   │
         │     varchar      │ map(varchar, varch…  │                   geometry                   │
@@ -928,9 +922,7 @@ def convert_geometry_to_parquet(
         Inspect the file with duckdb
         >>> import duckdb
         >>> duckdb.load_extension('spatial')
-        >>> duckdb.read_parquet(str(gpq_path)).project(
-        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-        ... ).order("feature_id") # doctest: +SKIP
+        >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
         ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
         │    feature_id    │         tags         │                   geometry                   │
         │     varchar      │ map(varchar, varch…  │                   geometry                   │
@@ -972,9 +964,7 @@ def convert_geometry_to_parquet(
         'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
 
         Inspect the file with duckdb
-        >>> duckdb.read_parquet(str(gpq_path)).project(
-        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-        ... ).order("feature_id") # doctest: +SKIP
+        >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
         ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
         │    feature_id    │         tags         │                   geometry                   │
         │     varchar      │ map(varchar, varch…  │                   geometry                   │
@@ -1115,9 +1105,7 @@ def convert_osm_extract_to_parquet(
         Inspect the file with duckdb
         >>> import duckdb
         >>> duckdb.load_extension('spatial')
-        >>> duckdb.read_parquet(str(gpq_path)).project(
-        ...     "* REPLACE (ST_GeomFromWKB(geometry) AS geometry)"
-        ... ).order("feature_id") # doctest: +SKIP
+        >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
         ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
         │    feature_id    │         tags         │                   geometry                   │
         │     varchar      │ map(varchar, varch…  │                   geometry                   │
