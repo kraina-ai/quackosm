@@ -1,0 +1,6 @@
+services:
+  quackosm:
+    build: .
+    image: quackosm
+    volumes:
+      - ./data:/data
