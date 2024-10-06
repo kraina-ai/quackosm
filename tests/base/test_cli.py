@@ -107,7 +107,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
 @P.case("DuckDB explicit export", ["--duckdb"], "files/monaco_nofilter_noclip.duckdb")  # type: ignore
 @P.case(
     "DuckDB explicit export with table name",
-    ["--duckdb", "--duckdb_table_name test"],
+    ["--duckdb", "--duckdb-table-name test"],
     "files/monaco_nofilter_noclip.duckdb",
 )  # type: ignore
 @P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
