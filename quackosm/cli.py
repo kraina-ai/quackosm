@@ -703,7 +703,7 @@ def main(
     logging.disable(logging.CRITICAL)
     if pbf_file:
         # export to DuckDB database
-        if (result_file_path and result_file_path.suffix in [".duckdb", ".db"]) or duckdb:
+        if (result_file_path and result_file_path.suffix in (".duckdb", ".db")) or duckdb:
             from quackosm.functions import convert_pbf_to_duckdb
 
             result_path = convert_pbf_to_duckdb(
@@ -749,7 +749,7 @@ def main(
             )
     elif osm_extract_query:
         # export to DuckDB database
-        if (result_file_path and result_file_path.suffix in [".duckdb", ".db"]) or duckdb:
+        if (result_file_path and result_file_path.suffix in (".duckdb", ".db")) or duckdb:
             from quackosm._exceptions import OsmExtractSearchError
             from quackosm.functions import convert_osm_extract_to_duckdb
 
@@ -814,7 +814,7 @@ def main(
                 raise typer.Exit(code=1) from None
     else:
         # export to DuckDB database
-        if (result_file_path and result_file_path.suffix in [".duckdb", ".db"]) or duckdb:
+        if (result_file_path and result_file_path.suffix in (".duckdb", ".db")) or duckdb:
             from quackosm.functions import convert_geometry_to_duckdb
 
             result_path = convert_geometry_to_duckdb(
