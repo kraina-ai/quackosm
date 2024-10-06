@@ -105,11 +105,12 @@ def convert_pbf_to_duckdb(
         >>> from pathlib import Path
         >>> import quackosm as qosm
 
-        >>> ddb_path = qosm.convert_pbf_to_duckdb(monaco_pbf_path)
+        >>> ddb_path = qosm.convert_pbf_to_duckdb(monaco_pbf_path) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/monaco-latest_nofilter_noclip_compact.duckdb'
+        'files/monaco_nofilter_noclip_compact.duckdb'
 
         >>> import duckdb
+        >>> duckdb.load_extension('spatial')
         >>> with duckdb.connect(str(ddb_path)) as con:
         ...     con.load_extension('spatial')
         ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
@@ -147,9 +148,9 @@ def convert_pbf_to_duckdb(
         Get only buildings, amenities and highways from a PBF file.
         >>> ddb_path = qosm.convert_pbf_to_duckdb(
         ...     monaco_pbf_path, tags_filter={"building": True, "amenity": True, "highway": True}
-        ... )
+        ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/monaco-latest_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_compact.duckdb'
+        'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_compact.duckdb'
 
         Get features for Malé - the capital city of Maldives
 
@@ -199,7 +200,7 @@ def convert_pbf_to_duckdb(
         ...     )
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/maldives-latest_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.duckdb'
+        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.duckdb'
 
         >>> with duckdb.connect(str(ddb_path)) as con:
         ...     con.load_extension('spatial')
@@ -391,7 +392,7 @@ def convert_geometry_to_duckdb(
         ...     osm_extract_source='Geofabrik',
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.parquet'
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.duckdb'
 
         Inspect the file with duckdb
         >>> with duckdb.connect(str(ddb_path)) as con:
@@ -533,7 +534,7 @@ def convert_osm_extract_to_duckdb(
 
         Inspect the file with duckdb
         >>> import duckdb
-        ... with duckdb.connect(str(ddb_path)) as con:
+        >>> with duckdb.connect(str(ddb_path)) as con:
         ...     con.load_extension('spatial')
         ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
         ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐

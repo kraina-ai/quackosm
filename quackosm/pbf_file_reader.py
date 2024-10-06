@@ -751,12 +751,15 @@ class PbfFileReader:
             filter_osm_ids=filter_osm_ids,
         )
 
+        if filter_osm_ids is None:
+            filter_osm_ids = []
+
         # generate result_file_path if missing
         result_file_path = Path(
             result_file_path
             or self._generate_result_file_path(
                 pbf_path=pbf_path,
-                filter_osm_ids=filter_osm_ids or [""],
+                filter_osm_ids=filter_osm_ids,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags or False,
                 save_as_wkt=False,
@@ -766,9 +769,8 @@ class PbfFileReader:
         with duckdb.connect(str(result_file_path)) as con:
             con.load_extension("spatial")
             con.sql(f"""
-                CREATE TABLE {duckdb_table_name} AS
-                SELECT * REPLACE (ST_GeomFromWKB(geometry) as geometry)
-                FROM read_parquet('{str(parsed_geoparquet_file)}');
+                CREATE OR REPLACE TABLE {duckdb_table_name} AS
+                SELECT * FROM read_parquet('{parsed_geoparquet_file}');
             """)
 
         # clean up intermediary parquet
@@ -821,11 +823,14 @@ class PbfFileReader:
             filter_osm_ids=filter_osm_ids,
         )
 
+        if filter_osm_ids is None:
+            filter_osm_ids = []
+
         # generate result_file_path if missing
         result_file_path = Path(
             result_file_path
             or self._generate_result_file_path_from_geometry(
-                filter_osm_ids=filter_osm_ids or [""],
+                filter_osm_ids=filter_osm_ids,
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags or False,
                 save_as_wkt=False,
@@ -836,9 +841,8 @@ class PbfFileReader:
             con.load_extension("spatial")
 
             con.sql(f"""
-                CREATE TABLE {duckdb_table_name} AS
-                SELECT * REPLACE(ST_GeomFromWKB(geometry) as geometry)
-                FROM read_parquet('{str(parsed_geoparquet_file)}');
+                CREATE OR REPLACE TABLE {duckdb_table_name} AS
+                SELECT * FROM read_parquet('{parsed_geoparquet_file}');
             """)
 
         # clean up intermediary parquet
