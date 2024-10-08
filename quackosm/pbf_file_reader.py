@@ -707,7 +707,7 @@ class PbfFileReader:
         explode_tags: Optional[bool] = None,
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
-        duckdb_table_name: str = "quackosm",
+        duckdb_table_name: Optional[str] = "quackosm",
     ) -> Path:
         """
         Convert PBF file to DuckDB Database.
@@ -765,6 +765,10 @@ class PbfFileReader:
                 save_as_wkt=False,
             ).with_suffix(".duckdb")
         )
+
+        result_file_path.parent.mkdir(exist_ok=True, parents=True)
+
+        duckdb_table_name = duckdb_table_name or "quackosm"
 
         with duckdb.connect(str(result_file_path)) as con:
             con.load_extension("spatial")
