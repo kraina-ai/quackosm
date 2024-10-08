@@ -685,6 +685,14 @@ def test_proper_args_with_pbf_url() -> None:
     ],
 )  # type: ignore
 @P.case(
+    "OSM extracts with zero matches and duckdb export",
+    [
+        "--duckdb",
+        "--osm-extract-query",
+        "quack_extract",
+    ],
+)  # type: ignore
+@P.case(
     "Wrong IoU threshold value",
     [
         "--iou-threshold",
