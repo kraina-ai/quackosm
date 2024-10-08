@@ -512,9 +512,9 @@ def main(
         typer.Option(
             "--duckdb",
             help=(
-                "Export to duckdb database. If not provided, data can still be exported if",
+                "Export to duckdb database. If not provided, data can still be exported if"
                 " [bold bright_cyan]output[/bold bright_cyan] has [bold green].db[/bold green]"
-                " or [bold green].duckdb[/bold green] extension.",
+                " or [bold green].duckdb[/bold green] extension."
             ),
         ),
     ] = False,
