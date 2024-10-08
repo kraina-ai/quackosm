@@ -69,7 +69,7 @@ build-backend = "pdm.backend"
 # pdm add -d <library>
 dev = ["bumpver", "types-requests", "setuptools>=45.0.0"]
 # pdm add -dG lint <library>
-lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
+lint = ["pre-commit>=4", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>
 test = [
     "pytest>=7.0.0",
