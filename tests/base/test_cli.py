@@ -341,14 +341,20 @@ def test_proper_args_with_pbf(
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
-    "Working directory",
-    ["--geom-filter-file", geometry_boundary_file_path(), "--working-directory", "files/workdir"],
-    "files/workdir/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
-)  # type: ignore
-@P.case(
     "Ignore cache",
     ["--geom-filter-file", geometry_boundary_file_path(), "--ignore-cache"],
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
+)  # type: ignore
+@P.case(
+    "Working directory",
+    [
+        "--geom-filter-file",
+        geometry_boundary_file_path(),
+        "--working-directory",
+        "files/workdir",
+        "--ignore-cache",
+    ],
+    "files/workdir/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Output",
