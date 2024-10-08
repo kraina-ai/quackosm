@@ -1,6 +1,6 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
-default_stages: [commit]
+default_stages: [pre-commit]
 repos:
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v3.4.0
@@ -12,12 +12,20 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix, --show-fixes]
-  - repo: https://github.com/PyCQA/docformatter
-    rev: v1.7.5
+  # TODO: Switch back to upstream docformatter
+  # after https://github.com/PyCQA/docformatter/issues/289 is fixed
+  - repo: https://github.com/s-weigand/docformatter
+    rev: 1ec30b7
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
-        args: ["--in-place", "--config", "./pyproject.toml"]
+        args: [--in-place, --config, ./pyproject.toml]
+  # - repo: https://github.com/PyCQA/docformatter
+  #   rev: v1.7.5
+  #   hooks:
+  #     - id: docformatter
+  #       additional_dependencies: [tomli]
+  #       args: ["--in-place", "--config", "./pyproject.toml"]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.1
     hooks:
