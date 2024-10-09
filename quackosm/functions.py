@@ -19,13 +19,583 @@ from quackosm.pbf_file_reader import PbfFileReader
 
 __all__ = [
     "convert_pbf_to_parquet",
+    "convert_pbf_to_duckdb",
     "convert_geometry_to_parquet",
+    "convert_geometry_to_duckdb",
     "convert_pbf_to_geodataframe",
     "convert_geometry_to_geodataframe",
     "convert_osm_extract_to_parquet",
+    "convert_osm_extract_to_duckdb",
     "convert_osm_extract_to_geodataframe",
 ]
 
+def convert_pbf_to_duckdb(
+    pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
+    geometry_filter: Optional[BaseGeometry] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    keep_all_tags: bool = False,
+    explode_tags: Optional[bool] = None,
+    ignore_cache: bool = False,
+    filter_osm_ids: Optional[list[str]] = None,
+    duckdb_table_name: str = "quackosm",
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    debug_memory: bool = False,
+    debug_times: bool = False,
+) -> Path:
+    """
+    Convert PBF file to DuckDB file.
+
+    Args:
+        pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
+            Path or list of paths of `*.osm.pbf` files to be parsed. Can be an URL.
+        tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
+            specifying which tags to download.
+            The keys should be OSM tags (e.g. `building`, `amenity`).
+            The values should either be `True` for retrieving all objects with the tag,
+            string for retrieving a single tag-value pair
+            or list of strings for retrieving all values specified in the list.
+            `tags={'leisure': 'park}` would return parks from the area.
+            `tags={'leisure': 'park, 'amenity': True, 'shop': ['bakery', 'bicycle']}`
+            would return parks, all amenity types, bakeries and bicycle shops.
+            If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
+        geometry_filter (BaseGeometry, optional): Region which can be used to filter only
+            intersecting OSM objects. Defaults to `None`.
+        result_file_path (Union[str, Path], optional): Where to save
+            the geoparquet file. If not provided, will be generated based on hashes
+            from provided tags filter and geometry filter. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
+        explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+            Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+            Defaults to an empty list.
+        duckdb_table_name (str): Table in which to store the OSM data inside the DuckDB database.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
+            for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
+
+    Returns:
+        Path: Path to the generated DuckDB file.
+
+    Examples:
+        Get OSM data from a PBF file.
+
+        Tags will be kept in a single column
+        >>> from pathlib import Path
+        >>> import quackosm as qosm
+
+        >>> ddb_path = qosm.convert_pbf_to_duckdb(monaco_pbf_path) # doctest: +IGNORE_RESULT
+        >>> ddb_path.as_posix()
+        'files/monaco_nofilter_noclip_compact.duckdb'
+
+        >>> import duckdb
+        >>> duckdb.load_extension('spatial')
+        >>> with duckdb.connect(str(ddb_path)) as con:
+        ...     con.load_extension('spatial')
+        ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10005045289 │ {shop=bakery}        │ POINT (7.4224498 43.7310532)                 │
+        │ node/10020887517 │ {leisure=swimming_…  │ POINT (7.4131561 43.7338391)                 │
+        │ node/10021298117 │ {leisure=swimming_…  │ POINT (7.4277743 43.7427669)                 │
+        │ node/10021298717 │ {leisure=swimming_…  │ POINT (7.4263029 43.7409734)                 │
+        │ node/10025656383 │ {ferry=yes, name=Q…  │ POINT (7.4254971 43.7369002)                 │
+        │ node/10025656390 │ {amenity=restauran…  │ POINT (7.4269287 43.7368818)                 │
+        │ node/10025656391 │ {name=Capitainerie…  │ POINT (7.4272127 43.7359593)                 │
+        │ node/10025656392 │ {name=Direction de…  │ POINT (7.4270392 43.7365262)                 │
+        │ node/10025656393 │ {brand=IQOS, brand…  │ POINT (7.4275175 43.7373195)                 │
+        │ node/10025656394 │ {artist_name=Anna …  │ POINT (7.4293446 43.737448)                  │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │ way/986864693    │ {natural=bare_rock}  │ POLYGON ((7.4340482 43.745598, 7.4340263 4…  │
+        │ way/986864694    │ {barrier=wall}       │ LINESTRING (7.4327547 43.7445382, 7.432808…  │
+        │ way/986864695    │ {natural=bare_rock}  │ POLYGON ((7.4332994 43.7449315, 7.4332912 …  │
+        │ way/986864696    │ {barrier=wall}       │ LINESTRING (7.4356006 43.7464325, 7.435574…  │
+        │ way/986864697    │ {natural=bare_rock}  │ POLYGON ((7.4362767 43.74697, 7.4362983 43…  │
+        │ way/990669427    │ {amenity=shelter, …  │ POLYGON ((7.4146087 43.733883, 7.4146192 4…  │
+        │ way/990669428    │ {highway=secondary…  │ LINESTRING (7.4136598 43.7334433, 7.413640…  │
+        │ way/990669429    │ {highway=secondary…  │ LINESTRING (7.4137621 43.7334251, 7.413746…  │
+        │ way/990848785    │ {addr:city=Monaco,…  │ POLYGON ((7.4142551 43.7339622, 7.4143113 …  │
+        │ way/993121275    │ {building=yes, nam…  │ POLYGON ((7.4321416 43.7481309, 7.4321638 …  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 8154 rows (20 shown)                                                         3 columns │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+
+        Get only buildings, amenities and highways from a PBF file.
+        >>> ddb_path = qosm.convert_pbf_to_duckdb(
+        ...     monaco_pbf_path, tags_filter={"building": True, "amenity": True, "highway": True}
+        ... ) # doctest: +IGNORE_RESULT
+        >>> ddb_path.as_posix()
+        'files/monaco_6593ca69098459d039054bc5fe0a87c56681e29a5f59d38ce3485c03cb0e9374_noclip_compact.duckdb'
+
+        Get features for Malé - the capital city of Maldives
+
+        Tags will be kept in a single column.
+        >>> with duckdb.connect(str(ddb_path)) as con:
+        ...     con.load_extension('spatial')
+        ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
+        ┌──────────────────┬──────────┬────────────┬─────────────┬───────────────────────────────┐
+        │    feature_id    │ building │  amenity   │   highway   │           geometry            │
+        │     varchar      │ varchar  │  varchar   │   varchar   │           geometry            │
+        ├──────────────────┼──────────┼────────────┼─────────────┼───────────────────────────────┤
+        │ node/10025656390 │ NULL     │ restaurant │ NULL        │ POINT (7.4269287 43.7368818)  │
+        │ node/10025843517 │ NULL     │ restaurant │ NULL        │ POINT (7.4219362 43.7367446)  │
+        │ node/10025852089 │ NULL     │ bar        │ NULL        │ POINT (7.4227543 43.7369926)  │
+        │ node/10025852090 │ NULL     │ restaurant │ NULL        │ POINT (7.4225093 43.7369627)  │
+        │ node/10068880332 │ NULL     │ NULL       │ bus_stop    │ POINT (7.4380858 43.7493026)  │
+        │ node/10068880335 │ NULL     │ bench      │ NULL        │ POINT (7.4186855 43.7321515)  │
+        │ node/10127713363 │ NULL     │ cafe       │ NULL        │ POINT (7.4266367 43.7420755)  │
+        │ node/10601158089 │ NULL     │ restaurant │ NULL        │ POINT (7.4213086 43.7336187)  │
+        │ node/10671507005 │ NULL     │ bar        │ NULL        │ POINT (7.4296915 43.7423307)  │
+        │ node/10674256605 │ NULL     │ bar        │ NULL        │ POINT (7.4213558 43.7336317)  │
+        │       ·          │  ·       │  ·         │  ·          │              ·                │
+        │       ·          │  ·       │  ·         │  ·          │              ·                │
+        │       ·          │  ·       │  ·         │  ·          │              ·                │
+        │ way/981971425    │ NULL     │ NULL       │ residential │ LINESTRING (7.4321217 43.74…  │
+        │ way/982061461    │ NULL     │ NULL       │ secondary   │ LINESTRING (7.4246341 43.74…  │
+        │ way/982081599    │ NULL     │ NULL       │ tertiary    │ LINESTRING (7.4225202 43.73…  │
+        │ way/982081600    │ NULL     │ NULL       │ service     │ LINESTRING (7.4225202 43.73…  │
+        │ way/986029035    │ NULL     │ NULL       │ path        │ LINESTRING (7.4189462 43.73…  │
+        │ way/990669427    │ NULL     │ shelter    │ NULL        │ POLYGON ((7.4146087 43.7338…  │
+        │ way/990669428    │ NULL     │ NULL       │ secondary   │ LINESTRING (7.4136598 43.73…  │
+        │ way/990669429    │ NULL     │ NULL       │ secondary   │ LINESTRING (7.4137621 43.73…  │
+        │ way/990848785    │ yes      │ NULL       │ NULL        │ POLYGON ((7.4142551 43.7339…  │
+        │ way/993121275    │ yes      │ NULL       │ NULL        │ POLYGON ((7.4321416 43.7481…  │
+        ├──────────────────┴──────────┴────────────┴─────────────┴───────────────────────────────┤
+        │ 5902 rows (20 shown)                                                         5 columns │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+
+        >>> from shapely.geometry import box
+        >>> ddb_path = qosm.convert_pbf_to_duckdb(
+        ...     maldives_pbf_path,
+        ...     geometry_filter=box(
+        ...         minx=73.4975872,
+        ...         miny=4.1663240,
+        ...         maxx=73.5215528,
+        ...         maxy=4.1818121
+        ...     )
+        ... ) # doctest: +IGNORE_RESULT
+        >>> ddb_path.as_posix()
+        'files/maldives_nofilter_4eeabb20ccd8aefeaa80b9a46a202ab985fd454760823b7012cc7778498a085b_compact.duckdb'
+
+        >>> with duckdb.connect(str(ddb_path)) as con:
+        ...     con.load_extension('spatial')
+        ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10010180778 │ {brand=Ooredoo, br…  │ POINT (73.5179039 4.1752105)                 │
+        │ node/10062500171 │ {contact:facebook=…  │ POINT (73.509583 4.1724485)                  │
+        │ node/10078084764 │ {addr:city=Male', …  │ POINT (73.5047972 4.1726734)                 │
+        │ node/10078086040 │ {addr:city=Malé, a…  │ POINT (73.5031714 4.1759622)                 │
+        │ node/10158825718 │ {addr:postcode=201…  │ POINT (73.5083189 4.1730108)                 │
+        │ node/10289176711 │ {addr:street=Dhona…  │ POINT (73.5133902 4.1725724)                 │
+        │ node/10294045310 │ {amenity=restauran…  │ POINT (73.5091277 4.1735378)                 │
+        │ node/10294045311 │ {amenity=restauran…  │ POINT (73.5055534 4.1759515)                 │
+        │ node/10294045411 │ {amenity=restauran…  │ POINT (73.5037257 4.1717866)                 │
+        │ node/10294045412 │ {amenity=restauran…  │ POINT (73.5024147 4.1761633)                 │
+        │      ·           │          ·           │              ·                               │
+        │      ·           │          ·           │              ·                               │
+        │      ·           │          ·           │              ·                               │
+        │ way/91986244     │ {highway=residenti…  │ LINESTRING (73.5069785 4.1704686, 73.50759…  │
+        │ way/91986245     │ {highway=residenti…  │ LINESTRING (73.5135834 4.1740562, 73.51383…  │
+        │ way/91986249     │ {highway=residenti…  │ LINESTRING (73.5153971 4.1735146, 73.51601…  │
+        │ way/91986251     │ {highway=residenti…  │ LINESTRING (73.5082522 4.1709887, 73.50823…  │
+        │ way/91986254     │ {highway=residenti…  │ LINESTRING (73.508114 4.1693477, 73.508154…  │
+        │ way/91986255     │ {landuse=cemetery,…  │ POLYGON ((73.507509 4.1731064, 73.5078884 …  │
+        │ way/91986256     │ {highway=residenti…  │ LINESTRING (73.5106692 4.1744828, 73.51082…  │
+        │ way/935784864    │ {layer=-1, locatio…  │ LINESTRING (73.4875382 4.1703263, 73.50074…  │
+        │ way/935784867    │ {layer=-1, locatio…  │ LINESTRING (73.446172 4.1856738, 73.460937…  │
+        │ way/959150179    │ {amenity=place_of_…  │ POLYGON ((73.5184052 4.1755282, 73.5184863…  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 2168 rows (20 shown)                                                         3 columns │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+    """
+    return PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+        verbosity_mode=verbosity_mode,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
+    ).convert_pbf_to_duckdb(
+        pbf_path=pbf_path,
+        result_file_path=result_file_path,
+        keep_all_tags=keep_all_tags,
+        explode_tags=explode_tags,
+        ignore_cache=ignore_cache,
+        filter_osm_ids=filter_osm_ids,
+        duckdb_table_name=duckdb_table_name,
+    )
+
+def convert_geometry_to_duckdb(
+    geometry_filter: BaseGeometry = None,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    keep_all_tags: bool = False,
+    explode_tags: Optional[bool] = None,
+    ignore_cache: bool = False,
+    filter_osm_ids: Optional[list[str]] = None,
+    duckdb_table_name: str = "quackosm",
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    geometry_coverage_iou_threshold: float = 0.01,
+    allow_uncovered_geometry: bool = False,
+    debug_memory: bool = False,
+    debug_times: bool = False,
+) -> Path:
+    """
+    Get a DuckDB file with OpenStreetMap features within given geometry.
+
+    Automatically downloads matching OSM extracts from different sources and returns a single file
+    as a result.
+
+    Args:
+        geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
+        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
+            Defaults to `any`.
+        tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
+            specifying which tags to download.
+            The keys should be OSM tags (e.g. `building`, `amenity`).
+            The values should either be `True` for retrieving all objects with the tag,
+            string for retrieving a single tag-value pair
+            or list of strings for retrieving all values specified in the list.
+            `tags={'leisure': 'park}` would return parks from the area.
+            `tags={'leisure': 'park, 'amenity': True, 'shop': ['bakery', 'bicycle']}`
+            would return parks, all amenity types, bakeries and bicycle shops.
+            If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
+        result_file_path (Union[str, Path], optional): Where to save
+            the DuckDB file. If not provided, will be generated based on hashes
+            from provided tags filter and geometry filter. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
+        explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+            Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+            Defaults to an empty list.
+        duckdb_table_name (str): Table in which to store the OSM data inside the DuckDB database.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        geometry_coverage_iou_threshold (float): Minimal value of the Intersection over Union metric
+            for selecting the matching OSM extracts. Is best matching extract has value lower than
+            the threshold, it is discarded (except the first one). Has to be in range between 0
+            and 1. Value of 0 will allow every intersected extract, value of 1 will only allow
+            extracts that match the geometry exactly. Defaults to 0.01.
+        allow_uncovered_geometry (bool): Suppress an error if some geometry parts aren't covered
+            by any OSM extract. Works only when PbfFileReader is asked to download OSM extracts
+            automatically. Defaults to `False`.
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
+            for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
+
+    Returns:
+        Path: Path to the generated DuckDB file.
+
+    Examples:
+        Get OSM data from the center of Monaco.
+
+        >>> import quackosm as qosm
+        >>> from shapely import from_wkt
+        >>> wkt = (
+        ...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
+        ...     " 7.42378 43.73598, 7.41644 43.73598))"
+        ... )
+        >>> ddb_path = qosm.convert_geometry_to_duckdb(from_wkt(wkt)) # doctest: +IGNORE_RESULT
+        >>> ddb_path.as_posix()
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.duckdb'
+
+        Inspect the file with duckdb
+        >>> import duckdb
+        >>> with duckdb.connect(str(ddb_path)) as con:
+        ...     con.load_extension('spatial')
+        ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10068880335 │ {amenity=bench, ma…  │ POINT (7.4186855 43.7321515)                 │
+        │ node/10196648824 │ {contact:city=Mona…  │ POINT (7.4193805 43.7337539)                 │
+        │ node/10601158089 │ {addr:city=Monaco,…  │ POINT (7.4213086 43.7336187)                 │
+        │ node/10672624925 │ {addr:city=Monaco,…  │ POINT (7.4215683 43.7351727)                 │
+        │ node/10674256605 │ {amenity=bar, name…  │ POINT (7.4213558 43.7336317)                 │
+        │ node/1074584632  │ {crossing=marked, …  │ POINT (7.4188525 43.7323654)                 │
+        │ node/1074584650  │ {crossing=marked, …  │ POINT (7.4174145 43.7341601)                 │
+        │ node/1079045434  │ {addr:country=MC, …  │ POINT (7.4173175 43.7320823)                 │
+        │ node/1079045443  │ {highway=traffic_s…  │ POINT (7.4182804 43.7319223)                 │
+        │ node/10862390705 │ {amenity=drinking_…  │ POINT (7.4219582 43.7355272)                 │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │ way/952068828    │ {attraction=water_…  │ LINESTRING (7.4221787 43.7343579, 7.422176…  │
+        │ way/952068829    │ {attraction=water_…  │ LINESTRING (7.4220996 43.7343719, 7.422131…  │
+        │ way/952068830    │ {attraction=water_…  │ LINESTRING (7.4221161 43.7343595, 7.422119…  │
+        │ way/952068831    │ {attraction=water_…  │ LINESTRING (7.4221421 43.7343773, 7.422159…  │
+        │ way/952068832    │ {attraction=water_…  │ LINESTRING (7.4221748 43.7343815, 7.422173…  │
+        │ way/952419569    │ {highway=primary, …  │ LINESTRING (7.4171229 43.7316079, 7.417117…  │
+        │ way/952419570    │ {highway=primary, …  │ LINESTRING (7.4171473 43.7315034, 7.417166…  │
+        │ way/952419571    │ {highway=primary, …  │ LINESTRING (7.4171671 43.731656, 7.4171486…  │
+        │ way/952419572    │ {highway=primary, …  │ LINESTRING (7.4173054 43.7316813, 7.417276…  │
+        │ way/952419573    │ {highway=primary, …  │ LINESTRING (7.4173897 43.7316435, 7.417372…  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 1384 rows (20 shown)                                                                   │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+
+        Making sure that you are using specific OSM extract source - here Geofabrik.
+
+        >>> ddb_path = qosm.convert_geometry_to_duckdb(
+        ...     from_wkt(wkt),
+        ...     osm_extract_source='Geofabrik',
+        ... ) # doctest: +IGNORE_RESULT
+        >>> ddb_path.as_posix()
+        'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.duckdb'
+
+        Inspect the file with duckdb
+        >>> with duckdb.connect(str(ddb_path)) as con:
+        ...     con.load_extension('spatial')
+        ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10068880335 │ {amenity=bench, ma…  │ POINT (7.4186855 43.7321515)                 │
+        │ node/10196648824 │ {contact:city=Mona…  │ POINT (7.4193805 43.7337539)                 │
+        │ node/10601158089 │ {addr:city=Monaco,…  │ POINT (7.4213086 43.7336187)                 │
+        │ node/10672624925 │ {addr:city=Monaco,…  │ POINT (7.4215683 43.7351727)                 │
+        │ node/10674256605 │ {amenity=bar, name…  │ POINT (7.4213558 43.7336317)                 │
+        │ node/1074584632  │ {crossing=marked, …  │ POINT (7.4188525 43.7323654)                 │
+        │ node/1074584650  │ {crossing=marked, …  │ POINT (7.4174145 43.7341601)                 │
+        │ node/1079045434  │ {addr:country=MC, …  │ POINT (7.4173175 43.7320823)                 │
+        │ node/1079045443  │ {highway=traffic_s…  │ POINT (7.4182804 43.7319223)                 │
+        │ node/10862390705 │ {amenity=drinking_…  │ POINT (7.4219582 43.7355272)                 │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │ way/952068828    │ {attraction=water_…  │ LINESTRING (7.4221787 43.7343579, 7.422176…  │
+        │ way/952068829    │ {attraction=water_…  │ LINESTRING (7.4220996 43.7343719, 7.422131…  │
+        │ way/952068830    │ {attraction=water_…  │ LINESTRING (7.4221161 43.7343595, 7.422119…  │
+        │ way/952068831    │ {attraction=water_…  │ LINESTRING (7.4221421 43.7343773, 7.422159…  │
+        │ way/952068832    │ {attraction=water_…  │ LINESTRING (7.4221748 43.7343815, 7.422173…  │
+        │ way/952419569    │ {highway=primary, …  │ LINESTRING (7.4171229 43.7316079, 7.417117…  │
+        │ way/952419570    │ {highway=primary, …  │ LINESTRING (7.4171473 43.7315034, 7.417166…  │
+        │ way/952419571    │ {highway=primary, …  │ LINESTRING (7.4171671 43.731656, 7.4171486…  │
+        │ way/952419572    │ {highway=primary, …  │ LINESTRING (7.4173054 43.7316813, 7.417276…  │
+        │ way/952419573    │ {highway=primary, …  │ LINESTRING (7.4173897 43.7316435, 7.417372…  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 1384 rows (20 shown)                                                                   │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+    """
+    return PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+        osm_extract_source=osm_extract_source,
+        verbosity_mode=verbosity_mode,
+        geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
+        allow_uncovered_geometry=allow_uncovered_geometry,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
+    ).convert_geometry_to_duckdb(
+        result_file_path=result_file_path,
+        keep_all_tags=keep_all_tags,
+        explode_tags=explode_tags,
+        ignore_cache=ignore_cache,
+        filter_osm_ids=filter_osm_ids,
+        duckdb_table_name=duckdb_table_name,
+    )
+
+def convert_osm_extract_to_duckdb(
+    osm_extract_query: str,
+    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
+    geometry_filter: Optional[BaseGeometry] = None,
+    result_file_path: Optional[Union[str, Path]] = None,
+    keep_all_tags: bool = False,
+    explode_tags: Optional[bool] = None,
+    ignore_cache: bool = False,
+    filter_osm_ids: Optional[list[str]] = None,
+    duckdb_table_name: str = "quackosm",
+    working_directory: Union[str, Path] = "files",
+    osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
+    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    debug_memory: bool = False,
+    debug_times: bool = False,
+) -> Path:
+    """
+    Get a single OpenStreetMap extract from a given source and transform it to a DuckDB file.
+
+    Args:
+        osm_extract_query (str):
+            Query to find an OpenStreetMap extract from available sources.
+        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
+            Defaults to `any`.
+        tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
+            specifying which tags to download.
+            The keys should be OSM tags (e.g. `building`, `amenity`).
+            The values should either be `True` for retrieving all objects with the tag,
+            string for retrieving a single tag-value pair
+            or list of strings for retrieving all values specified in the list.
+            `tags={'leisure': 'park}` would return parks from the area.
+            `tags={'leisure': 'park, 'amenity': True, 'shop': ['bakery', 'bicycle']}`
+            would return parks, all amenity types, bakeries and bicycle shops.
+            If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
+        geometry_filter (BaseGeometry, optional): Region which can be used to filter only
+            intersecting OSM objects. Defaults to `None`.
+        result_file_path (Union[str, Path], optional): Where to save
+            the geoparquet file. If not provided, will be generated based on hashes
+            from provided tags filter and geometry filter. Defaults to `None`.
+        keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+            Whether to keep all tags related to the element, or return only those defined
+            in the `tags_filter`. When `True`, will override the optional grouping defined
+            in the `tags_filter`. Defaults to `False`.
+        explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+            If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+            If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+            be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
+            Defaults to False.
+        filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+            Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+            Defaults to an empty list.
+        duckdb_table_name (str): Table in which to store the OSM data inside the DuckDB database.
+        working_directory (Union[str, Path], optional): Directory where to save
+            the parsed `*.parquet` files. Defaults to "files".
+        osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
+            Config used to determine which closed way features are polygons.
+            Modifications to this config left are left for experienced OSM users.
+            Defaults to predefined "osm_way_polygon_features.json".
+        verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
+            verbosity mode. Can be one of: silent, transient and verbose. Silent disables
+            output completely. Transient tracks progress, but removes output after finished.
+            Verbose leaves all progress outputs in the stdout. Defaults to "transient".
+        debug_memory (bool, optional): If turned on, will keep all temporary files after operation
+            for debugging. Defaults to `False`.
+        debug_times (bool, optional): If turned on, will report timestamps at which second each
+            step has been executed. Defaults to `False`.
+
+    Returns:
+        Path: Path to the generated DuckDB file.
+
+    Examples:
+        Get OSM data for the Monaco.
+
+        >>> import quackosm as qosm
+        >>> ddb_path = qosm.convert_osm_extract_to_duckdb(
+        ...     "monaco", osm_extract_source="geofabrik"
+        ... ) # doctest: +IGNORE_RESULT
+        >>> ddb_path.as_posix()
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
+
+        Inspect the file with duckdb
+        >>> import duckdb
+        >>> with duckdb.connect(str(ddb_path)) as con:
+        ...     con.load_extension('spatial')
+        ...     con.sql("SELECT * FROM quackosm ORDER BY feature_id;") # doctest: +SKIP
+        ┌──────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+        │    feature_id    │         tags         │                   geometry                   │
+        │     varchar      │ map(varchar, varch…  │                   geometry                   │
+        ├──────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+        │ node/10005045289 │ {shop=bakery}        │ POINT (7.4224498 43.7310532)                 │
+        │ node/10020887517 │ {leisure=swimming_…  │ POINT (7.4131561 43.7338391)                 │
+        │ node/10021298117 │ {leisure=swimming_…  │ POINT (7.4277743 43.7427669)                 │
+        │ node/10021298717 │ {leisure=swimming_…  │ POINT (7.4263029 43.7409734)                 │
+        │ node/10025656383 │ {ferry=yes, name=Q…  │ POINT (7.4254971 43.7369002)                 │
+        │ node/10025656390 │ {amenity=restauran…  │ POINT (7.4269287 43.7368818)                 │
+        │ node/10025656391 │ {name=Capitainerie…  │ POINT (7.4272127 43.7359593)                 │
+        │ node/10025656392 │ {name=Direction de…  │ POINT (7.4270392 43.7365262)                 │
+        │ node/10025656393 │ {name=IQOS, openin…  │ POINT (7.4275175 43.7373195)                 │
+        │ node/10025656394 │ {artist_name=Anna …  │ POINT (7.4293446 43.737448)                  │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │       ·          │          ·           │              ·                               │
+        │ way/986864693    │ {natural=bare_rock}  │ POLYGON ((7.4340482 43.745598, 7.4340263 4…  │
+        │ way/986864694    │ {barrier=wall}       │ LINESTRING (7.4327547 43.7445382, 7.432808…  │
+        │ way/986864695    │ {natural=bare_rock}  │ POLYGON ((7.4332994 43.7449315, 7.4332912 …  │
+        │ way/986864696    │ {barrier=wall}       │ LINESTRING (7.4356006 43.7464325, 7.435574…  │
+        │ way/986864697    │ {natural=bare_rock}  │ POLYGON ((7.4362767 43.74697, 7.4362983 43…  │
+        │ way/990669427    │ {amenity=shelter, …  │ POLYGON ((7.4146087 43.733883, 7.4146192 4…  │
+        │ way/990669428    │ {highway=secondary…  │ LINESTRING (7.4136598 43.7334433, 7.413640…  │
+        │ way/990669429    │ {highway=secondary…  │ LINESTRING (7.4137621 43.7334251, 7.413746…  │
+        │ way/990848785    │ {addr:city=Monaco,…  │ POLYGON ((7.4142551 43.7339622, 7.4143113 …  │
+        │ way/993121275    │ {building=yes, nam…  │ POLYGON ((7.4321416 43.7481309, 7.4321638 …  │
+        ├──────────────────┴──────────────────────┴──────────────────────────────────────────────┤
+        │ 7906 rows (20 shown)                                                         3 columns │
+        └────────────────────────────────────────────────────────────────────────────────────────┘
+
+        Full name can also be used. Osm extract source can be skipped.
+
+        >>> ddb_path = qosm.convert_osm_extract_to_duckdb(
+        ...     "geofabrik_europe_monaco"
+        ... ) # doctest: +IGNORE_RESULT
+        >>> ddb_path.as_posix()
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
+    """
+    downloaded_osm_extract = download_extract_by_query(
+        query=osm_extract_query, source=osm_extract_source
+    )
+    return PbfFileReader(
+        tags_filter=tags_filter,
+        geometry_filter=geometry_filter,
+        working_directory=working_directory,
+        osm_way_polygon_features_config=osm_way_polygon_features_config,
+        verbosity_mode=verbosity_mode,
+        debug_memory=debug_memory,
+        debug_times=debug_times,
+    ).convert_pbf_to_duckdb(
+        pbf_path=downloaded_osm_extract,
+        result_file_path=result_file_path,
+        keep_all_tags=keep_all_tags,
+        explode_tags=explode_tags,
+        ignore_cache=ignore_cache,
+        filter_osm_ids=filter_osm_ids,
+        duckdb_table_name=duckdb_table_name,
+    )
 
 def convert_pbf_to_parquet(
     pbf_path: Union[str, Path, Iterable[Union[str, Path]]],

@@ -500,11 +500,31 @@ def main(
             "--output",
             "-o",
             help=(
-                "Path where to save final geoparquet file. If not provided, it will be generated"
+                "Path where to save final result file. If not provided, it will be generated"
                 " automatically based on the input pbf file name."
+                " Can be [bold green].parquet[/bold green] or"
+                " [bold green].db[/bold green] or [bold green].duckdb[/bold green] extension."
             ),
         ),
     ] = None,
+    duckdb: Annotated[
+        bool,
+        typer.Option(
+            "--duckdb",
+            help=(
+                "Export to duckdb database. If not provided, data can still be exported if"
+                " [bold bright_cyan]output[/bold bright_cyan] has [bold green].db[/bold green]"
+                " or [bold green].duckdb[/bold green] extension."
+            ),
+        ),
+    ] = False,
+    duckdb_table_name: Annotated[
+        Optional[str],
+        typer.Option(
+            "--duckdb-table-name",
+            help="Table name which the data will be imported into in the DuckDB database.",
+        ),
+    ] = "quackosm",
     ignore_cache: Annotated[
         bool,
         typer.Option(
@@ -687,11 +707,21 @@ def main(
         verbosity_mode = "silent"
 
     logging.disable(logging.CRITICAL)
-    if pbf_file:
+
+    is_duckdb = (result_file_path and result_file_path.suffix in (".duckdb", ".db")) or duckdb
+
+    pbf_file_parquet = pbf_file and not is_duckdb
+    pbf_file_duckdb = pbf_file and is_duckdb
+    osm_extract_parquet = osm_extract_query and not is_duckdb
+    osm_extract_duckdb = osm_extract_query and is_duckdb
+    geometry_parquet = not pbf_file and not osm_extract_query and not is_duckdb
+    geometry_duckdb = not pbf_file and not osm_extract_query and is_duckdb
+
+    if pbf_file_parquet:
         from quackosm.functions import convert_pbf_to_parquet
 
-        geoparquet_path = convert_pbf_to_parquet(
-            pbf_path=pbf_file,
+        result_path = convert_pbf_to_parquet(
+            pbf_path=cast(str, pbf_file),
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
             keep_all_tags=keep_all_tags,
             geometry_filter=geometry_filter_value,
@@ -708,13 +738,34 @@ def main(
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
-    elif osm_extract_query:
+    elif pbf_file_duckdb:
+        from quackosm.functions import convert_pbf_to_duckdb
+
+        result_path = convert_pbf_to_duckdb(
+            pbf_path=cast(str, pbf_file),
+            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+            keep_all_tags=keep_all_tags,
+            geometry_filter=geometry_filter_value,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            working_directory=working_directory,
+            result_file_path=result_file_path,
+            osm_way_polygon_features_config=(
+                json.loads(Path(osm_way_polygon_features_config).read_text())
+                if osm_way_polygon_features_config
+                else None
+            ),
+            filter_osm_ids=filter_osm_ids,  # type: ignore
+            duckdb_table_name=duckdb_table_name or "quackosm",
+            verbosity_mode=verbosity_mode,
+        )
+    elif osm_extract_parquet:
         from quackosm._exceptions import OsmExtractSearchError
         from quackosm.functions import convert_osm_extract_to_parquet
 
         try:
-            geoparquet_path = convert_osm_extract_to_parquet(
-                osm_extract_query=osm_extract_query,
+            result_path = convert_osm_extract_to_parquet(
+                osm_extract_query=cast(str, osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
                 keep_all_tags=keep_all_tags,
@@ -738,10 +789,41 @@ def main(
             err_console = Console(stderr=True)
             err_console.print(ex)
             raise typer.Exit(code=1) from None
-    else:
+    elif osm_extract_duckdb:
+        from quackosm._exceptions import OsmExtractSearchError
+        from quackosm.functions import convert_osm_extract_to_duckdb
+
+        try:
+            result_path = convert_osm_extract_to_duckdb(
+                osm_extract_query=cast(str, osm_extract_query),
+                osm_extract_source=osm_extract_source,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                geometry_filter=geometry_filter_value,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+                duckdb_table_name=duckdb_table_name or "quackosm",
+                save_as_wkt=wkt_result,
+                verbosity_mode=verbosity_mode,
+            )
+        except OsmExtractSearchError as ex:
+            from rich.console import Console
+
+            err_console = Console(stderr=True)
+            err_console.print(ex)
+            raise typer.Exit(code=1) from None
+    elif geometry_parquet:
         from quackosm.functions import convert_geometry_to_parquet
 
-        geoparquet_path = convert_geometry_to_parquet(
+        result_path = convert_geometry_to_parquet(
             geometry_filter=geometry_filter_value,
             osm_extract_source=osm_extract_source,
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
@@ -761,4 +843,31 @@ def main(
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
-    typer.secho(geoparquet_path, fg="green")
+    elif geometry_duckdb:
+        from quackosm.functions import convert_geometry_to_duckdb
+
+        result_path = convert_geometry_to_duckdb(
+            geometry_filter=geometry_filter_value,
+            osm_extract_source=osm_extract_source,
+            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            working_directory=working_directory,
+            result_file_path=result_file_path,
+            osm_way_polygon_features_config=(
+                json.loads(Path(osm_way_polygon_features_config).read_text())
+                if osm_way_polygon_features_config
+                else None
+            ),
+            filter_osm_ids=filter_osm_ids,  # type: ignore
+            duckdb_table_name=duckdb_table_name or "quackosm",
+            save_as_wkt=wkt_result,
+            verbosity_mode=verbosity_mode,
+            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
+            allow_uncovered_geometry=allow_uncovered_geometry,
+        )
+    else:
+        raise RuntimeError("Unknown operation mode")
+
+    typer.secho(result_path, fg="green")

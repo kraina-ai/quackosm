@@ -1,6 +1,7 @@
 """Tests for PbfFileReader."""
 
 import json
+import random
 import urllib.request
 import warnings
 from functools import partial
@@ -90,6 +91,29 @@ def test_pbf_to_geoparquet_parsing(
         decoded_geo_schema = json.loads(tab.schema.metadata[b"geo"].decode("utf-8"))
         assert GEOMETRY_COLUMN == decoded_geo_schema["primary_column"]
         assert GEOMETRY_COLUMN in decoded_geo_schema["columns"]
+
+
+@pytest.mark.parametrize(
+    "result_file_path",
+    [None, "quackosm.db", "files/quackosm.db", f"files/{random.getrandbits(128)}/quackosm.db"],
+) # type: ignore
+@pytest.mark.parametrize("table_name", [None, "quackosm", "osm_features"]) # type: ignore
+def test_pbf_reader_duckdb_export(result_file_path: Optional[str], table_name: Optional[str]):
+    """Test proper DuckDB export file generation."""
+    pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result_path = PbfFileReader().convert_pbf_to_duckdb(
+        pbf_path=pbf_file,
+        result_file_path=result_file_path,
+        duckdb_table_name=table_name,
+        ignore_cache=True,
+    )
+
+    assert result_path.exists(), "DuckDB file doesn't exist"
+    with duckdb.connect(str(result_path)) as con:
+        existing_tables = [row[0] for row in con.sql("SHOW TABLES;").fetchall()]
+        assert table_name or "quackosm" in existing_tables
+
+    result_path.unlink()
 
 
 def test_pbf_reader_url_path():  # type: ignore

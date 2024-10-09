@@ -699,6 +699,161 @@ class PbfFileReader:
 
         return gdf_parquet
 
+    def convert_pbf_to_duckdb(
+        self,
+        pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
+        result_file_path: Optional[Union[str, Path]] = None,
+        keep_all_tags: bool = False,
+        explode_tags: Optional[bool] = None,
+        ignore_cache: bool = False,
+        filter_osm_ids: Optional[list[str]] = None,
+        duckdb_table_name: Optional[str] = "quackosm",
+    ) -> Path:
+        """
+        Convert PBF file to DuckDB Database.
+
+        Function parses multiple PBF files and returns a single GeoDataFrame with parsed
+        OSM objects.
+
+        Args:
+            pbf_path (Union[str, Path, Iterable[Union[str, Path]]]):
+                Path or list of paths of `*.osm.pbf` files to be parsed. Can be an URL.
+            result_file_path (Union[str, Path], optional): Where to save
+                the duckdb file. If not provided, will be generated based on hashes
+                from provided tags filter and geometry filter. Defaults to `None`.
+            keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+                Whether to keep all tags related to the element, or return only those defined
+                in the `tags_filter`. When `True`, will override the optional grouping defined
+                in the `tags_filter`. Defaults to `False`.
+            explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+                If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+                If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+                be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+            ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
+                Defaults to False.
+            filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+                Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+                Defaults to an empty list.
+            duckdb_table_name (str): Table name in which data will be stored inside the DuckDB
+                database (default: "quackosm")
+
+        Returns:
+            gpd.GeoDataFrame: GeoDataFrame with OSM features.
+        """
+        if isinstance(pbf_path, (str, Path)):
+            pbf_path = [pbf_path]
+
+        parsed_geoparquet_file = self.convert_pbf_to_parquet(
+            pbf_path=pbf_path,
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            filter_osm_ids=filter_osm_ids,
+        )
+
+        if filter_osm_ids is None:
+            filter_osm_ids = []
+
+        # generate result_file_path if missing
+        result_file_path = Path(
+            result_file_path
+            or self._generate_result_file_path(
+                pbf_path=pbf_path,
+                filter_osm_ids=filter_osm_ids,
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags or False,
+                save_as_wkt=False,
+            ).with_suffix(".duckdb")
+        )
+
+        result_file_path.parent.mkdir(exist_ok=True, parents=True)
+
+        duckdb_table_name = duckdb_table_name or "quackosm"
+
+        with duckdb.connect(str(result_file_path)) as con:
+            con.load_extension("spatial")
+            con.sql(f"""
+                CREATE OR REPLACE TABLE {duckdb_table_name} AS
+                SELECT * FROM read_parquet('{parsed_geoparquet_file}');
+            """)
+
+        # clean up intermediary parquet
+        parsed_geoparquet_file.unlink()
+
+        return result_file_path
+
+    def convert_geometry_to_duckdb(
+        self,
+        result_file_path: Optional[Union[str, Path]] = None,
+        keep_all_tags: bool = False,
+        explode_tags: Optional[bool] = None,
+        ignore_cache: bool = False,
+        filter_osm_ids: Optional[list[str]] = None,
+        duckdb_table_name: str = "quackosm",
+    ) -> Path:
+        """
+        Get features GeoDataFrame from a provided geometry filter.
+
+        Will automatically find and download OSM extracts covering a given geometry
+        and return a single GeoDataFrame with parsed OSM objects.
+
+        Args:
+            result_file_path (Union[str, Path], optional): Where to save
+                the duckdb file. If not provided, will be generated based on hashes
+                from provided tags filter and geometry filter. Defaults to `None`.
+            keep_all_tags (bool, optional): Works only with the `tags_filter` parameter.
+                Whether to keep all tags related to the element, or return only those defined
+                in the `tags_filter`. When `True`, will override the optional grouping defined
+                in the `tags_filter`. Defaults to `False`.
+            explode_tags (bool, optional): Whether to split tags into columns based on OSM tag keys.
+                If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
+                If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
+                be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+            ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
+                Defaults to False.
+            filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
+                Have to be in the form of 'node/<id>', 'way/<id>' or 'relation/<id>'.
+                Defaults to an empty list.
+            duckdb_table_name (str): Table name in which data will be stored inside the DuckDB
+                database (default: "quackosm")
+
+        Returns:
+            gpd.GeoDataFrame: GeoDataFrame with OSM features.
+        """
+        parsed_geoparquet_file = self.convert_geometry_to_parquet(
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            filter_osm_ids=filter_osm_ids,
+        )
+
+        if filter_osm_ids is None:
+            filter_osm_ids = []
+
+        # generate result_file_path if missing
+        result_file_path = Path(
+            result_file_path
+            or self._generate_result_file_path_from_geometry(
+                filter_osm_ids=filter_osm_ids,
+                keep_all_tags=keep_all_tags,
+                explode_tags=explode_tags or False,
+                save_as_wkt=False,
+            ).with_suffix(".duckdb")
+        )
+
+        with duckdb.connect(str(result_file_path)) as con:
+            con.load_extension("spatial")
+
+            con.sql(f"""
+                CREATE OR REPLACE TABLE {duckdb_table_name} AS
+                SELECT * FROM read_parquet('{parsed_geoparquet_file}');
+            """)
+
+        # clean up intermediary parquet
+        parsed_geoparquet_file.unlink()
+
+        return result_file_path
+
     def _drop_duplicated_features_in_pyarrow_table(
         self, parsed_geoparquet_files: list[Path], tmp_dir_path: Path
     ) -> list[Path]:

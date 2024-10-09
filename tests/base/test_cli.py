@@ -104,6 +104,12 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
 @P.case("Ignore cache short", ["--no-cache"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case("Output", ["--output", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
 @P.case("Output short", ["-o", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
+@P.case("DuckDB explicit export", ["--duckdb"], "files/monaco_nofilter_noclip_compact.duckdb")  # type: ignore
+@P.case(
+    "DuckDB explicit export with table name",
+    ["--duckdb", "--duckdb-table-name", "test"],
+    "files/monaco_nofilter_noclip_compact.duckdb",
+)  # type: ignore
 @P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case("Transient", ["--transient"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case(
@@ -335,14 +341,20 @@ def test_proper_args_with_pbf(
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
-    "Working directory",
-    ["--geom-filter-file", geometry_boundary_file_path(), "--working-directory", "files/workdir"],
-    "files/workdir/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
-)  # type: ignore
-@P.case(
     "Ignore cache",
     ["--geom-filter-file", geometry_boundary_file_path(), "--ignore-cache"],
     "files/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
+)  # type: ignore
+@P.case(
+    "Working directory",
+    [
+        "--geom-filter-file",
+        geometry_boundary_file_path(),
+        "--working-directory",
+        "files/workdir",
+        "--ignore-cache",
+    ],
+    "files/workdir/6a869bcfa1a49ade8b76569e48e4142bce29098815bf37e57155a18204f2bbbc_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
     "Output",
@@ -676,6 +688,14 @@ def test_proper_args_with_pbf_url() -> None:
     [
         "--osm-extract-query",
         "nonexistent_extract",
+    ],
+)  # type: ignore
+@P.case(
+    "OSM extracts with zero matches and duckdb export",
+    [
+        "--duckdb",
+        "--osm-extract-query",
+        "quack_extract",
     ],
 )  # type: ignore
 @P.case(
