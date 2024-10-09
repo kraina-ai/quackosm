@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2024-10-09
+
 ### Added
 
 - Option to export to DuckDB database [#94](https://github.com/kraina-ai/quackosm/issues/119) (implemented by [@mwip](https://github.com/mwip))
@@ -387,7 +389,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.1...HEAD
+
+[0.11.1]: https://github.com/kraina-ai/quackosm/compare/0.11.0...0.11.1
 
 [0.11.0]: https://github.com/kraina-ai/quackosm/compare/0.10.0...0.11.0
 
