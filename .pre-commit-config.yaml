@@ -14,18 +14,13 @@ repos:
         args: [--fix, --exit-non-zero-on-fix, --show-fixes]
   # TODO: Switch back to upstream docformatter
   # after https://github.com/PyCQA/docformatter/issues/289 is fixed
-  - repo: https://github.com/s-weigand/docformatter
-    rev: 1ec30b7
+  - repo: https://github.com/PyCQA/docformatter
+    rev: eb1df34
+    # rev: v1.7.5
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
         args: [--in-place, --config, ./pyproject.toml]
-  # - repo: https://github.com/PyCQA/docformatter
-  #   rev: v1.7.5
-  #   hooks:
-  #     - id: docformatter
-  #       additional_dependencies: [tomli]
-  #       args: ["--in-place", "--config", "./pyproject.toml"]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.1
     hooks:
