@@ -47,6 +47,26 @@ def _empty_path_callback(ctx: typer.Context, value: Path) -> Optional[Path]:
     return _path_callback(ctx, value)
 
 
+class BboxGeometryParser(click.ParamType):  # type: ignore
+    """Parser for geometry in WKT form."""
+
+    name = "BBOX"
+
+    def convert(self, value, param=None, ctx=None):  # type: ignore
+        """Convert parameter value."""
+        try:
+            from shapely import box
+
+            bbox_values = [float(x.strip()) for x in value.split(",")]
+            return box(*bbox_values)
+        except ValueError:  # ValueError raised when passing non-numbers to float()
+            raise typer.BadParameter(
+                "Cannot parse provided bounding box."
+                " Valid value must contain 4 floating point numbers"
+                " separated by commas."
+            ) from None
+
+
 class WktGeometryParser(click.ParamType):  # type: ignore
     """Parser for geometry in WKT form."""
 
@@ -278,6 +298,7 @@ def main(
             help="PBF file to convert into GeoParquet. Can be an URL.",
             metavar="PBF file path",
             callback=_empty_path_callback,
+            show_default=False,
         ),
     ] = None,
     osm_tags_filter: Annotated[
@@ -293,6 +314,7 @@ def main(
                 " [bold bright_cyan]osm-tags-filter-file[/bold bright_cyan]."
             ),
             click_type=OsmTagsFilterJsonParser(),
+            show_default=False,
         ),
     ] = None,
     osm_tags_filter_file: Annotated[
@@ -308,6 +330,7 @@ def main(
                 " [bold bright_cyan]osm-tags-filter[/bold bright_cyan]."
             ),
             click_type=OsmTagsFilterFileParser(),
+            show_default=False,
         ),
     ] = None,
     keep_all_tags: Annotated[
@@ -326,6 +349,20 @@ def main(
             show_default=False,
         ),
     ] = False,
+    geom_filter_bbox: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "Geometry to use as a filter in the"
+                " [bold dark_orange]bounding box[/bold dark_orange] format - 4 floating point"
+                " numbers separated by commas."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
+            ),
+            click_type=BboxGeometryParser(),
+            show_default=False,
+        ),
+    ] = None,
     geom_filter_file: Annotated[
         Optional[str],
         typer.Option(
@@ -333,15 +370,11 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]file[/bold dark_orange] format - any that can be opened by"
                 " GeoPandas. Will return the unary union of the geometries in the file."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeoFileGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_geocode: Annotated[
@@ -351,15 +384,11 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]string to geocode[/bold dark_orange] format - it will be"
                 " geocoded to the geometry using Nominatim API (GeoPy library)."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeocodeGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_geojson: Annotated[
@@ -368,15 +397,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]GeoJSON[/bold dark_orange]"
                 " format."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeoJsonGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_index_geohash: Annotated[
@@ -386,15 +411,11 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]Geohash index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeohashGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_index_h3: Annotated[
@@ -403,15 +424,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]H3 index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=H3GeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_index_s2: Annotated[
@@ -420,15 +437,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]S2 index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=S2GeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_wkt: Annotated[
@@ -437,15 +450,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]WKT[/bold dark_orange]"
                 " format."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=WktGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     osm_extract_query: Annotated[
@@ -457,6 +466,7 @@ def main(
                 "Can be used instead of [bold yellow]PBF file path[/bold yellow] argument."
             ),
             case_sensitive=False,
+            show_default=False,
         ),
     ] = None,
     osm_extract_source: Annotated[
@@ -505,6 +515,7 @@ def main(
                 " Can be [bold green].parquet[/bold green] or"
                 " [bold green].db[/bold green] or [bold green].duckdb[/bold green] extension."
             ),
+            show_default=False,
         ),
     ] = None,
     duckdb: Annotated[
@@ -558,6 +569,7 @@ def main(
                 " for file generation."
             ),
             callback=_empty_path_callback,
+            show_default=False,
         ),
     ] = None,
     filter_osm_ids: Annotated[
@@ -570,6 +582,7 @@ def main(
                 " Separate multiple values with a comma."
             ),
             callback=_filter_osm_ids_callback,
+            show_default=False,
         ),
     ] = None,
     wkt_result: Annotated[
@@ -655,6 +668,7 @@ def main(
     number_of_geometries_provided = sum(
         geom is not None
         for geom in (
+            geom_filter_bbox,
             geom_filter_file,
             geom_filter_geocode,
             geom_filter_geojson,
@@ -668,7 +682,8 @@ def main(
         raise typer.BadParameter("Provided more than one geometry for filtering")
 
     geometry_filter_value = (
-        geom_filter_file
+        geom_filter_bbox
+        or geom_filter_file
         or geom_filter_geocode
         or geom_filter_geojson
         or geom_filter_index_geohash
@@ -685,7 +700,7 @@ def main(
             message=(
                 "QuackOSM requires either the path to the pbf file,"
                 " an OSM extract query (--osm-extract-query) or a geometry filter"
-                " (one of --geom-filter-file, --geom-filter-geocode,"
+                " (one of --geom-filter-bbox, --geom-filter-file, --geom-filter-geocode,"
                 " --geom-filter-geojson, --geom-filter-index-geohash,"
                 " --geom-filter-index-h3, --geom-filter-index-s2, --geom-filter-wkt)"
                 " to download the file automatically. All three cannot be empty at once."

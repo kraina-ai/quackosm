@@ -17,14 +17,14 @@ __all__ = [
 ]
 
 
+def bbox() -> tuple[float, float, float, float]:
+    """Bounding Box."""
+    return (7.416486207767861, 43.7310867041912, 7.421931388477276, 43.73370705597216)
+
+
 def geometry_box() -> Polygon:
     """Geometry box."""
-    return box(
-        minx=7.416486207767861,
-        miny=43.7310867041912,
-        maxx=7.421931388477276,
-        maxy=43.73370705597216,
-    )
+    return box(*bbox())
 
 
 def geometry_wkt() -> str:

@@ -281,6 +281,11 @@ def test_proper_args_with_pbf(
 
 @P.parameters("args", "expected_result")  # type: ignore
 @P.case(
+    "Geometry BBOX filter",
+    ["--geom-filter-bbox", "7.416486,43.731086,7.421931,43.733707"],
+    "files/b9115f99abe0ba4933e368fdf5e7d4ffbcc6fa48ba5ce03c4c50f95165fd3291_nofilter_compact.parquet",
+)  # type: ignore
+@P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
     "files/09c3fc0471538594b784be7c52782837c7a26753c2b26097b780581fa0a6bfc6_nofilter_compact.parquet",
@@ -645,6 +650,8 @@ def test_proper_args_with_pbf_url() -> None:
 @P.case("Geometry H3 filter with S2", ["--geom-filter-index-h3", "12cdc28bc"])  # type: ignore
 @P.case("Geometry H3 filter with random string", ["--geom-filter-index-h3", random_str()])  # type: ignore
 @P.case("Geometry S2 filter with random string", ["--geom-filter-index-s2", random_str()])  # type: ignore
+@P.case("Geometry BBOX filter with wrong values", ["--geom-filter-bbox", random_str()])  # type: ignore
+@P.case("Geometry BBOX filter with spaces", ["--geom-filter-bbox", "10,", "-5,", "6,", "17"])  # type: ignore
 @P.case(
     "Geometry two filters",
     ["--geom-filter-geojson", geometry_geojson(), "--geom-filter-wkt", geometry_wkt()],
