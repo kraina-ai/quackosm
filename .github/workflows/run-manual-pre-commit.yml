@@ -21,7 +21,7 @@ jobs:
       - uses: pdm-project/setup-pdm@v3
         name: Setup PDM
         with:
-          python-version: 3.10
+          python-version: "3.10"
           architecture: x64
           enable-pep582: true
           cache: true
