@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass a bounding box as a geometry filter in CLI [#169](https://github.com/kraina-ai/quackosm/issues/169)
+
+### Changed
+
+- Modified CLI descriptions and hid unnecessary default values [#169](https://github.com/kraina-ai/quackosm/issues/169)
+
 ## [0.11.1] - 2024-10-09
 
 ### Added
