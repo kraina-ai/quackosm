@@ -669,6 +669,14 @@ PBF file size: 1.7 GB
 
 ![Poland PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_disk_spillage.png)
 
+## Docker
+A Dockerized version is available to build in the `docker` directory.
+```
+cd docker
+docker-compose build
+docker-compose run region-latest.osm.pbf
+```
+
 ## License
 
 The library is distributed under Apache-2.0 License.
