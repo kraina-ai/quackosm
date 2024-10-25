@@ -6,6 +6,8 @@ from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, cast
 
+import platformdirs
+
 from quackosm._constants import WGS84_CRS
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -56,14 +58,21 @@ def load_index_decorator(
 
     def inner(function: Callable[[], "GeoDataFrame"]) -> Callable[[], "GeoDataFrame"]:
         def wrapper() -> "GeoDataFrame":
-            cache_file_path = _get_cache_file_path(extract_source)
+            global_cache_file_path = _get_global_cache_file_path(extract_source)
             expected_columns = ["id", "name", "file_name", "parent", "geometry", "area", "url"]
 
             # Check if index exists in cache
-            if cache_file_path.exists():
+            if global_cache_file_path.exists():
                 import geopandas as gpd
 
-                index_gdf = gpd.read_file(cache_file_path)
+                index_gdf = gpd.read_file(global_cache_file_path)
+            elif (local_cache_file_path := _get_local_cache_file_path(extract_source)).exists():
+                import shutil
+
+                import geopandas as gpd
+
+                shutil.copy(local_cache_file_path, global_cache_file_path)
+                index_gdf = gpd.read_file(global_cache_file_path)
             # Download index
             else:  # pragma: no cover
                 index_gdf = function()
@@ -87,14 +96,14 @@ def load_index_decorator(
                     stacklevel=0,
                 )
                 # Invalidate previous cached index
-                cache_file_path.replace(cache_file_path.with_suffix(".geojson.old"))
+                global_cache_file_path.replace(global_cache_file_path.with_suffix(".geojson.old"))
                 # Download index again
                 index_gdf = wrapper()
 
             # Save index to cache
-            if not cache_file_path.exists():
-                cache_file_path.parent.mkdir(parents=True, exist_ok=True)
-                index_gdf[expected_columns].to_file(cache_file_path, driver="GeoJSON")
+            if not global_cache_file_path.exists():
+                global_cache_file_path.parent.mkdir(parents=True, exist_ok=True)
+                index_gdf[expected_columns].to_file(global_cache_file_path, driver="GeoJSON")
 
             return index_gdf
 
@@ -112,7 +121,14 @@ def extracts_to_geodataframe(extracts: list[OpenStreetMapExtract]) -> "GeoDataFr
     ).set_crs(WGS84_CRS)
 
 
-def _get_cache_file_path(extract_source: OsmExtractSource) -> Path:
+def _get_global_cache_file_path(extract_source: OsmExtractSource) -> Path:
+    return (
+        Path(platformdirs.user_cache_dir("QuackOSM"))
+        / f"{extract_source.value.lower()}_index.geojson"
+    )
+
+
+def _get_local_cache_file_path(extract_source: OsmExtractSource) -> Path:
     return Path(f"cache/{extract_source.value.lower()}_index.geojson")
 
 
