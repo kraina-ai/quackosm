@@ -59,6 +59,7 @@ def load_index_decorator(
     def inner(function: Callable[[], "GeoDataFrame"]) -> Callable[[], "GeoDataFrame"]:
         def wrapper() -> "GeoDataFrame":
             global_cache_file_path = _get_global_cache_file_path(extract_source)
+            global_cache_file_path.parent.mkdir(exist_ok=True, parents=True)
             expected_columns = ["id", "name", "file_name", "parent", "geometry", "area", "url"]
 
             # Check if index exists in cache
