@@ -1,13 +1,13 @@
 [project]
 name = "QuackOSM"
-version = "0.10.0"
+version = "0.11.2"
 description = "An open-source tool for reading OpenStreetMap PBF files using DuckDB"
 authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
     "geopandas>=0.6",
     "shapely>=2",
     "pyarrow>=16.0.0",
-    "duckdb>=0.10.2,<1.1.0",
+    "duckdb>=1.1.0",
     "geoarrow-pyarrow>=0.1.2",
     "geoarrow-pandas>=0.1.1",
     "typeguard>=3.0.0",
@@ -69,7 +69,7 @@ build-backend = "pdm.backend"
 # pdm add -d <library>
 dev = ["bumpver", "types-requests", "setuptools>=45.0.0"]
 # pdm add -dG lint <library>
-lint = ["pre-commit", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
+lint = ["pre-commit>=4", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>
 test = [
     "pytest>=7.0.0",
@@ -108,6 +108,9 @@ cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
 
 [tool.pdm.scripts]
 post_install = "pre-commit install"
+
+[tool.pdm.build]
+excludes = ["quackosm/conftest.py"]
 
 [tool.black]
 line-length = 100
@@ -170,7 +173,7 @@ close-quotes-on-newline = true
 wrap-one-line = true
 
 [tool.bumpver]
-current_version = "0.10.0"
+current_version = "0.11.2"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
 commit = true

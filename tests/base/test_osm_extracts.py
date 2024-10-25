@@ -27,7 +27,7 @@ from quackosm.osm_extracts import (
     find_smallest_containing_extracts_total,
     get_extract_by_query,
 )
-from quackosm.osm_extracts.extract import _get_cache_file_path, _get_full_file_name_function
+from quackosm.osm_extracts.extract import _get_full_file_name_function, _get_global_cache_file_path
 from quackosm.osm_extracts.geofabrik import _load_geofabrik_index
 
 ut = TestCase()
@@ -224,7 +224,7 @@ def test_uncovered_geometry_extract(
 
 def test_proper_cache_saving() -> None:
     """Test if file is saved in cache properly."""
-    save_path = _get_cache_file_path(OsmExtractSource.geofabrik)
+    save_path = _get_global_cache_file_path(OsmExtractSource.geofabrik)
     loaded_index = _load_geofabrik_index()
     assert save_path.exists()
     assert len(loaded_index.columns) == 7
@@ -232,7 +232,7 @@ def test_proper_cache_saving() -> None:
 
 def test_wrong_cached_index() -> None:
     """Test if cached file with missing columns is redownloaded again."""
-    save_path = _get_cache_file_path(OsmExtractSource.geofabrik)
+    save_path = _get_global_cache_file_path(OsmExtractSource.geofabrik)
     column_to_remove = "id"
 
     # load index first time

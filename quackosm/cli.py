@@ -8,6 +8,7 @@ from typing import Annotated, Literal, Optional, Union, cast
 import click
 import typer
 
+from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
@@ -44,6 +45,26 @@ def _empty_path_callback(ctx: typer.Context, value: Path) -> Optional[Path]:
     if not value:
         return None
     return _path_callback(ctx, value)
+
+
+class BboxGeometryParser(click.ParamType):  # type: ignore
+    """Parser for geometry in WKT form."""
+
+    name = "BBOX"
+
+    def convert(self, value, param=None, ctx=None):  # type: ignore
+        """Convert parameter value."""
+        try:
+            from shapely import box
+
+            bbox_values = [float(x.strip()) for x in value.split(",")]
+            return box(*bbox_values)
+        except ValueError:  # ValueError raised when passing non-numbers to float()
+            raise typer.BadParameter(
+                "Cannot parse provided bounding box."
+                " Valid value must contain 4 floating point numbers"
+                " separated by commas."
+            ) from None
 
 
 class WktGeometryParser(click.ParamType):  # type: ignore
@@ -96,7 +117,10 @@ class GeoFileGeometryParser(click.ParamType):  # type: ignore
             import geopandas as gpd
 
             gdf = gpd.read_file(value)
-            return gdf.unary_union
+            if GEOPANDAS_NEW_API:
+                return gdf.union_all()
+            else:
+                return gdf.unary_union
         except Exception:
             raise typer.BadParameter("Cannot parse provided geo file") from None
 
@@ -140,9 +164,13 @@ class GeohashGeometryParser(click.ParamType):  # type: ignore
                 geometries.append(
                     box(minx=bounds["w"], miny=bounds["s"], maxx=bounds["e"], maxy=bounds["n"])
                 )
-            return gpd.GeoSeries(geometries).unary_union
+            if GEOPANDAS_NEW_API:
+                return gpd.GeoSeries(geometries).union_all()
+            else:
+                return gpd.GeoSeries(geometries).unary_union
         except Exception:
-            raise typer.BadParameter(f"Cannot parse provided Geohash value: {geohash}") from None
+            raise
+            # raise typer.BadParameter(f"Cannot parse provided Geohash value: {geohash}") from None
 
 
 class H3GeometryParser(click.ParamType):  # type: ignore
@@ -165,7 +193,10 @@ class H3GeometryParser(click.ParamType):  # type: ignore
                 geometries.append(
                     Polygon([coords[::-1] for coords in h3.cell_to_boundary(h3_cell.strip())])
                 )
-            return gpd.GeoSeries(geometries).unary_union
+            if GEOPANDAS_NEW_API:
+                return gpd.GeoSeries(geometries).union_all()
+            else:
+                return gpd.GeoSeries(geometries).unary_union
         except Exception as ex:
             raise typer.BadParameter(f"Cannot parse provided H3 values: {value}") from ex
 
@@ -190,7 +221,10 @@ class S2GeometryParser(click.ParamType):  # type: ignore
                 geometries.append(
                     Polygon(s2.s2_to_geo_boundary(s2_index.strip(), geo_json_conformant=True))
                 )
-            return gpd.GeoSeries(geometries).unary_union
+            if GEOPANDAS_NEW_API:
+                return gpd.GeoSeries(geometries).union_all()
+            else:
+                return gpd.GeoSeries(geometries).unary_union
         except Exception:
             raise typer.BadParameter(f"Cannot parse provided S2 value: {s2_index}") from None
 
@@ -264,6 +298,7 @@ def main(
             help="PBF file to convert into GeoParquet. Can be an URL.",
             metavar="PBF file path",
             callback=_empty_path_callback,
+            show_default=False,
         ),
     ] = None,
     osm_tags_filter: Annotated[
@@ -279,6 +314,7 @@ def main(
                 " [bold bright_cyan]osm-tags-filter-file[/bold bright_cyan]."
             ),
             click_type=OsmTagsFilterJsonParser(),
+            show_default=False,
         ),
     ] = None,
     osm_tags_filter_file: Annotated[
@@ -294,6 +330,7 @@ def main(
                 " [bold bright_cyan]osm-tags-filter[/bold bright_cyan]."
             ),
             click_type=OsmTagsFilterFileParser(),
+            show_default=False,
         ),
     ] = None,
     keep_all_tags: Annotated[
@@ -312,6 +349,20 @@ def main(
             show_default=False,
         ),
     ] = False,
+    geom_filter_bbox: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "Geometry to use as a filter in the"
+                " [bold dark_orange]bounding box[/bold dark_orange] format - 4 floating point"
+                " numbers separated by commas."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
+            ),
+            click_type=BboxGeometryParser(),
+            show_default=False,
+        ),
+    ] = None,
     geom_filter_file: Annotated[
         Optional[str],
         typer.Option(
@@ -319,15 +370,11 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]file[/bold dark_orange] format - any that can be opened by"
                 " GeoPandas. Will return the unary union of the geometries in the file."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeoFileGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_geocode: Annotated[
@@ -337,15 +384,11 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]string to geocode[/bold dark_orange] format - it will be"
                 " geocoded to the geometry using Nominatim API (GeoPy library)."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeocodeGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_geojson: Annotated[
@@ -354,15 +397,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]GeoJSON[/bold dark_orange]"
                 " format."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeoJsonGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_index_geohash: Annotated[
@@ -372,15 +411,11 @@ def main(
                 "Geometry to use as a filter in the"
                 " [bold dark_orange]Geohash index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=GeohashGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_index_h3: Annotated[
@@ -389,15 +424,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]H3 index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=H3GeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_index_s2: Annotated[
@@ -406,15 +437,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]S2 index[/bold dark_orange]"
                 " format. Separate multiple values with a comma."
-                " Cannot be used used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-wkt[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=S2GeometryParser(),
+            show_default=False,
         ),
     ] = None,
     geom_filter_wkt: Annotated[
@@ -423,15 +450,11 @@ def main(
             help=(
                 "Geometry to use as a filter in the [bold dark_orange]WKT[/bold dark_orange]"
                 " format."
-                " Cannot be used together with"
-                " [bold bright_cyan]geom-filter-file[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geocode[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-geojson[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-geohash[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-h3[/bold bright_cyan] or"
-                " [bold bright_cyan]geom-filter-index-s2[/bold bright_cyan]."
+                " Cannot be used together with other"
+                " [bold bright_cyan]geom-filter-...[/bold bright_cyan] parameters."
             ),
             click_type=WktGeometryParser(),
+            show_default=False,
         ),
     ] = None,
     osm_extract_query: Annotated[
@@ -443,6 +466,7 @@ def main(
                 "Can be used instead of [bold yellow]PBF file path[/bold yellow] argument."
             ),
             case_sensitive=False,
+            show_default=False,
         ),
     ] = None,
     osm_extract_source: Annotated[
@@ -486,11 +510,32 @@ def main(
             "--output",
             "-o",
             help=(
-                "Path where to save final geoparquet file. If not provided, it will be generated"
+                "Path where to save final result file. If not provided, it will be generated"
                 " automatically based on the input pbf file name."
+                " Can be [bold green].parquet[/bold green] or"
+                " [bold green].db[/bold green] or [bold green].duckdb[/bold green] extension."
             ),
+            show_default=False,
         ),
     ] = None,
+    duckdb: Annotated[
+        bool,
+        typer.Option(
+            "--duckdb",
+            help=(
+                "Export to duckdb database. If not provided, data can still be exported if"
+                " [bold bright_cyan]output[/bold bright_cyan] has [bold green].db[/bold green]"
+                " or [bold green].duckdb[/bold green] extension."
+            ),
+        ),
+    ] = False,
+    duckdb_table_name: Annotated[
+        Optional[str],
+        typer.Option(
+            "--duckdb-table-name",
+            help="Table name which the data will be imported into in the DuckDB database.",
+        ),
+    ] = "quackosm",
     ignore_cache: Annotated[
         bool,
         typer.Option(
@@ -524,6 +569,7 @@ def main(
                 " for file generation."
             ),
             callback=_empty_path_callback,
+            show_default=False,
         ),
     ] = None,
     filter_osm_ids: Annotated[
@@ -536,6 +582,7 @@ def main(
                 " Separate multiple values with a comma."
             ),
             callback=_filter_osm_ids_callback,
+            show_default=False,
         ),
     ] = None,
     wkt_result: Annotated[
@@ -621,6 +668,7 @@ def main(
     number_of_geometries_provided = sum(
         geom is not None
         for geom in (
+            geom_filter_bbox,
             geom_filter_file,
             geom_filter_geocode,
             geom_filter_geojson,
@@ -634,7 +682,8 @@ def main(
         raise typer.BadParameter("Provided more than one geometry for filtering")
 
     geometry_filter_value = (
-        geom_filter_file
+        geom_filter_bbox
+        or geom_filter_file
         or geom_filter_geocode
         or geom_filter_geojson
         or geom_filter_index_geohash
@@ -651,7 +700,7 @@ def main(
             message=(
                 "QuackOSM requires either the path to the pbf file,"
                 " an OSM extract query (--osm-extract-query) or a geometry filter"
-                " (one of --geom-filter-file, --geom-filter-geocode,"
+                " (one of --geom-filter-bbox, --geom-filter-file, --geom-filter-geocode,"
                 " --geom-filter-geojson, --geom-filter-index-geohash,"
                 " --geom-filter-index-h3, --geom-filter-index-s2, --geom-filter-wkt)"
                 " to download the file automatically. All three cannot be empty at once."
@@ -673,11 +722,21 @@ def main(
         verbosity_mode = "silent"
 
     logging.disable(logging.CRITICAL)
-    if pbf_file:
+
+    is_duckdb = (result_file_path and result_file_path.suffix in (".duckdb", ".db")) or duckdb
+
+    pbf_file_parquet = pbf_file and not is_duckdb
+    pbf_file_duckdb = pbf_file and is_duckdb
+    osm_extract_parquet = osm_extract_query and not is_duckdb
+    osm_extract_duckdb = osm_extract_query and is_duckdb
+    geometry_parquet = not pbf_file and not osm_extract_query and not is_duckdb
+    geometry_duckdb = not pbf_file and not osm_extract_query and is_duckdb
+
+    if pbf_file_parquet:
         from quackosm.functions import convert_pbf_to_parquet
 
-        geoparquet_path = convert_pbf_to_parquet(
-            pbf_path=pbf_file,
+        result_path = convert_pbf_to_parquet(
+            pbf_path=cast(str, pbf_file),
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
             keep_all_tags=keep_all_tags,
             geometry_filter=geometry_filter_value,
@@ -694,13 +753,34 @@ def main(
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
-    elif osm_extract_query:
+    elif pbf_file_duckdb:
+        from quackosm.functions import convert_pbf_to_duckdb
+
+        result_path = convert_pbf_to_duckdb(
+            pbf_path=cast(str, pbf_file),
+            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+            keep_all_tags=keep_all_tags,
+            geometry_filter=geometry_filter_value,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            working_directory=working_directory,
+            result_file_path=result_file_path,
+            osm_way_polygon_features_config=(
+                json.loads(Path(osm_way_polygon_features_config).read_text())
+                if osm_way_polygon_features_config
+                else None
+            ),
+            filter_osm_ids=filter_osm_ids,  # type: ignore
+            duckdb_table_name=duckdb_table_name or "quackosm",
+            verbosity_mode=verbosity_mode,
+        )
+    elif osm_extract_parquet:
         from quackosm._exceptions import OsmExtractSearchError
         from quackosm.functions import convert_osm_extract_to_parquet
 
         try:
-            geoparquet_path = convert_osm_extract_to_parquet(
-                osm_extract_query=osm_extract_query,
+            result_path = convert_osm_extract_to_parquet(
+                osm_extract_query=cast(str, osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
                 keep_all_tags=keep_all_tags,
@@ -724,10 +804,41 @@ def main(
             err_console = Console(stderr=True)
             err_console.print(ex)
             raise typer.Exit(code=1) from None
-    else:
+    elif osm_extract_duckdb:
+        from quackosm._exceptions import OsmExtractSearchError
+        from quackosm.functions import convert_osm_extract_to_duckdb
+
+        try:
+            result_path = convert_osm_extract_to_duckdb(
+                osm_extract_query=cast(str, osm_extract_query),
+                osm_extract_source=osm_extract_source,
+                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                keep_all_tags=keep_all_tags,
+                geometry_filter=geometry_filter_value,
+                explode_tags=explode_tags,
+                ignore_cache=ignore_cache,
+                working_directory=working_directory,
+                result_file_path=result_file_path,
+                osm_way_polygon_features_config=(
+                    json.loads(Path(osm_way_polygon_features_config).read_text())
+                    if osm_way_polygon_features_config
+                    else None
+                ),
+                filter_osm_ids=filter_osm_ids,  # type: ignore
+                duckdb_table_name=duckdb_table_name or "quackosm",
+                save_as_wkt=wkt_result,
+                verbosity_mode=verbosity_mode,
+            )
+        except OsmExtractSearchError as ex:
+            from rich.console import Console
+
+            err_console = Console(stderr=True)
+            err_console.print(ex)
+            raise typer.Exit(code=1) from None
+    elif geometry_parquet:
         from quackosm.functions import convert_geometry_to_parquet
 
-        geoparquet_path = convert_geometry_to_parquet(
+        result_path = convert_geometry_to_parquet(
             geometry_filter=geometry_filter_value,
             osm_extract_source=osm_extract_source,
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
@@ -747,4 +858,31 @@ def main(
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
-    typer.secho(geoparquet_path, fg="green")
+    elif geometry_duckdb:
+        from quackosm.functions import convert_geometry_to_duckdb
+
+        result_path = convert_geometry_to_duckdb(
+            geometry_filter=geometry_filter_value,
+            osm_extract_source=osm_extract_source,
+            tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            ignore_cache=ignore_cache,
+            working_directory=working_directory,
+            result_file_path=result_file_path,
+            osm_way_polygon_features_config=(
+                json.loads(Path(osm_way_polygon_features_config).read_text())
+                if osm_way_polygon_features_config
+                else None
+            ),
+            filter_osm_ids=filter_osm_ids,  # type: ignore
+            duckdb_table_name=duckdb_table_name or "quackosm",
+            save_as_wkt=wkt_result,
+            verbosity_mode=verbosity_mode,
+            geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
+            allow_uncovered_geometry=allow_uncovered_geometry,
+        )
+    else:
+        raise RuntimeError("Unknown operation mode")
+
+    typer.secho(result_path, fg="green")

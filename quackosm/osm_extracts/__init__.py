@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
 from pandas.util._decorators import deprecate
+from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from rich import get_console
 from rich import print as rprint
@@ -29,13 +30,14 @@ from quackosm._exceptions import (
     OsmExtractMultipleMatchesError,
     OsmExtractZeroMatchesError,
 )
+from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
 from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
 
-if TYPE_CHECKING: # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     import pandas as pd
 
 __all__ = [
@@ -65,6 +67,8 @@ def download_extracts_pbf_files(
         list[Path]: List of downloaded file paths.
     """
     downloaded_extracts_paths = []
+    logger = get_pooch_logger()
+    logger.setLevel("WARNING")
     for extract in extracts:
         file_path = retrieve(
             extract.url,
@@ -814,9 +818,13 @@ def _simplify_selected_extracts(
             )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=FutureWarning)
-                other_geometries = matching_extracts.loc[
+                other_geometries_gdf = matching_extracts.loc[
                     sorted_extracts_gdf["id"] != extract_id
-                ].unary_union
+                ]
+                if GEOPANDAS_NEW_API:
+                    other_geometries = other_geometries_gdf.union_all()
+                else:
+                    other_geometries = other_geometries_gdf.unary_union
             if extract_geometry.covered_by(other_geometries):
                 extract_to_remove = extract_id
                 simplify_again = True

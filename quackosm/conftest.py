@@ -9,6 +9,7 @@ from pathlib import Path
 import duckdb
 import pandas
 import pytest
+from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 
 from quackosm.osm_extracts.extract import OsmExtractSource
@@ -53,12 +54,14 @@ def add_pbf_files(doctest_namespace):  # type: ignore
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
 
 
-
 @pytest.fixture(autouse=True, scope="session")
 def download_osm_extracts_indexes():  # type: ignore
     """Download OSM extract indexes files to cache."""
     download_directory = Path("cache")
     download_directory.mkdir(parents=True, exist_ok=True)
+
+    logger = get_pooch_logger()
+    logger.setLevel("WARNING")
 
     for osm_extract in OsmExtractSource:
         if osm_extract == OsmExtractSource.any:
@@ -80,6 +83,7 @@ def download_osm_extracts_indexes():  # type: ignore
 def install_spatial_extension():  # type: ignore
     """Install duckdb spatial extension."""
     duckdb.install_extension("spatial")
+
 
 @pytest.fixture(autouse=True, scope="session")  # type: ignore
 def pandas_terminal_width() -> None:

@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Moved location of the OSM extracts providers to the global cache [#173](https://github.com/kraina-ai/quackosm/issues/173)
+
+## [0.11.2] - 2024-10-14
+
+### Added
+
+- Option to pass a bounding box as a geometry filter in CLI [#169](https://github.com/kraina-ai/quackosm/issues/169)
+
+### Changed
+
+- Modified CLI descriptions and hid unnecessary default values [#169](https://github.com/kraina-ai/quackosm/issues/169)
+
+## [0.11.1] - 2024-10-09
+
+### Added
+
+- Option to export to DuckDB database [#94](https://github.com/kraina-ai/quackosm/issues/119) (implemented by [@mwip](https://github.com/mwip))
+
+## [0.11.0] - 2024-09-24
+
+### Changed
+
+- Bumped minimal DuckDB version to `1.1.0`
+- Refactored geoparquet operations for compatibility with new DuckDB version
+- Excluded `conftest.py` file from the final library build
+- Replaced `unary_union` calls with `union_all()` on all GeoDataFrames
+- Silenced `pooch` library warnings regarding empty SHA hash
+
 ## [0.10.0] - 2024-09-23
 
 ### Changed
@@ -373,7 +403,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.2...HEAD
+
+[0.11.2]: https://github.com/kraina-ai/quackosm/compare/0.11.1...0.11.2
+
+[0.11.1]: https://github.com/kraina-ai/quackosm/compare/0.11.0...0.11.1
+
+[0.11.0]: https://github.com/kraina-ai/quackosm/compare/0.10.0...0.11.0
 
 [0.10.0]: https://github.com/kraina-ai/quackosm/compare/0.9.4...0.10.0
 
