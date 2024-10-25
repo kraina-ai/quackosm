@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3] - 2024-10-25
+
 ### Changed
 
 - Moved location of the OSM extracts providers to the global cache [#173](https://github.com/kraina-ai/quackosm/issues/173)
@@ -403,7 +405,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.3...HEAD
+
+[0.11.3]: https://github.com/kraina-ai/quackosm/compare/0.11.2...0.11.3
 
 [0.11.2]: https://github.com/kraina-ai/quackosm/compare/0.11.1...0.11.2
 
