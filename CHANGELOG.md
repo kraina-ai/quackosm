@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Moved location of the OSM extracts providers to the global cache [#173](https://github.com/kraina-ai/quackosm/issues/173)
+
 ## [0.11.2] - 2024-10-14
 
 ### Added
