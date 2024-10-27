@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Improved multiprocessing intersection algorithm by early stopping processes start-up if finished quicker than expected
+
 ## [0.11.3] - 2024-10-25
 
 ### Changed
