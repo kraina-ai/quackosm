@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.4] - 2024-10-28
+
 ### Changed
 
 - Improved multiprocessing intersection algorithm by early stopping processes start-up if finished quicker than expected
@@ -409,7 +411,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.4...HEAD
+
+[0.11.4]: https://github.com/kraina-ai/quackosm/compare/0.11.3...0.11.4
 
 [0.11.3]: https://github.com/kraina-ai/quackosm/compare/0.11.2...0.11.3
 
