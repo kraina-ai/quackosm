@@ -133,6 +133,8 @@ def _run_processes(
 ) -> None:
     # Run processes
     for p in processes:
+        if queue.empty():
+            break
         p.start()
 
     if progress_bar:  # pragma: no cover
