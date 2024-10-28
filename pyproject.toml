@@ -1,6 +1,6 @@
 [project]
 name = "QuackOSM"
-version = "0.11.3"
+version = "0.11.4"
 description = "An open-source tool for reading OpenStreetMap PBF files using DuckDB"
 authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
@@ -173,7 +173,7 @@ close-quotes-on-newline = true
 wrap-one-line = true
 
 [tool.bumpver]
-current_version = "0.11.3"
+current_version = "0.11.4"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
 commit = true
