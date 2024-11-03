@@ -1112,7 +1112,7 @@ class PbfFileReader:
         if self.tags_filter is not None:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
-            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter)).encode())
+            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter or "")).encode())
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
@@ -1144,7 +1144,7 @@ class PbfFileReader:
         if self.tags_filter is not None:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
-            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter)).encode())
+            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter or "")).encode())
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
