@@ -1365,8 +1365,11 @@ class PbfFileReader:
                     sql_query=f"""
                     SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
                     SEMI JOIN ({nodes_intersecting_ids.sql_query()}) ni ON n.id = ni.id
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0 AND ({sql_filter})
+                    WHERE tags IS NOT NULL
+                    AND cardinality(tags) > 0
+                    AND ({sql_filter})
                     AND ({filter_osm_node_ids_filter})
+                    AND ({custom_sql_filter})
                     """,
                     file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
                 )
