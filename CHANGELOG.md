@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass custom SQL filters with `custom_sql_filter` (and `--custom-sql-filter`) parameter [#67](https://github.com/kraina-ai/quackosm/issues/67)
+
 ## [0.11.4] - 2024-10-28
 
 ### Changed

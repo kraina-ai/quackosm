@@ -114,6 +114,7 @@ class PbfFileReader:
         self,
         tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
         geometry_filter: Optional[BaseGeometry] = None,
+        custom_sql_filter: Optional[str] = None,
         working_directory: Union[str, Path] = "files",
         osm_way_polygon_features_config: Optional[
             Union[OsmWayPolygonConfig, dict[str, Any]]
@@ -142,6 +143,9 @@ class PbfFileReader:
                 If `None`, handler will allow all of the tags to be parsed. Defaults to `None`.
             geometry_filter (BaseGeometry, optional): Region which can be used to filter only
                 intersecting OSM objects. Defaults to `None`.
+            custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
+                to filter OSM features. It will be embedded into predefined queries and requires
+                DuckDB syntax to operate on tags map object. Defaults to `None`.
             working_directory (Union[str, Path], optional): Directory where to save
                 the parsed `*.parquet` files. Defaults to "files".
             osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -184,6 +188,8 @@ class PbfFileReader:
         )
         self.expanded_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
         self.merged_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
+
+        self.custom_sql_filter = custom_sql_filter
 
         self.geometry_coverage_iou_threshold = geometry_coverage_iou_threshold
         self.allow_uncovered_geometry = allow_uncovered_geometry
@@ -772,10 +778,12 @@ class PbfFileReader:
 
         with duckdb.connect(str(result_file_path)) as con:
             con.load_extension("spatial")
-            con.sql(f"""
+            con.sql(
+                f"""
                 CREATE OR REPLACE TABLE {duckdb_table_name} AS
                 SELECT * FROM read_parquet('{parsed_geoparquet_file}');
-            """)
+            """
+            )
 
         # clean up intermediary parquet
         parsed_geoparquet_file.unlink()
@@ -844,10 +852,12 @@ class PbfFileReader:
         with duckdb.connect(str(result_file_path)) as con:
             con.load_extension("spatial")
 
-            con.sql(f"""
+            con.sql(
+                f"""
                 CREATE OR REPLACE TABLE {duckdb_table_name} AS
                 SELECT * FROM read_parquet('{parsed_geoparquet_file}');
-            """)
+            """
+            )
 
         # clean up intermediary parquet
         parsed_geoparquet_file.unlink()
@@ -1102,7 +1112,7 @@ class PbfFileReader:
         if self.tags_filter is not None:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
-            h.update(json.dumps(self.tags_filter).encode())
+            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter)).encode())
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
@@ -1134,7 +1144,7 @@ class PbfFileReader:
         if self.tags_filter is not None:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
-            h.update(json.dumps(self.tags_filter).encode())
+            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter)).encode())
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
@@ -1308,6 +1318,7 @@ class PbfFileReader:
     ) -> ConvertedOSMParquetFiles:
         sql_filter = self._generate_osm_tags_sql_filter()
         filtered_tags_clause = self._generate_filtered_tags_clause()
+        custom_sql_filter = self.custom_sql_filter or "1=1"
 
         is_intersecting = self.geometry_filter is not None
 
@@ -1363,8 +1374,11 @@ class PbfFileReader:
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0 AND ({sql_filter})
+                    WHERE tags IS NOT NULL
+                    AND cardinality(tags) > 0
+                    AND ({sql_filter})
                     AND ({filter_osm_node_ids_filter})
+                    AND ({custom_sql_filter})
                     """,
                     file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
                 )
@@ -1450,7 +1464,9 @@ class PbfFileReader:
                 sql_query=f"""
                 SELECT id FROM ({ways_all_with_tags.sql_query()}) w
                 SEMI JOIN ({ways_intersecting_ids.sql_query()}) wi ON w.id = wi.id
-                WHERE ({sql_filter}) AND ({filter_osm_way_ids_filter})
+                WHERE ({sql_filter})
+                AND ({filter_osm_way_ids_filter})
+                AND ({custom_sql_filter})
                 """,
                 file_path=self.tmp_dir_path / "ways_filtered_non_distinct_ids",
             )
@@ -1558,7 +1574,9 @@ class PbfFileReader:
                 sql_query=f"""
                 SELECT id FROM ({relations_all_with_tags.sql_query()}) r
                 SEMI JOIN ({relations_intersecting_ids.sql_query()}) ri ON r.id = ri.id
-                WHERE ({sql_filter}) AND ({filter_osm_relation_ids_filter})
+                WHERE ({sql_filter})
+                AND ({filter_osm_relation_ids_filter})
+                AND ({custom_sql_filter})
                 """,
                 file_path=relations_ids_path / "filtered",
             )
