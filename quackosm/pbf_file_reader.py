@@ -1109,10 +1109,12 @@ class PbfFileReader:
         )
 
         osm_filter_tags_hash_part = "nofilter"
-        if self.tags_filter is not None:
+        if self.tags_filter is not None or self.custom_sql_filter:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
-            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter or "")).encode())
+            h.update(
+                (json.dumps(self.tags_filter or {}) + str(self.custom_sql_filter or "")).encode()
+            )
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
@@ -1141,10 +1143,12 @@ class PbfFileReader:
         self, keep_all_tags: bool, explode_tags: bool, filter_osm_ids: list[str], save_as_wkt: bool
     ) -> Path:
         osm_filter_tags_hash_part = "nofilter"
-        if self.tags_filter is not None:
+        if self.tags_filter is not None or self.custom_sql_filter:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
-            h.update((json.dumps(self.tags_filter) + str(self.custom_sql_filter or "")).encode())
+            h.update(
+                (json.dumps(self.tags_filter or {}) + str(self.custom_sql_filter or "")).encode()
+            )
             osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
