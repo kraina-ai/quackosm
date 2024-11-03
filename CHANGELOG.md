@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2024-11-03
+
 ### Added
 
 - Option to pass custom SQL filters with `custom_sql_filter` (and `--custom-sql-filter`) parameter [#67](https://github.com/kraina-ai/quackosm/issues/67)
@@ -419,7 +421,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.11.4...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.12.0...HEAD
+
+[0.12.0]: https://github.com/kraina-ai/quackosm/compare/0.11.4...0.12.0
 
 [0.11.4]: https://github.com/kraina-ai/quackosm/compare/0.11.3...0.11.4
 
