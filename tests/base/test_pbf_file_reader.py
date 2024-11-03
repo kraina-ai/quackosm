@@ -96,8 +96,8 @@ def test_pbf_to_geoparquet_parsing(
 @pytest.mark.parametrize(
     "result_file_path",
     [None, "quackosm.db", "files/quackosm.db", f"files/{random.getrandbits(128)}/quackosm.db"],
-) # type: ignore
-@pytest.mark.parametrize("table_name", [None, "quackosm", "osm_features"]) # type: ignore
+)  # type: ignore
+@pytest.mark.parametrize("table_name", [None, "quackosm", "osm_features"])  # type: ignore
 def test_pbf_reader_duckdb_export(result_file_path: Optional[str], table_name: Optional[str]):
     """Test proper DuckDB export file generation."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
@@ -352,6 +352,27 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
         filter_osm_ids=filter_osm_ids,
     )
     assert len(features_gdf) == expected_result_length
+
+
+@pytest.mark.parametrize(
+    "geometry_filter",
+    [
+        None,
+        geometry_box(),
+    ],
+)  # type: ignore
+def test_custom_sql_filtering(geometry_filter: BaseGeometry) -> None:
+    """Test if custom filtering works."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    features_gdf = PbfFileReader(
+        custom_sql_filter="cardinality(tags) = 5",
+        geometry_filter=geometry_filter,
+    ).convert_pbf_to_geodataframe(
+        pbf_path=monaco_file_path,
+        ignore_cache=True,
+    )
+
+    assert features_gdf["tags"].apply(lambda x: len(x) == 5).all()
 
 
 @pytest.mark.parametrize(

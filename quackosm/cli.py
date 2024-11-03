@@ -457,6 +457,18 @@ def main(
             show_default=False,
         ),
     ] = None,
+    custom_sql_filter: Annotated[
+        Optional[str],
+        typer.Option(
+            help=(
+                "Allows users to pass custom SQL conditions used to filter OSM features. "
+                "It will be embedded into predefined queries and requires DuckDB syntax to operate "
+                "on tags map object."
+            ),
+            case_sensitive=False,
+            show_default=False,
+        ),
+    ] = None,
     osm_extract_query: Annotated[
         Optional[str],
         typer.Option(
@@ -750,6 +762,7 @@ def main(
                 else None
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
+            custom_sql_filter=custom_sql_filter,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
@@ -771,6 +784,7 @@ def main(
                 else None
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
+            custom_sql_filter=custom_sql_filter,
             duckdb_table_name=duckdb_table_name or "quackosm",
             verbosity_mode=verbosity_mode,
         )
@@ -795,6 +809,7 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
+                custom_sql_filter=custom_sql_filter,
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
             )
@@ -825,6 +840,7 @@ def main(
                     else None
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
+                custom_sql_filter=custom_sql_filter,
                 duckdb_table_name=duckdb_table_name or "quackosm",
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
@@ -853,6 +869,7 @@ def main(
                 else None
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
+            custom_sql_filter=custom_sql_filter,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
@@ -876,6 +893,7 @@ def main(
                 else None
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
+            custom_sql_filter=custom_sql_filter,
             duckdb_table_name=duckdb_table_name or "quackosm",
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
