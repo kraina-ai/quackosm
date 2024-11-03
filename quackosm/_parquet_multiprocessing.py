@@ -100,15 +100,20 @@ def map_parquet_dataset(
         progress_bar (Optional[TaskProgressBar]): Progress bar to show task status.
             Defaults to `None`.
     """
-    queue: Queue[tuple[str, int]] = ctx.Manager().Queue()
-
     dataset = pq.ParquetDataset(dataset_path)
 
+    tuples_to_queue = []
     for pq_file in dataset.files:
         for row_group in range(pq.ParquetFile(pq_file).num_row_groups):
-            queue.put((pq_file, row_group))
+            tuples_to_queue.append((pq_file, row_group))
 
-    total = queue.qsize()
+    total = len(tuples_to_queue)
+    if progress_bar:  # pragma: no cover
+        progress_bar.create_manual_bar(total=total)
+
+    queue: Queue[tuple[str, int]] = ctx.Manager().Queue()
+    for queue_tuple in tuples_to_queue:
+        queue.put(queue_tuple)
 
     destination_path.mkdir(parents=True, exist_ok=True)
 
@@ -136,9 +141,6 @@ def _run_processes(
         if queue.empty():
             break
         p.start()
-
-    if progress_bar:  # pragma: no cover
-        progress_bar.create_manual_bar(total=total)
 
     sleep_time = 0.1
     while any(process.is_alive() for process in processes):
