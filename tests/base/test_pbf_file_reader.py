@@ -354,11 +354,19 @@ def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_r
     assert len(features_gdf) == expected_result_length
 
 
-def test_custom_sql_filtering() -> None:
+@pytest.mark.parametrize(
+    "geometry_filter",
+    [
+        None,
+        geometry_box(),
+    ],
+)  # type: ignore
+def test_custom_sql_filtering(geometry_filter: BaseGeometry) -> None:
     """Test if custom filtering works."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     features_gdf = PbfFileReader(
-        custom_sql_filter="cardinality(tags) = 5"
+        custom_sql_filter="cardinality(tags) = 5",
+        geometry_filter=geometry_filter,
     ).convert_pbf_to_geodataframe(
         pbf_path=monaco_file_path,
         ignore_cache=True,
