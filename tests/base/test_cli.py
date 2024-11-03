@@ -224,6 +224,16 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
     "files/monaco_nofilter_noclip_compact_c740a1597e53ae8c5e98c5119eaa1893ddc177161afe8642addcbe54a6dc089d.parquet",
 )  # type: ignore
 @P.case(
+    "Custom SQL filter",
+    ["--custom-sql-filter", "cardinality(tags) = 5"],
+    "files/monaco_138f715c75b57f5db65b7fbd336086e4443c645904bf6642ad9ce1c4c6eef9d5_noclip_compact.parquet",
+)  # type: ignore
+@P.case(
+    "Custom SQL filter",
+    ["--custom-sql-filter", "tags['highway'][1] = 'primary'"],
+    "files/monaco_e1a5cc12d9b778dbd0ad4b9888783796a99ced8052fff080599ed5a8df934d0a_noclip_compact.parquet",
+)  # type: ignore
+@P.case(
     "Keep all tags",
     [
         "--keep-all-tags",
@@ -270,9 +280,7 @@ def test_proper_args_with_pbf(
     monaco_pbf_file_path_fixture: str, args: list[str], expected_result: str
 ) -> None:
     """Test if runs properly with options."""
-    result = runner.invoke(
-        cli.app, [monaco_pbf_file_path_fixture, *args, "--osm-extract-source", "any"]
-    )
+    result = runner.invoke(cli.app, [monaco_pbf_file_path_fixture, *args])
     print(result.stdout)
 
     assert result.exit_code == 0
@@ -682,6 +690,16 @@ def test_proper_args_with_pbf_url() -> None:
 )  # type: ignore
 @P.case(
     "Filter OSM", [monaco_pbf_file_path(), "--filter-osm-ids", "node/124 way/124 relation/124"]
+)  # type: ignore
+@P.case(
+    "Custom SQL filter", [monaco_pbf_file_path(), "--custom-sql-filter", random_str()]
+)  # type: ignore
+@P.case(
+    "Custom SQL filter", [monaco_pbf_file_path(), "--custom-sql-filter", "cardinality(map) = 5"]
+)  # type: ignore
+@P.case(
+    "Custom SQL filter",
+    [monaco_pbf_file_path(), "--custom-sql-filter", "map['highway'][1] = 'primary'"],
 )  # type: ignore
 @P.case(
     "OSM way polygon config",
