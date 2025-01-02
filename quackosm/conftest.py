@@ -71,7 +71,16 @@ def download_osm_extracts_indexes():  # type: ignore
         file_name = f"{osm_extract.value.lower()}_index.geojson"
         file_download_url = LFS_DIRECTORY_URL + file_name
 
-        print("download", file_name, not FORCE_TERMINAL)
+        import os
+
+        print(
+            "download",
+            file_name,
+            os.getenv("FORCE_TERMINAL_MODE", "false").lower(),
+            os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true",
+            FORCE_TERMINAL,
+            not FORCE_TERMINAL,
+        )
         retrieve(
             file_download_url,
             fname=file_name,
