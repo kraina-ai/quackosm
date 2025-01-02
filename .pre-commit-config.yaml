@@ -27,11 +27,11 @@ repos:
       - id: mypy
         additional_dependencies: ['types-requests', 'types-six']
   - repo: https://github.com/pdm-project/pdm
-    rev: 2.17.3
+    rev: 2.22.0
     hooks:
       - id: pdm-lock-check
       - id: pdm-export
-        args: ["-o", "requirements.txt", "--without-hashes", "-dG:all"]
+        args: ["-o", "requirements.txt", "--without-hashes", "-G", "cli", "-G", "index-generation", "-dG:all"]
         files: ^pdm.lock$
         stages: [manual]
   - repo: https://github.com/kynan/nbstripout
@@ -58,9 +58,10 @@ repos:
         language_version: python3.10
         stages: [manual]
   - repo: https://github.com/FHPythonUtils/LicenseCheck
-    rev: "2024.2"
+    rev: "2024.3"
     hooks:
       - id: licensecheck
+        args: ["-u", "requirements:requirements.txt"]
         stages: [manual]
 
 ci:
