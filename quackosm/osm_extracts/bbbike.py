@@ -4,13 +4,13 @@ BBBike OpenStreetMap extracts.
 This module contains wrapper for publically available BBBike download server.
 """
 
-import os
 from typing import Optional
 
 import geopandas as gpd
 import requests
 from tqdm import tqdm
 
+from quackosm._constants import FORCE_TERMINAL
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,
@@ -71,12 +71,10 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
         if extract_href.text != ".."
     ]
 
-    force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
-
     bbbike_enum_value = OsmExtractSource.bbbike.value
 
     with tqdm(
-        disable=True if force_terminal else False, desc=bbbike_enum_value, total=len(extract_names)
+        disable=FORCE_TERMINAL, desc=bbbike_enum_value, total=len(extract_names)
     ) as pbar:
         for extract_name in extract_names:
             pbar.set_description(f"{bbbike_enum_value}_{extract_name}")

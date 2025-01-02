@@ -591,7 +591,7 @@ def convert_osm_extract_to_duckdb(
         'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source
+        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
     )
     return PbfFileReader(
         tags_filter=tags_filter,
@@ -1176,7 +1176,7 @@ def convert_osm_extract_to_parquet(
         'files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet'
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source
+        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
     )
     return PbfFileReader(
         tags_filter=tags_filter,
@@ -1668,7 +1668,7 @@ def convert_osm_extract_to_geodataframe(
         [7906 rows x 2 columns]
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source
+        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
     )
     return PbfFileReader(
         tags_filter=tags_filter,

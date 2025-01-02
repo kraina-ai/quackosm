@@ -12,6 +12,7 @@ import pytest
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 
+from quackosm._constants import FORCE_TERMINAL
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 
@@ -74,7 +75,7 @@ def download_osm_extracts_indexes():  # type: ignore
             file_download_url,
             fname=file_name,
             path=download_directory,
-            progressbar=True,
+            progressbar=not FORCE_TERMINAL,
             known_hash=None,
         )
 

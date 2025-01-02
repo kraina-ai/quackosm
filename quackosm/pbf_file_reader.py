@@ -38,7 +38,7 @@ from pooch.utils import parse_url
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
-from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
+from quackosm._constants import FEATURES_INDEX, FORCE_TERMINAL, GEOMETRY_COLUMN, WGS84_CRS
 from quackosm._exceptions import (
     EmptyResultWarning,
     InvalidGeometryFilter,
@@ -593,7 +593,9 @@ class PbfFileReader:
             geometry_coverage_iou_threshold=self.geometry_coverage_iou_threshold,
             allow_uncovered_geometry=self.allow_uncovered_geometry,
         )
-        pbf_files = download_extracts_pbf_files(matching_extracts, self.working_directory)
+        pbf_files = download_extracts_pbf_files(
+            matching_extracts, self.working_directory, progressbar=self.verbosity_mode != "silent"
+        )
         return self.convert_pbf_to_parquet(
             pbf_files,
             result_file_path=result_file_path,
@@ -965,7 +967,7 @@ class PbfFileReader:
                 pbf_path,
                 fname=Path(pbf_path).name,
                 path=self.working_directory,
-                progressbar=True,
+                progressbar=self.verbosity_mode != "silent" and not FORCE_TERMINAL,
                 known_hash=None,
             )
 
