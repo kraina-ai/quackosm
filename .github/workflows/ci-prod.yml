@@ -14,7 +14,7 @@ jobs:
     needs: [run-tests]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -43,7 +43,7 @@ jobs:
       MKDOCS_DEV: false
       FORCE_TERMINAL_MODE: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.CICD_PAT_TOKEN }}
       - name: Setup Python
@@ -117,7 +117,7 @@ jobs:
       pages: write
       id-token: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: 'kraina-ai/quackosm-docs'
           ref: 'gh-pages'
