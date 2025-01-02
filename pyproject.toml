@@ -91,7 +91,7 @@ docs = [
     "ipykernel",
     "mkdocs-gen-files",
     "mkdocs-awesome-pages-plugin",
-    "mike>=1,<2",
+    "mike>=2",
     "black",
     "jupyter",
     "nbconvert",
@@ -103,7 +103,7 @@ docs = [
     "adjustText",
     "contextily",
 ]
-license = ["licensecheck", "pipdeptree"]
+license = ["licensecheck==2024.3", "pipdeptree"]
 cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
 
 [tool.pdm.scripts]
