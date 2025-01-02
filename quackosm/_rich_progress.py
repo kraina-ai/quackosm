@@ -236,9 +236,9 @@ class TaskProgressTracker:
 
         if not self.verbosity_mode == "silent":
             self.console = Console(
-                force_interactive=False if FORCE_TERMINAL else None,
-                force_jupyter=False if FORCE_TERMINAL else None,
-                force_terminal=True if FORCE_TERMINAL else None,
+                force_interactive=False if FORCE_TERMINAL else None,  # noqa: FURB110
+                force_jupyter=False if FORCE_TERMINAL else None,  # noqa: FURB110
+                force_terminal=True if FORCE_TERMINAL else None,  # noqa: FURB110
             )
             self.transient_progress_cls = TransientProgress
 
