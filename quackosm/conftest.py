@@ -76,6 +76,7 @@ def download_osm_extracts_indexes():  # type: ignore
         print(
             "download",
             file_name,
+            os.getenv("COLUMNS"),
             os.getenv("FORCE_TERMINAL_MODE", "false").lower(),
             os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true",
             FORCE_TERMINAL,
