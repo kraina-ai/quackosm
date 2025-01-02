@@ -2,7 +2,6 @@
 
 import doctest
 import shutil
-import urllib.request
 from doctest import OutputChecker
 from pathlib import Path
 
@@ -50,9 +49,20 @@ def add_pbf_files(doctest_namespace):  # type: ignore
             "file_name"
         ]
         geofabrik_pbf_file_path = download_directory / f"{geofabrik_download_path}.osm.pbf"
-        urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
+        retrieve(
+            pbf_file_download_url,
+            fname=f"{extract_name}.osm.pbf",
+            path=download_directory,
+            progressbar=not FORCE_TERMINAL,
+            known_hash=None,
+        )
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
+        print(
+            pbf_file_path,
+            geofabrik_pbf_file_path,
+            f"{extract_name}_pbf_path",
+        )
 
 
 @pytest.fixture(autouse=True, scope="session")
