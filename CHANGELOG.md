@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Automatic download progress bar hiding when verbosity is set to `silent`.
+
 ## [0.12.0] - 2024-11-03
 
 ### Added
