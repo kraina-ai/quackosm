@@ -4,7 +4,6 @@ OpenStreetMap.fr extracts.
 This module contains wrapper for publically available OpenStreetMap.fr download server.
 """
 
-import os
 import re
 from typing import Any, Optional
 
@@ -12,6 +11,7 @@ import geopandas as gpd
 import requests
 from tqdm import tqdm
 
+from quackosm._constants import FORCE_TERMINAL
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,
@@ -44,9 +44,8 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:  # pragma: no cover
     Returns:
         gpd.GeoDataFrame: Extracts index with metadata.
     """
-    force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
     extracts = []
-    with tqdm(disable=True if force_terminal else False) as pbar:
+    with tqdm(disable=FORCE_TERMINAL) as pbar:
         extract_soup_objects = _gather_all_openstreetmap_fr_urls(
             OsmExtractSource.osm_fr.value, "/", pbar
         )

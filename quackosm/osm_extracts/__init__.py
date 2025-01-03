@@ -6,7 +6,6 @@ repositories.
 """
 
 import difflib
-import os
 import warnings
 from collections.abc import Iterable
 from functools import partial
@@ -24,6 +23,7 @@ from rich import print as rprint
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
 
+from quackosm._constants import FORCE_TERMINAL
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
@@ -54,7 +54,7 @@ __all__ = [
 
 
 def download_extracts_pbf_files(
-    extracts: list[OpenStreetMapExtract], download_directory: Path
+    extracts: list[OpenStreetMapExtract], download_directory: Path, progressbar: bool = True
 ) -> list[Path]:
     """
     Download OSM extracts as PBF files.
@@ -62,6 +62,7 @@ def download_extracts_pbf_files(
     Args:
         extracts (list[OpenStreetMapExtract]): List of extracts to download.
         download_directory (Path): Directory where PBF files should be saved.
+        progressbar (bool, optional): Show progress bar. Defaults to True.
 
     Returns:
         list[Path]: List of downloaded file paths.
@@ -74,7 +75,7 @@ def download_extracts_pbf_files(
             extract.url,
             fname=f"{extract.file_name}.osm.pbf",
             path=download_directory,
-            progressbar=True,
+            progressbar=progressbar and not FORCE_TERMINAL,
             known_hash=None,
         )
         downloaded_extracts_paths.append(Path(file_path))
@@ -194,17 +195,26 @@ def get_extract_by_query(
 
 
 @overload
-def download_extract_by_query(query: str) -> Path: ...
+def download_extract_by_query(
+    query: str, *, download_directory: Union[str, Path] = "files", progressbar: bool = True
+) -> Path: ...
 
 
 @overload
-def download_extract_by_query(query: str, source: Union[OsmExtractSource, str]) -> Path: ...
+def download_extract_by_query(
+    query: str,
+    source: Union[OsmExtractSource, str],
+    *,
+    download_directory: Union[str, Path] = "files",
+    progressbar: bool = True,
+) -> Path: ...
 
 
 def download_extract_by_query(
     query: str,
     source: Union[OsmExtractSource, str] = "any",
     download_directory: Union[str, Path] = "files",
+    progressbar: bool = True,
 ) -> Path:
     """
     Download an OSM extract by name.
@@ -215,12 +225,13 @@ def download_extract_by_query(
             'BBBike', 'OSM_fr'. Defaults to 'any'.
         download_directory (Union[str, Path], optional): Directory where the file should be
             downloaded. Defaults to "files".
+        progressbar (bool, optional): Show progress bar. Defaults to True.
 
     Returns:
         Path: Path to the downloaded OSM extract.
     """
     matching_extract = get_extract_by_query(query, source)
-    return download_extracts_pbf_files([matching_extract], Path(download_directory))[0]
+    return download_extracts_pbf_files([matching_extract], Path(download_directory), progressbar)[0]
 
 
 def display_available_extracts(
@@ -507,14 +518,13 @@ def _find_smallest_containing_extracts(
             allow_uncovered_geometry=allow_uncovered_geometry,
         )
 
-        force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
         for extract_ids_list in process_map(
             find_extracts_func,
             geometries,
             desc="Finding matching extracts",
             max_workers=num_of_multiprocessing_workers,
             chunksize=ceil(total_polygons / (4 * num_of_multiprocessing_workers)),
-            disable=True if force_terminal else False,
+            disable=FORCE_TERMINAL,
         ):
             unique_extracts_ids.update(extract_ids_list)
     else:
@@ -727,14 +737,13 @@ def _filter_extracts(
             sorted_extracts_gdf=sorted_extracts_gdf,
         )
 
-        force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
         for extract_ids_list in process_map(
             filter_extracts_func,
             geometries,
             desc="Filtering extracts",
             max_workers=num_of_multiprocessing_workers,
             chunksize=ceil(total_geometries / (4 * num_of_multiprocessing_workers)),
-            disable=True if force_terminal else False,
+            disable=FORCE_TERMINAL,
         ):
             filtered_extracts_ids.update(extract_ids_list)
     else:

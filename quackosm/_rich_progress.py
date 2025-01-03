@@ -2,7 +2,6 @@
 """Wrapper over Rich progress bar."""
 
 import json
-import os
 import time
 from collections.abc import Iterable
 from datetime import timedelta
@@ -24,6 +23,8 @@ from rich.progress import (
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
+
+from quackosm._constants import FORCE_TERMINAL
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
@@ -234,12 +235,10 @@ class TaskProgressTracker:
             self.major_steps_prefix = ""
 
         if not self.verbosity_mode == "silent":
-            self.force_terminal = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
-
             self.console = Console(
-                force_interactive=False if self.force_terminal else None,
-                force_jupyter=False if self.force_terminal else None,
-                force_terminal=True if self.force_terminal else None,
+                force_interactive=False if FORCE_TERMINAL else None,  # noqa: FURB110
+                force_jupyter=False if FORCE_TERMINAL else None,  # noqa: FURB110
+                force_terminal=True if FORCE_TERMINAL else None,  # noqa: FURB110
             )
             self.transient_progress_cls = TransientProgress
 
