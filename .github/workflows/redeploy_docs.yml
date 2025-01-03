@@ -1,5 +1,10 @@
 name: "Deploy docs on demand"
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Build & publish - DEV, Build & publish - PROD, Publish docs on demand - DEV]
+    types:
+      - completed
 
 jobs:
   deploy-docs:

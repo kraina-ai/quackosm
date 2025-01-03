@@ -76,26 +76,3 @@ jobs:
         run: git fetch origin-quackosm-docs gh-pages --depth=1
       - name: Publish dev documentation
         run: mike deploy --remote origin-quackosm-docs --push dev
-
-  deploy-docs-test:
-    name: Deploy documentation 📄 to Github Pages 🌐
-    needs: [generate-docs-test]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          repository: 'kraina-ai/quackosm-docs'
-          ref: 'gh-pages'
-          token: ${{ secrets.CICD_PAT_TOKEN }}
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: '.'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
