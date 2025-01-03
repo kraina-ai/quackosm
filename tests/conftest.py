@@ -7,3 +7,4 @@ from pytest import Item
 def pytest_runtest_setup(item: Item) -> None:
     """Setup python encoding before `pytest_runtest_call(item)`."""
     os.environ["PYTHONIOENCODING"] = "utf-8"
+    os.environ["FORCE_TERMINAL_MODE"] = "true"
