@@ -21,7 +21,7 @@ jobs:
       COLUMNS: 120
       FORCE_TERMINAL_MODE: true
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -32,16 +32,17 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: x64
           enable-pep582: true
-          cache: true
-          cache-dependency-path: "**/pdm.lock"
+          cache: false
       - name: Install dependencies
-        run: pdm install -d -G test --skip=post_install
+        run: pdm install --no-default -d -G test --skip=post_install
       - name: Cache OSM data
         uses: actions/cache@v3
         with:
           path: cache
           key: osm-cache-${{ matrix.os }}-${{ matrix.python-version }}
       - name: Cache tox runner
+        # Cache only on the main branch
+        if: github.ref == 'refs/heads/main'
         uses: actions/cache@v3
         with:
           path: .tox
