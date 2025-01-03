@@ -38,8 +38,7 @@ jobs:
         run: pdm export -dG test -f requirements -o requirements.test.txt
       - name: Install quackosm
         run: |
-          pdm build -v -d dist
-          uv pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" -r requirements.test.txt --system
+          uv pip install -r pyproject.toml --extra cli -r requirements.test.txt --system
       - name: Run tests with pytest
         run: |
           pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
