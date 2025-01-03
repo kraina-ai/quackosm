@@ -25,6 +25,7 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
       COLUMNS: 120
+      FORCE_TERMINAL_MODE: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python ${{ matrix.python-version }}
@@ -57,6 +58,7 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
       COLUMNS: 120
+      FORCE_TERMINAL_MODE: true
     steps:
       - uses: actions/checkout@v4
       - name: Setup Python ${{ matrix.python-version }}
