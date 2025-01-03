@@ -33,7 +33,7 @@ def test_geocoding(query: Union[str, list[str]]) -> None:
     [
         "Broadway",
         "nonexistent_query",
-        ["Poland", "Broadway"],
+        ["Dolnośląskie", "Broadway"],
     ],
 )
 def test_geocoding_errors(query: Union[str, list[str]]) -> None:
