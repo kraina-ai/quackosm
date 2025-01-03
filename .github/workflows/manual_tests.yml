@@ -69,7 +69,7 @@ jobs:
       - name: Install quackosm and tests dependencies
         run: pdm install --lockfile pdm.oldest.lock -G cli -dG test --skip=post_install
       - name: Replace fiona version
-        run: pip install "fiona==1.9.6"
+        run: pdm run pip install "fiona==1.9.6"
       - name: Run tests with pytest
         run: |
           pdm run pytest -v -s --durations=20 tests/base
