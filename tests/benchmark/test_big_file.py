@@ -8,7 +8,6 @@ from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 
 from quackosm import PbfFileReader, geocode_to_geometry
-from quackosm._constants import FORCE_TERMINAL
 from quackosm._osm_tags_filters import OsmTagsFilter
 
 
@@ -30,7 +29,7 @@ def test_big_file(extract_name: str, geocode_filter: list[str], tags_filter: Osm
         f"https://download.geofabrik.de/europe/{extract_name}-latest.osm.pbf",
         fname=f"{extract_name}.osm.pbf",
         path=files_dir,
-        progressbar=not FORCE_TERMINAL,
+        progressbar=False,
         known_hash=None,
     )
 

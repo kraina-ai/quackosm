@@ -11,7 +11,6 @@ import pytest
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 
-from quackosm._constants import FORCE_TERMINAL
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 
@@ -55,7 +54,7 @@ def download_osm_extracts_indexes():  # type: ignore
             file_download_url,
             fname=file_name,
             path=download_directory,
-            progressbar=not FORCE_TERMINAL,
+            progressbar=False,
             known_hash=None,
         )
 
@@ -78,7 +77,7 @@ def add_pbf_files(doctest_namespace, download_osm_extracts_indexes):  # type: ig
             pbf_file_download_url,
             fname=f"{extract_name}.osm.pbf",
             path=download_directory,
-            progressbar=not FORCE_TERMINAL,
+            progressbar=False,
             known_hash=None,
         )
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
