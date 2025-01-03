@@ -15,7 +15,7 @@ from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
     [
         "Vatican",
         "Monaco",
-        "Poland",
+        "Dolnośląskie",
         ["United Kingdom", "Greater London"],
         ["Madrid", "Barcelona", "Seville"],
     ],
