@@ -80,7 +80,6 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
     """Test if runs properly without reporting status."""
     result = runner.invoke(cli.app, [monaco_pbf_file_path_fixture, "--ignore-cache", "--transient"])
     output_lines = result.stdout.strip().split("\n")
-    print(output_lines)
     assert result.exit_code == 0
     assert len(result.stdout.strip().split("\n")) == 2
     assert "Finished operation in" in output_lines[0]
