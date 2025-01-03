@@ -2,3 +2,5 @@ nav:
   - Home: README.md
   - Examples: examples
   - ...
+  - Releases: releases
+  # - Contributing: CONTRIBUTING.md
