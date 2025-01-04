@@ -20,7 +20,7 @@ theme:
     - navigation.top
     - navigation.indexes
     - navigation.path
-    - toc.integrate
+    - toc.follow
     - content.code.annotate
     - content.action.edit
     - content.action.view
