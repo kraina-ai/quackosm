@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Shortened the cache file paths hashes from default 64 characters to 8 [#188](https://github.com/kraina-ai/quackosm/issues/188)
+
 ## [0.12.1] - 2025-01-03
 
 ### Added

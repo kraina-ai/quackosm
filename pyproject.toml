@@ -202,7 +202,9 @@ using = "requirements"
 zero = false
 ignore_licenses = ["UNKNOWN"]
 ignore_packages = [
-    'docformatter',   # uses MIT license, has mismatched license in analysis
-    'mkdocs-jupyter', # uses Apache-2.0 license, has mismatched license in analysis
-    'python-geohash', # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
+    'docformatter',     # uses MIT license, has mismatched license in analysis
+    'mkdocs-jupyter',   # uses Apache-2.0 license, has mismatched license in analysis
+    'python-geohash',   # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
+    'mkdocs-autorefs',  # uses ISC License, has mismatched license in analysis
+    'referencing',    # uses MIT license, has mismatched license in analysis
 ]
