@@ -1117,7 +1117,7 @@ class PbfFileReader:
             h.update(
                 (json.dumps(self.tags_filter or {}) + str(self.custom_sql_filter or "")).encode()
             )
-            osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
+            osm_filter_tags_hash_part = f"{h.hexdigest()[:8]}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
 
@@ -1127,7 +1127,7 @@ class PbfFileReader:
         if filter_osm_ids:
             h = hashlib.new("sha256")
             h.update(json.dumps(sorted(set(filter_osm_ids))).encode())
-            filter_osm_ids_hash_part = f"_{h.hexdigest()}"
+            filter_osm_ids_hash_part = f"_{h.hexdigest()[:8]}"
 
         if save_as_wkt:
             result_file_name = (
@@ -1151,7 +1151,7 @@ class PbfFileReader:
             h.update(
                 (json.dumps(self.tags_filter or {}) + str(self.custom_sql_filter or "")).encode()
             )
-            osm_filter_tags_hash_part = f"{h.hexdigest()}{keep_all_tags_part}"
+            osm_filter_tags_hash_part = f"{h.hexdigest()[:8]}{keep_all_tags_part}"
 
         clipping_geometry_hash_part = self._generate_geometry_hash()
 
@@ -1161,7 +1161,7 @@ class PbfFileReader:
         if filter_osm_ids:
             h = hashlib.new("sha256")
             h.update(json.dumps(sorted(set(filter_osm_ids))).encode())
-            filter_osm_ids_hash_part = f"_{h.hexdigest()}"
+            filter_osm_ids_hash_part = f"_{h.hexdigest()[:8]}"
 
         if save_as_wkt:
             result_file_name = (
@@ -1200,7 +1200,7 @@ class PbfFileReader:
         if oriented_geometry is not None:
             h = hashlib.new("sha256")
             h.update(wktlib.dumps(oriented_geometry).encode())
-            clipping_geometry_hash_part = h.hexdigest()
+            clipping_geometry_hash_part = h.hexdigest()[:8]
 
         return clipping_geometry_hash_part
 
@@ -2989,11 +2989,7 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
         hive_partitioning=False,
     ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
         {"point": "linestring"}
-    ).collect(
-        streaming=True
-    ).write_parquet(
-        current_destination_path
-    )
+    ).collect(streaming=True).write_parquet(current_destination_path)
 
 
 def _drop_duplicates_in_pyarrow_table(
