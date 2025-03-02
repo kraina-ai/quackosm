@@ -84,7 +84,7 @@ test = [
 # pdm add -dG docs <library>
 docs = [
     "mkdocs",
-    "mkdocs-material",
+    "mkdocs-material[imaging]",
     "mkdocs-mermaid2-plugin",
     "mkdocstrings[python]",
     "mkdocs-jupyter",
