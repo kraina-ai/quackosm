@@ -37,6 +37,7 @@ def convert_pbf_to_duckdb(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -76,6 +77,8 @@ def convert_pbf_to_duckdb(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -255,6 +258,7 @@ def convert_pbf_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -268,6 +272,7 @@ def convert_geometry_to_duckdb(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -312,6 +317,8 @@ def convert_geometry_to_duckdb(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -456,6 +463,7 @@ def convert_geometry_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -470,6 +478,7 @@ def convert_osm_extract_to_duckdb(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -512,6 +521,8 @@ def convert_osm_extract_to_duckdb(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -610,6 +621,7 @@ def convert_osm_extract_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -623,6 +635,7 @@ def convert_pbf_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -662,6 +675,8 @@ def convert_pbf_to_parquet(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -841,6 +856,7 @@ def convert_pbf_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -854,6 +870,7 @@ def convert_geometry_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -898,6 +915,8 @@ def convert_geometry_to_parquet(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1041,6 +1060,7 @@ def convert_geometry_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -1055,6 +1075,7 @@ def convert_osm_extract_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1097,6 +1118,8 @@ def convert_osm_extract_to_parquet(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1196,6 +1219,7 @@ def convert_osm_extract_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -1209,6 +1233,7 @@ def convert_pbf_to_geodataframe(
     geometry_filter: Optional[BaseGeometry] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1247,6 +1272,8 @@ def convert_pbf_to_geodataframe(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1399,6 +1426,7 @@ def convert_pbf_to_geodataframe(
         pbf_path=pbf_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
@@ -1410,6 +1438,7 @@ def convert_geometry_to_geodataframe(
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1450,6 +1479,8 @@ def convert_geometry_to_geodataframe(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1549,6 +1580,7 @@ def convert_geometry_to_geodataframe(
     ).convert_geometry_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
@@ -1561,6 +1593,7 @@ def convert_osm_extract_to_geodataframe(
     geometry_filter: Optional[BaseGeometry] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1599,6 +1632,8 @@ def convert_osm_extract_to_geodataframe(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1687,6 +1722,7 @@ def convert_osm_extract_to_geodataframe(
         pbf_path=downloaded_osm_extract,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )

@@ -597,6 +597,14 @@ def main(
             show_default=False,
         ),
     ] = None,
+    sort_result: Annotated[
+        bool,
+        typer.Option(
+            "--sort/--no-sort",
+            help="Whether to sort the final geoparquet file by geometry or not.",
+            show_default=True,
+        ),
+    ] = True,
     wkt_result: Annotated[
         bool,
         typer.Option(
@@ -763,6 +771,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
+            sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
@@ -785,6 +794,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
+            sort_result=sort_result,
             duckdb_table_name=duckdb_table_name or "quackosm",
             verbosity_mode=verbosity_mode,
         )
@@ -810,6 +820,7 @@ def main(
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
+                sort_result=sort_result,
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
             )
@@ -841,6 +852,7 @@ def main(
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
+                sort_result=sort_result,
                 duckdb_table_name=duckdb_table_name or "quackosm",
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
@@ -870,6 +882,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
+            sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
@@ -895,6 +908,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             duckdb_table_name=duckdb_table_name or "quackosm",
+            sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,

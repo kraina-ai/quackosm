@@ -28,7 +28,7 @@ from quackosm._constants import FORCE_TERMINAL
 
 __all__ = ["TaskProgressSpinner", "TaskProgressBar"]
 
-TOTAL_STEPS = 32
+TOTAL_STEPS = 33
 
 
 def log_message(message: str) -> None:
