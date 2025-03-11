@@ -65,7 +65,7 @@ def test_basic_run(monaco_pbf_file_path_fixture: str) -> None:
     result = runner.invoke(cli.app, [monaco_pbf_file_path_fixture])
 
     assert result.exit_code == 0
-    assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) in result.stdout
+    assert str(Path("files/monaco_nofilter_noclip_compact_sorted.parquet")) in result.stdout
 
 
 def test_silent_mode(monaco_pbf_file_path_fixture: str) -> None:
@@ -73,7 +73,7 @@ def test_silent_mode(monaco_pbf_file_path_fixture: str) -> None:
     result = runner.invoke(cli.app, [monaco_pbf_file_path_fixture, "--ignore-cache", "--silent"])
 
     assert result.exit_code == 0
-    assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) == result.stdout.strip()
+    assert str(Path("files/monaco_nofilter_noclip_compact_sorted.parquet")) == result.stdout.strip()
 
 
 def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
@@ -83,35 +83,41 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
     assert result.exit_code == 0
     assert len(result.stdout.strip().split("\n")) == 2
     assert "Finished operation in" in output_lines[0]
-    assert str(Path("files/monaco_nofilter_noclip_compact.parquet")) == output_lines[1]
+    assert str(Path("files/monaco_nofilter_noclip_compact_sorted.parquet")) == output_lines[1]
 
 
 @P.parameters("args", "expected_result")  # type: ignore
 @P.case(
     "Explode",
     ["--explode-tags"],
-    "files/monaco_nofilter_noclip_exploded.parquet",
+    "files/monaco_nofilter_noclip_exploded_sorted.parquet",
 )  # type: ignore
-@P.case("Explode short", ["--explode"], "files/monaco_nofilter_noclip_exploded.parquet")  # type: ignore
-@P.case("Compact", ["--compact-tags"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
-@P.case("Compact short", ["--compact"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
+@P.case("Explode short", ["--explode"], "files/monaco_nofilter_noclip_exploded_sorted.parquet")  # type: ignore
+@P.case("Compact", ["--compact-tags"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
+@P.case("Compact short", ["--compact"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
 @P.case(
     "Working directory",
     ["--working-directory", "files/workdir"],
-    "files/workdir/monaco_nofilter_noclip_compact.parquet",
+    "files/workdir/monaco_nofilter_noclip_compact_sorted.parquet",
 )  # type: ignore
-@P.case("Ignore cache", ["--ignore-cache"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
-@P.case("Ignore cache short", ["--no-cache"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
+@P.case("Ignore cache", ["--ignore-cache"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
+@P.case("Ignore cache short", ["--no-cache"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
 @P.case("Output", ["--output", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
 @P.case("Output short", ["-o", "files/monaco_output.parquet"], "files/monaco_output.parquet")  # type: ignore
-@P.case("DuckDB explicit export", ["--duckdb"], "files/monaco_nofilter_noclip_compact.duckdb")  # type: ignore
+@P.case(
+    "DuckDB explicit export",
+    ["--duckdb"],
+    "files/monaco_nofilter_noclip_compact_sorted.duckdb",
+)  # type: ignore
 @P.case(
     "DuckDB explicit export with table name",
     ["--duckdb", "--duckdb-table-name", "test"],
-    "files/monaco_nofilter_noclip_compact.duckdb",
+    "files/monaco_nofilter_noclip_compact_sorted.duckdb",
 )  # type: ignore
-@P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
-@P.case("Transient", ["--transient"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
+@P.case("Silent", ["--silent"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
+@P.case("Transient", ["--transient"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
+@P.case("Explicit sort", ["--sort"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
+@P.case("No sort", ["--no-sort"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case(
     "Output with working directory",
     ["--working-directory", "files/workdir", "-o", "files/monaco_output.parquet"],
@@ -123,7 +129,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/monaco_a9dd1c3c_noclip_exploded.parquet",
+    "files/monaco_a9dd1c3c_noclip_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter compact",
@@ -132,7 +138,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/monaco_a9dd1c3c_noclip_compact.parquet",
+    "files/monaco_a9dd1c3c_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter file",
@@ -140,7 +146,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         "--osm-tags-filter-file",
         osm_tags_filter_file_path(),
     ],
-    "files/monaco_a9dd1c3c_noclip_exploded.parquet",
+    "files/monaco_a9dd1c3c_noclip_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter file compact",
@@ -149,7 +155,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         osm_tags_filter_file_path(),
         "--compact",
     ],
-    "files/monaco_a9dd1c3c_noclip_compact.parquet",
+    "files/monaco_a9dd1c3c_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped",
@@ -157,7 +163,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         "--osm-tags-filter",
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
     ],
-    "files/monaco_654daac5_noclip_exploded.parquet",
+    "files/monaco_654daac5_noclip_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped compact",
@@ -166,79 +172,79 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
         "--compact",
     ],
-    "files/monaco_654daac5_noclip_compact.parquet",
+    "files/monaco_654daac5_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
-    "files/monaco_nofilter_09c3fc04_compact.parquet",
+    "files/monaco_nofilter_09c3fc04_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry GeoJSON filter",
     ["--geom-filter-geojson", geometry_geojson()],
-    "files/monaco_nofilter_82c0fdfa_compact.parquet",
+    "files/monaco_nofilter_82c0fdfa_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry file filter",
     ["--geom-filter-file", geometry_boundary_file_path()],
-    "files/monaco_nofilter_6a869bcf_compact.parquet",
+    "files/monaco_nofilter_6a869bcf_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry geocode filter",
     ["--geom-filter-geocode", "Monaco-Ville, Monaco"],
-    "files/monaco_nofilter_e7f0b78a_compact.parquet",
+    "files/monaco_nofilter_e7f0b78a_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
     ["--geom-filter-index-geohash", "spv2bc"],
-    "files/monaco_nofilter_c08889e8_compact.parquet",
+    "files/monaco_nofilter_c08889e8_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
     ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
-    "files/monaco_nofilter_1bd33e0a_compact.parquet",
+    "files/monaco_nofilter_1bd33e0a_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter",
     ["--geom-filter-index-h3", "8a3969a40ac7fff"],
-    "files/monaco_nofilter_a2f8d511_compact.parquet",
+    "files/monaco_nofilter_a2f8d511_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
     ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
-    "files/monaco_nofilter_e50e6489_compact.parquet",
+    "files/monaco_nofilter_e50e6489_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
     ["--geom-filter-index-s2", "12cdc28bc"],
-    "files/monaco_nofilter_5c3d61eb_compact.parquet",
+    "files/monaco_nofilter_5c3d61eb_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter multiple",
     ["--geom-filter-index-s2", "12cdc28bc,12cdc28f"],
-    "files/monaco_nofilter_cda5d65e_compact.parquet",
+    "files/monaco_nofilter_cda5d65e_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Filter OSM features IDs",
     ["--filter-osm-ids", "way/94399646,node/3617982224,relation/36990"],
-    "files/monaco_nofilter_noclip_compact_c740a159.parquet",
+    "files/monaco_nofilter_noclip_compact_c740a159_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Custom SQL filter",
     ["--custom-sql-filter", "cardinality(tags) = 5"],
-    "files/monaco_138f715c_noclip_compact.parquet",
+    "files/monaco_138f715c_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Custom SQL filter",
     ["--custom-sql-filter", "tags['highway'][1] = 'primary'"],
-    "files/monaco_e1a5cc12_noclip_compact.parquet",
+    "files/monaco_e1a5cc12_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Keep all tags",
     [
         "--keep-all-tags",
     ],
-    "files/monaco_nofilter_noclip_compact.parquet",
+    "files/monaco_nofilter_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags",
@@ -247,7 +253,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/monaco_a9dd1c3c_alltags_noclip_compact.parquet",
+    "files/monaco_a9dd1c3c_alltags_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags compact",
@@ -257,7 +263,7 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/monaco_a9dd1c3c_alltags_noclip_compact.parquet",
+    "files/monaco_a9dd1c3c_alltags_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags exploded",
@@ -267,15 +273,15 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--explode",
     ],
-    "files/monaco_a9dd1c3c_alltags_noclip_exploded.parquet",
+    "files/monaco_a9dd1c3c_alltags_noclip_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM way polygon config",
     ["--osm-way-polygon-config", osm_way_config_file_path()],
     "files/monaco_nofilter_noclip_compact.parquet",
 )  # type: ignore
-@P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
-@P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
+@P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_sorted_wkt.parquet")  # type: ignore
+@P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_sorted_wkt.parquet")  # type: ignore
 def test_proper_args_with_pbf(
     monaco_pbf_file_path_fixture: str, args: list[str], expected_result: str
 ) -> None:
@@ -291,71 +297,81 @@ def test_proper_args_with_pbf(
 @P.case(
     "Geometry BBOX filter",
     ["--geom-filter-bbox", "7.416486,43.731086,7.421931,43.733707"],
-    "files/b9115f99_nofilter_compact.parquet",
+    "files/b9115f99_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry WKT filter",
     ["--geom-filter-wkt", geometry_wkt()],
-    "files/09c3fc04_nofilter_compact.parquet",
+    "files/09c3fc04_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry GeoJSON filter",
     ["--geom-filter-geojson", geometry_geojson()],
-    "files/82c0fdfa_nofilter_compact.parquet",
+    "files/82c0fdfa_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry geocode filter",
     ["--geom-filter-geocode", "Monaco-Ville, Monaco"],
-    "files/e7f0b78a_nofilter_compact.parquet",
+    "files/e7f0b78a_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter",
     ["--geom-filter-index-geohash", "spv2bc"],
-    "files/c08889e8_nofilter_compact.parquet",
+    "files/c08889e8_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry Geohash filter multiple",
     ["--geom-filter-index-geohash", "spv2bc,spv2bfr"],
-    "files/1bd33e0a_nofilter_compact.parquet",
+    "files/1bd33e0a_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter",
     ["--geom-filter-index-h3", "8a3969a40ac7fff"],
-    "files/a2f8d511_nofilter_compact.parquet",
+    "files/a2f8d511_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
     ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
-    "files/e50e6489_nofilter_compact.parquet",
+    "files/e50e6489_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
     ["--geom-filter-index-s2", "12cdc28bc"],
-    "files/5c3d61eb_nofilter_compact.parquet",
+    "files/5c3d61eb_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter multiple",
     ["--geom-filter-index-s2", "12cdc28bc,12cdc28f"],
-    "files/cda5d65e_nofilter_compact.parquet",
+    "files/cda5d65e_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry file filter with different OSM source",
     ["--geom-filter-file", geometry_boundary_file_path(), "--osm-extract-source", "OSMfr"],
-    "files/6a869bcf_nofilter_compact.parquet",
+    "files/6a869bcf_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Explode",
     ["--geom-filter-file", geometry_boundary_file_path(), "--explode-tags"],
-    "files/6a869bcf_nofilter_exploded.parquet",
+    "files/6a869bcf_nofilter_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Compact",
     ["--geom-filter-file", geometry_boundary_file_path(), "--compact-tags"],
-    "files/6a869bcf_nofilter_compact.parquet",
+    "files/6a869bcf_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Ignore cache",
     ["--geom-filter-file", geometry_boundary_file_path(), "--ignore-cache"],
+    "files/6a869bcf_nofilter_compact_sorted.parquet",
+)  # type: ignore
+@P.case(
+    "Explicit sort",
+    ["--geom-filter-file", geometry_boundary_file_path(), "--sort"],
+    "files/6a869bcf_nofilter_compact_sorted.parquet",
+)  # type: ignore
+@P.case(
+    "No sort",
+    ["--geom-filter-file", geometry_boundary_file_path(), "--no-sort"],
     "files/6a869bcf_nofilter_compact.parquet",
 )  # type: ignore
 @P.case(
@@ -367,7 +383,7 @@ def test_proper_args_with_pbf(
         "files/workdir",
         "--ignore-cache",
     ],
-    "files/workdir/6a869bcf_nofilter_compact.parquet",
+    "files/workdir/6a869bcf_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Output",
@@ -399,7 +415,7 @@ def test_proper_args_with_pbf(
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/6a869bcf_a9dd1c3c_exploded.parquet",
+    "files/6a869bcf_a9dd1c3c_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter compact",
@@ -410,7 +426,7 @@ def test_proper_args_with_pbf(
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/6a869bcf_a9dd1c3c_compact.parquet",
+    "files/6a869bcf_a9dd1c3c_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped",
@@ -420,7 +436,7 @@ def test_proper_args_with_pbf(
         "--osm-tags-filter",
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
     ],
-    "files/6a869bcf_654daac5_exploded.parquet",
+    "files/6a869bcf_654daac5_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter grouped compact",
@@ -431,7 +447,7 @@ def test_proper_args_with_pbf(
         '{"group": {"building": true, "highway": ["primary", "secondary"], "amenity": "bench"} }',
         "--compact",
     ],
-    "files/6a869bcf_654daac5_compact.parquet",
+    "files/6a869bcf_654daac5_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Filter OSM features IDs",
@@ -441,7 +457,7 @@ def test_proper_args_with_pbf(
         "--filter-osm-ids",
         "way/94399646,node/3617982224,relation/36990",
     ],
-    "files/6a869bcf_nofilter_compact_c740a159.parquet",
+    "files/6a869bcf_nofilter_compact_c740a159_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Keep all tags",
@@ -450,7 +466,7 @@ def test_proper_args_with_pbf(
         geometry_boundary_file_path(),
         "--keep-all-tags",
     ],
-    "files/6a869bcf_nofilter_compact.parquet",
+    "files/6a869bcf_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags",
@@ -461,7 +477,7 @@ def test_proper_args_with_pbf(
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/6a869bcf_a9dd1c3c_alltags_compact.parquet",
+    "files/6a869bcf_a9dd1c3c_alltags_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags compact",
@@ -473,7 +489,7 @@ def test_proper_args_with_pbf(
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--compact",
     ],
-    "files/6a869bcf_a9dd1c3c_alltags_compact.parquet",
+    "files/6a869bcf_a9dd1c3c_alltags_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM tags filter with keep all tags exploded",
@@ -485,7 +501,7 @@ def test_proper_args_with_pbf(
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
         "--explode",
     ],
-    "files/6a869bcf_a9dd1c3c_alltags_exploded.parquet",
+    "files/6a869bcf_a9dd1c3c_alltags_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "OSM way polygon config",
@@ -495,7 +511,7 @@ def test_proper_args_with_pbf(
         "--osm-way-polygon-config",
         osm_way_config_file_path(),
     ],
-    "files/6a869bcf_nofilter_compact.parquet",
+    "files/6a869bcf_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Allow not covered geometry",
@@ -508,7 +524,7 @@ def test_proper_args_with_pbf(
         "--allow-uncovered-geometry",
         "--ignore-cache",
     ],
-    "files/fa44926c_nofilter_compact.parquet",
+    "files/fa44926c_nofilter_compact_sorted.parquet",
 )  # type: ignore
 def test_proper_args_with_geometry_filter(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
@@ -526,7 +542,7 @@ def test_proper_args_with_geometry_filter(args: list[str], expected_result: str)
         "--osm-extract-query",
         "geofabrik_europe_monaco",
     ],
-    "files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet",
+    "files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Find in geofabrik",
@@ -536,12 +552,12 @@ def test_proper_args_with_geometry_filter(args: list[str], expected_result: str)
         "--osm-extract-source",
         "Geofabrik",
     ],
-    "files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet",
+    "files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Explode",
     ["--osm-extract-query", "geofabrik_europe_monaco", "--explode-tags"],
-    "files/geofabrik_europe_monaco_nofilter_noclip_exploded.parquet",
+    "files/geofabrik_europe_monaco_nofilter_noclip_exploded_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Compact",
@@ -550,7 +566,7 @@ def test_proper_args_with_geometry_filter(args: list[str], expected_result: str)
         "geofabrik_europe_monaco",
         "--compact-tags",
     ],
-    "files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet",
+    "files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Output",
@@ -573,7 +589,7 @@ def test_proper_args_with_geometry_filter(args: list[str], expected_result: str)
         "--osm-tags-filter",
         '{"building": true, "highway": ["primary", "secondary"], "amenity": "bench"}',
     ],
-    "files/geofabrik_europe_monaco_a9dd1c3c_6a869bcf_exploded.parquet",
+    "files/geofabrik_europe_monaco_a9dd1c3c_6a869bcf_exploded_sorted.parquet",
 )  # type: ignore
 def test_proper_args_with_osm_extract(args: list[str], expected_result: str) -> None:
     """Test if runs properly with options."""
@@ -590,7 +606,7 @@ def test_proper_args_with_pbf_url() -> None:
     print(result.stdout)
 
     assert result.exit_code == 0
-    assert str(Path("files/monaco-latest_nofilter_noclip_compact.parquet")) in result.stdout
+    assert str(Path("files/monaco-latest_nofilter_noclip_compact_sorted.parquet")) in result.stdout
 
 
 @P.parameters("args")  # type: ignore
