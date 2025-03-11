@@ -115,7 +115,7 @@ def convert_pbf_to_duckdb(
 
         >>> ddb_path = qosm.convert_pbf_to_duckdb(monaco_pbf_path) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/monaco_nofilter_noclip_compact.duckdb'
+        'files/monaco_nofilter_noclip_compact_sorted.duckdb'
 
         >>> import duckdb
         >>> duckdb.load_extension('spatial')
@@ -158,7 +158,7 @@ def convert_pbf_to_duckdb(
         ...     monaco_pbf_path, tags_filter={"building": True, "amenity": True, "highway": True}
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/monaco_6593ca69_noclip_compact.duckdb'
+        'files/monaco_6593ca69_noclip_compact_sorted.duckdb'
 
         Get features for Malé - the capital city of Maldives
 
@@ -208,7 +208,7 @@ def convert_pbf_to_duckdb(
         ...     )
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/maldives_nofilter_4eeabb20_compact.duckdb'
+        'files/maldives_nofilter_4eeabb20_compact_sorted.duckdb'
 
         >>> with duckdb.connect(str(ddb_path)) as con:
         ...     con.load_extension('spatial')
@@ -365,7 +365,7 @@ def convert_geometry_to_duckdb(
         ... )
         >>> ddb_path = qosm.convert_geometry_to_duckdb(from_wkt(wkt)) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/bf4b33de_nofilter_compact.duckdb'
+        'files/bf4b33de_nofilter_compact_sorted.duckdb'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -410,7 +410,7 @@ def convert_geometry_to_duckdb(
         ...     osm_extract_source='Geofabrik',
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/bf4b33de_nofilter_compact.duckdb'
+        'files/bf4b33de_nofilter_compact_sorted.duckdb'
 
         Inspect the file with duckdb
         >>> with duckdb.connect(str(ddb_path)) as con:
@@ -558,7 +558,7 @@ def convert_osm_extract_to_duckdb(
         ...     "monaco", osm_extract_source="geofabrik"
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -602,7 +602,7 @@ def convert_osm_extract_to_duckdb(
         ...     "geofabrik_europe_monaco"
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
     """
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
@@ -713,7 +713,7 @@ def convert_pbf_to_parquet(
         >>> import quackosm as qosm
         >>> gpq_path = qosm.convert_pbf_to_parquet(monaco_pbf_path) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/monaco_nofilter_noclip_compact.parquet'
+        'files/monaco_nofilter_noclip_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -758,7 +758,7 @@ def convert_pbf_to_parquet(
         ...     tags_filter={"building": True, "amenity": True, "highway": True}
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/monaco_6593ca69_noclip_exploded.parquet'
+        'files/monaco_6593ca69_noclip_exploded_sorted.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
@@ -807,7 +807,7 @@ def convert_pbf_to_parquet(
         ...     )
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/maldives_nofilter_4eeabb20_compact.parquet'
+        'files/maldives_nofilter_4eeabb20_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
@@ -965,7 +965,7 @@ def convert_geometry_to_parquet(
         ... )
         >>> gpq_path = qosm.convert_geometry_to_parquet(from_wkt(wkt)) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/bf4b33de_nofilter_compact.parquet'
+        'files/bf4b33de_nofilter_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -1009,7 +1009,7 @@ def convert_geometry_to_parquet(
         ...     osm_extract_source='Geofabrik',
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/bf4b33de_nofilter_compact.parquet'
+        'files/bf4b33de_nofilter_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
@@ -1157,7 +1157,7 @@ def convert_osm_extract_to_parquet(
         ...     "monaco", osm_extract_source="geofabrik"
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -1200,7 +1200,7 @@ def convert_osm_extract_to_parquet(
         ...     "geofabrik_europe_monaco"
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
     """
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
