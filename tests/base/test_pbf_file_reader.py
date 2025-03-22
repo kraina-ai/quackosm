@@ -503,6 +503,28 @@ def test_geometry_orienting(geometry: BaseGeometry):
     ut.assertAlmostEqual(iou, 1, delta=1e-4)
 
 
+def test_geometry_sorting() -> None:
+    """Test if sorted file is smaller and metadata in both files is equal."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    unsorted_pq = convert_pbf_to_parquet(
+        monaco_file_path,
+        ignore_cache=True,
+        sort_result=False,
+    )
+
+    sorted_pq = convert_pbf_to_parquet(
+        monaco_file_path,
+        ignore_cache=True,
+        sort_result=True,
+    )
+
+    print(unsorted_pq.stat().st_size)
+    print(sorted_pq.stat().st_size)
+    assert unsorted_pq.stat().st_size > sorted_pq.stat().st_size
+
+    assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
+
+
 @pytest.mark.parametrize(  # type: ignore
     "func,new_function_name",
     [
