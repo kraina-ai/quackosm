@@ -613,11 +613,11 @@ $ quackosm monaco.osm.pbf --output monaco_osm.duckdb --duckdb-table-name 'osm'
 ⠙ [20.1/32] Grouping filtered ways - assigning groups • 0:00:00
 ⠇ [20.2/32] Grouping filtered ways - joining with nodes • 0:00:03
 ⠧ [20.3/32] Grouping filtered ways - partitioning by group • 0:00:00
-  [  21/32] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:05 < 0:00:00 • 
+  [  21/32] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:05 < 0:00:00 •
 ⠋ [22.1/32] Grouping required ways - assigning groups • 0:00:00
 ⠹ [22.2/32] Grouping required ways - joining with nodes • 0:00:02
 ⠋ [22.3/32] Grouping required ways - partitioning by group • 0:00:00
-  [  23/32] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 
+  [  23/32] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 •
 ⠸ [  24/32] Saving filtered ways with geometries • 0:00:01
 ⠹ [  25/32] Saving valid relations parts • 0:00:00
 ⠋ [  26/32] Saving relations inner parts • 0:00:00
