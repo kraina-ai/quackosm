@@ -553,6 +553,7 @@ files/osmfr_europe_gibraltar_nofilter_noclip_compact.parquet
 #### Export existing PBF to a specific database file and table
 ```python
 >>> import quackosm as qosm
+>>> import duckdb
 >>> monaco_pbf_path = "monaco.osm.pbf"
 >>> ddb_path = qosm.convert_pbf_to_duckdb(
 ...    pbf_path=monaco_pbf_path,
@@ -561,7 +562,6 @@ files/osmfr_europe_gibraltar_nofilter_noclip_compact.parquet
 ... )
 >>> ddb_path.as_posix()
 'monaco_osm.duckdb'
->>> import duckdb
 >>> with duckdb.connect(str(ddb_path)) as con:
 ...     con.load_extension('spatial')
 ...     con.sql("SELECT * FROM osm ORDER BY feature_id;")
