@@ -1371,6 +1371,7 @@ class PbfFileReader:
             value_with_star = value_with_star.replace("**", "*")
 
         value_with_percent = value_with_star.replace("*", "%")
+        # TODO: remove cast
         return cast(str, sql_escape(value_with_percent))
 
     def _prefilter_elements_ids(
