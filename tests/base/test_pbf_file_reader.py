@@ -7,7 +7,7 @@ import warnings
 from functools import partial
 from itertools import permutations
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
@@ -47,6 +47,7 @@ from quackosm._exceptions import (
     InvalidGeometryFilter,
 )
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
+from quackosm._rich_progress import VERBOSITY_MODE
 from quackosm.cli import (
     GeocodeGeometryParser,
     GeohashGeometryParser,
@@ -169,7 +170,7 @@ def test_geometry_hash_calculation(geometry: BaseGeometry):
 
 
 @pytest.mark.parametrize("verbosity_mode", ["silent", "transient", "verbose"])  # type: ignore
-def test_verbosity_mode(verbosity_mode: Literal["silent", "transient", "verbose"]) -> None:
+def test_verbosity_mode(verbosity_mode: VERBOSITY_MODE) -> None:
     """Test if runs properly with different verbosity modes."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     convert_pbf_to_parquet(
@@ -501,6 +502,28 @@ def test_geometry_orienting(geometry: BaseGeometry):
     intersection_area = geometry.intersection(oriented_geometry).area
     iou = intersection_area / (geometry.area + oriented_geometry.area - intersection_area)
     ut.assertAlmostEqual(iou, 1, delta=1e-4)
+
+
+def test_geometry_sorting() -> None:
+    """Test if sorted file is smaller and metadata in both files is equal."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    unsorted_pq = convert_pbf_to_parquet(
+        monaco_file_path,
+        ignore_cache=True,
+        sort_result=False,
+    )
+
+    sorted_pq = convert_pbf_to_parquet(
+        monaco_file_path,
+        ignore_cache=True,
+        sort_result=True,
+    )
+
+    print(unsorted_pq.stat().st_size)
+    print(sorted_pq.stat().st_size)
+    assert unsorted_pq.stat().st_size > sorted_pq.stat().st_size
+
+    assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
 
 
 @pytest.mark.parametrize(  # type: ignore

@@ -8,7 +8,7 @@ from shapely import STRtree
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._parquet_multiprocessing import map_parquet_dataset
-from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined]
+from quackosm._rich_progress import TaskProgressBar
 
 
 def _intersect_nodes(

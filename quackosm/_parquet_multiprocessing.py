@@ -9,7 +9,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from quackosm._exceptions import MultiprocessingRuntimeError
-from quackosm._rich_progress import TaskProgressBar  # type: ignore[attr-defined]
+from quackosm._rich_progress import TaskProgressBar
 
 # Using `spawn` method to enable integration with Polars and probably other Rust-based libraries
 # https://docs.pola.rs/user-guide/misc/multiprocessing/

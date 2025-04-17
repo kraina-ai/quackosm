@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to sort result files by geometry to reduce file size
+
+### Changed
+
+- Default result parquet file compression from `snappy` to `zstd`
+- Number of rows in a parquet row group to `100000`
+
 ## [0.13.0] - 2025-02-26
 
 ### Changed

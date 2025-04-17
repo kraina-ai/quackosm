@@ -6,7 +6,7 @@ This module contains helper functions to simplify the usage.
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Literal, Optional, Union
+from typing import Any, Optional, Union
 
 import geopandas as gpd
 from pandas.util._decorators import deprecate, deprecate_kwarg
@@ -14,6 +14,7 @@ from shapely.geometry.base import BaseGeometry
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
+from quackosm._rich_progress import VERBOSITY_MODE
 from quackosm.osm_extracts import OsmExtractSource, download_extract_by_query
 from quackosm.pbf_file_reader import PbfFileReader
 
@@ -37,13 +38,14 @@ def convert_pbf_to_duckdb(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -76,6 +78,8 @@ def convert_pbf_to_duckdb(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -112,7 +116,7 @@ def convert_pbf_to_duckdb(
 
         >>> ddb_path = qosm.convert_pbf_to_duckdb(monaco_pbf_path) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/monaco_nofilter_noclip_compact.duckdb'
+        'files/monaco_nofilter_noclip_compact_sorted.duckdb'
 
         >>> import duckdb
         >>> duckdb.load_extension('spatial')
@@ -155,7 +159,7 @@ def convert_pbf_to_duckdb(
         ...     monaco_pbf_path, tags_filter={"building": True, "amenity": True, "highway": True}
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/monaco_6593ca69_noclip_compact.duckdb'
+        'files/monaco_6593ca69_noclip_compact_sorted.duckdb'
 
         Get features for Malé - the capital city of Maldives
 
@@ -205,7 +209,7 @@ def convert_pbf_to_duckdb(
         ...     )
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/maldives_nofilter_4eeabb20_compact.duckdb'
+        'files/maldives_nofilter_4eeabb20_compact_sorted.duckdb'
 
         >>> with duckdb.connect(str(ddb_path)) as con:
         ...     con.load_extension('spatial')
@@ -255,6 +259,7 @@ def convert_pbf_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -268,13 +273,14 @@ def convert_geometry_to_duckdb(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
@@ -312,6 +318,8 @@ def convert_geometry_to_duckdb(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -358,7 +366,7 @@ def convert_geometry_to_duckdb(
         ... )
         >>> ddb_path = qosm.convert_geometry_to_duckdb(from_wkt(wkt)) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/bf4b33de_nofilter_compact.duckdb'
+        'files/bf4b33de_nofilter_compact_sorted.duckdb'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -403,7 +411,7 @@ def convert_geometry_to_duckdb(
         ...     osm_extract_source='Geofabrik',
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/bf4b33de_nofilter_compact.duckdb'
+        'files/bf4b33de_nofilter_compact_sorted.duckdb'
 
         Inspect the file with duckdb
         >>> with duckdb.connect(str(ddb_path)) as con:
@@ -456,6 +464,7 @@ def convert_geometry_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -470,13 +479,14 @@ def convert_osm_extract_to_duckdb(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -512,6 +522,8 @@ def convert_osm_extract_to_duckdb(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -547,7 +559,7 @@ def convert_osm_extract_to_duckdb(
         ...     "monaco", osm_extract_source="geofabrik"
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -591,7 +603,7 @@ def convert_osm_extract_to_duckdb(
         ...     "geofabrik_europe_monaco"
         ... ) # doctest: +IGNORE_RESULT
         >>> ddb_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
     """
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
@@ -610,6 +622,7 @@ def convert_osm_extract_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -623,13 +636,14 @@ def convert_pbf_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -662,6 +676,8 @@ def convert_pbf_to_parquet(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -698,7 +714,7 @@ def convert_pbf_to_parquet(
         >>> import quackosm as qosm
         >>> gpq_path = qosm.convert_pbf_to_parquet(monaco_pbf_path) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/monaco_nofilter_noclip_compact.parquet'
+        'files/monaco_nofilter_noclip_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -743,7 +759,7 @@ def convert_pbf_to_parquet(
         ...     tags_filter={"building": True, "amenity": True, "highway": True}
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/monaco_6593ca69_noclip_exploded.parquet'
+        'files/monaco_6593ca69_noclip_exploded_sorted.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
@@ -792,7 +808,7 @@ def convert_pbf_to_parquet(
         ...     )
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/maldives_nofilter_4eeabb20_compact.parquet'
+        'files/maldives_nofilter_4eeabb20_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
@@ -841,6 +857,7 @@ def convert_pbf_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -854,13 +871,14 @@ def convert_geometry_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
@@ -898,6 +916,8 @@ def convert_geometry_to_parquet(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -946,7 +966,7 @@ def convert_geometry_to_parquet(
         ... )
         >>> gpq_path = qosm.convert_geometry_to_parquet(from_wkt(wkt)) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/bf4b33de_nofilter_compact.parquet'
+        'files/bf4b33de_nofilter_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -990,7 +1010,7 @@ def convert_geometry_to_parquet(
         ...     osm_extract_source='Geofabrik',
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/bf4b33de_nofilter_compact.parquet'
+        'files/bf4b33de_nofilter_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> duckdb.read_parquet(str(gpq_path)).order("feature_id") # doctest: +SKIP
@@ -1041,6 +1061,7 @@ def convert_geometry_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -1055,13 +1076,14 @@ def convert_osm_extract_to_parquet(
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -1097,6 +1119,8 @@ def convert_osm_extract_to_parquet(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1134,7 +1158,7 @@ def convert_osm_extract_to_parquet(
         ...     "monaco", osm_extract_source="geofabrik"
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
 
         Inspect the file with duckdb
         >>> import duckdb
@@ -1177,7 +1201,7 @@ def convert_osm_extract_to_parquet(
         ...     "geofabrik_europe_monaco"
         ... ) # doctest: +IGNORE_RESULT
         >>> gpq_path.as_posix()
-        'files/geofabrik_europe_monaco_nofilter_noclip_compact.parquet'
+        'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
     """
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
@@ -1196,6 +1220,7 @@ def convert_osm_extract_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -1209,12 +1234,13 @@ def convert_pbf_to_geodataframe(
     geometry_filter: Optional[BaseGeometry] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
@@ -1247,6 +1273,8 @@ def convert_pbf_to_geodataframe(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1399,6 +1427,7 @@ def convert_pbf_to_geodataframe(
         pbf_path=pbf_path,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
@@ -1410,12 +1439,13 @@ def convert_geometry_to_geodataframe(
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
@@ -1450,6 +1480,8 @@ def convert_geometry_to_geodataframe(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1549,6 +1581,7 @@ def convert_geometry_to_geodataframe(
     ).convert_geometry_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
@@ -1561,12 +1594,13 @@ def convert_osm_extract_to_geodataframe(
     geometry_filter: Optional[BaseGeometry] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
+    sort_result: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
@@ -1599,6 +1633,8 @@ def convert_osm_extract_to_geodataframe(
             If `None`, will be set based on `tags_filter` and `keep_all_tags` parameters.
             If there is tags filter defined and `keep_all_tags` is set to `False`, then it will
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
+        sort_result (bool, optional): Whether to sort the result by geometry or not.
+            Defaults to True.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1687,6 +1723,7 @@ def convert_osm_extract_to_geodataframe(
         pbf_path=downloaded_osm_extract,
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
+        sort_result=sort_result,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
