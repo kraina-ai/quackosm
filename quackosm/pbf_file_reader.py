@@ -35,12 +35,12 @@ from pandas.util._decorators import deprecate, deprecate_kwarg
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
+from rq_geo_toolkit.duckdb import sql_escape
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
 from quackosm._constants import (
     FEATURES_INDEX,
-    FORCE_TERMINAL,
     GEOMETRY_COLUMN,
     PARQUET_ROW_GROUP_SIZE,
     WGS84_CRS,
@@ -59,7 +59,9 @@ from quackosm._osm_tags_filters import (
     merge_osm_tags_filter,
 )
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig, parse_dict_to_config_object
-from quackosm._rich_progress import (  # type: ignore[attr-defined]
+from quackosm._rich_progress import (
+    FORCE_TERMINAL,
+    VERBOSITY_MODE,
     TaskProgressBar,
     TaskProgressTracker,
     log_message,
@@ -127,7 +129,7 @@ class PbfFileReader:
         ] = None,
         parquet_compression: str = "zstd",
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
-        verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+        verbosity_mode: VERBOSITY_MODE = "transient",
         geometry_coverage_iou_threshold: float = 0.01,
         allow_uncovered_geometry: bool = False,
         debug_memory: bool = False,
@@ -207,7 +209,7 @@ class PbfFileReader:
         self.verbosity_mode = verbosity_mode
         self.debug_memory = debug_memory
         self.debug_times = debug_times
-        self.task_progress_tracker: TaskProgressTracker = None
+        self._task_progress_tracker: Optional[TaskProgressTracker] = None
         self.rows_per_group: int = 0
 
         self.parquet_compression = parquet_compression
@@ -253,6 +255,14 @@ class PbfFileReader:
             "0.8.1",
             msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
         )
+
+    @property
+    def task_progress_tracker(self) -> TaskProgressTracker:
+        """Get task progress tracker."""
+        if self._task_progress_tracker is None:
+            raise RuntimeError("Task progress tracker not initialized.")
+
+        return self._task_progress_tracker
 
     def convert_pbf_to_parquet(
         self,
@@ -326,7 +336,7 @@ class PbfFileReader:
 
         parsed_geoparquet_files = []
         total_files = len(pbf_path)
-        self.task_progress_tracker = TaskProgressTracker(
+        self._task_progress_tracker = TaskProgressTracker(
             verbosity_mode=self.verbosity_mode,
             total_major_steps=total_files,
             debug=self.debug_times,
@@ -1361,7 +1371,7 @@ class PbfFileReader:
             value_with_star = value_with_star.replace("**", "*")
 
         value_with_percent = value_with_star.replace("*", "%")
-        return self._sql_escape(value_with_percent)
+        return cast(str, sql_escape(value_with_percent))
 
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
@@ -1738,7 +1748,7 @@ class PbfFileReader:
                                 f" '{sql_like_value}')"
                             )
                         else:
-                            escaped_value = self._sql_escape(single_filter_tag_value)
+                            escaped_value = sql_escape(single_filter_tag_value)
                             positive_filter_clauses.append(
                                 f"(list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
                                 f" '{escaped_value}')"
@@ -1799,10 +1809,6 @@ class PbfFileReader:
             filter_osm_ids_filter = "id IS NULL"
 
         return filter_osm_ids_filter
-
-    def _sql_escape(self, value: str) -> str:
-        """Escape value for SQL query."""
-        return value.replace("'", "''")
 
     def _sql_to_parquet_file(self, sql_query: str, file_path: Path) -> "duckdb.DuckDBPyRelation":
         relation = self.connection.sql(sql_query)
@@ -2238,7 +2244,7 @@ class PbfFileReader:
 
         for osm_tag_key, osm_tag_values in self.osm_way_polygon_features_config.allowlist.items():
             escaped_values = ",".join(
-                [f"'{self._sql_escape(osm_tag_value)}'" for osm_tag_value in osm_tag_values]
+                [f"'{sql_escape(osm_tag_value)}'" for osm_tag_value in osm_tag_values]
             )
             osm_way_polygon_features_filter_clauses.append(
                 f"list_contains(map_keys(raw_tags), '{osm_tag_key}') AND"
@@ -2247,7 +2253,7 @@ class PbfFileReader:
 
         for osm_tag_key, osm_tag_values in self.osm_way_polygon_features_config.denylist.items():
             escaped_values = ",".join(
-                [f"'{self._sql_escape(osm_tag_value)}'" for osm_tag_value in osm_tag_values]
+                [f"'{sql_escape(osm_tag_value)}'" for osm_tag_value in osm_tag_values]
             )
             osm_way_polygon_features_filter_clauses.append(
                 f"list_contains(map_keys(raw_tags), '{osm_tag_key}') AND NOT"
@@ -2604,7 +2610,7 @@ class PbfFileReader:
                                 f" '{sql_like_value}')"
                             )
                         else:
-                            escaped_value = self._sql_escape(single_filter_tag_value)
+                            escaped_value = sql_escape(single_filter_tag_value)
                             filter_tag_clauses.append(
                                 f"(tag_entry.key = '{filter_tag_key}' AND tag_entry.value ="
                                 f" '{escaped_value}')"
@@ -2642,7 +2648,7 @@ class PbfFileReader:
                                 f" '{sql_like_value}'"
                             )
                         else:
-                            escaped_value = self._sql_escape(single_filter_tag_value)
+                            escaped_value = sql_escape(single_filter_tag_value)
                             filter_tag_clauses.append(
                                 f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) ="
                                 f" '{escaped_value}'"
@@ -2729,7 +2735,7 @@ class PbfFileReader:
                                     f"\"{osm_tag_key}\" LIKE '{sql_like_value}'"
                                 )
                             else:
-                                escaped_value = self._sql_escape(single_osm_tag_value)
+                                escaped_value = sql_escape(single_osm_tag_value)
                                 filter_tag_clauses.append(f"\"{osm_tag_key}\" = '{escaped_value}'")
                         case_when_clauses.append(
                             f"WHEN {' OR '.join(filter_tag_clauses)} THEN '{osm_tag_key}=' ||"
@@ -2773,7 +2779,7 @@ class PbfFileReader:
                                     f"{element_clause} LIKE '{sql_like_value}'"
                                 )
                             else:
-                                escaped_value = self._sql_escape(single_osm_tag_value)
+                                escaped_value = sql_escape(single_osm_tag_value)
                                 filter_tag_clauses.append(f"{element_clause} = '{escaped_value}'")
                         case_when_clauses.append(
                             f"WHEN {' OR '.join(filter_tag_clauses)} THEN '{osm_tag_key}=' ||"
@@ -3089,11 +3095,7 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
         hive_partitioning=False,
     ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
         {"point": "linestring"}
-    ).collect(
-        streaming=True
-    ).write_parquet(
-        current_destination_path
-    )
+    ).collect(streaming=True).write_parquet(current_destination_path)
 
 
 def _drop_duplicates_in_pyarrow_table(
@@ -3236,7 +3238,6 @@ def _sort_geoparquet_file_by_geometry(
             ) TO '{output_file_path}' (
                 FORMAT parquet,
                 COMPRESSION {parquet_compression},
-                -- COMPRESSION_LEVEL 3,
                 ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
                 KV_METADATA {original_metadata_string}
             );

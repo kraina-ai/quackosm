@@ -82,7 +82,7 @@ Required:
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries
 
-- `polars (>=0.19.4)`: For faster OSM ways grouping operation
+- `polars (>=1.9)`: For faster OSM ways grouping operation
 
 - `typeguard (>=3.0)`: For internal validation of types
 

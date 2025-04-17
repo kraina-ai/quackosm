@@ -7,7 +7,7 @@ import warnings
 from functools import partial
 from itertools import permutations
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
@@ -47,6 +47,7 @@ from quackosm._exceptions import (
     InvalidGeometryFilter,
 )
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
+from quackosm._rich_progress import VERBOSITY_MODE
 from quackosm.cli import (
     GeocodeGeometryParser,
     GeohashGeometryParser,
@@ -169,7 +170,7 @@ def test_geometry_hash_calculation(geometry: BaseGeometry):
 
 
 @pytest.mark.parametrize("verbosity_mode", ["silent", "transient", "verbose"])  # type: ignore
-def test_verbosity_mode(verbosity_mode: Literal["silent", "transient", "verbose"]) -> None:
+def test_verbosity_mode(verbosity_mode: VERBOSITY_MODE) -> None:
     """Test if runs properly with different verbosity modes."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     convert_pbf_to_parquet(

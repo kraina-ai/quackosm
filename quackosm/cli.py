@@ -3,15 +3,18 @@
 import json
 import logging
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Union, cast
+from typing import TYPE_CHECKING, Annotated, Optional, Union, cast
 
 import click
 import typer
+from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
-from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
+
+if TYPE_CHECKING:
+    from quackosm._rich_progress import VERBOSITY_MODE
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
 
@@ -734,7 +737,7 @@ def main(
     if transient_mode and silent_mode:
         raise typer.BadParameter("Cannot pass both silent and transient mode at once.")
 
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "verbose"
+    verbosity_mode: VERBOSITY_MODE = "verbose"
 
     if transient_mode:
         verbosity_mode = "transient"

@@ -10,7 +10,7 @@ import geopandas as gpd
 import requests
 from tqdm import tqdm
 
-from quackosm._constants import FORCE_TERMINAL
+from quackosm._rich_progress import FORCE_TERMINAL
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,

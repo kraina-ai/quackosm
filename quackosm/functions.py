@@ -6,7 +6,7 @@ This module contains helper functions to simplify the usage.
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Literal, Optional, Union
+from typing import Any, Optional, Union
 
 import geopandas as gpd
 from pandas.util._decorators import deprecate, deprecate_kwarg
@@ -14,6 +14,7 @@ from shapely.geometry.base import BaseGeometry
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
+from quackosm._rich_progress import VERBOSITY_MODE
 from quackosm.osm_extracts import OsmExtractSource, download_extract_by_query
 from quackosm.pbf_file_reader import PbfFileReader
 
@@ -44,7 +45,7 @@ def convert_pbf_to_duckdb(
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -279,7 +280,7 @@ def convert_geometry_to_duckdb(
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
@@ -485,7 +486,7 @@ def convert_osm_extract_to_duckdb(
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -642,7 +643,7 @@ def convert_pbf_to_parquet(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -877,7 +878,7 @@ def convert_geometry_to_parquet(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
@@ -1082,7 +1083,7 @@ def convert_osm_extract_to_parquet(
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> Path:
@@ -1239,7 +1240,7 @@ def convert_pbf_to_geodataframe(
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
@@ -1444,7 +1445,7 @@ def convert_geometry_to_geodataframe(
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     geometry_coverage_iou_threshold: float = 0.01,
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
@@ -1599,7 +1600,7 @@ def convert_osm_extract_to_geodataframe(
     custom_sql_filter: Optional[str] = None,
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "transient",
+    verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
 ) -> gpd.GeoDataFrame:
