@@ -462,6 +462,89 @@ Finished operation in 0:00:50
 files/osmfr_europe_gibraltar_nofilter_noclip_compact.parquet
 ```
 
+### Let the QuackOSM export data directly to a DuckDB database 🦆
+
+#### Export existing PBF to a specific database file and table
+```python
+>>> import quackosm as qosm
+>>> import duckdb
+>>> monaco_pbf_path = "monaco.osm.pbf"
+>>> ddb_path = qosm.convert_pbf_to_duckdb(
+...    pbf_path=monaco_pbf_path,
+...    result_file_path="monaco_osm.duckdb",
+...    duckdb_table_name="osm"
+... )
+>>> ddb_path.as_posix()
+'monaco_osm.duckdb'
+>>> with duckdb.connect(str(ddb_path)) as con:
+...     con.load_extension('spatial')
+...     con.sql("SELECT * FROM osm ORDER BY feature_id;")
+```
+
+#### Export geometry to DuckDB
+```python
+>>> import quackosm as qosm
+>>> from shapely import from_wkt
+>>> wkt = (
+...     "POLYGON ((7.41644 43.73598, 7.41644 43.73142, 7.42378 43.73142,"
+...     " 7.42378 43.73598, 7.41644 43.73598))"
+... )
+>>> ddb_path = qosm.convert_geometry_to_duckdb(from_wkt(wkt))
+>>> ddb_path.as_posix()
+'files/bf4b33debfd6d3e605555340606df6ce7eea934958c1f3477aca0ccf79e7929f_nofilter_compact.duckdb'
+```
+
+#### Extract OSM and save to DuckDB
+```python
+>>> import quackosm as qosm
+>>> ddb_path = qosm.convert_osm_extract_to_duckdb("monaco", osm_extract_source="geofabrik")
+>>> db_path.as_posix()
+'files/geofabrik_europe_monaco_nofilter_noclip_compact.duckdb'
+```
+
+#### Use as CLI
+```console
+$ quackosm monaco.osm.pbf --output monaco_osm.duckdb --duckdb-table-name 'osm'
+⠇ [   1/32] Reading nodes • 0:00:00
+⠋ [   2/32] Filtering nodes - intersection • 0:00:00
+⠙ [   3/32] Filtering nodes - tags • 0:00:00
+⠋ [   4/32] Calculating distinct filtered nodes ids • 0:00:00
+⠴ [   5/32] Reading ways • 0:00:01
+⠇ [   6/32] Unnesting ways • 0:00:00
+⠴ [   7/32] Filtering ways - valid refs • 0:00:00
+⠋ [   8/32] Filtering ways - intersection • 0:00:00
+⠋ [   9/32] Filtering ways - tags • 0:00:00
+⠋ [  10/32] Calculating distinct filtered ways ids • 0:00:00
+⠸ [  11/32] Reading relations • 0:00:00
+⠹ [  12/32] Unnesting relations • 0:00:00
+⠋ [  13/32] Filtering relations - valid refs • 0:00:00
+⠋ [  14/32] Filtering relations - intersection • 0:00:00
+⠋ [  15/32] Filtering relations - tags • 0:00:00
+⠋ [  16/32] Calculating distinct filtered relations ids • 0:00:00
+⠋ [  17/32] Loading required ways - by relations • 0:00:00
+⠋ [  18/32] Calculating distinct required ways ids • 0:00:00
+⠸ [  19/32] Saving filtered nodes with geometries • 0:00:00
+⠙ [20.1/32] Grouping filtered ways - assigning groups • 0:00:00
+⠇ [20.2/32] Grouping filtered ways - joining with nodes • 0:00:03
+⠧ [20.3/32] Grouping filtered ways - partitioning by group • 0:00:00
+  [  21/32] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:05 < 0:00:00 •
+⠋ [22.1/32] Grouping required ways - assigning groups • 0:00:00
+⠹ [22.2/32] Grouping required ways - joining with nodes • 0:00:02
+⠋ [22.3/32] Grouping required ways - partitioning by group • 0:00:00
+  [  23/32] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 •
+⠸ [  24/32] Saving filtered ways with geometries • 0:00:01
+⠹ [  25/32] Saving valid relations parts • 0:00:00
+⠋ [  26/32] Saving relations inner parts • 0:00:00
+⠋ [  27/32] Saving relations outer parts • 0:00:00
+⠋ [  28/32] Saving relations outer parts with holes • 0:00:00
+⠋ [  29/32] Saving relations outer parts without holes • 0:00:00
+⠙ [  30/32] Saving filtered relations with geometries • 0:00:00
+⠹ [  31/32] Saving all features • 0:00:00
+  [  32/32] Saving final geoparquet file 100% ━━━━━━━━━━━━━━━━━━━━━━━━━ 12/12 • 0:00:01 < 0:00:00 • 9.85 it/s
+Finished operation in 0:00:22
+monaco_osm.duckdb
+```
+
 <details>
   <summary>CLI Help output (<code>QuackOSM -h</code>)</summary>
 
@@ -518,8 +601,9 @@ files/osmfr_europe_gibraltar_nofilter_noclip_compact.parquet
 │                                                                                                           osm-tags-filter/osm-tags-filter-file and keep-all-tags parameters. If there is a tags filter applied without            │
 │                                                                                                           keep-all-tags then it'll be set to explode-tags (True). Otherwise it'll be set to compact-tags (False).                 │
 │ --output                                    -o                              PATH                          Path where to save final geoparquet file. If not provided, it will be generated automatically based on the input pbf    │
-│                                                                                                           file name.                                                                                                              │
-│                                                                                                           [default: None]                                                                                                         │
+│                                                                                                           file name. Can be .parquet or .db or .duckdb extension.                                                                 │
+│ --duckdb                                                                                                  Export to duckdb database. If not provided, data can still be exported if output has .db or .duckdb extension.          │
+│ --duckdb-table-name                                                         TEXT                          Table name which the data will be imported into in the DuckDB database. [default: quackosm]                             │
 │ --ignore-cache,--no-cache                                                                                 Whether to ignore previously precalculated geoparquet files or not.                                                     │
 │ --working-directory,--work-dir                                              PATH                          Directory where to save the parsed parquet and geoparquet files. Will be created if doesn't exist. [default: files]     │
 │ --osm-way-polygon-config                                                    PATH                          Config where alternative OSM way polygon features config is defined. Will determine how to parse way features based on  │
