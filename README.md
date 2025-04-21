@@ -70,7 +70,7 @@ QuackOSM supports **Python >= 3.9**
 
 Required:
 
-- `duckdb (>=1.1.0)`: For all DuckDB operations on PBF files
+- `duckdb (>=1.1.2)`: For all DuckDB operations on PBF files and sorting result file
 
 - `pyarrow (>=16.0.0)`: For parquet files wrangling
 
