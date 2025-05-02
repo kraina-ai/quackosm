@@ -3273,7 +3273,7 @@ def _decompress_value_columns(
     select_clauses = ", ".join(
         f"""
         CASE WHEN map_contains(column_values, {column_idx})
-        THEN map_extract(column_values, {column_idx}) END
+        THEN list_extract(map_extract(column_values, {column_idx}), 1) END
         AS "{column}"
         """
         for column_idx, column in enumerate(value_columns)
