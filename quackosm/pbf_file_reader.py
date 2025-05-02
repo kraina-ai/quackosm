@@ -36,6 +36,8 @@ from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
 from rq_geo_toolkit.duckdb import sql_escape
+from rq_geo_toolkit.geoparquet_compression import compress_query_with_duckdb
+from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
@@ -443,6 +445,7 @@ class PbfFileReader:
                         save_as_wkt=save_as_wkt,
                         tmp_dir_path=tmp_dir_path,
                         sort_result=sort_result,
+                        explode_tags=explode_tags,
                     )
             else:
                 warnings.warn(
@@ -2560,6 +2563,7 @@ class PbfFileReader:
             result_file_path=save_file_path,
             save_as_wkt=save_as_wkt,
             sort_result=sort_result,
+            explode_tags=explode_tags,
         )
 
     def _generate_osm_tags_sql_select(
@@ -2812,7 +2816,12 @@ class PbfFileReader:
         return grouped_features_relation
 
     def _save_final_parquet_file(
-        self, input_file: Path, result_file_path: Path, save_as_wkt: bool, sort_result: bool
+        self,
+        input_file: Path,
+        result_file_path: Path,
+        save_as_wkt: bool,
+        sort_result: bool,
+        explode_tags: bool,
     ) -> None:
         features_table = self.connection.read_parquet(str(input_file / "*.parquet"))
         is_empty = features_table.count(FEATURES_INDEX).fetchone()[0] == 0
@@ -2917,14 +2926,18 @@ class PbfFileReader:
                 if sort_result:
                     _sort_geoparquet_file_by_geometry(
                         input_file_path=destination_parquet_path,
+                        explode_tags=explode_tags,
                         output_file_path=result_file_path,
-                        working_directory=self.tmp_dir_path,
                         sort_extent=(
                             self.geometry_filter.bounds
                             if self.geometry_filter is not None
                             else None
                         ),
-                        parquet_compression=self.parquet_compression,
+                        compression=self.parquet_compression,
+                        compression_level=3,
+                        row_group_size=self.rows_per_group,
+                        verbosity_mode=self.verbosity_mode,
+                        working_directory=self.tmp_dir_path,
                     )
 
     def _combine_parquet_files(
@@ -2934,6 +2947,7 @@ class PbfFileReader:
         save_as_wkt: bool,
         tmp_dir_path: Path,
         sort_result: bool,
+        explode_tags: bool,
     ) -> None:
         with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
             dataset = pq.ParquetDataset(input_files)
@@ -3003,12 +3017,16 @@ class PbfFileReader:
             if sort_result:
                 _sort_geoparquet_file_by_geometry(
                     input_file_path=destination_parquet_path,
+                    explode_tags=explode_tags,
                     output_file_path=result_file_path,
-                    working_directory=self.tmp_dir_path,
                     sort_extent=(
                         self.geometry_filter.bounds if self.geometry_filter is not None else None
                     ),
-                    parquet_compression=self.parquet_compression,
+                    compression=self.parquet_compression,
+                    compression_level=3,
+                    row_group_size=self.rows_per_group,
+                    verbosity_mode=self.verbosity_mode,
+                    working_directory=self.tmp_dir_path,
                 )
 
 
@@ -3096,7 +3114,11 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
         hive_partitioning=False,
     ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
         {"point": "linestring"}
-    ).collect(streaming=True).write_parquet(current_destination_path)
+    ).collect(
+        streaming=True
+    ).write_parquet(
+        current_destination_path
+    )
 
 
 def _drop_duplicates_in_pyarrow_table(
@@ -3137,28 +3159,16 @@ def _is_url_path(path: Union[str, Path]) -> bool:
 
 def _sort_geoparquet_file_by_geometry(
     input_file_path: Path,
-    output_file_path: Optional[Path] = None,
-    sort_extent: Optional[tuple[float, float, float, float]] = None,
-    parquet_compression: str = "zstd",
-    working_directory: Union[str, Path] = "files",
+    explode_tags: bool,
+    output_file_path: Optional[Path],
+    sort_extent: Optional[tuple[float, float, float, float]],
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
+    verbosity_mode: VERBOSITY_MODE,
+    working_directory: Path,
 ) -> Path:
-    """
-    Sorts a GeoParquet file by the geometry column.
-
-    Args:
-        input_file_path (Path): Input GeoParquet file path.
-        output_file_path (Optional[Path], optional): Output GeoParquet file path.
-            If not provided, will generate file name based on input file name with
-            `_sorted` suffix. Defaults to None.
-        sort_extent (Optional[tuple[float, float, float, float]], optional): Extent to use
-            in the ST_Hilbert function. If not, will calculate extent from the
-            geometries in the file. Defaults to None.
-        parquet_compression (str, optional): Compression of intermediate parquet files.
-            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to "zstd".
-        working_directory (Union[str, Path], optional): Directory where to save
-            the downloaded `*.parquet` files. Defaults to "files".
-    """
+    # TODO: add comprssions_level to the function signature
     if output_file_path is None:
         output_file_path = (
             input_file_path.parent / f"{input_file_path.stem}_sorted{input_file_path.suffix}"
@@ -3166,99 +3176,124 @@ def _sort_geoparquet_file_by_geometry(
 
     assert input_file_path.resolve().as_posix() != output_file_path.resolve().as_posix()
 
-    with tempfile.TemporaryDirectory(dir=Path(working_directory).resolve()) as tmp_dir_name:
-        tmp_dir_path = Path(tmp_dir_name)
+    file_to_sort = input_file_path
+    sorted_parquet_path = output_file_path
 
-        connection = _set_up_duckdb_connection(tmp_dir_path, preserve_insertion_order=True)
-        connection.execute("SET enable_geoparquet_conversion = false;")
+    if explode_tags:
+        columns = pq.read_schema(input_file_path).names
+        value_columns = [col for col in columns if col not in (FEATURES_INDEX, GEOMETRY_COLUMN)]
 
-        struct_type = "::STRUCT(min_x DOUBLE, min_y DOUBLE, max_x DOUBLE, max_y DOUBLE)"
-        connection.sql(
-            f"""
-            CREATE OR REPLACE MACRO bbox_within(a, b) AS
-            (
-                (a{struct_type}).min_x >= (b{struct_type}).min_x and
-                (a{struct_type}).max_x <= (b{struct_type}).max_x
-            )
-            and
-            (
-                (a{struct_type}).min_y >= (b{struct_type}).min_y and
-                (a{struct_type}).max_y <= (b{struct_type}).max_y
-            );
-            """
+        compressed_parquet_path = working_directory / "_compressed.parquet"
+        _compress_value_columns(
+            input_file=input_file_path,
+            output_file=compressed_parquet_path,
+            value_columns=value_columns,
+            working_directory=working_directory,
         )
 
-        # https://medium.com/radiant-earth-insights/using-duckdbs-hilbert-function-with-geop-8ebc9137fb8a
-        if sort_extent is None:
-            # Calculate extent from the geometries in the file
-            order_clause = f"""
-            ST_Hilbert(
-                ST_GeomFromWKB(geometry),
-                (
-                    SELECT ST_Extent(ST_Extent_Agg(ST_GeomFromWKB(geometry)))::BOX_2D
-                    FROM read_parquet('{input_file_path}', hive_partitioning=false)
-                )
-            )
-            """
-        else:
-            extent_box_clause = f"""
-            {{
-                min_x: {sort_extent[0]},
-                min_y: {sort_extent[1]},
-                max_x: {sort_extent[2]},
-                max_y: {sort_extent[3]}
-            }}::BOX_2D
-            """
-            # Keep geometries within the extent first,
-            # and geometries that are bigger than the extent last (like administrative boundaries)
+        file_to_sort = compressed_parquet_path
+        sorted_parquet_path = working_directory / "_sorted.parquet"
 
-            # Then sort by Hilbert curve but readjust the extent to all geometries that
-            # are not fully within the extent, but also not bigger than the extent overall.
-            order_clause = f"""
-            bbox_within(({extent_box_clause}), ST_Extent(ST_GeomFromWKB(geometry))),
-            ST_Hilbert(
-                ST_GeomFromWKB(geometry),
-                (
-                    SELECT ST_Extent(ST_Extent_Agg(ST_GeomFromWKB(geometry)))::BOX_2D
-                    FROM read_parquet('{input_file_path}', hive_partitioning=false)
-                    WHERE NOT bbox_within(
-                        ({extent_box_clause}),
-                        ST_Extent(ST_GeomFromWKB(geometry))
-                    )
-                )
-            )
-            """
+        input_file_path.unlink(missing_ok=True)
 
-        original_metadata_string = _parquet_schema_metadata_to_duckdb_kv_metadata(input_file_path)
+    sort_geoparquet_file_by_geometry(
+        input_file_path=file_to_sort,
+        output_file_path=sorted_parquet_path,
+        compression="zstd",
+        compression_level=3,
+        row_group_size=row_group_size,
+        working_directory=working_directory,
+        sort_extent=sort_extent,
+        verbosity_mode=verbosity_mode,
+    )
 
-        copy_query = f"""
-            COPY (
-                SELECT *
-                FROM read_parquet('{input_file_path}', hive_partitioning=false)
-                ORDER BY {order_clause}
-            ) TO '{output_file_path}' (
-                FORMAT parquet,
-                COMPRESSION {parquet_compression},
-                ROW_GROUP_SIZE {PARQUET_ROW_GROUP_SIZE},
-                KV_METADATA {original_metadata_string}
-            );
-        """
+    file_to_sort.unlink(missing_ok=True)
 
-        connection.execute(copy_query)
+    if explode_tags:
+        _decompress_value_columns(
+            input_file=sorted_parquet_path,
+            output_file=output_file_path,
+            value_columns=value_columns,
+            working_directory=working_directory,
+            compression=compression,
+            compression_level=compression_level,
+            row_group_size=row_group_size,
+            verbosity_mode=verbosity_mode,
+        )
 
-        connection.close()
+        sorted_parquet_path.unlink(missing_ok=True)
 
     return output_file_path
 
 
-def _parquet_schema_metadata_to_duckdb_kv_metadata(parquet_file_path: Path) -> str:
-    def escape_single_quotes(s: str) -> str:
-        return s.replace("'", "''")
+def _compress_value_columns(
+    input_file: Path, output_file: Path, value_columns: list[str], working_directory: Path
+) -> None:
+    connection = _set_up_duckdb_connection(working_directory)
 
-    kv_pairs = []
-    for key, value in pq.read_metadata(parquet_file_path).metadata.items():
-        escaped_key = escape_single_quotes(key.decode())
-        escaped_value = escape_single_quotes(value.decode())
-        kv_pairs.append(f"'{escaped_key}': '{escaped_value}'")
+    index_case_clauses = ", ".join(
+        f'CASE WHEN "{column}" IS NOT NULL THEN {column_idx} ELSE NULL END'
+        for column_idx, column in enumerate(value_columns)
+    )
 
-    return "{ " + ", ".join(kv_pairs) + " }"
+    values_case_clauses = ", ".join(f'"{column}"' for column in value_columns)
+
+    relation = connection.sql(
+        f"""
+        SELECT
+            {FEATURES_INDEX},
+            {GEOMETRY_COLUMN},
+            map(
+                [
+                    idx FOR idx IN [{index_case_clauses}]
+                    IF idx IS NOT NULL
+                ],
+                [
+                    val FOR val IN [{values_case_clauses}]
+                    IF val IS NOT NULL
+                ]
+            ) as column_values
+        FROM read_parquet('{input_file}', hive_partitioning=false)
+        """
+    )
+
+    relation.to_parquet(str(output_file))
+
+
+def _decompress_value_columns(
+    input_file: Path,
+    output_file: Path,
+    value_columns: list[str],
+    working_directory: Path,
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
+    verbosity_mode: str,
+) -> None:
+    select_clauses = ", ".join(
+        f"""
+        CASE WHEN map_contains(column_values, {column_idx})
+        THEN map_extract(column_values, {column_idx}) END
+        AS "{column}"
+        """
+        for column_idx, column in enumerate(value_columns)
+    )
+
+    query = f"""
+    SELECT
+        {FEATURES_INDEX},
+        {GEOMETRY_COLUMN},
+        {select_clauses}
+    FROM read_parquet('{input_file}', hive_partitioning=false)
+    """
+
+    compress_query_with_duckdb(
+        query=query,
+        parquet_metadata=pq.read_metadata(input_file),
+        output_file_path=output_file,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
+        working_directory=working_directory,
+        verbosity_mode=verbosity_mode,
+    )
