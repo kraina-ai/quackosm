@@ -80,6 +80,7 @@ def test_pbf_to_geoparquet_parsing(
         explode_tags=explode_tags,
         keep_all_tags=keep_all_tags,
         save_as_wkt=save_as_wkt,
+        sort_result=False,
     )
 
     if save_as_wkt:

@@ -330,6 +330,11 @@ class PbfFileReader:
         Returns:
             Path: Path to the generated GeoParquet file.
         """
+        if sort_result and save_as_wkt:
+            raise AttributeError(
+                "Sorting is not supported for WKT files. Please set `sort_result` to `False`."
+            )
+
         if isinstance(pbf_path, (str, Path)):
             pbf_path = [pbf_path]
         else:
@@ -2938,6 +2943,7 @@ class PbfFileReader:
                     _sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         explode_tags=explode_tags,
+                        save_as_wkt=save_as_wkt,
                         output_file_path=result_file_path,
                         sort_extent=(
                             self.geometry_filter.bounds
@@ -3031,6 +3037,7 @@ class PbfFileReader:
                 _sort_geoparquet_file_by_geometry(
                     input_file_path=merged_parquet_path,
                     explode_tags=explode_tags,
+                    save_as_wkt=save_as_wkt,
                     output_file_path=result_file_path,
                     sort_extent=(
                         self.geometry_filter.bounds if self.geometry_filter is not None else None
@@ -3183,6 +3190,7 @@ def _is_url_path(path: Union[str, Path]) -> bool:
 def _sort_geoparquet_file_by_geometry(
     input_file_path: Path,
     explode_tags: bool,
+    save_as_wkt: bool,
     output_file_path: Optional[Path],
     sort_extent: Optional[tuple[float, float, float, float]],
     compression: str,
@@ -3191,13 +3199,18 @@ def _sort_geoparquet_file_by_geometry(
     verbosity_mode: VERBOSITY_MODE,
     working_directory: Path,
 ) -> Path:
-    # TODO: add comprssions_level to the function signature
+    if save_as_wkt:
+        raise ValueError("Geometry sorting is not supported for the WKT format.")
+
     if output_file_path is None:
         output_file_path = (
             input_file_path.parent / f"{input_file_path.stem}_sorted{input_file_path.suffix}"
         )
 
-    assert input_file_path.resolve().as_posix() != output_file_path.resolve().as_posix()
+    if input_file_path.resolve().as_posix() == output_file_path.resolve().as_posix():
+        raise ValueError(
+            "Input and output file paths are the same. Please provide a different output path."
+        )
 
     file_to_sort = input_file_path
     sorted_parquet_path = output_file_path
