@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Option to sort result files by geometry to reduce file size
+- Typing stubs for mypy
 
 ### Changed
 
