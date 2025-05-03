@@ -36,7 +36,10 @@ from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
 from rq_geo_toolkit.duckdb import sql_escape
-from rq_geo_toolkit.geoparquet_compression import compress_query_with_duckdb
+from rq_geo_toolkit.geoparquet_compression import (
+    compress_parquet_with_duckdb,
+    compress_query_with_duckdb,
+)
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
@@ -2875,11 +2878,7 @@ class PbfFileReader:
             with self.task_progress_tracker.get_bar("Saving final geoparquet file") as bar:
                 dataset = pq.ParquetDataset(input_file)
 
-                destination_parquet_path = (
-                    self.tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-                    if sort_result
-                    else result_file_path
-                )
+                merged_parquet_path = self.tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
 
                 writer = None
                 for fragment in bar.track(dataset.fragments):
@@ -2911,21 +2910,17 @@ class PbfFileReader:
                             batch = _replace_geo_metadata_in_batch(batch)
 
                         if not writer:
-                            writer = pq.ParquetWriter(
-                                destination_parquet_path,
-                                schema=batch.schema,
-                                compression=self.parquet_compression,
-                            )
+                            writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
 
                         writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
                 if writer:
                     writer.close()
 
-            with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
-                if sort_result:
+            if sort_result:
+                with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
                     _sort_geoparquet_file_by_geometry(
-                        input_file_path=destination_parquet_path,
+                        input_file_path=merged_parquet_path,
                         explode_tags=explode_tags,
                         output_file_path=result_file_path,
                         sort_extent=(
@@ -2934,9 +2929,19 @@ class PbfFileReader:
                             else None
                         ),
                         compression=self.parquet_compression,
-                        compression_level=3,
+                        compression_level=3,  # TODO: compression level
                         row_group_size=self.rows_per_group,
                         verbosity_mode=self.verbosity_mode,
+                        working_directory=self.tmp_dir_path,
+                    )
+            else:
+                with self.task_progress_tracker.get_spinner("Compressing result file"):
+                    compress_parquet_with_duckdb(
+                        input_file_path=merged_parquet_path,
+                        output_file_path=result_file_path,
+                        compression=self.parquet_compression,
+                        compression_level=3,  # TODO: compression level
+                        row_group_size=self.rows_per_group,
                         working_directory=self.tmp_dir_path,
                     )
 
@@ -2954,11 +2959,7 @@ class PbfFileReader:
 
             main_schema = dataset.schema
 
-            destination_parquet_path = (
-                tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-                if sort_result
-                else result_file_path
-            )
+            merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
 
             writer = None
             for fragment in bar.track(dataset.fragments):
@@ -3002,30 +3003,36 @@ class PbfFileReader:
                         batch = _replace_geo_metadata_in_batch(batch)
 
                     if not writer:
-                        writer = pq.ParquetWriter(
-                            destination_parquet_path,
-                            schema=batch.schema,
-                            compression=self.parquet_compression,
-                        )
+                        writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
 
                     writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
 
             if writer:
                 writer.close()
 
-        with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
-            if sort_result:
+        if sort_result:
+            with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
                 _sort_geoparquet_file_by_geometry(
-                    input_file_path=destination_parquet_path,
+                    input_file_path=merged_parquet_path,
                     explode_tags=explode_tags,
                     output_file_path=result_file_path,
                     sort_extent=(
                         self.geometry_filter.bounds if self.geometry_filter is not None else None
                     ),
                     compression=self.parquet_compression,
-                    compression_level=3,
+                    compression_level=3,  # TODO: compression level
                     row_group_size=self.rows_per_group,
                     verbosity_mode=self.verbosity_mode,
+                    working_directory=self.tmp_dir_path,
+                )
+        else:
+            with self.task_progress_tracker.get_spinner("Compressing result file"):
+                compress_parquet_with_duckdb(
+                    input_file_path=merged_parquet_path,
+                    output_file_path=result_file_path,
+                    compression=self.parquet_compression,
+                    compression_level=3,  # TODO: compression level
+                    row_group_size=self.rows_per_group,
                     working_directory=self.tmp_dir_path,
                 )
 
