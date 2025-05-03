@@ -12,6 +12,11 @@ import geopandas as gpd
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from shapely.geometry.base import BaseGeometry
 
+from quackosm._constants import (
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
 from quackosm._rich_progress import VERBOSITY_MODE
@@ -39,6 +44,9 @@ def convert_pbf_to_duckdb(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -80,6 +88,15 @@ def convert_pbf_to_duckdb(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -251,6 +268,9 @@ def convert_pbf_to_duckdb(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -274,6 +294,9 @@ def convert_geometry_to_duckdb(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -320,6 +343,15 @@ def convert_geometry_to_duckdb(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -454,6 +486,9 @@ def convert_geometry_to_duckdb(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
@@ -480,6 +515,9 @@ def convert_osm_extract_to_duckdb(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -524,6 +562,15 @@ def convert_osm_extract_to_duckdb(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -614,6 +661,9 @@ def convert_osm_extract_to_duckdb(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -637,6 +687,9 @@ def convert_pbf_to_parquet(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -678,6 +731,15 @@ def convert_pbf_to_parquet(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -849,6 +911,9 @@ def convert_pbf_to_parquet(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -872,6 +937,9 @@ def convert_geometry_to_parquet(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -918,6 +986,15 @@ def convert_geometry_to_parquet(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1051,6 +1128,9 @@ def convert_geometry_to_parquet(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
@@ -1077,6 +1157,9 @@ def convert_osm_extract_to_parquet(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1121,6 +1204,15 @@ def convert_osm_extract_to_parquet(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1212,6 +1304,9 @@ def convert_osm_extract_to_parquet(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -1235,6 +1330,9 @@ def convert_pbf_to_geodataframe(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1275,6 +1373,15 @@ def convert_pbf_to_geodataframe(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1420,6 +1527,9 @@ def convert_pbf_to_geodataframe(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -1440,6 +1550,9 @@ def convert_geometry_to_geodataframe(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1482,6 +1595,15 @@ def convert_geometry_to_geodataframe(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1572,6 +1694,9 @@ def convert_geometry_to_geodataframe(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         osm_extract_source=osm_extract_source,
         verbosity_mode=verbosity_mode,
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
@@ -1595,6 +1720,9 @@ def convert_osm_extract_to_geodataframe(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    compression: str = PARQUET_COMPRESSION,
+    compression_level: int = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: int = PARQUET_ROW_GROUP_SIZE,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1635,6 +1763,15 @@ def convert_osm_extract_to_geodataframe(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        compression (str, optional): Compression of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Remember to change compression level together with this parameter.
+            Defaults to "zstd".
+        compression_level (int, optional): Compression level of the final parquet file.
+            Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+            Defaults to 3.
+        row_group_size (int, optional): Approximate number of rows per row group in the final
+            parquet file. Defaults to 100_000.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1716,6 +1853,9 @@ def convert_osm_extract_to_geodataframe(
         custom_sql_filter=custom_sql_filter,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,

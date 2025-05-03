@@ -47,6 +47,8 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from quackosm._constants import (
     FEATURES_INDEX,
     GEOMETRY_COLUMN,
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
     WGS84_CRS,
 )
@@ -123,6 +125,7 @@ class PbfFileReader:
         24: 5_000_000,
     }
 
+    @deprecate_kwarg(old_arg_name="parquet_compression", new_arg_name="compression")  # type: ignore
     def __init__(
         self,
         tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -132,7 +135,9 @@ class PbfFileReader:
         osm_way_polygon_features_config: Optional[
             Union[OsmWayPolygonConfig, dict[str, Any]]
         ] = None,
-        parquet_compression: str = "zstd",
+        compression: str = PARQUET_COMPRESSION,
+        compression_level: int = PARQUET_COMPRESSION_LEVEL,
+        row_group_size: int = PARQUET_ROW_GROUP_SIZE,
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
         verbosity_mode: VERBOSITY_MODE = "transient",
         geometry_coverage_iou_threshold: float = 0.01,
@@ -165,9 +170,15 @@ class PbfFileReader:
                 Config used to determine which closed way features are polygons.
                 Modifications to this config left are left for experienced OSM users.
                 Defaults to predefined "osm_way_polygon_features.json".
-            parquet_compression (str, optional): Compression of intermediate parquet files.
+            compression (str, optional): Compression of the final parquet file.
                 Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+                Remember to change compression level together with this parameter.
                 Defaults to "zstd".
+            compression_level (int, optional): Compression level of the final parquet file.
+                Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
+                Defaults to 3.
+            row_group_size (int, optional): Approximate number of rows per row group in the final
+                parquet file. Defaults to 100_000.
             osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
                 downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
                 Defaults to `any`.
@@ -215,9 +226,13 @@ class PbfFileReader:
         self.debug_memory = debug_memory
         self.debug_times = debug_times
         self._task_progress_tracker: Optional[TaskProgressTracker] = None
-        self.rows_per_group: int = 0
 
-        self.parquet_compression = parquet_compression
+        self.compression = compression
+        self.compression_level = compression_level
+        self.row_group_size = row_group_size
+
+        self.internal_rows_per_group: int = 0
+        self.internal_parquet_compression = "zstd"
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
@@ -959,7 +974,7 @@ class PbfFileReader:
                     FORMAT 'parquet',
                     PER_THREAD_OUTPUT true,
                     ROW_GROUP_SIZE 25000,
-                    COMPRESSION '{self.parquet_compression}'
+                    COMPRESSION '{self.internal_parquet_compression}'
                 )
             """
             if self.debug_memory:
@@ -996,7 +1011,7 @@ class PbfFileReader:
                         FORMAT 'parquet',
                         PER_THREAD_OUTPUT true,
                         ROW_GROUP_SIZE 25000,
-                        COMPRESSION '{self.parquet_compression}'
+                        COMPRESSION '{self.internal_parquet_compression}'
                     )
                 """
                 if self.debug_memory:
@@ -1045,12 +1060,12 @@ class PbfFileReader:
             return result_file_path.with_suffix(".geoparquet")
 
         self.encountered_query_exception = False
-        self.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
+        self.internal_rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
         actual_memory = psutil.virtual_memory()
         # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
         for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
             if actual_memory.total >= (memory_gb * MEMORY_1GB):
-                self.rows_per_group = rows_per_group
+                self.internal_rows_per_group = rows_per_group
             else:
                 break
 
@@ -1834,7 +1849,7 @@ class PbfFileReader:
                 FORMAT 'parquet',
                 PER_THREAD_OUTPUT true,
                 ROW_GROUP_SIZE 25000,
-                COMPRESSION '{self.parquet_compression}'
+                COMPRESSION '{self.internal_parquet_compression}'
             )
         """
         self._run_query(query, run_in_separate_process)
@@ -1904,7 +1919,7 @@ class PbfFileReader:
                 FORMAT 'parquet',
                 PER_THREAD_OUTPUT true,
                 ROW_GROUP_SIZE 25000,
-                COMPRESSION '{self.parquet_compression}'
+                COMPRESSION '{self.internal_parquet_compression}'
             )
             """
         )
@@ -2047,22 +2062,22 @@ class PbfFileReader:
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
                 self.encountered_query_exception = True
                 self.task_progress_tracker.major_step_number -= reset_steps
-                if self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
+                if self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                     )
                     smaller_rows_per_group = 0
                     for rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.values():
-                        if rows_per_group < self.rows_per_group:
+                        if rows_per_group < self.internal_rows_per_group:
                             smaller_rows_per_group = rows_per_group
                         else:
                             break
-                    self.rows_per_group = smaller_rows_per_group
+                    self.internal_rows_per_group = smaller_rows_per_group
                     if not self.verbosity_mode == "silent":
                         log_message(
                             f"Encountered {ex.__class__.__name__} during operation."
                             " Retrying with lower number of rows per group"
-                            f" ({self.rows_per_group})."
+                            f" ({self.internal_rows_per_group})."
                         )
                 else:
                     raise
@@ -2093,7 +2108,7 @@ class PbfFileReader:
             self.connection.table("x").to_parquet(empty_file_path)
             return -1
 
-        groups = int(floor(total_required_ways / self.rows_per_group))
+        groups = int(floor(total_required_ways / self.internal_rows_per_group))
 
         grouped_ways_ids_with_group_path = grouped_ways_tmp_path / "ids_with_group"
         grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
@@ -2105,7 +2120,7 @@ class PbfFileReader:
                 f"""
                 SELECT id,
                     floor(
-                        row_number() OVER () / {self.rows_per_group}
+                        row_number() OVER () / {self.internal_rows_per_group}
                     )::INTEGER as "group",
                 FROM ({ways_ids.sql_query()})
                 """
@@ -2137,7 +2152,7 @@ class PbfFileReader:
                     relation=ways_with_nodes_points_relation,
                     file_path=grouped_ways_ids_with_points_path,
                     run_in_separate_process=(
-                        self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
+                        self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                     ),
                 )
         else:
@@ -2183,7 +2198,8 @@ class PbfFileReader:
                         relation=ways_with_nodes_points_relation,
                         file_path=current_grouped_ways_ids_with_points_path,
                         run_in_separate_process=(
-                            self.rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
+                            self.internal_rows_per_group
+                            > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
                         ),
                     )
 
@@ -2204,7 +2220,7 @@ class PbfFileReader:
                     FORMAT 'parquet',
                     PARTITION_BY ("group"),
                     ROW_GROUP_SIZE 25000,
-                    COMPRESSION '{self.parquet_compression}'
+                    COMPRESSION '{self.internal_parquet_compression}'
                 )
                 """
             )
@@ -2504,7 +2520,7 @@ class PbfFileReader:
                     FORMAT 'parquet',
                     PER_THREAD_OUTPUT true,
                     ROW_GROUP_SIZE 25000,
-                    COMPRESSION '{self.parquet_compression}'
+                    COMPRESSION '{self.internal_parquet_compression}'
                 )
                 """
             )
@@ -2928,9 +2944,9 @@ class PbfFileReader:
                             if self.geometry_filter is not None
                             else None
                         ),
-                        compression=self.parquet_compression,
-                        compression_level=3,  # TODO: compression level
-                        row_group_size=self.rows_per_group,
+                        compression=self.compression,
+                        compression_level=self.compression_level,
+                        row_group_size=self.row_group_size,
                         verbosity_mode=self.verbosity_mode,
                         working_directory=self.tmp_dir_path,
                     )
@@ -2939,9 +2955,9 @@ class PbfFileReader:
                     compress_parquet_with_duckdb(
                         input_file_path=merged_parquet_path,
                         output_file_path=result_file_path,
-                        compression=self.parquet_compression,
-                        compression_level=3,  # TODO: compression level
-                        row_group_size=self.rows_per_group,
+                        compression=self.compression,
+                        compression_level=self.compression_level,
+                        row_group_size=self.row_group_size,
                         working_directory=self.tmp_dir_path,
                     )
 
@@ -3019,9 +3035,9 @@ class PbfFileReader:
                     sort_extent=(
                         self.geometry_filter.bounds if self.geometry_filter is not None else None
                     ),
-                    compression=self.parquet_compression,
-                    compression_level=3,  # TODO: compression level
-                    row_group_size=self.rows_per_group,
+                    compression=self.compression,
+                    compression_level=self.compression_level,
+                    row_group_size=self.row_group_size,
                     verbosity_mode=self.verbosity_mode,
                     working_directory=self.tmp_dir_path,
                 )
@@ -3030,9 +3046,9 @@ class PbfFileReader:
                 compress_parquet_with_duckdb(
                     input_file_path=merged_parquet_path,
                     output_file_path=result_file_path,
-                    compression=self.parquet_compression,
-                    compression_level=3,  # TODO: compression level
-                    row_group_size=self.rows_per_group,
+                    compression=self.compression,
+                    compression_level=self.compression_level,
+                    row_group_size=self.row_group_size,
                     working_directory=self.tmp_dir_path,
                 )
 
