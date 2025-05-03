@@ -744,6 +744,9 @@ def main(
     elif silent_mode:
         verbosity_mode = "silent"
 
+    if wkt_result and sort_result:
+        sort_result = False
+
     logging.disable(logging.CRITICAL)
 
     is_duckdb = (result_file_path and result_file_path.suffix in (".duckdb", ".db")) or duckdb
