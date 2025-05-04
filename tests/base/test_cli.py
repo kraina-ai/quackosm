@@ -278,10 +278,10 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
 @P.case(
     "OSM way polygon config",
     ["--osm-way-polygon-config", osm_way_config_file_path()],
-    "files/monaco_nofilter_noclip_compact.parquet",
+    "files/monaco_nofilter_noclip_compact_sorted.parquet",
 )  # type: ignore
-@P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_sorted_wkt.parquet")  # type: ignore
-@P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_sorted_wkt.parquet")  # type: ignore
+@P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
+@P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
 def test_proper_args_with_pbf(
     monaco_pbf_file_path_fixture: str, args: list[str], expected_result: str
 ) -> None:
