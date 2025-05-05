@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Default result parquet file compression from `snappy` to `zstd`
+- Default result parquet file compression from `snappy` to `zstd` with level 3
 - Number of rows in a parquet row group to `100000`
 
 ### Fix

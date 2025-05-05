@@ -58,10 +58,10 @@ repos:
         language_version: python3.10
         stages: [manual]
   - repo: https://github.com/FHPythonUtils/LicenseCheck
-    rev: "2024.3"
+    rev: "2025.1.0"
     hooks:
       - id: licensecheck
-        args: ["-u", "requirements:requirements.txt"]
+        args: ["--requirements-paths", "requirements.txt"]
         stages: [manual]
 
 ci:
