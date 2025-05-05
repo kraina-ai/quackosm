@@ -1407,7 +1407,6 @@ class PbfFileReader:
             value_with_star = value_with_star.replace("**", "*")
 
         value_with_percent = value_with_star.replace("*", "%")
-        # TODO: remove cast
         return cast(str, sql_escape(value_with_percent))
 
     def _prefilter_elements_ids(
@@ -2909,68 +2908,15 @@ class PbfFileReader:
             with self.task_progress_tracker.get_bar("Saving final geoparquet file") as bar:
                 dataset = pq.ParquetDataset(input_file)
 
-                geometry_bounds = self.connection.sql(
-                    f"""
-                    WITH extent AS (
-                        SELECT ST_Extent_Agg(geometry) g
-                        FROM '{input_file}/*.parquet'
-                    )
-                    SELECT
-                        ST_XMin(g) x_min,
-                        ST_YMin(g) y_min,
-                        ST_XMax(g) x_max,
-                        ST_YMax(g) y_max
-                    FROM extent
-                    """
-                ).fetchone()
-
-                geo_types = sorted(
-                    _t[0]
-                    for _t in self.connection.sql(
-                        f"SELECT DISTINCT ST_GeometryType(geometry) t FROM '{input_file}/*.parquet'"
-                    ).fetchall()
-                )
-
                 merged_parquet_path = self.tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-
-                writer = None
-                for fragment in bar.track(dataset.fragments):
-                    if fragment.count_rows() == 0:
-                        continue
-
-                    for original_batch in fragment.to_batches():
-                        batch = original_batch
-                        batch = batch.drop_columns(columns_to_drop)
-
-                        if save_as_wkt:
-                            geometry_column = ga.as_wkt(
-                                ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
-                            )
-                            batch = batch.set_column(
-                                batch.schema.get_field_index(GEOMETRY_COLUMN),
-                                GEOMETRY_COLUMN,
-                                geometry_column,
-                            )
-                        else:
-                            geometry_column = ga.as_wkb(
-                                ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
-                            )
-                            batch = batch.set_column(
-                                batch.schema.get_field_index(GEOMETRY_COLUMN),
-                                GEOMETRY_COLUMN,
-                                geometry_column,
-                            )
-                            batch = _replace_geo_metadata_in_batch(
-                                batch, geometry_bounds, geo_types
-                            )
-
-                        if not writer:
-                            writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
-
-                        writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
-
-                if writer:
-                    writer.close()
+                _merge_parquet_dataset(
+                    dataset=dataset,
+                    connection=self.connection,
+                    columns_to_drop=columns_to_drop,
+                    merged_parquet_path=merged_parquet_path,
+                    save_as_wkt=save_as_wkt,
+                    bar=bar,
+                )
 
             if sort_result:
                 with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
@@ -3013,95 +2959,20 @@ class PbfFileReader:
         with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
             dataset = pq.ParquetDataset(input_files)
 
+            merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
             connection = _set_up_duckdb_connection(tmp_dir_path)
-
-            parquet_relation = connection.read_parquet(
-                [str(_input_file) for _input_file in input_files],
-                union_by_name=True,
+            _merge_parquet_dataset(
+                dataset=dataset,
+                connection=connection,
+                columns_to_drop=[],
+                merged_parquet_path=merged_parquet_path,
+                save_as_wkt=save_as_wkt,
+                bar=bar,
             )
-
-            geometry_bounds = connection.sql(
-                f"""
-                WITH extent AS (
-                    SELECT ST_Extent_Agg(geometry) g
-                    FROM ({parquet_relation.sql_query()})
-                )
-                SELECT
-                    ST_XMin(g) x_min,
-                    ST_YMin(g) y_min,
-                    ST_XMax(g) x_max,
-                    ST_YMax(g) y_max
-                FROM extent
-                """
-            ).fetchone()
-
-            geo_types = sorted(
-                _t[0]
-                for _t in connection.sql(
-                    f"""
-                    SELECT DISTINCT ST_GeometryType(geometry) t
-                    FROM ({parquet_relation.sql_query()})
-                    """
-                ).fetchall()
-            )
-
             connection.close()
 
-            main_schema = dataset.schema
-
-            merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-
-            writer = None
-            for fragment in bar.track(dataset.fragments):
-                if fragment.count_rows() == 0:
-                    continue
-
-                missing_columns = set(main_schema.names).difference(
-                    set(fragment.physical_schema.names)
-                )
-
-                for original_batch in fragment.to_batches():
-                    batch = original_batch
-                    for column_field in missing_columns:
-                        batch = batch.append_column(
-                            column_field,
-                            pa.nulls(
-                                size=batch.num_rows, type=main_schema.field(column_field).type
-                            ),
-                        )
-
-                    batch = batch.select([field.name for field in main_schema])
-
-                    if save_as_wkt:
-                        geometry_column = ga.as_wkt(
-                            ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
-                        )
-                        batch = batch.set_column(
-                            batch.schema.get_field_index(GEOMETRY_COLUMN),
-                            GEOMETRY_COLUMN,
-                            geometry_column,
-                        )
-                    else:
-                        geometry_column = ga.as_wkb(
-                            ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS)
-                        )
-                        batch = batch.set_column(
-                            batch.schema.get_field_index(GEOMETRY_COLUMN),
-                            GEOMETRY_COLUMN,
-                            geometry_column,
-                        )
-                        batch = _replace_geo_metadata_in_batch(batch, geometry_bounds, geo_types)
-
-                    if not writer:
-                        writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
-
-                    writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
-
-            if writer:
-                writer.close()
-
         if sort_result:
-            with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
+            with self.task_progress_tracker.get_basic_spinner("Sorting result file by geometry"):
                 _sort_geoparquet_file_by_geometry(
                     input_file_path=merged_parquet_path,
                     explode_tags=explode_tags,
@@ -3117,7 +2988,7 @@ class PbfFileReader:
                     working_directory=self.tmp_dir_path,
                 )
         else:
-            with self.task_progress_tracker.get_spinner("Compressing result file"):
+            with self.task_progress_tracker.get_basic_spinner("Compressing result file"):
                 compress_parquet_with_duckdb(
                     input_file_path=merged_parquet_path,
                     output_file_path=result_file_path,
@@ -3126,6 +2997,95 @@ class PbfFileReader:
                     row_group_size=self.row_group_size,
                     working_directory=self.tmp_dir_path,
                 )
+
+
+def _merge_parquet_dataset(
+    dataset: "pq.ParquetDataset",
+    connection: "duckdb.DuckDBPyConnection",
+    columns_to_drop: list[str],
+    merged_parquet_path: Path,
+    save_as_wkt: bool,
+    bar: TaskProgressBar,
+) -> None:
+    parquet_relation = connection.read_parquet(
+        [str(_input_file) for _input_file in dataset.files],
+        union_by_name=True,
+    )
+
+    geometry_bounds = connection.sql(
+        f"""
+        WITH extent AS (
+            SELECT ST_Extent_Agg(geometry) g
+            FROM ({parquet_relation.sql_query()})
+        )
+        SELECT
+            ST_XMin(g) x_min,
+            ST_YMin(g) y_min,
+            ST_XMax(g) x_max,
+            ST_YMax(g) y_max
+        FROM extent
+        """
+    ).fetchone()
+
+    geo_types = sorted(
+        _t[0]
+        for _t in connection.sql(
+            f"""
+            SELECT DISTINCT ST_GeometryType(geometry) t
+            FROM ({parquet_relation.sql_query()})
+            """
+        ).fetchall()
+    )
+
+    main_schema = dataset.schema
+
+    writer = None
+    for fragment in bar.track(dataset.fragments):
+        if fragment.count_rows() == 0:
+            continue
+
+        missing_columns = set(main_schema.names).difference(
+            set(fragment.physical_schema.names)
+        )
+
+        for original_batch in fragment.to_batches():
+            batch = original_batch
+            for column_field in missing_columns:
+                batch = batch.append_column(
+                    column_field,
+                    pa.nulls(
+                        size=batch.num_rows, type=main_schema.field(column_field).type
+                    ),
+                )
+
+            batch = batch.select([field.name for field in main_schema])
+
+            if columns_to_drop:
+                batch = batch.drop_columns(columns_to_drop)
+
+            if save_as_wkt:
+                geometry_column = ga.as_wkt(ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS))
+                batch = batch.set_column(
+                    batch.schema.get_field_index(GEOMETRY_COLUMN),
+                    GEOMETRY_COLUMN,
+                    geometry_column,
+                )
+            else:
+                geometry_column = ga.as_wkb(ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS))
+                batch = batch.set_column(
+                    batch.schema.get_field_index(GEOMETRY_COLUMN),
+                    GEOMETRY_COLUMN,
+                    geometry_column,
+                )
+                batch = _replace_geo_metadata_in_batch(batch, geometry_bounds, geo_types)
+
+            if not writer:
+                writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
+
+            writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
+
+    if writer:
+        writer.close()
 
 
 def _replace_geo_metadata_in_batch(
@@ -3226,7 +3186,11 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
         hive_partitioning=False,
     ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
         {"point": "linestring"}
-    ).collect(streaming=True).write_parquet(current_destination_path)
+    ).collect(
+        streaming=True
+    ).write_parquet(
+        current_destination_path
+    )
 
 
 def _drop_duplicates_in_pyarrow_table(
@@ -3301,7 +3265,6 @@ def _sort_geoparquet_file_by_geometry(
             value_columns=value_columns,
             working_directory=working_directory,
         )
-
 
         input_file_path.unlink(missing_ok=True)
 

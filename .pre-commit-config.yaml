@@ -22,7 +22,7 @@ repos:
         additional_dependencies: [tomli]
         args: [--in-place, --config, ./pyproject.toml]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.1
+    rev: v1.15.0
     hooks:
       - id: mypy
         additional_dependencies: ['types-requests', 'types-six']
