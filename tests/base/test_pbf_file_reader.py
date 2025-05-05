@@ -71,7 +71,7 @@ def test_pbf_to_geoparquet_parsing(
     explode_tags: Optional[bool],
     keep_all_tags: bool,
     save_as_wkt: bool,
-):
+) -> None:
     """Test if pbf to geoparquet conversion works."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     result = PbfFileReader(tags_filter=tags_filter).convert_pbf_to_parquet(
@@ -100,7 +100,9 @@ def test_pbf_to_geoparquet_parsing(
     [None, "quackosm.db", "files/quackosm.db", f"files/{random.getrandbits(128)}/quackosm.db"],
 )  # type: ignore
 @pytest.mark.parametrize("table_name", [None, "quackosm", "osm_features"])  # type: ignore
-def test_pbf_reader_duckdb_export(result_file_path: Optional[str], table_name: Optional[str]):
+def test_pbf_reader_duckdb_export(
+    result_file_path: Optional[str], table_name: Optional[str]
+) -> None:
     """Test proper DuckDB export file generation."""
     pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     result_path = PbfFileReader().convert_pbf_to_duckdb(
@@ -118,7 +120,7 @@ def test_pbf_reader_duckdb_export(result_file_path: Optional[str], table_name: O
     result_path.unlink()
 
 
-def test_pbf_reader_url_path():  # type: ignore
+def test_pbf_reader_url_path() -> None:
     """Test proper URL detection in `PbfFileReader`."""
     file_name = "https://download.geofabrik.de/europe/monaco-latest.osm.pbf"
     features_gdf = PbfFileReader().convert_pbf_to_geodataframe(
@@ -127,7 +129,7 @@ def test_pbf_reader_url_path():  # type: ignore
     assert len(features_gdf) > 0
 
 
-def test_pbf_reader_geometry_filtering():  # type: ignore
+def test_pbf_reader_geometry_filtering() -> None:
     """Test proper spatial data filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
     features_gdf = PbfFileReader(
@@ -150,7 +152,7 @@ def test_pbf_reader_geometry_filtering():  # type: ignore
         ),
     ],
 )  # type: ignore
-def test_geometry_hash_calculation(geometry: BaseGeometry):
+def test_geometry_hash_calculation(geometry: BaseGeometry) -> None:
     """Test if geometry hash is orientation-agnostic."""
     if isinstance(geometry, Polygon):
         oriented_a = polygon.orient(geometry, sign=1.0)
@@ -203,7 +205,7 @@ def test_multipart_geometry_hash_calculation() -> None:
     assert all(i == hashes[0] for i in hashes)
 
 
-def test_unique_osm_ids_duplicated_file():  # type: ignore
+def test_unique_osm_ids_duplicated_file() -> None:
     """Test if function returns results without duplicated features."""
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     result_gdf = PbfFileReader().convert_pbf_to_geodataframe(
@@ -218,7 +220,7 @@ def test_unique_osm_ids_duplicated_file():  # type: ignore
     assert len(result_gdf.index) == len(single_result_gdf.index)
 
 
-def test_unique_osm_ids_real_example():  # type: ignore
+def test_unique_osm_ids_real_example() -> None:
     """Test if function returns results without duplicated features."""
     andorra_geometry = from_wkt(
         "POLYGON ((1.382599544073372 42.67676873293743, 1.382599544073372 42.40065303248514,"
@@ -310,7 +312,7 @@ def test_combining_files_different_techniques(
         raise ValueError("Wrong operation_mode value.")
 
 
-def test_schema_unification_real_example():  # type: ignore
+def test_schema_unification_real_example() -> None:
     """
     Test if function returns results with unified schema without errors.
 
@@ -345,7 +347,9 @@ def test_schema_unification_real_example():  # type: ignore
         (["way/0", "node/0", "relation/0"], 0),
     ],
 )
-def test_pbf_reader_features_ids_filtering(filter_osm_ids: list[str], expected_result_length: int):
+def test_pbf_reader_features_ids_filtering(
+    filter_osm_ids: list[str], expected_result_length: int
+) -> None:
     """Test proper features ids filtering in `PbfFileReader`."""
     file_name = "d17f922ed15e9609013a6b895e1e7af2d49158f03586f2c675d17b760af3452e.osm.pbf"
     features_gdf = PbfFileReader().convert_pbf_to_geodataframe(
@@ -384,7 +388,7 @@ def test_custom_sql_filtering(geometry_filter: BaseGeometry) -> None:
         (pytest.warns(GeometryNotCoveredWarning), True),
     ],
 )  # type: ignore
-def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool):
+def test_uncovered_geometry_extract(expectation: Any, allow_uncovered_geometry: bool) -> None:
     """Test if raises errors as expected when geometry can't be covered."""
     with expectation:
         geometry = from_wkt(
@@ -415,7 +419,7 @@ def test_uncovered_geometry_extract(expectation, allow_uncovered_geometry: bool)
         GeocodeGeometryParser().convert("Monaco-Ville, Monaco"),  # type: ignore
     ],
 )
-def test_valid_geometries(geometry: BaseGeometry):
+def test_valid_geometries(geometry: BaseGeometry) -> None:
     """Test if geometry filters as loaded properly."""
     PbfFileReader(geometry_filter=geometry)
 
@@ -446,7 +450,7 @@ def test_valid_geometries(geometry: BaseGeometry):
         ),
     ],
 )
-def test_invalid_geometries(geometry: BaseGeometry):
+def test_invalid_geometries(geometry: BaseGeometry) -> None:
     """Test if invalid geometry filters raise errors."""
     with pytest.raises(InvalidGeometryFilter):
         PbfFileReader(geometry_filter=geometry)
@@ -495,7 +499,7 @@ def test_geoparquet_deprecation_warning() -> None:
         GeocodeGeometryParser().convert("Monaco-Ville, Monaco"),  # type: ignore
     ],
 )
-def test_geometry_orienting(geometry: BaseGeometry):
+def test_geometry_orienting(geometry: BaseGeometry) -> None:
     """Test if geometry orienting works properly."""
     oriented_geometry = cast(
         BaseGeometry, PbfFileReader(geometry_filter=geometry)._get_oriented_geometry_filter()
@@ -597,7 +601,7 @@ def test_geometry_sorting() -> None:
         ),
     ],
 )
-def test_deprecation(func: Callable[[], Any], new_function_name: str):
+def test_deprecation(func: Callable[[], Any], new_function_name: str) -> None:
     """Test if deprecation works."""
     with pytest.warns(FutureWarning) as record:
         func()
@@ -1006,23 +1010,22 @@ def test_gdal_parity(extract_name: str) -> None:
         .area
     )
 
-    invalid_geometries_df.loc[matching_polygon_geometries_mask, "iou_metric"] = (
-        invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
-        / (
-            gpd.GeoSeries(
-                invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
-            )
-            .set_crs(WGS84_CRS)
-            .area
-            + gpd.GeoSeries(
-                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
-            )
-            .set_crs(WGS84_CRS)
-            .area
-            - invalid_geometries_df.loc[
-                matching_polygon_geometries_mask, "geometry_intersection_area"
-            ]
+    invalid_geometries_df.loc[
+        matching_polygon_geometries_mask, "iou_metric"
+    ] = invalid_geometries_df.loc[
+        matching_polygon_geometries_mask, "geometry_intersection_area"
+    ] / (
+        gpd.GeoSeries(
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
         )
+        .set_crs(WGS84_CRS)
+        .area
+        + gpd.GeoSeries(
+            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
+        )
+        .set_crs(WGS84_CRS)
+        .area
+        - invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
     )
 
     invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_iou_near_one"] = (
@@ -1166,7 +1169,9 @@ def test_gdal_parity(extract_name: str) -> None:
     ] = invalid_geometries_df.loc[
         invalid_geometries_df["geometry_close_hausdorff_distance"]
         & invalid_geometries_df["is_duckdb_linestring_and_gdal_polygon"]
-    ].apply(lambda x: x.duckdb_geometry_num_points < 4, axis=1)
+    ].apply(
+        lambda x: x.duckdb_geometry_num_points < 4, axis=1
+    )
 
     invalid_geometries_df = invalid_geometries_df.loc[
         ~(

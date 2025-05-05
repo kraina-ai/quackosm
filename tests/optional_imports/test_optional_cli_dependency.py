@@ -1,13 +1,15 @@
 """Optional dependencies tests."""
 
 import sys
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 
 from quackosm.__main__ import main
 
 
-@pytest.fixture  # type: ignore
+@pytest.fixture  # type: ignore[misc]
 def optional_packages() -> list[str]:
     """Get a list with optional packages."""
     return [
@@ -19,8 +21,8 @@ def optional_packages() -> list[str]:
     ]
 
 
-@pytest.fixture(autouse=True)  # type: ignore
-def cleanup_imports():
+@pytest.fixture(autouse=True)  # type: ignore[misc]
+def cleanup_imports() -> Generator[Any, Any, Any]:
     """Clean imports."""
     yield
     sys.modules.pop("quackosm", None)
@@ -39,8 +41,8 @@ class PackageDiscarder:
             raise ImportError()
 
 
-@pytest.fixture  # type: ignore
-def no_optional_dependencies(monkeypatch, optional_packages):
+@pytest.fixture  # type: ignore[misc]
+def no_optional_dependencies(monkeypatch: Any, optional_packages: Any) -> Generator[Any, Any, Any]:
     """Mock environment without optional dependencies."""
     d = PackageDiscarder()
 

@@ -199,7 +199,7 @@ def test_pbf_reader(
     query: OsmTagsFilter,
     expected_result_length: int,
     expected_features_columns_length: int,
-):
+) -> None:
     """Test proper files loading in `PbfFileReader`."""
     features_gdf = PbfFileReader(tags_filter=query).convert_pbf_to_geodataframe(
         pbf_path=[Path(__file__).parent.parent / "test_files" / test_file_name],
@@ -251,7 +251,7 @@ def test_pbf_reader_proper_tags_reading(
     osm_tags_filter: Union[OsmTagsFilter, GroupedOsmTagsFilter],
     keep_all_tags: bool,
     expected_tags_keys: list[str],
-):
+) -> None:
     """Test proper tags reading with filtering on osm_id in `PbfFileReader`."""
     file_name = "monaco.osm.pbf"
     features_gdf = PbfFileReader(tags_filter=osm_tags_filter).convert_pbf_to_geodataframe(
@@ -892,7 +892,7 @@ def test_correct_osm_tags_filters(
     expected_top_10_ids: list[str],
     expected_no_columns: int,
     expected_top_10_columns: list[str],
-):
+) -> None:
     """Test proper tags reading with filtering in `PbfFileReader`."""
     file_name = "monaco.osm.pbf"
     features_gdf = PbfFileReader(tags_filter=osm_tags_filter).convert_pbf_to_geodataframe(
