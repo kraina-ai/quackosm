@@ -104,7 +104,7 @@ docs = [
     "adjustText",
     "contextily",
 ]
-license = ["licensecheck==2024.3", "pipdeptree"]
+license = ["licensecheck==2025.1.0", "pipdeptree"]
 cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
 
 [tool.pdm.scripts]
