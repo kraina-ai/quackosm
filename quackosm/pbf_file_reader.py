@@ -3013,12 +3013,14 @@ class PbfFileReader:
         with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
             dataset = pq.ParquetDataset(input_files)
 
-            parquet_relation = self.connection.read_parquet(
+            connection = _set_up_duckdb_connection(tmp_dir_path)
+
+            parquet_relation = connection.read_parquet(
                 [str(_input_file) for _input_file in input_files],
                 union_by_name=True,
             )
 
-            geometry_bounds = self.connection.sql(
+            geometry_bounds = connection.sql(
                 f"""
                 WITH extent AS (
                     SELECT ST_Extent_Agg(geometry) g
@@ -3035,13 +3037,15 @@ class PbfFileReader:
 
             geo_types = sorted(
                 _t[0]
-                for _t in self.connection.sql(
+                for _t in connection.sql(
                     f"""
                     SELECT DISTINCT ST_GeometryType(geometry) t
                     FROM ({parquet_relation.sql_query()})
                     """
                 ).fetchall()
             )
+
+            connection.close()
 
             main_schema = dataset.schema
 
@@ -3147,7 +3151,6 @@ def _replace_geo_metadata_in_batch(
     )
     metadata[b"geo"] = json.dumps(geo_meta).encode()
     batch = batch.replace_schema_metadata(metadata)
-    print(batch.schema.metadata)
 
     return batch
 
