@@ -262,7 +262,7 @@ def convert_pbf_to_duckdb(
         │ 2168 rows (20 shown)                                                         3 columns │
         └────────────────────────────────────────────────────────────────────────────────────────┘
     """
-    return PbfFileReader(
+    result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
@@ -284,6 +284,7 @@ def convert_pbf_to_duckdb(
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
     )
+    return Path(result_path)
 
 
 def convert_geometry_to_duckdb(
@@ -480,7 +481,7 @@ def convert_geometry_to_duckdb(
         │ 1384 rows (20 shown)                                                                   │
         └────────────────────────────────────────────────────────────────────────────────────────┘
     """
-    return PbfFileReader(
+    result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
@@ -504,6 +505,7 @@ def convert_geometry_to_duckdb(
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
     )
+    return Path(result_path)
 
 
 def convert_osm_extract_to_duckdb(
@@ -655,7 +657,7 @@ def convert_osm_extract_to_duckdb(
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
     )
-    return PbfFileReader(
+    result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
@@ -677,6 +679,7 @@ def convert_osm_extract_to_duckdb(
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
     )
+    return Path(result_path)
 
 
 def convert_pbf_to_parquet(
@@ -905,7 +908,7 @@ def convert_pbf_to_parquet(
         │ 2140 rows (20 shown)                                                         3 columns │
         └────────────────────────────────────────────────────────────────────────────────────────┘
     """
-    return PbfFileReader(
+    result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
@@ -927,6 +930,7 @@ def convert_pbf_to_parquet(
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
     )
+    return Path(result_path)
 
 
 def convert_geometry_to_parquet(
@@ -1122,7 +1126,7 @@ def convert_geometry_to_parquet(
         │ 1384 rows (20 shown)                                                                   │
         └────────────────────────────────────────────────────────────────────────────────────────┘
     """
-    return PbfFileReader(
+    result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
@@ -1146,6 +1150,7 @@ def convert_geometry_to_parquet(
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
     )
+    return Path(result_path)
 
 
 def convert_osm_extract_to_parquet(
@@ -1298,7 +1303,7 @@ def convert_osm_extract_to_parquet(
     downloaded_osm_extract = download_extract_by_query(
         query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
     )
-    return PbfFileReader(
+    result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
@@ -1320,6 +1325,7 @@ def convert_osm_extract_to_parquet(
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
     )
+    return Path(result_path)
 
 
 @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore

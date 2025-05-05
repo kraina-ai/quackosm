@@ -86,6 +86,16 @@ __all__ = [
 
 MEMORY_1GB = 1024**3
 
+GEOMETRY_TYPES_MAPPING = {
+    "POINT": "Point",
+    "LINESTRING": "LineString",
+    "POLYGON": "Polygon",
+    "MULTIPOINT": "MultiPoint",
+    "MULTILINESTRING": "MultiLineString",
+    "MULTIPOLYGON": "MultiPolygon",
+    "GEOMETRYCOLLECTION": "GeometryCollection",
+}
+
 
 class PbfFileReader:
     """
@@ -2899,6 +2909,28 @@ class PbfFileReader:
             with self.task_progress_tracker.get_bar("Saving final geoparquet file") as bar:
                 dataset = pq.ParquetDataset(input_file)
 
+                geometry_bounds = self.connection.sql(
+                    f"""
+                    WITH extent AS (
+                        SELECT ST_Extent_Agg(geometry) g
+                        FROM '{input_file}/*.parquet'
+                    )
+                    SELECT
+                        ST_XMin(g) x_min,
+                        ST_YMin(g) y_min,
+                        ST_XMax(g) x_max,
+                        ST_YMax(g) y_max
+                    FROM extent
+                    """
+                ).fetchone()
+
+                geo_types = sorted(
+                    _t[0]
+                    for _t in self.connection.sql(
+                        f"SELECT DISTINCT ST_GeometryType(geometry) t FROM '{input_file}/*.parquet'"
+                    ).fetchall()
+                )
+
                 merged_parquet_path = self.tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
 
                 writer = None
@@ -2928,7 +2960,9 @@ class PbfFileReader:
                                 GEOMETRY_COLUMN,
                                 geometry_column,
                             )
-                            batch = _replace_geo_metadata_in_batch(batch)
+                            batch = _replace_geo_metadata_in_batch(
+                                batch, geometry_bounds, geo_types
+                            )
 
                         if not writer:
                             writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
@@ -2979,6 +3013,36 @@ class PbfFileReader:
         with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
             dataset = pq.ParquetDataset(input_files)
 
+            parquet_relation = self.connection.read_parquet(
+                [str(_input_file) for _input_file in input_files],
+                union_by_name=True,
+            )
+
+            geometry_bounds = self.connection.sql(
+                f"""
+                WITH extent AS (
+                    SELECT ST_Extent_Agg(geometry) g
+                    FROM ({parquet_relation.sql_query()})
+                )
+                SELECT
+                    ST_XMin(g) x_min,
+                    ST_YMin(g) y_min,
+                    ST_XMax(g) x_max,
+                    ST_YMax(g) y_max
+                FROM extent
+                """
+            ).fetchone()
+
+            geo_types = sorted(
+                _t[0]
+                for _t in self.connection.sql(
+                    f"""
+                    SELECT DISTINCT ST_GeometryType(geometry) t
+                    FROM ({parquet_relation.sql_query()})
+                    """
+                ).fetchall()
+            )
+
             main_schema = dataset.schema
 
             merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
@@ -3022,7 +3086,7 @@ class PbfFileReader:
                             GEOMETRY_COLUMN,
                             geometry_column,
                         )
-                        batch = _replace_geo_metadata_in_batch(batch)
+                        batch = _replace_geo_metadata_in_batch(batch, geometry_bounds, geo_types)
 
                     if not writer:
                         writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
@@ -3060,8 +3124,12 @@ class PbfFileReader:
                 )
 
 
-def _replace_geo_metadata_in_batch(batch: pa.RecordBatch) -> pa.RecordBatch:
+def _replace_geo_metadata_in_batch(
+    batch: pa.RecordBatch, bounds: tuple[float, float, float, float], geo_types: list[str]
+) -> pa.RecordBatch:
     metadata = batch.schema.metadata or {}
+
+    # fill geo metadata if not exists
     if b"geo" not in metadata and "geo" not in metadata:
         geo_meta = io._geoparquet_metadata_from_schema(
             batch.schema,
@@ -3070,6 +3138,17 @@ def _replace_geo_metadata_in_batch(batch: pa.RecordBatch) -> pa.RecordBatch:
         )
         metadata["geo"] = json.dumps(geo_meta)
         batch = batch.replace_schema_metadata(metadata)
+
+    # replace bounding box
+    geo_meta = json.loads(batch.schema.metadata[b"geo"].decode())
+    geo_meta["columns"][GEOMETRY_COLUMN]["bbox"] = bounds
+    geo_meta["columns"][GEOMETRY_COLUMN]["geometry_types"] = list(
+        map(lambda geo_type: GEOMETRY_TYPES_MAPPING[geo_type], geo_types)
+    )
+    metadata[b"geo"] = json.dumps(geo_meta).encode()
+    batch = batch.replace_schema_metadata(metadata)
+    print(batch.schema.metadata)
+
     return batch
 
 
@@ -3144,11 +3223,7 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
         hive_partitioning=False,
     ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
         {"point": "linestring"}
-    ).collect(
-        streaming=True
-    ).write_parquet(
-        current_destination_path
-    )
+    ).collect(streaming=True).write_parquet(current_destination_path)
 
 
 def _drop_duplicates_in_pyarrow_table(
@@ -3212,9 +3287,6 @@ def _sort_geoparquet_file_by_geometry(
             "Input and output file paths are the same. Please provide a different output path."
         )
 
-    file_to_sort = input_file_path
-    sorted_parquet_path = output_file_path
-
     if explode_tags:
         columns = pq.read_schema(input_file_path).names
         value_columns = [col for col in columns if col not in (FEATURES_INDEX, GEOMETRY_COLUMN)]
@@ -3227,25 +3299,22 @@ def _sort_geoparquet_file_by_geometry(
             working_directory=working_directory,
         )
 
-        file_to_sort = compressed_parquet_path
-        sorted_parquet_path = working_directory / "_sorted.parquet"
 
         input_file_path.unlink(missing_ok=True)
 
-    sort_geoparquet_file_by_geometry(
-        input_file_path=file_to_sort,
-        output_file_path=sorted_parquet_path,
-        compression="zstd",
-        compression_level=3,
-        row_group_size=row_group_size,
-        working_directory=working_directory,
-        sort_extent=sort_extent,
-        verbosity_mode=verbosity_mode,
-    )
+        sorted_parquet_path = working_directory / "_sorted.parquet"
+        sort_geoparquet_file_by_geometry(
+            input_file_path=compressed_parquet_path,
+            output_file_path=sorted_parquet_path,
+            compression="zstd",
+            compression_level=3,
+            row_group_size=row_group_size,
+            working_directory=working_directory,
+            sort_extent=sort_extent,
+            verbosity_mode=verbosity_mode,
+            remove_input_file=True,
+        )
 
-    file_to_sort.unlink(missing_ok=True)
-
-    if explode_tags:
         _decompress_value_columns(
             input_file=sorted_parquet_path,
             output_file=output_file_path,
@@ -3258,6 +3327,18 @@ def _sort_geoparquet_file_by_geometry(
         )
 
         sorted_parquet_path.unlink(missing_ok=True)
+    else:
+        sort_geoparquet_file_by_geometry(
+            input_file_path=input_file_path,
+            output_file_path=output_file_path,
+            compression=compression,
+            compression_level=compression_level,
+            row_group_size=row_group_size,
+            working_directory=working_directory,
+            sort_extent=sort_extent,
+            verbosity_mode=verbosity_mode,
+            remove_input_file=True,
+        )
 
     return output_file_path
 

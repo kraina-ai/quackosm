@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default result parquet file compression from `snappy` to `zstd`
 - Number of rows in a parquet row group to `100000`
 
+### Fix
+
+- Replace geo metadata in final geoparquet with proper bounding box size and geometry types
+
 ## [0.13.0] - 2025-02-26
 
 ### Changed

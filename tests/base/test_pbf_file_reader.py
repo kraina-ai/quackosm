@@ -510,21 +510,25 @@ def test_geometry_sorting() -> None:
     monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
     unsorted_pq = convert_pbf_to_parquet(
         monaco_file_path,
+        tags_filter={"building": True},
+        explode_tags=False,
         ignore_cache=True,
         sort_result=False,
     )
 
     sorted_pq = convert_pbf_to_parquet(
         monaco_file_path,
+        tags_filter={"building": True},
+        explode_tags=False,
         ignore_cache=True,
         sort_result=True,
     )
 
+    assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
+
     print(unsorted_pq.stat().st_size)
     print(sorted_pq.stat().st_size)
     assert unsorted_pq.stat().st_size > sorted_pq.stat().st_size
-
-    assert pq.read_schema(unsorted_pq).equals(pq.read_schema(sorted_pq))
 
 
 @pytest.mark.parametrize(  # type: ignore
@@ -1002,22 +1006,23 @@ def test_gdal_parity(extract_name: str) -> None:
         .area
     )
 
-    invalid_geometries_df.loc[
-        matching_polygon_geometries_mask, "iou_metric"
-    ] = invalid_geometries_df.loc[
-        matching_polygon_geometries_mask, "geometry_intersection_area"
-    ] / (
-        gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
+    invalid_geometries_df.loc[matching_polygon_geometries_mask, "iou_metric"] = (
+        invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
+        / (
+            gpd.GeoSeries(
+                invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
+            )
+            .set_crs(WGS84_CRS)
+            .area
+            + gpd.GeoSeries(
+                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
+            )
+            .set_crs(WGS84_CRS)
+            .area
+            - invalid_geometries_df.loc[
+                matching_polygon_geometries_mask, "geometry_intersection_area"
+            ]
         )
-        .set_crs(WGS84_CRS)
-        .area
-        + gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
-        )
-        .set_crs(WGS84_CRS)
-        .area
-        - invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
     )
 
     invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_iou_near_one"] = (
@@ -1161,9 +1166,7 @@ def test_gdal_parity(extract_name: str) -> None:
     ] = invalid_geometries_df.loc[
         invalid_geometries_df["geometry_close_hausdorff_distance"]
         & invalid_geometries_df["is_duckdb_linestring_and_gdal_polygon"]
-    ].apply(
-        lambda x: x.duckdb_geometry_num_points < 4, axis=1
-    )
+    ].apply(lambda x: x.duckdb_geometry_num_points < 4, axis=1)
 
     invalid_geometries_df = invalid_geometries_df.loc[
         ~(
