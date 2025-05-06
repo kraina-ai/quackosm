@@ -33,8 +33,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pdm
         run: pip install pdm uv
+      - name: Generate lock with oldest dependencies
+        run: pdm lock --lockfile pdm.newest.lock -G cli -dG test
       - name: Generate requirements.txt
-        run: pdm export -dG test -f requirements -o requirements.test.txt
+        run: pdm export -dG test -f requirements -o requirements.test.txt --lockfile pdm.newest.lock
       - name: Install quackosm
         run: |
           uv pip install -e "quackosm[cli] @ ." -r requirements.test.txt --system
