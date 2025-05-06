@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to sort result files by geometry to reduce file size
+- Additional `_sorted` suffix used in the result file name
+- Option to define final parquet file compression with level and number of rows per group
+- Typing stubs for mypy
+
+### Changed
+
+- Default result parquet file compression from `snappy` to `zstd` with level 3
+- Number of rows in a parquet row group to `100000`
+- Bumped minimal version of DuckDB to `1.1.2` and polars to `1.9`
+- Refactored internal logic by exporting it to external `rq_geo_toolkit` library
+- Changed multiple files merging logic
+
+### Fix
+
+- Replace geo metadata in final geoparquet with proper bounding box size and geometry types
+
+### Deprecated
+
+- Replaced `parquet_compression` parameter in `PbfFileReader` class with `compression`
+
 ## [0.13.0] - 2025-02-26
 
 ### Changed

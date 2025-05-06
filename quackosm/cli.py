@@ -3,15 +3,18 @@
 import json
 import logging
 from pathlib import Path
-from typing import Annotated, Literal, Optional, Union, cast
+from typing import TYPE_CHECKING, Annotated, Optional, Union, cast
 
 import click
 import typer
+from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
-from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
+
+if TYPE_CHECKING:
+    from quackosm._rich_progress import VERBOSITY_MODE
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
 
@@ -597,6 +600,14 @@ def main(
             show_default=False,
         ),
     ] = None,
+    sort_result: Annotated[
+        bool,
+        typer.Option(
+            "--sort/--no-sort",
+            help="Whether to sort the final geoparquet file by geometry or not.",
+            show_default=True,
+        ),
+    ] = True,
     wkt_result: Annotated[
         bool,
         typer.Option(
@@ -726,12 +737,15 @@ def main(
     if transient_mode and silent_mode:
         raise typer.BadParameter("Cannot pass both silent and transient mode at once.")
 
-    verbosity_mode: Literal["silent", "transient", "verbose"] = "verbose"
+    verbosity_mode: VERBOSITY_MODE = "verbose"
 
     if transient_mode:
         verbosity_mode = "transient"
     elif silent_mode:
         verbosity_mode = "silent"
+
+    if wkt_result and sort_result:
+        sort_result = False
 
     logging.disable(logging.CRITICAL)
 
@@ -763,6 +777,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
+            sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
@@ -785,6 +800,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
+            sort_result=sort_result,
             duckdb_table_name=duckdb_table_name or "quackosm",
             verbosity_mode=verbosity_mode,
         )
@@ -810,6 +826,7 @@ def main(
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
+                sort_result=sort_result,
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
             )
@@ -841,6 +858,7 @@ def main(
                 ),
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
+                sort_result=sort_result,
                 duckdb_table_name=duckdb_table_name or "quackosm",
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
@@ -870,6 +888,7 @@ def main(
             ),
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
+            sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
@@ -895,6 +914,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             duckdb_table_name=duckdb_table_name or "quackosm",
+            sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,

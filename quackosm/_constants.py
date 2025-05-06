@@ -1,11 +1,21 @@
 """Constants used across the project."""
 
-import os
+from rq_geo_toolkit.constants import (
+    GEOMETRY_COLUMN,
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+)
 
 WGS84_CRS = "EPSG:4326"
 
 FEATURES_INDEX = "feature_id"
 
-GEOMETRY_COLUMN = "geometry"
-
-FORCE_TERMINAL = os.getenv("FORCE_TERMINAL_MODE", "false").lower() == "true"
+__all__ = [
+    "FEATURES_INDEX",
+    "GEOMETRY_COLUMN",
+    "PARQUET_COMPRESSION",
+    "PARQUET_COMPRESSION_LEVEL",
+    "PARQUET_ROW_GROUP_SIZE",
+    "WGS84_CRS",
+]

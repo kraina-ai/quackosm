@@ -1,12 +1,11 @@
-# type: ignore
 """Wrapper over Rich progress bar."""
 
 import json
 import time
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 from datetime import timedelta
 from types import TracebackType
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Optional, TypeVar, Union
 
 from rich import print as rprint
 from rich.progress import (
@@ -23,12 +22,19 @@ from rich.progress import (
     TimeElapsedColumn,
     TimeRemainingColumn,
 )
+from rq_geo_toolkit.rich_utils import FORCE_TERMINAL, VERBOSITY_MODE
 
-from quackosm._constants import FORCE_TERMINAL
+__all__ = [
+    "FORCE_TERMINAL",
+    "VERBOSITY_MODE",
+    "TaskProgressBar",
+    "TaskProgressSpinner",
+    "log_message",
+    "show_total_elapsed_time",
+]
 
-__all__ = ["TaskProgressSpinner", "TaskProgressBar"]
-
-TOTAL_STEPS = 32
+TOTAL_STEPS = 33
+ProgressType = TypeVar("ProgressType", bound=Progress)
 
 
 def log_message(message: str) -> None:
@@ -40,7 +46,7 @@ def show_total_elapsed_time(elapsed_seconds: float) -> None:
     rprint(f"Finished operation in [progress.elapsed]{elapsed_time_formatted}")
 
 
-class SpeedColumn(ProgressColumn):
+class SpeedColumn(ProgressColumn):  # type: ignore[misc]
     def render(self, task: "Task") -> Text:
         if task.speed is None:
             return Text("")
@@ -50,8 +56,8 @@ class SpeedColumn(ProgressColumn):
             return Text(f"{1/task.speed:.2f} s/it")  # noqa: FURB126
 
 
-class TransientProgress(Progress):
-    def __init__(self, *columns: Union[str, ProgressColumn], live_obj: Live, **kwargs) -> None:
+class TransientProgress(Progress):  # type: ignore[misc]
+    def __init__(self, *columns: Union[str, ProgressColumn], live_obj: Live, **kwargs: Any) -> None:
         super().__init__(*columns, **kwargs)
         self.live = live_obj
         self.live._get_renderable = self.get_renderable
@@ -84,7 +90,7 @@ class TaskProgressSpinner:
         step_number: str,
         silent_mode: bool,
         transient_mode: bool,
-        progress_cls: Any,
+        progress_cls: type[ProgressType],
         live_obj: Any,
         skip_step_number: bool = False,
     ):
@@ -97,7 +103,7 @@ class TaskProgressSpinner:
         self.progress_cls = progress_cls
         self.live_obj = live_obj
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         if self.silent_mode:
             self.progress = None
         else:
@@ -118,14 +124,22 @@ class TaskProgressSpinner:
                 transient=self.transient_mode,
             )
 
-            self.progress.__enter__()
-            self.progress.add_task(description=self.step_name, total=None)
+            self.progress.__enter__()  # type: ignore[attr-defined]
+            self.progress.add_task(description=self.step_name, total=None)  # type: ignore[attr-defined]
 
-    def __exit__(self, exc_type, exc_value, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         if self.progress:
-            self.progress.__exit__(exc_type, exc_value, exc_tb)
+            self.progress.__exit__(exc_type, exc_val, exc_tb)
 
         self.progress = None
+
+
+T = TypeVar("T")
 
 
 class TaskProgressBar:
@@ -135,7 +149,7 @@ class TaskProgressBar:
         step_number: str,
         silent_mode: bool,
         transient_mode: bool,
-        progress_cls: Any,
+        progress_cls: type[ProgressType],
         live_obj: Any,
         skip_step_number: bool = False,
     ):
@@ -148,7 +162,7 @@ class TaskProgressBar:
         self.progress_cls = progress_cls
         self.live_obj = live_obj
 
-    def _create_progress(self):
+    def _create_progress(self) -> None:
         columns = [
             SpinnerColumn(),
             TextColumn(self.step_number),
@@ -176,30 +190,35 @@ class TaskProgressBar:
             speed_estimate_period=1800,
         )
 
-    def __enter__(self):
+    def __enter__(self) -> "TaskProgressBar":
         if self.silent_mode:
             self.progress = None
         else:
             self._create_progress()
-            self.progress.__enter__()
+            self.progress.__enter__()  # type: ignore[attr-defined]
 
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_tb):
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
         if self.progress:
-            self.progress.__exit__(exc_type, exc_value, exc_tb)
+            self.progress.__exit__(exc_type, exc_val, exc_tb)
 
         self.progress = None
 
-    def create_manual_bar(self, total: int):
+    def create_manual_bar(self, total: int) -> None:
         if self.progress:
             self.progress.add_task(description=self.step_name, total=total)
 
-    def update_manual_bar(self, current_progress: int):
+    def update_manual_bar(self, current_progress: int) -> None:
         if self.progress:
             self.progress.update(task_id=self.progress.task_ids[0], completed=current_progress)
 
-    def track(self, iterable: Iterable):
+    def track(self, iterable: Iterable[T]) -> Generator[T, None, None]:
         if self.progress is not None:
             for i in self.progress.track(list(iterable), description=self.step_name):
                 yield i
@@ -211,7 +230,7 @@ class TaskProgressBar:
 class TaskProgressTracker:
     def __init__(
         self,
-        verbosity_mode: Literal["silent", "transient", "verbose"] = "verbose",
+        verbosity_mode: VERBOSITY_MODE = "verbose",
         total_major_steps: int = 1,
         current_major_step: int = 1,
         debug: bool = False,
@@ -221,11 +240,10 @@ class TaskProgressTracker:
         self.minor_step_number: Optional[int] = None
         self.total_major_steps = total_major_steps
         self.current_major_step = current_major_step
-        self.transient_progress_cls = None
         self.live = None
         self.console = None
         self.debug = debug
-        self.steps_times = {}
+        self.steps_times: dict[str, float] = {}
         self.start_time = time.time()
 
         if total_major_steps > 1:
@@ -240,11 +258,10 @@ class TaskProgressTracker:
                 force_jupyter=False if FORCE_TERMINAL else None,  # noqa: FURB110
                 force_terminal=True if FORCE_TERMINAL else None,  # noqa: FURB110
             )
-            self.transient_progress_cls = TransientProgress
 
-    def reset_steps(self, current_major_step):
-        self.major_step_number: int = 0
-        self.minor_step_number: Optional[int] = None
+    def reset_steps(self, current_major_step: int) -> None:
+        self.major_step_number = 0
+        self.minor_step_number = None
 
         self.current_major_step = current_major_step
         if self.total_major_steps > 1:
@@ -255,10 +272,10 @@ class TaskProgressTracker:
         else:
             self.major_steps_prefix = ""
 
-    def is_new(self):
+    def is_new(self) -> bool:
         return self.major_step_number == 0 and self.minor_step_number is None
 
-    def stop(self):
+    def stop(self) -> None:
         if self.live:
             self.live.stop()
         if self.console and not self.console.is_interactive:
@@ -270,9 +287,10 @@ class TaskProgressTracker:
             show_total_elapsed_time(elapsed_seconds)
 
         if self.debug:
+            self.steps_times["finish"] = round(time.time(), 2)
             rprint(f"Steps times: {json.dumps(self.steps_times)}")
 
-    def _check_live_obj(self):
+    def _check_live_obj(self) -> None:
         if self.verbosity_mode == "silent":
             return
         if not self.live or not self.live._started:
@@ -284,7 +302,7 @@ class TaskProgressTracker:
                 redirect_stdout=True,
                 redirect_stderr=True,
             )
-            self.live.start(refresh=True)
+            self.live.start(refresh=True)  # type: ignore[attr-defined]
 
     def get_spinner(
         self,
@@ -299,7 +317,7 @@ class TaskProgressTracker:
             step_number=self.current_step_number,
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
-            progress_cls=self.transient_progress_cls,
+            progress_cls=TransientProgress,
             live_obj=self.live,
         )
 
@@ -316,7 +334,7 @@ class TaskProgressTracker:
             step_number=self.current_step_number,
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
-            progress_cls=self.transient_progress_cls,
+            progress_cls=TransientProgress,
             live_obj=self.live,
         )
 
@@ -328,7 +346,7 @@ class TaskProgressTracker:
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
             skip_step_number=False,
-            progress_cls=self.transient_progress_cls,
+            progress_cls=TransientProgress,
             live_obj=self.live,
         )
 
@@ -340,13 +358,13 @@ class TaskProgressTracker:
             silent_mode=self.verbosity_mode == "silent",
             transient_mode=self.verbosity_mode == "transient",
             skip_step_number=False,
-            progress_cls=self.transient_progress_cls,
+            progress_cls=TransientProgress,
             live_obj=self.live,
         )
 
     def _parse_steps(
         self, next_step: Literal["major", "minor"] = "major", with_minor_step: bool = False
-    ):
+    ) -> None:
         if next_step == "major":
             self.major_step_number += 1
             self.minor_step_number = 1 if with_minor_step else None

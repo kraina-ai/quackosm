@@ -7,7 +7,7 @@ dependencies = [
     "geopandas>=0.6",
     "shapely>=2",
     "pyarrow>=16.0.0",
-    "duckdb>=1.1.0",
+    "duckdb>=1.1.2",
     "geoarrow-pyarrow>=0.1.2",
     "geoarrow-pandas>=0.1.1",
     "typeguard>=3.0.0",
@@ -16,10 +16,11 @@ dependencies = [
     "tqdm>=4.42.0",
     "beautifulsoup4",
     "requests",
-    "polars>=0.19.4,!=1.7.0",
+    "polars>=1.9",
     "rich>=12.0.0",
     "geopy>=2.0.0",
     "numpy>=1.26.0",
+    "rq_geo_toolkit>=2025.5.0",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -103,7 +104,7 @@ docs = [
     "adjustText",
     "contextily",
 ]
-license = ["licensecheck==2024.3", "pipdeptree"]
+license = ["licensecheck==2025.1.0", "pipdeptree"]
 cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
 
 [tool.pdm.scripts]
@@ -202,9 +203,15 @@ using = "requirements"
 zero = false
 ignore_licenses = ["UNKNOWN"]
 ignore_packages = [
-    'docformatter',     # uses MIT license, has mismatched license in analysis
-    'mkdocs-jupyter',   # uses Apache-2.0 license, has mismatched license in analysis
-    'python-geohash',   # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
-    'mkdocs-autorefs',  # uses ISC License, has mismatched license in analysis
-    'referencing',    # uses MIT license, has mismatched license in analysis
+    'docformatter',         # uses MIT license, has mismatched license in analysis
+    'griffe',               # uses ISC license, has mismatched license in analysis
+    'mkdocs-autorefs',      # uses ISC License, has mismatched license in analysis
+    'mkdocs-jupyter',       # uses Apache-2.0 license, has mismatched license in analysis
+    'mkdocstrings-python',  # uses ISC license, has mismatched license in analysis
+    'mkdocstrings',         # uses ISC License, has mismatched license in analysis
+    'pillow',               # uses MIT-CMU, has mismatched license in analysis
+    'pipdeptree',           # uses MIT license, has mismatched license in analysis
+    'python-geohash',       # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
+    'referencing',          # uses MIT license, has mismatched license in analysis
+    'typing-extensions',    # uses ZERO-CLAUSE BSD LICENSE, has mismatched license in analysis
 ]

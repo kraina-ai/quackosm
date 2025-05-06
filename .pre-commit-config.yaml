@@ -22,7 +22,7 @@ repos:
         additional_dependencies: [tomli]
         args: [--in-place, --config, ./pyproject.toml]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.1
+    rev: v1.15.0
     hooks:
       - id: mypy
         additional_dependencies: ['types-requests', 'types-six']
@@ -58,10 +58,10 @@ repos:
         language_version: python3.10
         stages: [manual]
   - repo: https://github.com/FHPythonUtils/LicenseCheck
-    rev: "2024.3"
+    rev: "2025.1.0"
     hooks:
       - id: licensecheck
-        args: ["-u", "requirements:requirements.txt"]
+        args: ["--requirements-paths", "requirements.txt"]
         stages: [manual]
 
 ci:

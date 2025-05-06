@@ -54,7 +54,7 @@ ut = TestCase()
     "OSM fr without underscore",
     "osmfr",
 )  # type: ignore
-def test_proper_osm_extract_source(value: str):
+def test_proper_osm_extract_source(value: str) -> None:
     """Test if OsmExtractSource is parsed correctly."""
     OsmExtractSource(value)
 
@@ -126,7 +126,9 @@ def test_wrong_osm_extract_source():  # type: ignore
     ),
     "osmfr_north-america_canada_british_columbia",
 )  # type: ignore
-def test_single_smallest_extract(source: str, geometry: BaseGeometry, expected_extract_id: str):
+def test_single_smallest_extract(
+    source: str, geometry: BaseGeometry, expected_extract_id: str
+) -> None:
     """Test if extracts matching works correctly for geometries within borders."""
     extracts = find_smallest_containing_extracts(geometry, source)
     assert len(extracts) == 1
@@ -188,7 +190,7 @@ def test_multiple_smallest_extracts(
     geometry: BaseGeometry,
     geometry_coverage_iou_threshold: float,
     expected_extract_file_names: list[str],
-):
+) -> None:
     """Test if extracts matching works correctly for geometries between borders."""
     extracts = find_smallest_containing_extracts(
         geometry, source, geometry_coverage_iou_threshold=geometry_coverage_iou_threshold
@@ -207,8 +209,8 @@ def test_multiple_smallest_extracts(
     ],
 )  # type: ignore
 def test_uncovered_geometry_extract(
-    expectation, allow_uncovered_geometry: bool, geometry_coverage_iou_threshold: float
-):
+    expectation: Any, allow_uncovered_geometry: bool, geometry_coverage_iou_threshold: float
+) -> None:
     """Test if raises errors as expected when geometry can't be covered."""
     with expectation:
         geometry = from_wkt(
@@ -374,7 +376,7 @@ def test_extracts_finding(
     list(OsmExtractSource),
 )  # type: ignore
 def test_extracts_tree_printing(
-    capfd, mocker: MockerFixture, osm_source: OsmExtractSource, use_full_names: bool
+    capfd: Any, mocker: MockerFixture, osm_source: OsmExtractSource, use_full_names: bool
 ) -> None:
     """Test if displaying available extracts works."""
     mocker.patch("rich.get_console", return_value=Console(width=999))

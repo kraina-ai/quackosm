@@ -20,17 +20,17 @@ from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from rich import get_console
 from rich import print as rprint
+from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
 
-from quackosm._constants import FORCE_TERMINAL
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
     OsmExtractMultipleMatchesError,
     OsmExtractZeroMatchesError,
 )
-from quackosm._geopandas_api_version import GEOPANDAS_NEW_API
+from quackosm._rich_progress import FORCE_TERMINAL
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
 from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
 from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree

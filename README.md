@@ -70,7 +70,7 @@ QuackOSM supports **Python >= 3.9**
 
 Required:
 
-- `duckdb (>=1.1.0)`: For all DuckDB operations on PBF files
+- `duckdb (>=1.1.2)`: For all DuckDB operations on PBF files and sorting result file
 
 - `pyarrow (>=16.0.0)`: For parquet files wrangling
 
@@ -82,7 +82,7 @@ Required:
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries
 
-- `polars (>=0.19.4)`: For faster OSM ways grouping operation
+- `polars (>=1.9)`: For faster OSM ways grouping operation
 
 - `typeguard (>=3.0)`: For internal validation of types
 

@@ -40,5 +40,5 @@ def test_big_file(extract_name: str, geocode_filter: list[str], tags_filter: Osm
         geometry_filter=geocode_to_geometry(geocode_filter),
     )
     # Reset rows_per_group value to test automatic downscaling
-    reader.rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[24]
+    reader.internal_rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[24]
     reader.convert_pbf_to_parquet(pbf_path=file_name, ignore_cache=True)
