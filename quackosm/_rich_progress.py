@@ -287,6 +287,7 @@ class TaskProgressTracker:
             show_total_elapsed_time(elapsed_seconds)
 
         if self.debug:
+            self.steps_times["finish"] = round(time.time(), 2)
             rprint(f"Steps times: {json.dumps(self.steps_times)}")
 
     def _check_live_obj(self) -> None:
