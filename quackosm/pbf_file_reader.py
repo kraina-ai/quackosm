@@ -3044,18 +3044,14 @@ def _merge_parquet_dataset(
         if fragment.count_rows() == 0:
             continue
 
-        missing_columns = set(main_schema.names).difference(
-            set(fragment.physical_schema.names)
-        )
+        missing_columns = set(main_schema.names).difference(set(fragment.physical_schema.names))
 
         for original_batch in fragment.to_batches():
             batch = original_batch
             for column_field in missing_columns:
                 batch = batch.append_column(
                     column_field,
-                    pa.nulls(
-                        size=batch.num_rows, type=main_schema.field(column_field).type
-                    ),
+                    pa.nulls(size=batch.num_rows, type=main_schema.field(column_field).type),
                 )
 
             batch = batch.select([field.name for field in main_schema])
@@ -3186,11 +3182,7 @@ def _group_ways_with_polars(current_ways_group_path: Path, current_destination_p
         hive_partitioning=False,
     ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
         {"point": "linestring"}
-    ).collect(
-        streaming=True
-    ).write_parquet(
-        current_destination_path
-    )
+    ).sink_parquet(current_destination_path)
 
 
 def _drop_duplicates_in_pyarrow_table(
