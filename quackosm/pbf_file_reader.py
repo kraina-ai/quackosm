@@ -31,6 +31,7 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
+from packaging import version
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
@@ -1823,7 +1824,7 @@ class PbfFileReader:
             [
                 tag_entry
                 for tag_entry in map_entries(tags)
-                if not tag_entry.key in ({','.join(escaped_tags_to_ignore)})
+                if not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
                 and not starts_with(tag_entry.key, 'openGeoDB:')
             ]
         ) as tags
@@ -2320,7 +2321,7 @@ class PbfFileReader:
                             list_contains(map_keys(raw_tags), 'area')
                             AND list_extract(map_extract(raw_tags, 'area'), 1) = 'no'
                         )
-                        AND ({' OR '.join(osm_way_polygon_features_filter_clauses)})
+                        AND ({" OR ".join(osm_way_polygon_features_filter_clauses)})
                     ) AS is_polygon
                 FROM ({required_ways_with_linestrings.sql_query()}) w_l
                 SEMI JOIN ({osm_parquet_files.ways_filtered_ids.sql_query()}) fw ON w_l.id = fw.id
@@ -2575,7 +2576,7 @@ class PbfFileReader:
 
         unioned_features = self.connection.sql(
             f"""
-            SELECT {', '.join(select_clauses)}
+            SELECT {", ".join(select_clauses)}
             FROM ({parsed_geometries.sql_query()})
             """
         )
@@ -2693,7 +2694,7 @@ class PbfFileReader:
                             )
                     osm_tag_keys_select_clauses.append(
                         f"""
-                        CASE WHEN {' OR '.join(filter_tag_clauses)}
+                        CASE WHEN {" OR ".join(filter_tag_clauses)}
                         THEN list_extract(map_extract(tags, '{filter_tag_key}'), 1)
                         ELSE NULL
                         END as "{filter_tag_key}"
@@ -2824,7 +2825,7 @@ class PbfFileReader:
                             f" {element_clause}"
                         )
 
-                case_clause = f'CASE {" ".join(case_when_clauses)} END'
+                case_clause = f"CASE {' '.join(case_when_clauses)} END"
                 case_clauses.append(case_clause)
 
             group_names_as_sql_strings = [f"'{group_name}'" for group_name in group_names]
@@ -3177,12 +3178,20 @@ def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> No
 
 
 def _group_ways_with_polars(current_ways_group_path: Path, current_destination_path: Path) -> None:
-    pl.scan_parquet(
-        source=f"{current_ways_group_path}/*.parquet",
-        hive_partitioning=False,
-    ).group_by("id").agg(pl.col("point").sort_by(pl.col("ref_idx"))).rename(
-        {"point": "linestring"}
-    ).sink_parquet(current_destination_path)
+    lf = (
+        pl.scan_parquet(
+            source=f"{current_ways_group_path}/*.parquet",
+            hive_partitioning=False,
+        )
+        .group_by("id")
+        .agg(pl.col("point").sort_by(pl.col("ref_idx")))
+        .rename({"point": "linestring"})
+    )
+
+    if version.parse(pl.__version__) >= version.parse("1.27.1"):
+        lf.sink_parquet(current_destination_path)
+    else:
+        lf.collect(streaming=True).write_parquet(current_destination_path)
 
 
 def _drop_duplicates_in_pyarrow_table(
