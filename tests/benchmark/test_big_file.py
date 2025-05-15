@@ -6,19 +6,20 @@ from pathlib import Path
 from parametrization import Parametrization as P
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
+from shapely import Polygon, box
 
-from quackosm import PbfFileReader, geocode_to_geometry
+from quackosm import PbfFileReader
 from quackosm._osm_tags_filters import OsmTagsFilter
 
 
-@P.parameters("extract_name", "geocode_filter", "tags_filter")  # type: ignore
+@P.parameters("extract_name", "geometry_filter", "tags_filter")  # type: ignore
 @P.case(
     "Spain",
     "spain",
-    ["Madrid", "Barcelona", "Valencia", "Seville"],
-    {"building": True, "amenity": True},
+    box(-10.096436,35.777019,3.680420,44.040591),
+    {"name:*": False},
 )  # type: ignore
-def test_big_file(extract_name: str, geocode_filter: list[str], tags_filter: OsmTagsFilter) -> None:
+def test_big_file(extract_name: str, geometry_filter: Polygon, tags_filter: OsmTagsFilter) -> None:
     """Test if big file is working in a low memory environment."""
     files_dir = Path("files")
     shutil.rmtree(files_dir)
@@ -37,7 +38,7 @@ def test_big_file(extract_name: str, geocode_filter: list[str], tags_filter: Osm
         working_directory=files_dir,
         verbosity_mode="verbose",
         tags_filter=tags_filter,
-        geometry_filter=geocode_to_geometry(geocode_filter),
+        geometry_filter=geometry_filter,
     )
     # Reset rows_per_group value to test automatic downscaling
     reader.internal_rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[24]
