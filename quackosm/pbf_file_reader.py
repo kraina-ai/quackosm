@@ -2592,6 +2592,14 @@ class PbfFileReader:
             step_name="Saving all features",
         )
 
+        self._delete_directories(
+            [
+                "filtered_nodes_with_geometry",
+                "filtered_ways_with_geometry",
+                "filtered_relations_with_geometry",
+            ]
+        )
+
         self._save_final_parquet_file(
             input_file=features_parquet_path,
             result_file_path=save_file_path,
