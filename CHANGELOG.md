@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replace geo metadata in final geoparquet with proper bounding box size and geometry types
 - Changed polars LazyFrame execution for newer versions
+- Remove wrong empty geometries from relations
 
 ### Deprecated
 

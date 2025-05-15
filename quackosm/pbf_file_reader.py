@@ -2506,6 +2506,7 @@ class PbfFileReader:
             FROM final_geometries r_g
             JOIN ({osm_parquet_files.relations_all_with_tags.sql_query()}) r
             ON r.id = r_g.id
+            WHERE NOT ST_IsEmpty(r_g.geometry)
             """
         )
 
