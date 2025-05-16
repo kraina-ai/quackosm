@@ -374,7 +374,7 @@ class PbfFileReader:
         total_files = len(pbf_path)
         self._task_progress_tracker = TaskProgressTracker(
             verbosity_mode=self.verbosity_mode,
-            total_major_steps=total_files,
+            total_file_steps=total_files,
             debug=self.debug_times,
         )
         if total_files == 1:
@@ -1360,7 +1360,7 @@ class PbfFileReader:
         if not is_any_key_expandable:
             return cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.tags_filter)
 
-        self.task_progress_tracker.current_major_step = -1
+        self.task_progress_tracker.major_step_number = -1
         with self.task_progress_tracker.get_spinner("Preparing OSM tags filter"):
             if is_expected_type(self.tags_filter, GroupedOsmTagsFilter):
                 grouped_osm_tags_filter = cast(GroupedOsmTagsFilter, self.tags_filter)

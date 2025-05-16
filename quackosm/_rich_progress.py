@@ -231,24 +231,24 @@ class TaskProgressTracker:
     def __init__(
         self,
         verbosity_mode: VERBOSITY_MODE = "verbose",
-        total_major_steps: int = 1,
-        current_major_step: int = 1,
+        total_file_steps: int = 1,
+        current_file_step: int = 1,
         debug: bool = False,
     ):
         self.verbosity_mode = verbosity_mode
         self.major_step_number: int = 0
         self.minor_step_number: Optional[int] = None
-        self.total_major_steps = total_major_steps
-        self.current_major_step = current_major_step
+        self.total_files_steps = total_file_steps
+        self.current_file_step = current_file_step
         self.live = None
         self.console = None
         self.debug = debug
         self.steps_times: dict[str, float] = {}
         self.start_time = time.time()
 
-        if total_major_steps > 1:
-            number_width = len(str(total_major_steps))
-            self.major_steps_prefix = f"[{current_major_step: >{number_width}}/{total_major_steps}]"
+        if total_file_steps > 1:
+            number_width = len(str(total_file_steps))
+            self.major_steps_prefix = f"[{current_file_step: >{number_width}}/{total_file_steps}]"
         else:
             self.major_steps_prefix = ""
 
@@ -259,15 +259,15 @@ class TaskProgressTracker:
                 force_terminal=True if FORCE_TERMINAL else None,  # noqa: FURB110
             )
 
-    def reset_steps(self, current_major_step: int) -> None:
+    def reset_steps(self, current_file_step: int) -> None:
         self.major_step_number = 0
         self.minor_step_number = None
 
-        self.current_major_step = current_major_step
-        if self.total_major_steps > 1:
-            number_width = len(str(self.total_major_steps))
+        self.current_file_step = current_file_step
+        if self.total_files_steps > 1:
+            number_width = len(str(self.total_files_steps))
             self.major_steps_prefix = (
-                f"[{self.current_major_step: >{number_width}}/{self.total_major_steps}]"
+                f"[{self.current_file_step: >{number_width}}/{self.total_files_steps}]"
             )
         else:
             self.major_steps_prefix = ""
