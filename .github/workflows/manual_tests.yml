@@ -45,6 +45,7 @@ jobs:
           pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
           pytest -v -s --durations=20 tests/base
           pytest -v -s --durations=20 tests/optional_imports
+          pytest -v -s --durations=20 tests/benchmark
 
   run-tests-oldest:
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions (oldest dependencies)
