@@ -59,6 +59,7 @@ jobs:
         run: |
           ls -lah
           ls -lah files
+          ls -lah files/workdir
           ls -lah tests/files
       # - name: Setup Python ${{ matrix.python-version }}
       #   uses: actions/setup-python@v4
