@@ -31,7 +31,7 @@ jobs:
         uses: playeveryware/action-google-drive-download@v1
         with:
           token: ${{ steps.google-access-token.outputs.token }}
-          file-id: 15GXgjaJUINYDTRsCrDZi9XiE3d9Zck7w
+          file-id: 1Z6SuEcrWMqwiQLmBGMucFtRmu0zS2rxn
           path: test_files.zip
       - name: Extract zip files
         uses: ihiroky/extract-action@v1
@@ -45,7 +45,7 @@ jobs:
             from pathlib import Path
             src_dir = "QuackOSM test files"
             trg_dir = Path.cwd()
-            for directory in ("files", "tests"):
+            for directory in ("files", "tests", "cache"):
                 src_path = Path(src_dir).joinpath(directory)
                 for each_file in src_path.rglob('*.*'):
                     trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
