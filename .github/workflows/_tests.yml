@@ -2,34 +2,6 @@ name: tests
 on: workflow_call
 
 jobs:
-  test_access_token:
-    runs-on: ubuntu-latest
-    steps:
-      - id: google-access-token
-        uses: playeveryware/action-google-access-token@v1
-        with:
-          credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
-          scope: 'https://www.googleapis.com/auth/drive.readonly'
-
-      - name: Download file
-        uses: playeveryware/action-google-drive-download@v1
-        with:
-          token: ${{ steps.google-access-token.outputs.token }}
-          file-id: 15GXgjaJUINYDTRsCrDZi9XiE3d9Zck7w
-          path: test_files.zip
-
-      - name: Extract tgz
-        uses: ihiroky/extract-action@v1
-        with:
-          file_path: test_files.zip
-          extract_dir: '.'
-
-      - name: Show file information
-        run: |
-          ls -lah
-          ls -lah "QuackOSM test files"
-
-
   run-tests:
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions
     runs-on: ${{ matrix.os }}
@@ -68,7 +40,9 @@ jobs:
           file_path: test_files.zip
           extract_dir: '.'
       - name: Move directories
-        run: mv "QuackOSM test files" .
+        run: |
+          mv "QuackOSM test files/files" .
+          mv "QuackOSM test files/tests" .
       - name: Remove zip file
         run: rm -rf test_files.zip
       - name: Show file information
