@@ -2,7 +2,6 @@
 
 import json
 import random
-import urllib.request
 import warnings
 from functools import partial
 from itertools import permutations
@@ -18,6 +17,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 from parametrization import Parametrization as P
+from pooch import retrieve
 from pytest_mock import MockerFixture
 from shapely import from_wkt, get_coordinates, hausdorff_distance
 from shapely.geometry import (
@@ -791,14 +791,25 @@ def test_gdal_parity(extract_name: str) -> None:
     Test downloads prepared pbf files and parsed geoparquet using GDAL from kraina-ai/srai-test-
     files repository.
     """
-    pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
     files_directory = Path(__file__).parent.parent / "files"
     files_directory.mkdir(exist_ok=True, parents=True)
-    pbf_file_path = files_directory / f"{extract_name}.osm.pbf"
-    urllib.request.urlretrieve(pbf_file_download_url, pbf_file_path)
+
+    pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
+    pbf_file_path = retrieve(
+        pbf_file_download_url,
+        fname=f"{extract_name}.osm.pbf",
+        path=files_directory,
+        progressbar=False,
+        known_hash=None,
+    )
     gpq_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.geoparquet"
-    gpq_file_path = files_directory / f"{extract_name}.parquet"
-    urllib.request.urlretrieve(gpq_file_download_url, gpq_file_path)
+    gpq_file_path = retrieve(
+        gpq_file_download_url,
+        fname=f"{extract_name}.parquet",
+        path=files_directory,
+        progressbar=False,
+        known_hash=None,
+    )
 
     reader = PbfFileReader()
     duckdb_gdf = reader.convert_pbf_to_geodataframe(
