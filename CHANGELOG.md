@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored internal logic by exporting it to external `rq_geo_toolkit` library
 - Changed multiple files merging logic
 
-### Fix
+### Fixed
 
 - Replace geo metadata in final geoparquet with proper bounding box size and geometry types
 - Changed polars LazyFrame execution for newer versions
