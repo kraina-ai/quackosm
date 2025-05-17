@@ -5,15 +5,31 @@ jobs:
   test_access_token:
     runs-on: ubuntu-latest
     steps:
-      - id: google-token
+      - id: google-access-token
         uses: playeveryware/action-google-access-token@v1
         with:
           credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
           scope: 'https://www.googleapis.com/auth/drive.readonly'
 
-      - name: Show (masked) token
+      - name: Download file
+        uses: playeveryware/action-google-drive-download@v1
+        with:
+          token: ${{ steps.google-access-token.outputs.token }}
+          file-id: 15GXgjaJUINYDTRsCrDZi9XiE3d9Zck7w
+          path: test_files.zip
+
+      - name: Extract tgz
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: test_files.zip
+          extract_dir: '.'
+
+      - name: Show file information
         run: |
-          echo "Masked token ${{ steps.google-token.outputs.token }}"
+          ls -lah
+          ls -lah "QuackOSM test files"
+
+
   # run-tests:
   #   name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions
   #   runs-on: ${{ matrix.os }}
