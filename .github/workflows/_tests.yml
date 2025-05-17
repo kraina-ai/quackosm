@@ -9,13 +9,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.12"]
-        # python-version: ["3.9", "3.10", "3.11", "3.12"]
-        # include:
-        #   - os: macos-13
-        #     python-version: "3.12"
-        #   - os: windows-latest
-        #     python-version: "3.12"
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        include:
+          - os: macos-13
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -40,7 +39,7 @@ jobs:
           file_path: test_files.zip
           extract_dir: '.'
       - uses: jannekem/run-python-script-action@v1
-        name: Move directories
+        name: Move files
         with:
           script: |
             from pathlib import Path
@@ -50,57 +49,51 @@ jobs:
                 src_path = Path(src_dir).joinpath(directory)
                 for each_file in src_path.rglob('*.*'):
                     trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
-                    print(trg_path)
+                    print("Moving file", each_file, trg_path)
                     trg_path.parent.mkdir(exist_ok=True, parents=True)
                     each_file.rename(trg_path)
       - name: Remove zip file
         run: rm -rf test_files.zip
-      - name: Show file information
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: pdm-project/setup-pdm@v3
+        name: Setup PDM (Python ${{ matrix.python-version }})
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+          enable-pep582: true
+          cache: false
+      - name: Install dependencies
+        run: pdm install --no-default -d -G test --skip=post_install
+      - name: Cache OSM data
+        uses: actions/cache@v3
+        with:
+          path: cache
+          key: osm-cache-${{ matrix.os }}-${{ matrix.python-version }}
+      - name: Cache tox runner
+        # Cache only on the main branch
+        if: github.ref == 'refs/heads/main'
+        uses: actions/cache@v3
+        with:
+          path: .tox
+          key: tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pdm.lock') }}
+          restore-keys: |
+            tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-
+      - name: Run tests with tox
         run: |
-          ls -lah
-          ls -lah files
-          ls -lah files/workdir
-          ls -lah tests/files
-      # - name: Setup Python ${{ matrix.python-version }}
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: ${{ matrix.python-version }}
-      # - uses: pdm-project/setup-pdm@v3
-      #   name: Setup PDM (Python ${{ matrix.python-version }})
-      #   with:
-      #     python-version: ${{ matrix.python-version }}
-      #     architecture: x64
-      #     enable-pep582: true
-      #     cache: false
-      # - name: Install dependencies
-      #   run: pdm install --no-default -d -G test --skip=post_install
-      # - name: Cache OSM data
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: cache
-      #     key: osm-cache-${{ matrix.os }}-${{ matrix.python-version }}
-      # - name: Cache tox runner
-      #   # Cache only on the main branch
-      #   if: github.ref == 'refs/heads/main'
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: .tox
-      #     key: tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pdm.lock') }}
-      #     restore-keys: |
-      #       tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-
-      # - name: Run tests with tox
-      #   run: |
-      #     pdm run tox -e python${{ matrix.python-version }}
-      # - name: Upload coverage to Codecov
-      #   uses: Wandalen/wretry.action@master
-      #   with:
-      #     action: codecov/codecov-action@v4
-      #     with: |
-      #       env_vars: OS,PYTHON
-      #       fail_ci_if_error: true
-      #       files: ./coverage.python${{ matrix.python-version }}.xml,!.
-      #       flags: ${{ matrix.os }}-python${{ matrix.python-version }}
-      #       verbose: true
-      #       token: ${{ secrets.CODECOV_TOKEN }}
-      #     attempt_limit: 100
-      #     attempt_delay: 10000
+          pdm run tox -e python${{ matrix.python-version }}
+      - name: Upload coverage to Codecov
+        uses: Wandalen/wretry.action@master
+        with:
+          action: codecov/codecov-action@v4
+          with: |
+            env_vars: OS,PYTHON
+            fail_ci_if_error: true
+            files: ./coverage.python${{ matrix.python-version }}.xml,!.
+            flags: ${{ matrix.os }}-python${{ matrix.python-version }}
+            verbose: true
+            token: ${{ secrets.CODECOV_TOKEN }}
+          attempt_limit: 100
+          attempt_delay: 10000

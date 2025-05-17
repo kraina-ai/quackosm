@@ -27,6 +27,39 @@ jobs:
       COLUMNS: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Get Google access token
+        id: google-access-token
+        uses: playeveryware/action-google-access-token@v1
+        with:
+          credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
+          scope: 'https://www.googleapis.com/auth/drive.readonly'
+      - name: Download file from Google drive
+        uses: playeveryware/action-google-drive-download@v1
+        with:
+          token: ${{ steps.google-access-token.outputs.token }}
+          file-id: 15GXgjaJUINYDTRsCrDZi9XiE3d9Zck7w
+          path: test_files.zip
+      - name: Extract zip files
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: test_files.zip
+          extract_dir: '.'
+      - uses: jannekem/run-python-script-action@v1
+        name: Move files
+        with:
+          script: |
+            from pathlib import Path
+            src_dir = "QuackOSM test files"
+            trg_dir = Path.cwd()
+            for directory in ("files", "tests"):
+                src_path = Path(src_dir).joinpath(directory)
+                for each_file in src_path.rglob('*.*'):
+                    trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
+                    print("Moving file", each_file, trg_path)
+                    trg_path.parent.mkdir(exist_ok=True, parents=True)
+                    each_file.rename(trg_path)
+      - name: Remove zip file
+        run: rm -rf test_files.zip
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -61,6 +94,39 @@ jobs:
       COLUMNS: 120
     steps:
       - uses: actions/checkout@v4
+      - name: Get Google access token
+        id: google-access-token
+        uses: playeveryware/action-google-access-token@v1
+        with:
+          credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
+          scope: 'https://www.googleapis.com/auth/drive.readonly'
+      - name: Download file from Google drive
+        uses: playeveryware/action-google-drive-download@v1
+        with:
+          token: ${{ steps.google-access-token.outputs.token }}
+          file-id: 15GXgjaJUINYDTRsCrDZi9XiE3d9Zck7w
+          path: test_files.zip
+      - name: Extract zip files
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: test_files.zip
+          extract_dir: '.'
+      - uses: jannekem/run-python-script-action@v1
+        name: Move files
+        with:
+          script: |
+            from pathlib import Path
+            src_dir = "QuackOSM test files"
+            trg_dir = Path.cwd()
+            for directory in ("files", "tests"):
+                src_path = Path(src_dir).joinpath(directory)
+                for each_file in src_path.rglob('*.*'):
+                    trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
+                    print("Moving file", each_file, trg_path)
+                    trg_path.parent.mkdir(exist_ok=True, parents=True)
+                    each_file.rename(trg_path)
+      - name: Remove zip file
+        run: rm -rf test_files.zip
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
