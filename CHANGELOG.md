@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2025-05-17
+
 ### Added
 
 - Option to sort result files by geometry to reduce file size
@@ -22,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored internal logic by exporting it to external `rq_geo_toolkit` library
 - Changed multiple files merging logic
 
-### Fix
+### Fixed
 
 - Replace geo metadata in final geoparquet with proper bounding box size and geometry types
 - Changed polars LazyFrame execution for newer versions
@@ -460,7 +462,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.13.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.14.0...HEAD
+
+[0.14.0]: https://github.com/kraina-ai/quackosm/compare/0.13.0...0.14.0
 
 [0.13.0]: https://github.com/kraina-ai/quackosm/compare/0.12.1...0.13.0
 

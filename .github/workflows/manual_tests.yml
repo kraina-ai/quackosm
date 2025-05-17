@@ -37,7 +37,7 @@ jobs:
         uses: playeveryware/action-google-drive-download@v1
         with:
           token: ${{ steps.google-access-token.outputs.token }}
-          file-id: 15GXgjaJUINYDTRsCrDZi9XiE3d9Zck7w
+          file-id: 1Z6SuEcrWMqwiQLmBGMucFtRmu0zS2rxn
           path: test_files.zip
       - name: Extract zip files
         uses: ihiroky/extract-action@v1
@@ -51,7 +51,7 @@ jobs:
             from pathlib import Path
             src_dir = "QuackOSM test files"
             trg_dir = Path.cwd()
-            for directory in ("files", "tests"):
+            for directory in ("files", "tests", "cache"):
                 src_path = Path(src_dir).joinpath(directory)
                 for each_file in src_path.rglob('*.*'):
                     trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
@@ -103,7 +103,7 @@ jobs:
         uses: playeveryware/action-google-drive-download@v1
         with:
           token: ${{ steps.google-access-token.outputs.token }}
-          file-id: 15GXgjaJUINYDTRsCrDZi9XiE3d9Zck7w
+          file-id: 1Z6SuEcrWMqwiQLmBGMucFtRmu0zS2rxn
           path: test_files.zip
       - name: Extract zip files
         uses: ihiroky/extract-action@v1
@@ -111,21 +111,20 @@ jobs:
           file_path: test_files.zip
           extract_dir: '.'
       - uses: jannekem/run-python-script-action@v1
-        name: Move files
+        name: Move files and remove zip
         with:
           script: |
             from pathlib import Path
             src_dir = "QuackOSM test files"
             trg_dir = Path.cwd()
-            for directory in ("files", "tests"):
+            for directory in ("files", "tests", "cache"):
                 src_path = Path(src_dir).joinpath(directory)
                 for each_file in src_path.rglob('*.*'):
                     trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
                     print("Moving file", each_file, trg_path)
                     trg_path.parent.mkdir(exist_ok=True, parents=True)
                     each_file.rename(trg_path)
-      - name: Remove zip file
-        run: rm -rf test_files.zip
+            Path('test_files.zip').unlink()
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
