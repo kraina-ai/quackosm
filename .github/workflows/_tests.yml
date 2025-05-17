@@ -2,6 +2,18 @@ name: tests
 on: workflow_call
 
 jobs:
+  test_access_token:
+    runs-on: ubuntu-latest
+    steps:
+      - id: google-token
+        uses: playeveryware/action-google-access-token@v1
+        with:
+          credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
+          scope: 'https://www.googleapis.com/auth/drive.readonly'
+
+      - name: Show (masked) token
+        run: |
+          echo "Masked token ${{ steps.google-token.outputs.token }}"
   run-tests:
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions
     runs-on: ${{ matrix.os }}
