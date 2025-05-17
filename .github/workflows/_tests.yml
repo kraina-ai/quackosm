@@ -39,7 +39,7 @@ jobs:
           file_path: test_files.zip
           extract_dir: '.'
       - uses: jannekem/run-python-script-action@v1
-        name: Move files
+        name: Move files and remove zip
         with:
           script: |
             from pathlib import Path
@@ -52,8 +52,7 @@ jobs:
                     print("Moving file", each_file, trg_path)
                     trg_path.parent.mkdir(exist_ok=True, parents=True)
                     each_file.rename(trg_path)
-      - name: Remove zip file
-        run: rm -rf test_files.zip
+            Path('test_files.zip').unlink()
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
