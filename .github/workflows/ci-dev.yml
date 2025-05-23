@@ -21,6 +21,35 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.CICD_PAT_TOKEN }}
+      - name: Get Google access token
+        id: google-access-token
+        uses: playeveryware/action-google-access-token@v1
+        with:
+          credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
+          scope: 'https://www.googleapis.com/auth/drive.readonly'
+      - name: Download file from Google drive
+        uses: playeveryware/action-google-drive-download@v1
+        with:
+          token: ${{ steps.google-access-token.outputs.token }}
+          file-id: 1LxapCQ07CdUsCmTSWnUMMNUioc777pk6
+          path: example_files.zip
+      - name: Extract zip files
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: example_files.zip
+          extract_dir: 'example_files'
+      - uses: jannekem/run-python-script-action@v1
+        name: Move files and remove zip
+        with:
+          script: |
+            from pathlib import Path
+            src_dir = Path("example_files")
+            for each_file in src_dir.rglob('*.*'):
+                trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
+                print("Moving file", each_file, trg_path)
+                trg_path.parent.mkdir(exist_ok=True, parents=True)
+                each_file.rename(trg_path)
+            Path('example_files.zip').unlink()
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
