@@ -608,6 +608,14 @@ def main(
             show_default=True,
         ),
     ] = True,
+    ignore_metadata_tags: Annotated[
+        bool,
+        typer.Option(
+            "--ignore-metadata-tags/--keep-metadata-tags",
+            help="Whether to remove metadata tags, based on the default GDAL config.",
+            show_default=True,
+        ),
+    ] = True,
     wkt_result: Annotated[
         bool,
         typer.Option(
@@ -775,6 +783,7 @@ def main(
                 if osm_way_polygon_features_config
                 else None
             ),
+            ignore_metadata_tags=ignore_metadata_tags,
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             sort_result=sort_result,
@@ -798,6 +807,7 @@ def main(
                 if osm_way_polygon_features_config
                 else None
             ),
+            ignore_metadata_tags=ignore_metadata_tags,
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             sort_result=sort_result,
@@ -824,6 +834,7 @@ def main(
                     if osm_way_polygon_features_config
                     else None
                 ),
+                ignore_metadata_tags=ignore_metadata_tags,
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
@@ -856,6 +867,7 @@ def main(
                     if osm_way_polygon_features_config
                     else None
                 ),
+                ignore_metadata_tags=ignore_metadata_tags,
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
@@ -886,6 +898,7 @@ def main(
                 if osm_way_polygon_features_config
                 else None
             ),
+            ignore_metadata_tags=ignore_metadata_tags,
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             sort_result=sort_result,
@@ -911,6 +924,7 @@ def main(
                 if osm_way_polygon_features_config
                 else None
             ),
+            ignore_metadata_tags=ignore_metadata_tags,
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             duckdb_table_name=duckdb_table_name or "quackosm",

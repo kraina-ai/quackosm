@@ -48,6 +48,7 @@ from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from quackosm._constants import (
     FEATURES_INDEX,
     GEOMETRY_COLUMN,
+    METADATA_TAGS_TO_IGNORE,
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
@@ -153,6 +154,7 @@ class PbfFileReader:
         verbosity_mode: VERBOSITY_MODE = "transient",
         geometry_coverage_iou_threshold: float = 0.01,
         allow_uncovered_geometry: bool = False,
+        ignore_metadata_tags: bool = True,
         debug_memory: bool = False,
         debug_times: bool = False,
     ) -> None:
@@ -204,6 +206,8 @@ class PbfFileReader:
                 only allow extracts that match the geometry exactly. Defaults to 0.01.
             allow_uncovered_geometry (bool, optional): Suppress an error if some geometry parts
                 aren't covered by any OSM extract. Defaults to `False`.
+            ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+                config. Defaults to `True`.
             debug_memory (bool, optional): If turned on, will keep all temporary files after
                 operation for debugging. Defaults to `False`.
             debug_times (bool, optional): If turned on, will report timestamps at which second each
@@ -228,6 +232,7 @@ class PbfFileReader:
 
         self.geometry_coverage_iou_threshold = geometry_coverage_iou_threshold
         self.allow_uncovered_geometry = allow_uncovered_geometry
+        self.ignore_metadata_tags = ignore_metadata_tags
         self.osm_extract_source = osm_extract_source
         self.working_directory = Path(working_directory)
         self.working_directory.mkdir(parents=True, exist_ok=True)
@@ -1201,11 +1206,15 @@ class PbfFileReader:
         )
 
         osm_filter_tags_hash_part = "nofilter"
-        if self.tags_filter is not None or self.custom_sql_filter:
+        if self.tags_filter is not None or self.custom_sql_filter or not self.ignore_metadata_tags:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
             h.update(
-                (json.dumps(self.tags_filter or {}) + str(self.custom_sql_filter or "")).encode()
+                (
+                    json.dumps(self.tags_filter or {})
+                    + str(self.custom_sql_filter or "")
+                    + str("" if self.ignore_metadata_tags else "_with_metadata")
+                ).encode()
             )
             osm_filter_tags_hash_part = f"{h.hexdigest()[:8]}{keep_all_tags_part}"
 
@@ -1238,11 +1247,15 @@ class PbfFileReader:
         sort_result: bool,
     ) -> Path:
         osm_filter_tags_hash_part = "nofilter"
-        if self.tags_filter is not None or self.custom_sql_filter:
+        if self.tags_filter is not None or self.custom_sql_filter or not self.ignore_metadata_tags:
             keep_all_tags_part = "" if not keep_all_tags else "_alltags"
             h = hashlib.new("sha256")
             h.update(
-                (json.dumps(self.tags_filter or {}) + str(self.custom_sql_filter or "")).encode()
+                (
+                    json.dumps(self.tags_filter or {})
+                    + str(self.custom_sql_filter or "")
+                    + str("" if self.ignore_metadata_tags else "_with_metadata")
+                ).encode()
             )
             osm_filter_tags_hash_part = f"{h.hexdigest()[:8]}{keep_all_tags_part}"
 
@@ -1414,7 +1427,9 @@ class PbfFileReader:
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
     ) -> ConvertedOSMParquetFiles:
         sql_filter = self._generate_osm_tags_sql_filter()
-        filtered_tags_clause = self._generate_filtered_tags_clause()
+        filtered_tags_clause = (
+            self._generate_filtered_tags_clause() if self.ignore_metadata_tags else "tags"
+        )
         custom_sql_filter = self.custom_sql_filter or "1=1"
 
         is_intersecting = self.geometry_filter is not None
@@ -1804,20 +1819,7 @@ class PbfFileReader:
 
     def _generate_filtered_tags_clause(self) -> str:
         """Prepare filtered tags clause by removing tags commonly ignored by OGR."""
-        tags_to_ignore = [
-            "area",
-            "created_by",
-            "converted_by",
-            "source",
-            "time",
-            "ele",
-            "note",
-            "todo",
-            "fixme",
-            "FIXME",
-            "openGeoDB:",
-        ]
-        escaped_tags_to_ignore = [f"'{tag}'" for tag in tags_to_ignore]
+        escaped_tags_to_ignore = [f"'{tag}'" for tag in METADATA_TAGS_TO_IGNORE]
 
         return f"""
         map_from_entries(

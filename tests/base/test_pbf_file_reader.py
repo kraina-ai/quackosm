@@ -40,7 +40,7 @@ from quackosm import (
     convert_pbf_to_parquet,
     functions,
 )
-from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, WGS84_CRS
+from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, METADATA_TAGS_TO_IGNORE, WGS84_CRS
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
@@ -609,11 +609,30 @@ def test_deprecation(func: Callable[[], Any], new_function_name: str) -> None:
     assert new_function_name in str(record[0].message)
 
 
+@pytest.mark.parametrize("ignore_metadata_tags", [True, False])  # type: ignore
+def test_metadata_tags_ignoring(ignore_metadata_tags: bool) -> None:
+    """Test if metadata tags ignoring works."""
+    pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result = PbfFileReader(ignore_metadata_tags=ignore_metadata_tags).convert_pbf_to_geodataframe(
+        pbf_path=pbf_file,
+        ignore_cache=True,
+        keep_all_tags=True,
+        sort_result=False,
+    )
+
+    all_tags = sorted(result["tags"].map(lambda x: x.keys()).explode().unique())
+
+    if ignore_metadata_tags:
+        assert all(tag not in all_tags for tag in METADATA_TAGS_TO_IGNORE)
+    else:
+        assert any(tag in all_tags for tag in METADATA_TAGS_TO_IGNORE)
+
+
 def check_if_relation_in_osm_is_valid_based_on_tags(pbf_file: str, relation_id: str) -> bool:
     """Check if given relation in OSM is valid."""
     duckdb.load_extension("spatial")
     return cast(
-        bool,
+        "bool",
         duckdb.sql(
             f"SELECT list_contains(ref_roles, 'outer') FROM ST_READOSM('{pbf_file}') "
             "WHERE kind = 'relation' AND len(refs) > 0 AND list_contains(map_keys(tags), 'type') "
@@ -845,13 +864,13 @@ def test_gdal_parity(extract_name: str) -> None:
         non_relations_missing_in_duckdb
     ).difference(valid_relations_missing_in_duckdb)
 
-    assert (
-        not non_relations_missing_in_duckdb
-    ), f"Missing non relation features in PbfFileReader ({non_relations_missing_in_duckdb})"
+    assert not non_relations_missing_in_duckdb, (
+        f"Missing non relation features in PbfFileReader ({non_relations_missing_in_duckdb})"
+    )
 
-    assert (
-        not valid_relations_missing_in_duckdb
-    ), f"Missing valid relation features in PbfFileReader ({valid_relations_missing_in_duckdb})"
+    assert not valid_relations_missing_in_duckdb, (
+        f"Missing valid relation features in PbfFileReader ({valid_relations_missing_in_duckdb})"
+    )
 
     if len(invalid_relations_missing_in_duckdb) > 0:
         warnings.warn(
@@ -1021,22 +1040,23 @@ def test_gdal_parity(extract_name: str) -> None:
         .area
     )
 
-    invalid_geometries_df.loc[
-        matching_polygon_geometries_mask, "iou_metric"
-    ] = invalid_geometries_df.loc[
-        matching_polygon_geometries_mask, "geometry_intersection_area"
-    ] / (
-        gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
+    invalid_geometries_df.loc[matching_polygon_geometries_mask, "iou_metric"] = (
+        invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
+        / (
+            gpd.GeoSeries(
+                invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
+            )
+            .set_crs(WGS84_CRS)
+            .area
+            + gpd.GeoSeries(
+                invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
+            )
+            .set_crs(WGS84_CRS)
+            .area
+            - invalid_geometries_df.loc[
+                matching_polygon_geometries_mask, "geometry_intersection_area"
+            ]
         )
-        .set_crs(WGS84_CRS)
-        .area
-        + gpd.GeoSeries(
-            invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
-        )
-        .set_crs(WGS84_CRS)
-        .area
-        - invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_intersection_area"]
     )
 
     invalid_geometries_df.loc[matching_polygon_geometries_mask, "geometry_iou_near_one"] = (
@@ -1180,9 +1200,7 @@ def test_gdal_parity(extract_name: str) -> None:
     ] = invalid_geometries_df.loc[
         invalid_geometries_df["geometry_close_hausdorff_distance"]
         & invalid_geometries_df["is_duckdb_linestring_and_gdal_polygon"]
-    ].apply(
-        lambda x: x.duckdb_geometry_num_points < 4, axis=1
-    )
+    ].apply(lambda x: x.duckdb_geometry_num_points < 4, axis=1)
 
     invalid_geometries_df = invalid_geometries_df.loc[
         ~(
