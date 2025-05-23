@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to skip metadata tags filtering, based on a default GDAL configuration
+
 ## [0.14.0] - 2025-05-17
 
 ### Added

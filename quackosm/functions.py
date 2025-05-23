@@ -26,9 +26,9 @@ from quackosm.pbf_file_reader import PbfFileReader
 __all__ = [
     "convert_pbf_to_parquet",
     "convert_pbf_to_duckdb",
+    "convert_pbf_to_geodataframe",
     "convert_geometry_to_parquet",
     "convert_geometry_to_duckdb",
-    "convert_pbf_to_geodataframe",
     "convert_geometry_to_geodataframe",
     "convert_osm_extract_to_parquet",
     "convert_osm_extract_to_duckdb",
@@ -47,6 +47,7 @@ def convert_pbf_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -97,6 +98,8 @@ def convert_pbf_to_duckdb(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -271,6 +274,7 @@ def convert_pbf_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -298,6 +302,7 @@ def convert_geometry_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -353,6 +358,8 @@ def convert_geometry_to_duckdb(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -491,6 +498,7 @@ def convert_geometry_to_duckdb(
         compression_level=compression_level,
         row_group_size=row_group_size,
         osm_extract_source=osm_extract_source,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
@@ -520,6 +528,7 @@ def convert_osm_extract_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -573,6 +582,8 @@ def convert_osm_extract_to_duckdb(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -666,6 +677,7 @@ def convert_osm_extract_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -693,6 +705,7 @@ def convert_pbf_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -743,6 +756,8 @@ def convert_pbf_to_parquet(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -917,6 +932,7 @@ def convert_pbf_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -944,6 +960,7 @@ def convert_geometry_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -999,6 +1016,8 @@ def convert_geometry_to_parquet(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1136,6 +1155,7 @@ def convert_geometry_to_parquet(
         compression_level=compression_level,
         row_group_size=row_group_size,
         osm_extract_source=osm_extract_source,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
@@ -1165,6 +1185,7 @@ def convert_osm_extract_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1218,6 +1239,8 @@ def convert_osm_extract_to_parquet(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1312,6 +1335,7 @@ def convert_osm_extract_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -1339,6 +1363,7 @@ def convert_pbf_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1388,6 +1413,8 @@ def convert_pbf_to_geodataframe(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1536,6 +1563,7 @@ def convert_pbf_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
@@ -1559,6 +1587,7 @@ def convert_geometry_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1610,6 +1639,8 @@ def convert_geometry_to_geodataframe(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1704,6 +1735,7 @@ def convert_geometry_to_geodataframe(
         compression_level=compression_level,
         row_group_size=row_group_size,
         osm_extract_source=osm_extract_source,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         allow_uncovered_geometry=allow_uncovered_geometry,
@@ -1729,6 +1761,7 @@ def convert_osm_extract_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
@@ -1778,6 +1811,8 @@ def convert_osm_extract_to_geodataframe(
             Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
+            config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
             Defaults to False.
         filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -1862,6 +1897,7 @@ def convert_osm_extract_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,

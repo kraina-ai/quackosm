@@ -119,6 +119,16 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
 @P.case("Explicit sort", ["--sort"], "files/monaco_nofilter_noclip_compact_sorted.parquet")  # type: ignore
 @P.case("No sort", ["--no-sort"], "files/monaco_nofilter_noclip_compact.parquet")  # type: ignore
 @P.case(
+    "Keep metadata tags",
+    ["--keep-metadata-tags"],
+    "files/monaco_d38c1671_noclip_compact_sorted.parquet",
+)  # type: ignore
+@P.case(
+    "Skip metadata tags",
+    ["--ignore-metadata-tags"],
+    "files/monaco_nofilter_noclip_compact_sorted.parquet",
+)  # type: ignore
+@P.case(
     "Output with working directory",
     ["--working-directory", "files/workdir", "-o", "files/monaco_output.parquet"],
     "files/monaco_output.parquet",
@@ -373,6 +383,16 @@ def test_proper_args_with_pbf(
     "No sort",
     ["--geom-filter-file", geometry_boundary_file_path(), "--no-sort"],
     "files/6a869bcf_nofilter_compact.parquet",
+)  # type: ignore
+@P.case(
+    "Keep metadata tags",
+    ["--geom-filter-file", geometry_boundary_file_path(), "--keep-metadata-tags"],
+    "files/6a869bcf_d38c1671_compact_sorted.parquet",
+)  # type: ignore
+@P.case(
+    "Skip metadata tags",
+    ["--geom-filter-file", geometry_boundary_file_path(), "--ignore-metadata-tags"],
+    "files/6a869bcf_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Working directory",
