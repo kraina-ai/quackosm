@@ -68,7 +68,7 @@ jobs:
         with:
           script: |
             from pathlib import Path
-            src_dir = "example_files"
+            src_dir = Path("example_files")
             trg_dir = Path.cwd()
             for each_file in src_path.rglob('*.*'):
                 trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
