@@ -68,8 +68,8 @@ jobs:
         with:
           script: |
             from pathlib import Path
-            src_path = Path("example_files")
-            for each_file in src_path.rglob('*.*'):
+            src_dir = Path("example_files")
+            for each_file in src_dir.rglob('*.*'):
                 trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
                 print("Moving file", each_file, trg_path)
                 trg_path.parent.mkdir(exist_ok=True, parents=True)
