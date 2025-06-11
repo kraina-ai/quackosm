@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Callable, cast
 import platformdirs
 
 from quackosm._constants import WGS84_CRS
+from quackosm._exceptions import MissingOsmCacheWarning
 
 if TYPE_CHECKING:  # pragma: no cover
     from geopandas import GeoDataFrame
@@ -67,6 +68,7 @@ def load_index_decorator(
                 import geopandas as gpd
 
                 index_gdf = gpd.read_file(global_cache_file_path)
+            # Move locally downloaded cache to global directory
             elif (local_cache_file_path := _get_local_cache_file_path(extract_source)).exists():
                 import shutil
 
@@ -76,6 +78,16 @@ def load_index_decorator(
                 index_gdf = gpd.read_file(global_cache_file_path)
             # Download index
             else:  # pragma: no cover
+                if extract_source != OsmExtractSource.geofabrik:
+                    warnings.warn(
+                        f"Library has to build an index for the {extract_source} provider."
+                        " This can take multiple minutes. To avoid waiting for building an index,"
+                        " the `osm_extract_source` parameter can be changed to `Geofabrik`, since"
+                        " the index for it doesn't have to be built.",
+                        MissingOsmCacheWarning,
+                        stacklevel=0,
+                    )
+
                 index_gdf = function()
                 # calculate extracts area
                 index_gdf["area"] = index_gdf.geometry.apply(_calculate_geodetic_area)

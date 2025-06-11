@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `MissingOsmCacheWarning` for the user to let him know that OSM index has to be built and the source can be switched to Geofabrik
+
 ## [0.14.1] - 2025-05-23
 
 ### Added

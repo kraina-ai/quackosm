@@ -9,12 +9,13 @@ import pytest
 from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
 from rich.console import Console
-from shapely import from_wkt
+from shapely import box, from_wkt
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
+    MissingOsmCacheWarning,
     OsmExtractIndexOutdatedWarning,
     OsmExtractMultipleMatchesError,
     OsmExtractZeroMatchesError,
@@ -27,7 +28,12 @@ from quackosm.osm_extracts import (
     find_smallest_containing_extracts_total,
     get_extract_by_query,
 )
-from quackosm.osm_extracts.extract import _get_full_file_name_function, _get_global_cache_file_path
+from quackosm.osm_extracts.extract import (
+    OpenStreetMapExtract,
+    _get_full_file_name_function,
+    _get_global_cache_file_path,
+    _get_local_cache_file_path,
+)
 from quackosm.osm_extracts.geofabrik import _load_geofabrik_index
 
 ut = TestCase()
@@ -403,3 +409,44 @@ def test_extracts_tree_printing(
         )
 
     assert error_output == ""
+
+
+def test_generate_index_warning(mocker: MockerFixture) -> None:
+    """Test if index generation results in warning."""
+    extract_source = OsmExtractSource.bbbike
+    global_path = _get_global_cache_file_path(extract_source)
+    local_path = _get_local_cache_file_path(extract_source)
+
+    move_global_path = global_path.exists()
+    move_local_path = local_path.exists()
+
+    if move_global_path:
+        global_moved_path = global_path.with_name("bbbike_index_moved.geojson")
+        global_path.rename(global_moved_path)
+
+    if move_local_path:
+        local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
+        local_path.rename(local_moved_path)
+
+    try:
+        mocker.patch(
+            "quackosm.osm_extracts.bbbike._iterate_bbbike_index",
+            return_value=[
+                OpenStreetMapExtract(
+                    id="bbbike_test",
+                    name="test",
+                    parent="bbbike",
+                    url="test_url",
+                    geometry=box(0, 0, 1, 1),
+                )
+            ],
+        )
+        with pytest.warns(MissingOsmCacheWarning):
+            display_available_extracts(source=extract_source)
+
+    finally:
+        if move_global_path:
+            global_moved_path.rename(global_path)
+
+        if move_local_path:
+            local_moved_path.rename(local_path)

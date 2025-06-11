@@ -50,25 +50,9 @@ def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:  # pragma: no cover
             OsmExtractSource.osm_fr.value, "/", pbar
         )
         pbar.set_description(OsmExtractSource.osm_fr.value)
-        for soup_object, id_prefix, directory_url in extract_soup_objects:
-            link = soup_object.find_parent("tr").find("a")
-            name = link.text.replace("-latest.osm.pbf", "")
-            polygon = parse_polygon_file(
-                f"{OPENSTREETMAP_FR_POLYGONS_INDEX_URL}/{directory_url}{name}.poly"
-            )
-            if polygon is None:
-                continue
-            extracts.append(
-                OpenStreetMapExtract(
-                    id=f"{id_prefix}_{name}",
-                    name=name,
-                    parent=id_prefix,
-                    url=f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}{link['href']}",
-                    geometry=polygon,
-                )
-            )
-            pbar.set_description_str(id_prefix)
-            pbar.update()
+        extracts = _parse_openstreetmap_fr_urls(
+            pbar=pbar, extract_soup_objects=extract_soup_objects
+        )
 
     gdf = extracts_to_geodataframe(extracts)
 
@@ -122,3 +106,31 @@ def _gather_all_openstreetmap_fr_urls(
         )
 
     return extract_soup_objects
+
+
+def _parse_openstreetmap_fr_urls(
+    pbar: tqdm, extract_soup_objects: list[Any]
+) -> list[OpenStreetMapExtract]:
+    extracts = []
+
+    for soup_object, id_prefix, directory_url in extract_soup_objects:
+        link = soup_object.find_parent("tr").find("a")
+        name = link.text.replace("-latest.osm.pbf", "")
+        polygon = parse_polygon_file(
+            f"{OPENSTREETMAP_FR_POLYGONS_INDEX_URL}/{directory_url}{name}.poly"
+        )
+        if polygon is None:
+            continue
+        extracts.append(
+            OpenStreetMapExtract(
+                id=f"{id_prefix}_{name}",
+                name=name,
+                parent=id_prefix,
+                url=f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}{link['href']}",
+                geometry=polygon,
+            )
+        )
+        pbar.set_description_str(id_prefix)
+        pbar.update()
+
+    return extracts
