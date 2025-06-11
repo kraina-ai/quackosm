@@ -1,11 +1,13 @@
 """Tests related to OSM extracts."""
 
+import datetime
 from contextlib import nullcontext as does_not_raise
 from typing import Any
 from unittest import TestCase
 
 import pandas as pd
 import pytest
+from dateutil.relativedelta import relativedelta
 from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
 from rich.console import Console
@@ -16,6 +18,7 @@ from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
     MissingOsmCacheWarning,
+    OldOsmCacheWarning,
     OsmExtractIndexOutdatedWarning,
     OsmExtractMultipleMatchesError,
     OsmExtractZeroMatchesError,
@@ -450,3 +453,34 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
 
         if move_local_path:
             local_moved_path.rename(local_path)
+
+
+def test_old_index_warning(mocker: MockerFixture) -> None:
+    """Test if old index results in warning."""
+    extract_source = OsmExtractSource.bbbike
+    local_path = _get_local_cache_file_path(extract_source)
+
+    local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
+    local_moved_path.write_text(local_path.read_text())
+
+    try:
+        mocker.patch(
+            "quackosm.osm_extracts.bbbike._iterate_bbbike_index",
+            return_value=[
+                OpenStreetMapExtract(
+                    id="bbbike_test",
+                    name="test",
+                    parent="bbbike",
+                    url="test_url",
+                    geometry=box(0, 0, 1, 1),
+                )
+            ],
+        )
+        mocker.patch(
+            "quackosm.osm_extracts.extract._get_file_creation_date",
+            return_value=datetime.datetime.now() - relativedelta(years=1, days=1),
+        )
+        with pytest.warns(OldOsmCacheWarning):
+            display_available_extracts(source=extract_source)
+    finally:
+        local_moved_path.rename(local_path)

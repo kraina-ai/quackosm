@@ -122,7 +122,7 @@ def load_index_decorator(
 
             global_cache_file_older_than_year = (
                 datetime.now() - relativedelta(years=1)
-            ) > datetime.fromtimestamp(global_cache_file_path.stat().st_ctime)
+            ) > _get_file_creation_date(global_cache_file_path)
 
             if global_cache_file_older_than_year:
                 warnings.warn(
@@ -156,7 +156,6 @@ def clear_osm_index_cache() -> None: ...
 @overload
 def clear_osm_index_cache(extract_source: OsmExtractSource) -> None: ...
 
-# TODO: add tests and changelog entry
 def clear_osm_index_cache(extract_source: Optional[OsmExtractSource] = None) -> None:
     """Clear cached osm index."""
     if extract_source is not None:
@@ -215,3 +214,7 @@ def _get_full_file_name_function(index: "DataFrame") -> Callable[[str], str]:
         return "_".join(parts[::-1])
 
     return inner_function
+
+
+def _get_file_creation_date(path: Path) -> datetime:
+    return datetime.fromtimestamp(path.stat().st_ctime)
