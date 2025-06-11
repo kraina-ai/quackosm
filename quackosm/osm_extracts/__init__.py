@@ -32,7 +32,11 @@ from quackosm._exceptions import (
 )
 from quackosm._rich_progress import FORCE_TERMINAL
 from quackosm.osm_extracts.bbbike import _get_bbbike_index
-from quackosm.osm_extracts.extract import OpenStreetMapExtract, OsmExtractSource
+from quackosm.osm_extracts.extract import (
+    OpenStreetMapExtract,
+    OsmExtractSource,
+    clear_osm_index_cache,
+)
 from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
@@ -46,6 +50,7 @@ __all__ = [
     "find_smallest_containing_geofabrik_extracts",
     "find_smallest_containing_openstreetmap_fr_extracts",
     "find_smallest_containing_bbbike_extracts",
+    "clear_osm_index_cache",
     "get_extract_by_query",
     "download_extract_by_query",
     "display_available_extracts",

@@ -68,7 +68,7 @@ build-backend = "pdm.backend"
 [tool.pdm]
 [tool.pdm.dev-dependencies]
 # pdm add -d <library>
-dev = ["bumpver", "types-requests", "setuptools>=45.0.0"]
+dev = ["bumpver", "types-requests", "types-python-dateutil", "setuptools>=45.0.0"]
 # pdm add -dG lint <library>
 lint = ["pre-commit>=4", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>

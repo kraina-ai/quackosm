@@ -2,14 +2,16 @@
 
 import warnings
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, cast
+from typing import TYPE_CHECKING, Callable, Optional, cast, overload
 
 import platformdirs
+from dateutil.relativedelta import relativedelta
 
 from quackosm._constants import WGS84_CRS
-from quackosm._exceptions import MissingOsmCacheWarning
+from quackosm._exceptions import MissingOsmCacheWarning, OldOsmCacheWarning
 
 if TYPE_CHECKING:  # pragma: no cover
     from geopandas import GeoDataFrame
@@ -118,6 +120,19 @@ def load_index_decorator(
                 global_cache_file_path.parent.mkdir(parents=True, exist_ok=True)
                 index_gdf[expected_columns].to_file(global_cache_file_path, driver="GeoJSON")
 
+            global_cache_file_older_than_year = (
+                datetime.now() - relativedelta(years=1)
+            ) > datetime.fromtimestamp(global_cache_file_path.stat().st_ctime)
+
+            if global_cache_file_older_than_year:
+                warnings.warn(
+                    f"Existing {extract_source} cache index is older than one year."
+                    " Cache can be cleared using"
+                    " quackosm.osm_extracts.clear_osm_index_cache function.",
+                    OldOsmCacheWarning,
+                    stacklevel=0,
+                )
+
             return index_gdf
 
         return wrapper
@@ -132,6 +147,31 @@ def extracts_to_geodataframe(extracts: list[OpenStreetMapExtract]) -> "GeoDataFr
     return gpd.GeoDataFrame(
         data=[asdict(extract) for extract in extracts], geometry="geometry"
     ).set_crs(WGS84_CRS)
+
+
+@overload
+def clear_osm_index_cache() -> None: ...
+
+
+@overload
+def clear_osm_index_cache(extract_source: OsmExtractSource) -> None: ...
+
+# TODO: add tests and changelog entry
+def clear_osm_index_cache(extract_source: Optional[OsmExtractSource] = None) -> None:
+    """Clear cached osm index."""
+    if extract_source is not None:
+        extract_sources = [extract_source]
+    else:
+        extract_sources = [
+            _source for _source in OsmExtractSource if _source != OsmExtractSource.any
+        ]
+
+    for _source in extract_sources:
+        for path in (
+            _get_local_cache_file_path(_source),
+            _get_global_cache_file_path(_source),
+        ):
+            path.unlink(missing_ok=True)
 
 
 def _get_global_cache_file_path(extract_source: OsmExtractSource) -> Path:
