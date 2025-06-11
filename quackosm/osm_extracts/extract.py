@@ -126,8 +126,8 @@ def load_index_decorator(
 
             if global_cache_file_older_than_year:
                 warnings.warn(
-                    f"Existing {extract_source} cache index is older than one year."
-                    " Cache can be cleared using"
+                    f"Existing {extract_source} cache index is older than one year"
+                    " and it can be outdated. Cache can be cleared using the"
                     " quackosm.osm_extracts.clear_osm_index_cache function.",
                     OldOsmCacheWarning,
                     stacklevel=0,
