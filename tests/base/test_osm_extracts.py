@@ -452,9 +452,11 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
 
     finally:
         if move_global_path:
+            global_path.unlink(missing_ok=True)
             global_moved_path.rename(global_path)
 
         if move_local_path:
+            local_path.unlink(missing_ok=True)
             local_moved_path.rename(local_path)
 
 
