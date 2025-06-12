@@ -461,33 +461,26 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
 def test_old_index_warning(mocker: MockerFixture) -> None:
     """Test if old index results in warning."""
     extract_source = OsmExtractSource.bbbike
-    local_path = _get_local_cache_file_path(extract_source)
 
-    local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
-    local_moved_path.write_text(local_path.read_text())
+    mocker.patch(
+        "quackosm.osm_extracts.bbbike._iterate_bbbike_index",
+        return_value=[
+            OpenStreetMapExtract(
+                id="bbbike_test",
+                name="test",
+                parent="bbbike",
+                url="test_url",
+                geometry=box(0, 0, 1, 1),
+            )
+        ],
+    )
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_file_creation_date",
+        return_value=datetime.datetime.now() - relativedelta(years=1, days=1),
+    )
+    mocker.patch(
+        "quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None
+    )
 
-    try:
-        mocker.patch(
-            "quackosm.osm_extracts.bbbike._iterate_bbbike_index",
-            return_value=[
-                OpenStreetMapExtract(
-                    id="bbbike_test",
-                    name="test",
-                    parent="bbbike",
-                    url="test_url",
-                    geometry=box(0, 0, 1, 1),
-                )
-            ],
-        )
-        mocker.patch(
-            "quackosm.osm_extracts.extract._get_file_creation_date",
-            return_value=datetime.datetime.now() - relativedelta(years=1, days=1),
-        )
-        mocker.patch(
-            "quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None
-        )
-
-        with pytest.warns(OldOsmCacheWarning):
-            display_available_extracts(source=extract_source)
-    finally:
-        local_moved_path.rename(local_path)
+    with pytest.warns(OldOsmCacheWarning):
+        display_available_extracts(source=extract_source)
