@@ -26,6 +26,7 @@ from quackosm._exceptions import (
 from quackosm.geocode import geocode_to_geometry
 from quackosm.osm_extracts import (
     OsmExtractSource,
+    clear_osm_index_cache,
     display_available_extracts,
     find_smallest_containing_extracts,
     find_smallest_containing_extracts_total,
@@ -454,10 +455,12 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
         if move_global_path:
             global_path.unlink(missing_ok=True)
             global_moved_path.rename(global_path)
+            global_moved_path.unlink(missing_ok=True)
 
         if move_local_path:
             local_path.unlink(missing_ok=True)
             local_moved_path.rename(local_path)
+            local_moved_path.unlink(missing_ok=True)
 
 
 def test_old_index_warning(mocker: MockerFixture) -> None:
@@ -486,3 +489,33 @@ def test_old_index_warning(mocker: MockerFixture) -> None:
 
     with pytest.warns(OldOsmCacheWarning):
         display_available_extracts(source=extract_source)
+
+def test_cache_clearing() -> None:
+    """Test if cache clearing works."""
+    extract_source = OsmExtractSource.bbbike
+    global_path = _get_global_cache_file_path(extract_source)
+    local_path = _get_local_cache_file_path(extract_source)
+
+    move_global_path = global_path.exists()
+    move_local_path = local_path.exists()
+
+    if move_global_path:
+        global_moved_path = global_path.with_name("bbbike_index_moved.geojson")
+        global_path.rename(global_moved_path)
+
+    if move_local_path:
+        local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
+        local_path.rename(local_moved_path)
+
+    clear_osm_index_cache(extract_source)
+
+    assert not global_path.exists()
+    assert not local_path.exists()
+
+    if move_global_path:
+        global_moved_path.rename(global_path)
+        global_moved_path.unlink(missing_ok=True)
+
+    if move_local_path:
+        local_moved_path.rename(local_path)
+        local_moved_path.unlink(missing_ok=True)
