@@ -214,4 +214,5 @@ ignore_packages = [
     'python-geohash',       # uses both MIT and Apache-2.0 licenses, has mismatched license in analysis
     'referencing',          # uses MIT license, has mismatched license in analysis
     'typing-extensions',    # uses ZERO-CLAUSE BSD LICENSE, has mismatched license in analysis
+    'mypy-extensions',      # uses MIT license, has mismatched license in analysis
 ]
