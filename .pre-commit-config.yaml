@@ -25,7 +25,7 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
-        additional_dependencies: ['types-requests', 'types-six']
+        additional_dependencies: ['types-requests', 'types-six', 'types-python-dateutil']
   - repo: https://github.com/pdm-project/pdm
     rev: 2.22.0
     hooks:

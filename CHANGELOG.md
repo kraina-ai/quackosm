@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `MissingOsmCacheWarning` for the user to let him know that OSM index has to be built and the source can be switched to Geofabrik [#213](https://github.com/kraina-ai/quackosm/issues/213)
+- `MissingOsmCacheWarning` for the user to inform that OSM index has to be built and the source can be switched to Geofabrik [#213](https://github.com/kraina-ai/quackosm/issues/213)
+- `OldOsmCacheWarning` for the user to inform that currently saved cache is over 1 year old and it can be outdated [#213](https://github.com/kraina-ai/quackosm/issues/213)
 
 ### Changed
 
