@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.2] - 2025-06-14
+
 ### Added
 
 - `MissingOsmCacheWarning` for the user to inform that OSM index has to be built and the source can be switched to Geofabrik [#213](https://github.com/kraina-ai/quackosm/issues/213)
@@ -477,7 +479,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.14.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.14.2...HEAD
+
+[0.14.2]: https://github.com/kraina-ai/quackosm/compare/0.14.1...0.14.2
 
 [0.14.1]: https://github.com/kraina-ai/quackosm/compare/0.14.0...0.14.1
 
