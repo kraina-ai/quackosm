@@ -51,6 +51,7 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 cli = [
     "typer[all]>=0.9.0",
     "python-geohash>=0.8",
+    "duckdb>=1.2.0,<=1.3.0",
 ]
 
 [project.scripts]

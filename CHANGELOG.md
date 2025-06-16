@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed `h3` and `s2` dependencies from the `cli` group and replaced them with `h3` and `geography` DuckDB extensions
 - Bumped minimal version of DuckDB to `1.2.0` for the `geography` extension
+- Set maximal version of DuckDB to `1.3.0` for the `geography` extension for the `cli` dependency group
 - Applied changes required for the `conda` release [#142](https://github.com/kraina-ai/quackosm/issues/142) [#217](https://github.com/kraina-ai/quackosm/issues/217)
 
 ### Removed

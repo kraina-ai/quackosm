@@ -5,7 +5,7 @@
 groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:e8f98f86495c0f29f20e15488a14af4ec1f40a7b6b78aca0b632ee640fab81d0"
+content_hash = "sha256:2c3824849d1539520fcd1001dd5884e8d54173e8faaf395405d9612994524db1"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -866,7 +866,7 @@ name = "duckdb"
 version = "1.2.2"
 requires_python = ">=3.7.0"
 summary = "DuckDB in-process database"
-groups = ["default"]
+groups = ["default", "cli"]
 files = [
     {file = "duckdb-1.2.2-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:6e5e6c333b550903ff11919ed1154c60c9b9d935db51afdb263babe523a8a69e"},
     {file = "duckdb-1.2.2-cp310-cp310-macosx_12_0_universal2.whl", hash = "sha256:c1fcbc579de8e4fa7e34242fd6f419c1a39520073b1fe0c29ed6e60ed5553f38"},
