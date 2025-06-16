@@ -217,12 +217,12 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
 @P.case(
     "Geometry H3 filter",
     ["--geom-filter-index-h3", "8a3969a40ac7fff"],
-    "files/monaco_nofilter_a2f8d511_compact_sorted.parquet",
+    "files/monaco_nofilter_01d82ad1_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
     ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
-    "files/monaco_nofilter_e50e6489_compact_sorted.parquet",
+    "files/monaco_nofilter_c3252c58_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
@@ -337,12 +337,12 @@ def test_proper_args_with_pbf(
 @P.case(
     "Geometry H3 filter",
     ["--geom-filter-index-h3", "8a3969a40ac7fff"],
-    "files/a2f8d511_nofilter_compact_sorted.parquet",
+    "files/01d82ad1_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry H3 filter multiple",
     ["--geom-filter-index-h3", "8a3969a40ac7fff,893969a4037ffff"],
-    "files/e50e6489_nofilter_compact_sorted.parquet",
+    "files/c3252c58_nofilter_compact_sorted.parquet",
 )  # type: ignore
 @P.case(
     "Geometry S2 filter",
