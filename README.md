@@ -100,7 +100,9 @@ Optional:
 
 - `typer[all] (>=0.9.0)` (click, colorama, rich, shellingham): Required in CLI
 
-- `h3` and `geography` extensions for `duckdb`: For transforming H3 and S2 indexes into geometries. Required in CLI
+- `h3` extension for `duckdb`: For transforming H3 indexes into geometries. Required in CLI
+
+- `s2sphere (>=0.2.5)`: For transforming S2 indexes into geometries. Required in CLI
 
 - `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries. Required in CLI
 

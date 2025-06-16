@@ -223,27 +223,25 @@ class S2GeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        import duckdb
         import geopandas as gpd
-        from shapely import from_wkb
-
-        duckdb.install_extension("geography", repository="community")
-        duckdb.load_extension("geography")
+        import s2sphere
+        from shapely import Polygon
 
         geometries = []  # noqa: FURB138
         for s2_index in value.split(","):
             stripped_s2_index = s2_index.strip()
-            parsed_geometry = from_wkb(
-                duckdb.sql(
-                    f"SELECT s2_aswkb(s2_cell_from_token('{stripped_s2_index}'))"
-                ).fetchone()[0]
-            )
-            if parsed_geometry.is_empty:
+            try:
+                s2_cell = s2sphere.Cell(s2sphere.CellId.from_token(stripped_s2_index))
+                points = [
+                    s2sphere.LatLng.from_point(s2_cell.get_vertex(i)) for i in [0, 1, 2, 3, 0]
+                ]
+                geometries.append(
+                    Polygon([[point.lng().degrees, point.lat().degrees] for point in points])
+                )
+            except Exception:
                 raise typer.BadParameter(
                     f"Cannot parse provided S2 value: {stripped_s2_index}"
                 ) from None
-
-            geometries.append(parsed_geometry)
 
         if not GEOPANDAS_NEW_API:
             return gpd.GeoSeries(geometries).unary_union
