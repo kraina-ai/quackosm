@@ -21,7 +21,7 @@ from quackosm.osm_extracts import display_available_extracts
 from quackosm.pbf_file_reader import PbfFileReader
 
 __app_name__ = "QuackOSM"
-__version__ = "0.14.2"
+__version__ = "0.15.0"
 
 __all__ = [
     "PbfFileReader",
