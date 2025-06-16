@@ -70,7 +70,7 @@ QuackOSM supports **Python >= 3.9**
 
 Required:
 
-- `duckdb (>=1.1.2)`: For all DuckDB operations on PBF files and sorting result file
+- `duckdb (>=1.1.2)`: For all DuckDB operations on PBF files and sorting result file (with `spatial` extension)
 
 - `pyarrow (>=16.0.0)`: For parquet files wrangling
 
@@ -102,9 +102,7 @@ Optional:
 
 - `typer[all] (>=0.9.0)` (click, colorama, rich, shellingham): Required in CLI
 
-- `h3 (>=4.0.0b1)`: For reading H3 strings. Required in CLI
-
-- `s2 (>=0.1.9)`: For transforming S2 indexes into geometries. Required in CLI
+- `h3` and `geography` extensions for `duckdb`: For transforming H3 and S2 indexes into geometries. Required in CLI
 
 - `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries. Required in CLI
 

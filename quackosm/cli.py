@@ -186,22 +186,31 @@ class H3GeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        try:
-            import geopandas as gpd
-            import h3
-            from shapely.geometry import Polygon
+        import duckdb
+        import geopandas as gpd
+        from shapely import from_wkt
 
-            geometries = []  # noqa: FURB138
-            for h3_cell in value.split(","):
-                geometries.append(
-                    Polygon([coords[::-1] for coords in h3.cell_to_boundary(h3_cell.strip())])
-                )
-            if GEOPANDAS_NEW_API:
-                return gpd.GeoSeries(geometries).union_all()
-            else:
-                return gpd.GeoSeries(geometries).unary_union
-        except Exception as ex:
-            raise typer.BadParameter(f"Cannot parse provided H3 values: {value}") from ex
+        duckdb.install_extension("h3", repository="community")
+        duckdb.load_extension("h3")
+
+        geometries = []  # noqa: FURB138
+        for h3_index in value.split(","):
+            stripped_h3_index = h3_index.strip()
+            if not duckdb.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')").fetchone()[0]:
+                raise typer.BadParameter(
+                    f"Cannot parse provided H3 value: {stripped_h3_index}"
+                ) from None
+
+            parsed_geometry = from_wkt(
+                duckdb.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')").fetchone()[0]
+            )
+
+            geometries.append(parsed_geometry)
+
+        if GEOPANDAS_NEW_API:
+            return gpd.GeoSeries(geometries).union_all()
+        else:
+            return gpd.GeoSeries(geometries).unary_union
 
 
 class S2GeometryParser(click.ParamType):  # type: ignore
@@ -214,22 +223,32 @@ class S2GeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        try:
-            import geopandas as gpd
-            from s2 import s2
-            from shapely.geometry import Polygon
+        import duckdb
+        import geopandas as gpd
+        from shapely import from_wkb
 
-            geometries = []  # noqa: FURB138
-            for s2_index in value.split(","):
-                geometries.append(
-                    Polygon(s2.s2_to_geo_boundary(s2_index.strip(), geo_json_conformant=True))
-                )
-            if GEOPANDAS_NEW_API:
-                return gpd.GeoSeries(geometries).union_all()
-            else:
-                return gpd.GeoSeries(geometries).unary_union
-        except Exception:
-            raise typer.BadParameter(f"Cannot parse provided S2 value: {s2_index}") from None
+        duckdb.install_extension("geography", repository="community")
+        duckdb.load_extension("geography")
+
+        geometries = []  # noqa: FURB138
+        for s2_index in value.split(","):
+            stripped_s2_index = s2_index.strip()
+            parsed_geometry = from_wkb(
+                duckdb.sql(
+                    f"SELECT s2_aswkb(s2_cell_from_token('{stripped_s2_index}'))"
+                ).fetchone()[0]
+            )
+            if parsed_geometry.is_empty:
+                raise typer.BadParameter(
+                    f"Cannot parse provided S2 value: {stripped_s2_index}"
+                ) from None
+
+            geometries.append(parsed_geometry)
+
+        if GEOPANDAS_NEW_API:
+            return gpd.GeoSeries(geometries).union_all()
+        else:
+            return gpd.GeoSeries(geometries).unary_union
 
 
 class OsmTagsFilterJsonParser(click.ParamType):  # type: ignore
