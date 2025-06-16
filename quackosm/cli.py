@@ -207,10 +207,10 @@ class H3GeometryParser(click.ParamType):  # type: ignore
 
             geometries.append(parsed_geometry)
 
-        if GEOPANDAS_NEW_API:
-            return gpd.GeoSeries(geometries).union_all()
-        else:
+        if not GEOPANDAS_NEW_API:
             return gpd.GeoSeries(geometries).unary_union
+
+        return gpd.GeoSeries(geometries).union_all()
 
 
 class S2GeometryParser(click.ParamType):  # type: ignore
@@ -245,10 +245,10 @@ class S2GeometryParser(click.ParamType):  # type: ignore
 
             geometries.append(parsed_geometry)
 
-        if GEOPANDAS_NEW_API:
-            return gpd.GeoSeries(geometries).union_all()
-        else:
+        if not GEOPANDAS_NEW_API:
             return gpd.GeoSeries(geometries).unary_union
+
+        return gpd.GeoSeries(geometries).union_all()
 
 
 class OsmTagsFilterJsonParser(click.ParamType):  # type: ignore
