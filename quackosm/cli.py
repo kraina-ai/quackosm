@@ -233,7 +233,7 @@ class S2GeometryParser(click.ParamType):  # type: ignore
             try:
                 s2_cell = s2sphere.Cell(s2sphere.CellId.from_token(stripped_s2_index))
                 points = [
-                    s2sphere.LatLng.from_point(s2_cell.get_vertex(i)) for i in [0, 1, 2, 3, 0]
+                    s2sphere.LatLng.from_point(s2_cell.get_vertex(i)) for i in (0, 1, 2, 3, 0)
                 ]
                 geometries.append(
                     Polygon([[point.lng().degrees, point.lat().degrees] for point in points])
