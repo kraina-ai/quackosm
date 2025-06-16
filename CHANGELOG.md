@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed `h3` and `s2` dependencies from the `cli` group and replaced them with `h3` and `geography` DuckDB extensions
 
+### Removed
+
+- `geoarrow-pandas` from dependencies
+
 ## [0.14.2] - 2025-06-14
 
 ### Added

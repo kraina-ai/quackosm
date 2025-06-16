@@ -300,7 +300,11 @@ def test_combining_files_different_techniques(
             debug_times=True,
             verbosity_mode="verbose",
         )
-        assert gpd.read_parquet(result).set_index("feature_id").index.is_unique
+        assert (
+            pd.read_parquet(result, columns=[FEATURES_INDEX])
+            .set_index(FEATURES_INDEX)
+            .index.is_unique
+        )
 
         tab = pq.read_table(result)
         assert b"geo" in tab.schema.metadata
