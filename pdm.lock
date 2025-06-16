@@ -5,7 +5,7 @@
 groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:550d4a0edaa47f2d9fee9f15cfa9ee5da5ce7156f77701aee03524fb76d9f1f0"
+content_hash = "sha256:f75ab3e40e15efaa383d01461aa2512ca5b8280ee55bf7011f10c6c16a60bb53"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -1197,22 +1197,6 @@ files = [
     {file = "geoarrow_c-0.1.2-pp39-pypy39_pp73-manylinux_2_12_i686.manylinux2010_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:3e8185af88bbf852f8de43f10c3fbfbf37e0a80b238770f224adbf4d427bfd71"},
     {file = "geoarrow_c-0.1.2-pp39-pypy39_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d9a93d1b348aea2177989c346476fdd9476cde380309ece10909ace3fceb0162"},
     {file = "geoarrow_c-0.1.2-pp39-pypy39_pp73-win_amd64.whl", hash = "sha256:10973c80c774f22d598eb034930452355a272abe1fdf011fec05c0db63922a21"},
-]
-
-[[package]]
-name = "geoarrow-pandas"
-version = "0.1.1"
-requires_python = ">=3.8"
-summary = ""
-groups = ["default"]
-dependencies = [
-    "geoarrow-pyarrow",
-    "pandas",
-    "pyarrow",
-]
-files = [
-    {file = "geoarrow-pandas-0.1.1.tar.gz", hash = "sha256:feb909eb5f5b98addc9bbb7e34d73208a43ec74df68d02f94aa2b54bab52aa50"},
-    {file = "geoarrow_pandas-0.1.1-py3-none-any.whl", hash = "sha256:85413f2a9fb8468f04d02bb7c167ebb1caa6b78c683997bcdf89b3274713be44"},
 ]
 
 [[package]]
