@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2025-06-16
+
 ### Changed
 
-- Removed `h3` and `s2` dependencies from the `cli` group and replaced them with `h3` and `geography` DuckDB extensions
+- Removed `h3` and `s2` dependencies from the `cli` group and replaced them with `h3` DuckDB extension and `s2sphere` Python library
+- Applied changes required for the `conda` release [#142](https://github.com/kraina-ai/quackosm/issues/142) [#217](https://github.com/kraina-ai/quackosm/issues/217)
 
 ### Removed
 
@@ -487,7 +490,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.14.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.15.0...HEAD
+
+[0.15.0]: https://github.com/kraina-ai/quackosm/compare/0.14.2...0.15.0
 
 [0.14.2]: https://github.com/kraina-ai/quackosm/compare/0.14.1...0.14.2
 

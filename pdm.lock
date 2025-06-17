@@ -5,7 +5,7 @@
 groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:2d55026868e87c9656fe5f7d4e845e151fa0574f971bd06ee48fedd66d856578"
+content_hash = "sha256:cb7e3723c73df9e863777644990ea0463ada56260c90be05d394691b5e148126"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -1061,6 +1061,17 @@ dependencies = [
 files = [
     {file = "fqdn-1.5.1-py3-none-any.whl", hash = "sha256:3a179af3761e4df6eb2e026ff9e1a3033d3587bf980a0b1b2e1e5d08d7358014"},
     {file = "fqdn-1.5.1.tar.gz", hash = "sha256:105ed3677e767fb5ca086a0c1f4bb66ebc3c100be518f0e0d755d9eae164d89f"},
+]
+
+[[package]]
+name = "future"
+version = "1.0.0"
+requires_python = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
+summary = "Clean single-source support for Python 3 and 2"
+groups = ["cli"]
+files = [
+    {file = "future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216"},
+    {file = "future-1.0.0.tar.gz", hash = "sha256:bd2968309307861edae1458a4f8a4f3598c03be43b97521076aebf5d94c07b05"},
 ]
 
 [[package]]
@@ -3981,6 +3992,19 @@ files = [
     {file = "ruff-0.11.8-py3-none-win_amd64.whl", hash = "sha256:6e70d11043bef637c5617297bdedec9632af15d53ac1e1ba29c448da9341b0c4"},
     {file = "ruff-0.11.8-py3-none-win_arm64.whl", hash = "sha256:304432e4c4a792e3da85b7699feb3426a0908ab98bf29df22a31b0cdd098fac2"},
     {file = "ruff-0.11.8.tar.gz", hash = "sha256:6d742d10626f9004b781f4558154bb226620a7242080e11caeffab1a40e99df8"},
+]
+
+[[package]]
+name = "s2sphere"
+version = "0.2.5"
+summary = "Python implementation of the S2 Geometry Library"
+groups = ["cli"]
+dependencies = [
+    "future>=0.15",
+]
+files = [
+    {file = "s2sphere-0.2.5-py2.py3-none-any.whl", hash = "sha256:d2340c9cf458ddc9a89afd1d8048a4195ce6fa6b0095ab900d4be5271e537401"},
+    {file = "s2sphere-0.2.5.tar.gz", hash = "sha256:c2478c1ff7c601a59a7151a57b605435897514578fa6bdb8730721c182adbbaf"},
 ]
 
 [[package]]
