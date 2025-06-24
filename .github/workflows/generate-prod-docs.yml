@@ -9,7 +9,7 @@ jobs:
       contents: write
     env:
       MKDOCS_EXECUTE_JUPYTER: false # execution is done before rendering documentation
-      MKDOCS_DEV: true
+      MKDOCS_DEV: false
       MKDOCS_GENERATE_SOCIAL_CARDS: true
       FORCE_TERMINAL_MODE: true
     steps:
