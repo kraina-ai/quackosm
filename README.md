@@ -28,7 +28,8 @@ An open-source tool for reading OpenStreetMap PBF files using DuckDB.
 - Saves files in the `GeoParquet`[^3] file format for easier integration with modern cloud stacks.
 - Utilizes multithreading unlike GDAL that works in a single thread only.
 - Can filter data based on geometry without the need for `ogr2ogr` clipping before operation.
-- Can filter data based on OSM tags.
+- Can filter data based on OSM tags (with negations and wildcards).
+- Can automatically download required PBF files for a given geometry.
 - Utilizes caching to reduce repeatable computations.
 - Can be used as Python module as well as a beautiful CLI based on `Typer`[^4].
 
