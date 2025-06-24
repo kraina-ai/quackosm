@@ -3,7 +3,7 @@ on: workflow_dispatch
 
 jobs:
   generate-docs-test:
-    name: Generate latest library 📚 documentation 📄
+    name: Generate latest library 📚 documentation 📄 (dev)
     runs-on: ubuntu-latest
     permissions:
       contents: write
