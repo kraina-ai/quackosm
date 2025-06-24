@@ -1,4 +1,4 @@
-name: "Publish docs on demand - DEV"
+name: "Publish docs on demand - PROD (latest tag)"
 on: workflow_dispatch
 
 jobs:
@@ -20,99 +20,96 @@ jobs:
       - name: 'Get Previous tag'
         id: previoustag
         uses: "WyriHaximus/github-action-get-previous-tag@v1"
-      # - name: Get Google access token
-      #   id: google-access-token
-      #   uses: playeveryware/action-google-access-token@v1
-      #   with:
-      #     credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
-      #     scope: 'https://www.googleapis.com/auth/drive.readonly'
-      # - name: Download file from Google drive
-      #   uses: playeveryware/action-google-drive-download@v1
-      #   with:
-      #     token: ${{ steps.google-access-token.outputs.token }}
-      #     file-id: 1LxapCQ07CdUsCmTSWnUMMNUioc777pk6
-      #     path: example_files.zip
-      # - name: Extract zip files
-      #   uses: ihiroky/extract-action@v1
-      #   with:
-      #     file_path: example_files.zip
-      #     extract_dir: 'example_files'
-      # - uses: jannekem/run-python-script-action@v1
-      #   name: Move files and remove zip
-      #   with:
-      #     script: |
-      #       from pathlib import Path
-      #       src_dir = Path("example_files")
-      #       for each_file in src_dir.rglob('*.*'):
-      #           trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
-      #           print("Moving file", each_file, trg_path)
-      #           trg_path.parent.mkdir(exist_ok=True, parents=True)
-      #           each_file.rename(trg_path)
-      #       Path('example_files.zip').unlink()
-      # - name: Setup Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: "3.10"
-      # - uses: actions/cache@v3
-      #   with:
-      #     path: ~/.cache/pip
-      #     key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/pdm.lock') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-pip-dev-
-      # - name: Install pdm
-      #   run: pip install pdm uv
-      # - name: Regenerate lock with environment markers
-      #   run: pdm lock --update-reuse --strategy inherit_metadata
-      # - name: Generate requirements.txt
-      #   run: pdm export --no-default -G docs -G visualization -G cli-dev -f requirements -o requirements.txt
-      # - name: Install dependencies
-      #   run: uv pip install --no-deps -r requirements.txt --system
-      # - name: Install quackosm
-      #   run: |
-      #     pdm build -v -d dist
-      #     uv pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
-      # - name: Configure Git user
-      #   run: |
-      #     git config --local user.email "github-actions[bot]@users.noreply.github.com"
-      #     git config --local user.name "github-actions[bot]"
-      # - name: Cache OSM data
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: "**/cache"
-      #     key: mkdocs-osm-dev-cache-${{ runner.os }}
-      # - name: Prepare DuckDB dependency
-      #   run: |
-      #     wget https://github.com/duckdb/duckdb/releases/download/v0.10.2/duckdb_cli-linux-amd64.zip
-      #     unzip duckdb_cli-linux-amd64.zip
-      #     chmod a+x ./duckdb
-      # - name: Test required commands
-      #   run: |
-      #     ./duckdb :memory: "SELECT 1"
-      #     QuackOSM -h
-      # - name: Execute jupyter notebooks
-      #   run: |
-      #     mv ./duckdb ./examples/duckdb
-      #     jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
-      #     rm ./examples/duckdb
-      # - uses: jannekem/run-python-script-action@v1
-      #   name: Replace copyright date
-      #   with:
-      #     script: |
-      #       import time
-      #       file_name = "mkdocs.yml"
-      #       with open(file_name) as f:
-      #           data = f.read().replace('{current_year}', time.strftime("%Y"))
-      #       with open(file_name, "w") as f:
-      #           f.write(data)
-      # - name: Create remote for quackosm-docs repository
-      #   run: git remote add origin-quackosm-docs https://github.com/kraina-ai/quackosm-docs
-      # - name: Fetch gh-pages branch
-      #   run: git fetch origin-quackosm-docs gh-pages --depth=1
-      # - name: Publish dev documentation
-      #   run: mike deploy --remote origin-quackosm-docs --push dev
+      - name: Get Google access token
+        id: google-access-token
+        uses: playeveryware/action-google-access-token@v1
+        with:
+          credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
+          scope: 'https://www.googleapis.com/auth/drive.readonly'
+      - name: Download file from Google drive
+        uses: playeveryware/action-google-drive-download@v1
+        with:
+          token: ${{ steps.google-access-token.outputs.token }}
+          file-id: 1LxapCQ07CdUsCmTSWnUMMNUioc777pk6
+          path: example_files.zip
+      - name: Extract zip files
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: example_files.zip
+          extract_dir: 'example_files'
+      - uses: jannekem/run-python-script-action@v1
+        name: Move files and remove zip
+        with:
+          script: |
+            from pathlib import Path
+            src_dir = Path("example_files")
+            for each_file in src_dir.rglob('*.*'):
+                trg_path = Path.cwd().joinpath(each_file.relative_to(src_dir))
+                print("Moving file", each_file, trg_path)
+                trg_path.parent.mkdir(exist_ok=True, parents=True)
+                each_file.rename(trg_path)
+            Path('example_files.zip').unlink()
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/pdm.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-dev-
+      - name: Install pdm
+        run: pip install pdm uv
+      - name: Regenerate lock with environment markers
+        run: pdm lock --update-reuse --strategy inherit_metadata
+      - name: Generate requirements.txt
+        run: pdm export --no-default -G docs -G visualization -G cli-dev -f requirements -o requirements.txt
+      - name: Install dependencies
+        run: uv pip install --no-deps -r requirements.txt --system
+      - name: Install quackosm
+        run: |
+          pdm build -v -d dist
+          uv pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
+      - name: Configure Git user
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      - name: Cache OSM data
+        uses: actions/cache@v3
+        with:
+          path: "**/cache"
+          key: mkdocs-osm-dev-cache-${{ runner.os }}
+      - name: Prepare DuckDB dependency
+        run: |
+          wget https://github.com/duckdb/duckdb/releases/download/v0.10.2/duckdb_cli-linux-amd64.zip
+          unzip duckdb_cli-linux-amd64.zip
+          chmod a+x ./duckdb
+      - name: Test required commands
+        run: |
+          ./duckdb :memory: "SELECT 1"
+          QuackOSM -h
+      - name: Execute jupyter notebooks
+        run: |
+          mv ./duckdb ./examples/duckdb
+          jupyter nbconvert --to notebook --inplace --execute $(find examples/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
+          rm ./examples/duckdb
+      - uses: jannekem/run-python-script-action@v1
+        name: Replace copyright date
+        with:
+          script: |
+            import time
+            file_name = "mkdocs.yml"
+            with open(file_name) as f:
+                data = f.read().replace('{current_year}', time.strftime("%Y"))
+            with open(file_name, "w") as f:
+                f.write(data)
+      - name: Create remote for quackosm-docs repository
+        run: git remote add origin-quackosm-docs https://github.com/kraina-ai/quackosm-docs
+      - name: Fetch gh-pages branch
+        run: git fetch origin-quackosm-docs gh-pages --depth=1
       - name: Get minor version
         id: get-minor-version
-        run: python -c "print('MINOR_VERSION=' + '.'.join('${{github.ref_name}}'.split('.')[:2]))" >> "$GITHUB_OUTPUT"
-      - run: echo "${{ steps.get-minor-version.outputs.MINOR_VERSION }}"
-      # - name: Publish latest documentation
-      #   run: mike deploy --remote origin-quackosm-docs --push --update-aliases ${{steps.get-minor-version.outputs.MINOR_VERSION}} latest
+        run: python -c "print('MINOR_VERSION=' + '.'.join('${{steps.previoustag.outputs.tag}}'.split('.')[:2]))" >> "$GITHUB_OUTPUT"
+      - name: Publish latest documentation
+        run: mike deploy --remote origin-quackosm-docs --push --update-aliases ${{steps.get-minor-version.outputs.MINOR_VERSION}} latest
