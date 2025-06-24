@@ -6,26 +6,15 @@
 <p align="center">
     <img alt="GitHub" src="https://img.shields.io/github/license/kraina-ai/quackosm?logo=apache&logoColor=%23fff">
     <img src="https://img.shields.io/github/checks-status/kraina-ai/quackosm/main?logo=GitHubActions&logoColor=%23fff" alt="Checks">
-    <a href="https://github.com/kraina-ai/quackosm/actions/workflows/ci-dev.yml" target="_blank">
-        <img alt="GitHub Workflow Status - DEV" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/quackosm/ci-dev.yml?label=build-dev&logo=GitHubActions&logoColor=%23fff">
-    </a>
-    <a href="https://github.com/kraina-ai/quackosm/actions/workflows/ci-prod.yml" target="_blank">
-        <img alt="GitHub Workflow Status - PROD" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/quackosm/ci-prod.yml?label=build-prod&logo=GitHubActions&logoColor=%23fff">
-    </a>
-    <a href="https://results.pre-commit.ci/latest/github/kraina-ai/quackosm/main" target="_blank">
-        <img src="https://results.pre-commit.ci/badge/github/kraina-ai/quackosm/main.svg" alt="pre-commit.ci status">
-    </a>
+    <a href="https://github.com/kraina-ai/quackosm/actions/workflows/ci-dev.yml" target="_blank"><img alt="GitHub Workflow Status - DEV" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/quackosm/ci-dev.yml?label=build-dev&logo=GitHubActions&logoColor=%23fff"></a>
+    <a href="https://github.com/kraina-ai/quackosm/actions/workflows/ci-prod.yml" target="_blank"><img alt="GitHub Workflow Status - PROD" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/quackosm/ci-prod.yml?label=build-prod&logo=GitHubActions&logoColor=%23fff"></a>
+    <a href="https://results.pre-commit.ci/latest/github/kraina-ai/quackosm/main" target="_blank"><img src="https://results.pre-commit.ci/badge/github/kraina-ai/quackosm/main.svg" alt="pre-commit.ci status"></a>
     <a href="https://www.codefactor.io/repository/github/kraina-ai/quackosm"><img alt="CodeFactor Grade" src="https://img.shields.io/codefactor/grade/github/kraina-ai/quackosm?logo=codefactor&logoColor=%23fff"></a>
     <a href="https://app.codecov.io/gh/kraina-ai/quackosm/tree/main"><img alt="Codecov" src="https://img.shields.io/codecov/c/github/kraina-ai/quackosm?logo=codecov&token=PRS4E02ZX0&logoColor=%23fff"></a>
-    <a href="https://pypi.org/project/quackosm" target="_blank">
-        <img src="https://img.shields.io/pypi/v/quackosm?color=%2334D058&label=pypi%20package&logo=pypi&logoColor=%23fff" alt="Package version">
-    </a>
-    <a href="https://pypi.org/project/quackosm" target="_blank">
-        <img src="https://img.shields.io/pypi/pyversions/quackosm.svg?color=%2334D058&logo=python&logoColor=%23fff" alt="Supported Python versions">
-    </a>
-    <a href="https://pypi.org/project/quackosm" target="_blank">
-        <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/quackosm">
-    </a>
+    <a href="https://pypi.org/project/quackosm" target="_blank"><img src="https://img.shields.io/pypi/v/quackosm?label=pypi%20package&logo=pypi&logoColor=%23fff" alt="Package version"></a>
+    <a href="https://anaconda.org/conda-forge/quackosm" target="_blank"><img src="https://img.shields.io/conda/vn/conda-forge/quackosm?&logo=anaconda&logoColor=%23fff" alt="Package version"></a>
+    <a href="https://pypi.org/project/quackosm" target="_blank"><img src="https://img.shields.io/pypi/pyversions/quackosm.svg?logo=python&logoColor=%23fff" alt="Supported Python versions"></a>
+    <a href="https://pypi.org/project/quackosm" target="_blank"><img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/quackosm"></a>
 </p>
 
 # QuackOSM
@@ -52,14 +41,25 @@ An open-source tool for reading OpenStreetMap PBF files using DuckDB.
 
 ### As pure Python module
 
-```
+```bash
 pip install quackosm
+# or
+uv pip install quackosm
 ```
 
 ### With beautiful CLI
 
-```
+```bash
 pip install quackosm[cli]
+# or
+uv pip install quackosm[cli]
+```
+
+### From conda-forge
+
+```bash
+# Automatically installs with CLI
+conda install conda-forge::quackosm
 ```
 
 ### Required Python version?
