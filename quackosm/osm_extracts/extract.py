@@ -191,7 +191,7 @@ def _calculate_geodetic_area(geometry: "BaseGeometry") -> float:
     geod = Geod(ellps="WGS84")
     poly_area_m2, _ = geod.geometry_area_perimeter(orient(geometry, sign=1))
     poly_area_km2 = round(poly_area_m2) / 1_000_000
-    return cast(float, poly_area_km2)
+    return cast("float", poly_area_km2)
 
 
 def _get_full_file_name_function(index: "DataFrame") -> Callable[[str], str]:

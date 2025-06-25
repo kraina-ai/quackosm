@@ -26,7 +26,7 @@ def parse_dict_to_config_object(raw_config: dict[str, Any]) -> OsmWayPolygonConf
         raise ValueError(f"Wrong type of key: denylist ({type(denylist_tags)})")
 
     return OsmWayPolygonConfig(
-        all=cast(Iterable[str], all_tags),
-        allowlist=cast(dict[str, Iterable[str]], allowlist_tags),
-        denylist=cast(dict[str, Iterable[str]], denylist_tags),
+        all=cast("Iterable[str]", all_tags),
+        allowlist=cast("dict[str, Iterable[str]]", allowlist_tags),
+        denylist=cast("dict[str, Iterable[str]]", denylist_tags),
     )

@@ -506,7 +506,7 @@ def test_geoparquet_deprecation_warning() -> None:
 def test_geometry_orienting(geometry: BaseGeometry) -> None:
     """Test if geometry orienting works properly."""
     oriented_geometry = cast(
-        BaseGeometry, PbfFileReader(geometry_filter=geometry)._get_oriented_geometry_filter()
+        "BaseGeometry", PbfFileReader(geometry_filter=geometry)._get_oriented_geometry_filter()
     )
     intersection_area = geometry.intersection(oriented_geometry).area
     iou = intersection_area / (geometry.area + oriented_geometry.area - intersection_area)
@@ -655,7 +655,7 @@ def check_if_relation_in_osm_is_valid_based_on_geometry(pbf_file: str, relation_
     """
     duckdb.load_extension("spatial")
     return cast(
-        bool,
+        "bool",
         duckdb.sql(
             f"""
             WITH required_relation AS (
@@ -777,7 +777,7 @@ def get_tags_from_osm_element(pbf_file: str, feature_id: str) -> dict[str, str]:
     raw_tags = duckdb.sql(
         f"SELECT tags FROM ST_READOSM('{pbf_file}') WHERE kind = '{kind}' AND id = {osm_id}"
     ).fetchone()[0]
-    return cast(dict[str, str], raw_tags)
+    return cast("dict[str, str]", raw_tags)
 
 
 def extract_polygons_from_geometry(geometry: BaseGeometry) -> list[Union[Polygon, MultiPolygon]]:
