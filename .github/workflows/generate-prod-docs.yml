@@ -1,21 +1,25 @@
-name: "Publish docs on demand - DEV"
+name: "Publish docs on demand - PROD (latest tag)"
 on: workflow_dispatch
 
 jobs:
   generate-docs-test:
-    name: Generate latest library 📚 documentation 📄 (dev)
+    name: Generate latest library 📚 documentation 📄 (prod)
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
       MKDOCS_EXECUTE_JUPYTER: false # execution is done before rendering documentation
-      MKDOCS_DEV: true
+      MKDOCS_DEV: false
       MKDOCS_GENERATE_SOCIAL_CARDS: true
       FORCE_TERMINAL_MODE: true
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.CICD_PAT_TOKEN }}
+          fetch-depth: 0
+      - name: 'Get Previous tag'
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
       - name: Get Google access token
         id: google-access-token
         uses: playeveryware/action-google-access-token@v1
@@ -104,5 +108,8 @@ jobs:
         run: git remote add origin-quackosm-docs https://github.com/kraina-ai/quackosm-docs
       - name: Fetch gh-pages branch
         run: git fetch origin-quackosm-docs gh-pages --depth=1
-      - name: Publish dev documentation
-        run: mike deploy --remote origin-quackosm-docs --push dev
+      - name: Get minor version
+        id: get-minor-version
+        run: python -c "print('MINOR_VERSION=' + '.'.join('${{steps.previoustag.outputs.tag}}'.split('.')[:2]))" >> "$GITHUB_OUTPUT"
+      - name: Publish latest documentation
+        run: mike deploy --remote origin-quackosm-docs --push --update-aliases ${{steps.get-minor-version.outputs.MINOR_VERSION}} latest
