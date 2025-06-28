@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Missing working directory when compressing value columns for multiple files at once
+
 ## [0.15.0] - 2025-06-16
 
 ### Changed
