@@ -3005,7 +3005,7 @@ class PbfFileReader:
                     compression_level=self.compression_level,
                     row_group_size=self.row_group_size,
                     verbosity_mode=self.verbosity_mode,
-                    working_directory=self.tmp_dir_path,
+                    working_directory=tmp_dir_path,
                 )
         else:
             with self.task_progress_tracker.get_basic_spinner("Compressing result file"):
@@ -3015,7 +3015,7 @@ class PbfFileReader:
                     compression=self.compression,
                     compression_level=self.compression_level,
                     row_group_size=self.row_group_size,
-                    working_directory=self.tmp_dir_path,
+                    working_directory=tmp_dir_path,
                 )
 
 

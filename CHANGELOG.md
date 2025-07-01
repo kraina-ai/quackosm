@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- `python-geohash` from dependencies
+
+## [0.15.1] - 2025-06-28
+
+### Fixed
+
+- Missing working directory when compressing value columns for multiple files at once
+
 ## [0.15.0] - 2025-06-16
 
 ### Changed
@@ -490,7 +500,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.15.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.15.1...HEAD
+
+[0.15.1]: https://github.com/kraina-ai/quackosm/compare/0.15.0...0.15.1
 
 [0.15.0]: https://github.com/kraina-ai/quackosm/compare/0.14.2...0.15.0
 

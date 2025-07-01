@@ -5,7 +5,7 @@
 groups = ["default", "cli", "cli-dev", "dev", "docs", "license", "lint", "test"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:cb7e3723c73df9e863777644990ea0463ada56260c90be05d394691b5e148126"
+content_hash = "sha256:ecb71192ba658549bc4f1df70112ca3d9866b0f52704085f775a2b2e79914bed"
 
 [[metadata.targets]]
 requires_python = ">=3.9"
@@ -3425,15 +3425,6 @@ dependencies = [
 files = [
     {file = "python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3"},
     {file = "python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427"},
-]
-
-[[package]]
-name = "python-geohash"
-version = "0.8.5"
-summary = "Fast, accurate python geohashing library"
-groups = ["cli"]
-files = [
-    {file = "python-geohash-0.8.5.tar.gz", hash = "sha256:05a21fcf4eda1a5eddbd291890ade23fc5ddaa6bb98f2ee23d2d384ed14f086d"},
 ]
 
 [[package]]
