@@ -105,8 +105,6 @@ Optional:
 
 - `s2sphere (>=0.2.5)`: For transforming S2 indexes into geometries. Required in CLI
 
-- `python-geohash (>=0.8)`: For transforming GeoHash indexes into geometries. Required in CLI
-
 ## Usage
 
 ### If you already have downloaded the PBF file 📁🗺️
