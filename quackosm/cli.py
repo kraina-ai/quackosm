@@ -158,22 +158,20 @@ class GeohashGeometryParser(click.ParamType):  # type: ignore
 
         try:
             import geopandas as gpd
-            from geohash import bbox as geohash_bbox
             from shapely.geometry import box
+
+            from quackosm._geohash_parser import geohash_bounds
 
             geometries = []
             for geohash in value.split(","):
-                bounds = geohash_bbox(geohash.strip())
-                geometries.append(
-                    box(minx=bounds["w"], miny=bounds["s"], maxx=bounds["e"], maxy=bounds["n"])
-                )
+                bounds = geohash_bounds(geohash.strip())
+                geometries.append(box(*bounds))
             if GEOPANDAS_NEW_API:
                 return gpd.GeoSeries(geometries).union_all()
             else:
                 return gpd.GeoSeries(geometries).unary_union
         except Exception:
             raise
-            # raise typer.BadParameter(f"Cannot parse provided Geohash value: {geohash}") from None
 
 
 class H3GeometryParser(click.ParamType):  # type: ignore
