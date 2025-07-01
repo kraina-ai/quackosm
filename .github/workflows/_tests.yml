@@ -22,27 +22,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Get Google access token
-        if: ${{ github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
         id: google-access-token
         uses: playeveryware/action-google-access-token@v1
         with:
           credentials: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS }}
           scope: 'https://www.googleapis.com/auth/drive.readonly'
       - name: Download file from Google drive
-        if: ${{ github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
         uses: playeveryware/action-google-drive-download@v1
         with:
           token: ${{ steps.google-access-token.outputs.token }}
           file-id: 1Z6SuEcrWMqwiQLmBGMucFtRmu0zS2rxn
           path: test_files.zip
       - name: Extract zip files
-        if: ${{ github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
         uses: ihiroky/extract-action@v1
         with:
           file_path: test_files.zip
           extract_dir: '.'
       - uses: jannekem/run-python-script-action@v1
-        if: ${{ github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
         name: Move files and remove zip
         with:
           script: |
