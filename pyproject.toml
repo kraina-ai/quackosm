@@ -50,8 +50,7 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 cli = [
     "typer[all]>=0.9.0",
-    "python-geohash>=0.8",
-    "s2sphere>=0.2.5"
+    "s2sphere>=0.2.5",
 ]
 
 [project.scripts]
