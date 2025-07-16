@@ -9,12 +9,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         include:
           - os: macos-13
-            python-version: "3.12"
+            python-version: "3.13"
           - os: windows-latest
-            python-version: "3.12"
+            python-version: "3.13"
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
