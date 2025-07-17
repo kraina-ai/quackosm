@@ -20,6 +20,9 @@ dependencies = [
     "geopy>=2.0.0",
     "numpy>=1.26.0",
     "rq_geo_toolkit>=2025.6.1",
+    "pyproj<3.7.1; python_version < '3.9'",
+    "pyproj>=3.7.1; python_version >= '3.13'",
+    "pyproj",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
