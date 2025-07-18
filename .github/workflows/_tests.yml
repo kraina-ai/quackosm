@@ -9,12 +9,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         include:
           - os: macos-13
-            python-version: "3.12"
+            python-version: "3.13"
           - os: windows-latest
-            python-version: "3.12"
+            python-version: "3.13"
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -69,7 +69,9 @@ jobs:
           enable-pep582: true
           cache: false
       - name: Install dependencies
-        run: pdm install --no-default -d -G test --skip=post_install
+        run: |
+          pdm lock --python '==${{ matrix.python-version }}.*'
+          pdm install --no-default -d -G test --skip=post_install
       - name: Cache OSM data
         uses: actions/cache@v3
         with:
@@ -81,7 +83,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: .tox
-          key: tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pdm.lock') }}
+          key: tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pylock.toml') }}
           restore-keys: |
             tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-
       - name: Run tests with tox
