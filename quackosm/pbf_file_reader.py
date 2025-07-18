@@ -546,8 +546,8 @@ class PbfFileReader:
                 original_geometry_filter = self.geometry_filter
 
                 if pbf_extract_geometry is not None:
-                    self.geometry_filter = cast(BaseGeometry, self.geometry_filter).intersection(
-                        cast(BaseGeometry, pbf_extract_geometry)
+                    self.geometry_filter = cast("BaseGeometry", self.geometry_filter).intersection(
+                        cast("BaseGeometry", pbf_extract_geometry)
                     )
 
                 result_file_path = result_file_path or self._generate_result_file_path(
@@ -1097,9 +1097,7 @@ class PbfFileReader:
             self.merged_tags_filter = None
         else:
             self.expanded_tags_filter = self._expand_osm_tags_filter(elements)
-            self.merged_tags_filter = merge_osm_tags_filter(
-                cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.expanded_tags_filter)
-            )
+            self.merged_tags_filter = merge_osm_tags_filter(self.expanded_tags_filter)
 
         converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
@@ -1325,7 +1323,7 @@ class PbfFileReader:
                 perimeter = list(geometry.coords)
             else:
                 perimeter = list(geometry.coords)[::-1]
-            smallest_point = sorted(perimeter)[0]
+            smallest_point = min(perimeter)
             double_iteration = itertools.chain(perimeter[:-1], perimeter)
             for point in double_iteration:
                 if point == smallest_point:
@@ -1338,7 +1336,7 @@ class PbfFileReader:
         if isinstance(geometry, Polygon):
             oriented_exterior = self._get_oriented_geometry_filter(geometry.exterior)
             oriented_interiors = [
-                cast(BaseGeometry, self._get_oriented_geometry_filter(interior))
+                cast("BaseGeometry", self._get_oriented_geometry_filter(interior))
                 for interior in geometry.interiors
             ]
             return Polygon(
@@ -1347,7 +1345,7 @@ class PbfFileReader:
             )
         elif isinstance(geometry, BaseMultipartGeometry):
             oriented_geoms = [
-                cast(BaseGeometry, self._get_oriented_geometry_filter(geom))
+                cast("BaseGeometry", self._get_oriented_geometry_filter(geom))
                 for geom in geometry.geoms
             ]
             return geometry.__class__(
@@ -1361,28 +1359,28 @@ class PbfFileReader:
     ) -> Union[GroupedOsmTagsFilter, OsmTagsFilter]:
         is_any_key_expandable = False
         if is_expected_type(self.tags_filter, GroupedOsmTagsFilter):
-            grouped_osm_tags_filter = cast(GroupedOsmTagsFilter, self.tags_filter)
+            grouped_osm_tags_filter = cast("GroupedOsmTagsFilter", self.tags_filter)
             is_any_key_expandable = any(
                 any("*" in key for key in osm_tags_filter.keys())
                 for osm_tags_filter in grouped_osm_tags_filter.values()
             )
         else:
-            osm_tags_filter = cast(OsmTagsFilter, self.tags_filter)
+            osm_tags_filter = cast("OsmTagsFilter", self.tags_filter)
             is_any_key_expandable = any("*" in key for key in osm_tags_filter.keys())
 
         if not is_any_key_expandable:
-            return cast(Union[GroupedOsmTagsFilter, OsmTagsFilter], self.tags_filter)
+            return cast("Union[GroupedOsmTagsFilter, OsmTagsFilter]", self.tags_filter)
 
         self.task_progress_tracker.major_step_number = -1
         with self.task_progress_tracker.get_spinner("Preparing OSM tags filter"):
             if is_expected_type(self.tags_filter, GroupedOsmTagsFilter):
-                grouped_osm_tags_filter = cast(GroupedOsmTagsFilter, self.tags_filter)
+                grouped_osm_tags_filter = cast("GroupedOsmTagsFilter", self.tags_filter)
                 return {
                     group: self._expand_single_osm_tags_filter(elements, osm_tags_filter)
                     for group, osm_tags_filter in grouped_osm_tags_filter.items()
                 }
             else:
-                osm_tags_filter = cast(OsmTagsFilter, self.tags_filter)
+                osm_tags_filter = cast("OsmTagsFilter", self.tags_filter)
                 return self._expand_single_osm_tags_filter(elements, osm_tags_filter)
 
     def _expand_single_osm_tags_filter(
@@ -1421,7 +1419,7 @@ class PbfFileReader:
             value_with_star = value_with_star.replace("**", "*")
 
         value_with_percent = value_with_star.replace("*", "%")
-        return cast(str, sql_escape(value_with_percent))
+        return cast("str", sql_escape(value_with_percent))
 
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
@@ -2758,7 +2756,7 @@ class PbfFileReader:
             return features_relation
 
         grouped_features_relation: duckdb.DuckDBPyRelation
-        grouped_tags_filter = cast(GroupedOsmTagsFilter, self.expanded_tags_filter)
+        grouped_tags_filter = cast("GroupedOsmTagsFilter", self.expanded_tags_filter)
 
         if explode_tags:
             case_clauses = []

@@ -33,7 +33,7 @@ def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
 
         param_values = {p.name: p.default for p in ctx.command.params}
         param_values.update(ctx.params)
-        osm_source = cast(str, param_values.get("osm_extract_source"))
+        osm_source = cast("str", param_values.get("osm_extract_source"))
         display_available_extracts(source=osm_source, use_full_names=True, use_pager=True)
         raise typer.Exit()
 
@@ -270,7 +270,7 @@ class OsmTagsFilterJsonParser(click.ParamType):  # type: ignore
                 "Provided OSM tags filter is not in a required format."
             ) from None
 
-        return cast(Union[OsmTagsFilter, GroupedOsmTagsFilter], parsed_dict)
+        return cast("Union[OsmTagsFilter, GroupedOsmTagsFilter]", parsed_dict)
 
 
 class OsmTagsFilterFileParser(OsmTagsFilterJsonParser):
@@ -785,7 +785,7 @@ def main(
         from quackosm.functions import convert_pbf_to_parquet
 
         result_path = convert_pbf_to_parquet(
-            pbf_path=cast(str, pbf_file),
+            pbf_path=cast("str", pbf_file),
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
             keep_all_tags=keep_all_tags,
             geometry_filter=geometry_filter_value,
@@ -809,7 +809,7 @@ def main(
         from quackosm.functions import convert_pbf_to_duckdb
 
         result_path = convert_pbf_to_duckdb(
-            pbf_path=cast(str, pbf_file),
+            pbf_path=cast("str", pbf_file),
             tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
             keep_all_tags=keep_all_tags,
             geometry_filter=geometry_filter_value,
@@ -835,7 +835,7 @@ def main(
 
         try:
             result_path = convert_osm_extract_to_parquet(
-                osm_extract_query=cast(str, osm_extract_query),
+                osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
                 keep_all_tags=keep_all_tags,
@@ -868,7 +868,7 @@ def main(
 
         try:
             result_path = convert_osm_extract_to_duckdb(
-                osm_extract_query=cast(str, osm_extract_query),
+                osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
                 keep_all_tags=keep_all_tags,

@@ -59,7 +59,7 @@ jobs:
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/pdm.lock') }}
+          key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/pylock.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-dev-
       - name: Install pdm

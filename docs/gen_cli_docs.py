@@ -29,7 +29,7 @@ GLOBAL_CONSOLE = None
 
 
 def _get_rich_console_new(stderr: bool = False) -> Console:
-    global GLOBAL_CONSOLE # noqa: PLW0603
+    global GLOBAL_CONSOLE  # noqa: PLW0603
     GLOBAL_CONSOLE = Console(
         theme=Theme(
             {
@@ -59,7 +59,7 @@ typer_obj = app
 click_obj = typer.main.get_command(typer_obj)
 ctx = typer.Context(command=click_obj, info_name="QuackOSM")
 rich_format_help(obj=click_obj, ctx=ctx, markup_mode="rich")
-html_text: str = cast(Console, GLOBAL_CONSOLE).export_html(
+html_text: str = cast("Console", GLOBAL_CONSOLE).export_html(
     inline_styles=True,
     code_format='<div class="highlight"><pre><code>{code}</code></pre></div>',
 )

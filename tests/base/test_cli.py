@@ -57,7 +57,7 @@ def test_pbf_file_or_geometry_filter_is_required() -> None:
     )
 
     assert result.exit_code == 2
-    assert "Missing argument 'PBF file path'." in result.stdout
+    assert "Missing argument 'PBF file path'." in (result.stdout or result.stderr)
 
 
 def test_basic_run(monaco_pbf_file_path_fixture: str) -> None:
