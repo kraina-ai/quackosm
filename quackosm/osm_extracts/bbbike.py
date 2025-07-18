@@ -73,9 +73,7 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
 
     bbbike_enum_value = OsmExtractSource.bbbike.value
 
-    with tqdm(
-        disable=FORCE_TERMINAL, desc=bbbike_enum_value, total=len(extract_names)
-    ) as pbar:
+    with tqdm(disable=FORCE_TERMINAL, desc=bbbike_enum_value, total=len(extract_names)) as pbar:
         for extract_name in extract_names:
             pbar.set_description(f"{bbbike_enum_value}_{extract_name}")
             poly_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.poly"
