@@ -65,19 +65,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pdm
         run: pip install pdm uv
-      - name: Generate lock with oldest dependencies
+      - name: Generate lock with newest dependencies
         run: pdm lock --lockfile pylock.newest.toml --python '==${{ matrix.python-version }}.*' -G cli -dG test
-      - name: Generate requirements.txt
-        run: pdm export -dG test -f requirements -o requirements.test.txt --lockfile pylock.newest.toml
-      - name: Install quackosm
-        run: |
-          uv pip install -e "quackosm[cli] @ ." -r requirements.test.txt --system
+      - name: Install quackosm and tests dependencies
+        run: pdm install --lockfile pylock.newest.toml -G cli -dG test --skip=post_install
       - name: Run tests with pytest
         run: |
-          pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
-          pytest -v -s --durations=20 tests/base
-          pytest -v -s --durations=20 tests/optional_imports
-          pytest -v -s --durations=20 tests/benchmark
+          pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
+          pdm run pytest -v -s --durations=20 tests/base
+          pdm run pytest -v -s --durations=20 tests/optional_imports
+          pdm run pytest -v -s --durations=20 tests/benchmark
 
   run-tests-oldest:
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions (oldest dependencies)
@@ -134,7 +131,7 @@ jobs:
       - name: Generate lock with oldest dependencies
         run: |
           echo "fiona==1.9.6" >> fiona_constraint.txt
-          pdm lock --override fiona_constraint.txt --lockfile pylock.oldest.toml --python '==${{ matrix.python-version }}.*' --strategy no_cross_platform,direct_minimal_versions -G cli -dG test
+          pdm lock --override fiona_constraint.txt --lockfile pylock.oldest.toml --python '==${{ matrix.python-version }}.*' --strategy direct_minimal_versions -G cli -dG test
       - name: Install quackosm and tests dependencies
         run: pdm install --lockfile pylock.oldest.toml -G cli -dG test --skip=post_install
       - name: Run tests with pytest
@@ -192,12 +189,8 @@ jobs:
             ${{ runner.os }}-pip-dev-
       - name: Install pdm
         run: pip install pdm uv
-      - name: Regenerate lock with environment markers
-        run: pdm lock --update-reuse --strategy inherit_metadata
-      - name: Generate requirements.txt
-        run: pdm export --no-default -G docs -G visualization -G cli-dev -f requirements -o requirements.txt
       - name: Install dependencies
-        run: uv pip install --no-deps -r requirements.txt --system
+        run: uv pip install -r pyproject.toml --all-extras --group dev --group test --group docs --group cli-dev --system
       - name: Install quackosm
         run: |
           pdm build -v -d dist

@@ -41,16 +41,12 @@ jobs:
             ${{ runner.os }}-pip-dev-
       - name: Install pdm
         run: pip install pdm uv
-      - name: Regenerate lock with environment markers
-        run: pdm lock --update-reuse --strategy inherit_metadata
-      - name: Generate requirements.txt
-        run: pdm export -G docs -G visualization -G cli-dev -f requirements -o requirements.txt
       - name: Install dependencies
-        run: uv pip install --no-deps -r requirements.txt --system
+        run: uv pip install -r pyproject.toml --all-extras --group docs --group cli-dev --system
       - name: Install quackosm
         run: |
           pdm build -v -d dist
-          pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --user
+          uv pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
       - name: Execute jupyter notebooks
         run: jupyter nbconvert --to notebook --inplace --execute $(find dev/ -type f -name "*.ipynb") --ExecutePreprocessor.kernel_name='python3'
       - name: Create Pull Request
