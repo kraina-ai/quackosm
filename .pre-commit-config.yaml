@@ -26,14 +26,6 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: ['types-requests', 'types-six', 'types-python-dateutil']
-  - repo: local
-    hooks:
-      - id: pdm-set-new-lock-format
-        name: pdm-set-new-lock-format
-        entry: pdm config lock.format pylock
-        language: python
-        files: ^pylock.toml$
-        pass_filenames: false
   - repo: https://github.com/pdm-project/pdm
     rev: 2.25.4
     hooks:

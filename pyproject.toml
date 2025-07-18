@@ -111,6 +111,9 @@ post_install = "pre-commit install"
 [tool.pdm.build]
 excludes = ["quackosm/conftest.py"]
 
+[tool.pdm.lock]
+format = "pylock"
+
 [tool.black]
 line-length = 100
 target-version = ["py39", "py310", "py311", "py312", "py313"]
