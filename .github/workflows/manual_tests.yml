@@ -192,7 +192,7 @@ jobs:
       # - name: Regenerate lock with environment markers
       #   run: pdm lock --update-reuse --strategy inherit_metadata
       - name: Install dependencies
-        run: uv pip install -r pyproject.toml --all-extras --group dev --group test --group docs --group cli-dev
+        run: uv pip install -r pyproject.toml --all-extras --group dev --group test --group docs --group cli-dev --system
       - name: Install quackosm
         run: |
           pdm build -v -d dist
