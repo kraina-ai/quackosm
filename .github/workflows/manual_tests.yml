@@ -67,15 +67,14 @@ jobs:
         run: pip install pdm uv
       - name: Generate lock with newest dependencies
         run: pdm lock --lockfile pylock.newest.toml --python '==${{ matrix.python-version }}.*' -G cli -dG test
-      - name: Install quackosm
-        run: |
-          uv pip install -e "quackosm[cli] @ ." -r pylock.newest.toml --system
+      - name: Install quackosm and tests dependencies
+        run: pdm install --lockfile pylock.newest.toml -G cli -dG test --skip=post_install
       - name: Run tests with pytest
         run: |
-          pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
-          pytest -v -s --durations=20 tests/base
-          pytest -v -s --durations=20 tests/optional_imports
-          pytest -v -s --durations=20 tests/benchmark
+          pdm run pytest -v -s --durations=20 --doctest-modules --doctest-continue-on-failure quackosm
+          pdm run pytest -v -s --durations=20 tests/base
+          pdm run pytest -v -s --durations=20 tests/optional_imports
+          pdm run pytest -v -s --durations=20 tests/benchmark
 
   run-tests-oldest:
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions (oldest dependencies)
