@@ -1097,9 +1097,7 @@ class PbfFileReader:
             self.merged_tags_filter = None
         else:
             self.expanded_tags_filter = self._expand_osm_tags_filter(elements)
-            self.merged_tags_filter = merge_osm_tags_filter(
-                cast("Union[GroupedOsmTagsFilter, OsmTagsFilter]", self.expanded_tags_filter)
-            )
+            self.merged_tags_filter = merge_osm_tags_filter(self.expanded_tags_filter)
 
         converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
@@ -1325,7 +1323,7 @@ class PbfFileReader:
                 perimeter = list(geometry.coords)
             else:
                 perimeter = list(geometry.coords)[::-1]
-            smallest_point = sorted(perimeter)[0]
+            smallest_point = min(perimeter)
             double_iteration = itertools.chain(perimeter[:-1], perimeter)
             for point in double_iteration:
                 if point == smallest_point:
