@@ -156,6 +156,7 @@ def clear_osm_index_cache() -> None: ...
 @overload
 def clear_osm_index_cache(extract_source: OsmExtractSource) -> None: ...
 
+
 def clear_osm_index_cache(extract_source: Optional[OsmExtractSource] = None) -> None:
     """Clear cached osm index."""
     if extract_source is not None:

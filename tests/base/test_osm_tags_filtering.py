@@ -206,9 +206,9 @@ def test_pbf_reader(
         explode_tags=True,
         ignore_cache=True,
     )
-    assert (
-        len(features_gdf) == expected_result_length
-    ), f"Mismatched result length ({len(features_gdf)}, {expected_result_length})"
+    assert len(features_gdf) == expected_result_length, (
+        f"Mismatched result length ({len(features_gdf)}, {expected_result_length})"
+    )
     assert len(features_gdf.columns) == expected_features_columns_length + 1, (
         f"Mismatched columns length ({len(features_gdf.columns)},"
         f" {expected_features_columns_length + 1})"
@@ -900,14 +900,14 @@ def test_correct_osm_tags_filters(
         ignore_cache=True,
         explode_tags=True,
     )
-    assert (
-        len(features_gdf) == expected_result_length
-    ), f"Mismatched result length ({len(features_gdf)}, {expected_result_length})"
+    assert len(features_gdf) == expected_result_length, (
+        f"Mismatched result length ({len(features_gdf)}, {expected_result_length})"
+    )
     ut.assertListEqual(list(features_gdf.sort_index().head(10).index), expected_top_10_ids)
 
-    assert (
-        len(features_gdf.columns) == expected_no_columns
-    ), f"Mismatched columns length ({len(features_gdf.columns)}, {expected_no_columns})"
+    assert len(features_gdf.columns) == expected_no_columns, (
+        f"Mismatched columns length ({len(features_gdf.columns)}, {expected_no_columns})"
+    )
     ut.assertListEqual(list(features_gdf.columns.sort_values()[:10]), expected_top_10_columns)
 
 

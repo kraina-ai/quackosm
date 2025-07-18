@@ -445,9 +445,7 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
                 )
             ],
         )
-        mocker.patch(
-            "quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None
-        )
+        mocker.patch("quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None)
         with pytest.warns(MissingOsmCacheWarning):
             display_available_extracts(source=extract_source)
 
@@ -483,12 +481,11 @@ def test_old_index_warning(mocker: MockerFixture) -> None:
         "quackosm.osm_extracts.extract._get_file_creation_date",
         return_value=datetime.datetime.now() - relativedelta(years=1, days=1),
     )
-    mocker.patch(
-        "quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None
-    )
+    mocker.patch("quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None)
 
     with pytest.warns(OldOsmCacheWarning):
         display_available_extracts(source=extract_source)
+
 
 def test_cache_clearing() -> None:
     """Test if cache clearing works."""

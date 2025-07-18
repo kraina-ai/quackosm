@@ -20,6 +20,7 @@ Remember to install the `quackosm` library before running the notebook:
 ```
 """
 
+
 def write_file(file_path: Path) -> None:
     """
     Copies file from examples directory into mkdocs scope.

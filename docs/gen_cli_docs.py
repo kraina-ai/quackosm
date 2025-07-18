@@ -29,7 +29,7 @@ GLOBAL_CONSOLE = None
 
 
 def _get_rich_console_new(stderr: bool = False) -> Console:
-    global GLOBAL_CONSOLE # noqa: PLW0603
+    global GLOBAL_CONSOLE  # noqa: PLW0603
     GLOBAL_CONSOLE = Console(
         theme=Theme(
             {

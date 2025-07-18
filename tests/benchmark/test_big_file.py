@@ -16,7 +16,7 @@ from quackosm._osm_tags_filters import OsmTagsFilter
 @P.case(
     "Spain",
     "spain",
-    box(-10.096436,35.777019,3.680420,44.040591),
+    box(-10.096436, 35.777019, 3.680420, 44.040591),
     {"name:*": False},
 )  # type: ignore
 def test_big_file(extract_name: str, geometry_filter: Polygon, tags_filter: OsmTagsFilter) -> None:
