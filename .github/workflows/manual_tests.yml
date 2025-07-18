@@ -189,10 +189,10 @@ jobs:
             ${{ runner.os }}-pip-dev-
       - name: Install pdm
         run: pip install pdm uv
-      - name: Regenerate lock with environment markers
-        run: pdm lock --update-reuse --strategy inherit_metadata
+      # - name: Regenerate lock with environment markers
+      #   run: pdm lock --update-reuse --strategy inherit_metadata
       - name: Install dependencies
-        run: uv pip sync pylock.toml --system
+        run: uv pip install -r pyproject.toml --all-extras --group dev --group test --group docs --group cli-dev
       - name: Install quackosm
         run: |
           pdm build -v -d dist
