@@ -8,15 +8,15 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 'v0.12.2'
+    rev: v0.12.4
     hooks:
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix, --show-fixes]
-  # TODO: Switch back to upstream docformatter
-  # after https://github.com/PyCQA/docformatter/issues/289 is fixed
+      - id: ruff-check
+        types_or: [ python ]
+        args: [ --fix, --exit-non-zero-on-fix, --show-fixes ]
+      - id: ruff-format
+        types_or: [ python ]
   - repo: https://github.com/PyCQA/docformatter
     rev: v1.7.7
-    # rev: v1.7.5
     hooks:
       - id: docformatter
         additional_dependencies: [tomli]
