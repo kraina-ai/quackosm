@@ -58,7 +58,7 @@ def _job(
         writer.close()
 
 
-class WorkerProcess(ctx.Process):  # type: ignore[name-defined,misc]
+class WorkerSpawnProcess(ctx.Process):  # type: ignore[name-defined,misc]
     def __init__(self, *args: Any, **kwargs: Any):
         multiprocessing.Process.__init__(self, *args, **kwargs)
         self._pconn, self._cconn = multiprocessing.Pipe()
@@ -119,7 +119,7 @@ def map_parquet_dataset(
 
     try:
         processes = [
-            WorkerProcess(
+            WorkerSpawnProcess(
                 target=_job,
                 args=(queue, destination_path, function, columns),
             )
@@ -131,7 +131,7 @@ def map_parquet_dataset(
 
 
 def _run_processes(
-    processes: list[WorkerProcess],
+    processes: list[WorkerSpawnProcess],
     queue: Queue[tuple[str, int]],
     total: int,
     progress_bar: Optional[TaskProgressBar],
@@ -157,7 +157,7 @@ def _run_processes(
         progress_bar.update_manual_bar(current_progress=total)
 
 
-def _report_exceptions(processes: list[WorkerProcess]) -> None:
+def _report_exceptions(processes: list[WorkerSpawnProcess]) -> None:
     # In case of exception
     exceptions = []
     for p in processes:

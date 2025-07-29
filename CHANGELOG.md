@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Progress bar for sorting final file
+
+### Changed
+
+- Replaced linestring grouping logic engine from `polars` to `DuckDB`
+- Increased internal number of rows per group for `DuckDB` version higher than `1.3.0`
+- Refactored query executing logic to automatically scale down available number of threads after `OutOfMemoryException`
+
+### Removed
+
+- `polars` from dependencies
+
 ## [0.15.3] - 2025-07-18
 
 ### Added

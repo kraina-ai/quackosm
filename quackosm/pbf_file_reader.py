@@ -41,6 +41,7 @@ from rq_geo_toolkit.geoparquet_compression import (
     compress_query_with_duckdb,
 )
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
+from rq_geo_toolkit.multiprocessing_utils import WorkerProcess
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
@@ -68,7 +69,6 @@ from quackosm._osm_tags_filters import (
     merge_osm_tags_filter,
 )
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig, parse_dict_to_config_object
-from quackosm._parquet_multiprocessing import WorkerProcess
 from quackosm._rich_progress import (
     FORCE_TERMINAL,
     VERBOSITY_MODE,
@@ -3159,7 +3159,6 @@ class PbfFileReader:
 
             if sort_result:
                 with self.task_progress_tracker.get_bar("Sorting result file by geometry") as bar:
-                    bar.create_manual_bar(pq.read_metadata(merged_parquet_path).num_rows)
                     _sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         explode_tags=explode_tags,
@@ -3213,7 +3212,6 @@ class PbfFileReader:
 
         if sort_result:
             with self.task_progress_tracker.get_basic_bar("Sorting result file by geometry") as bar:
-                bar.create_manual_bar(pq.read_metadata(merged_parquet_path).num_rows)
                 _sort_geoparquet_file_by_geometry(
                     input_file_path=merged_parquet_path,
                     explode_tags=explode_tags,
@@ -3456,6 +3454,8 @@ def _sort_geoparquet_file_by_geometry(
     threads_limit: Optional[int],
     progress_bar: TaskProgressBar,
 ) -> Path:
+    total_rows = pq.read_metadata(input_file_path).num_rows
+    progress_bar.create_manual_bar(total_rows)
     if save_as_wkt:
         raise ValueError("Geometry sorting is not supported for the WKT format.")
 
@@ -3522,6 +3522,8 @@ def _sort_geoparquet_file_by_geometry(
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
         )
+
+    progress_bar.update_manual_bar(total_rows)
 
     return output_file_path
 

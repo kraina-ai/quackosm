@@ -102,3 +102,24 @@ jobs:
             token: ${{ secrets.CODECOV_TOKEN }}
           attempt_limit: 100
           attempt_delay: 10000
+
+  run-low-resources-tests:
+    name: Run low resources test inside Docker
+    runs-on: ubuntu-latest
+    env:
+      COLUMNS: 120
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      # - name: Setup Environment (PR)
+      #   if: ${{ github.event_name == 'pull_request' }}
+      #   shell: bash
+      #   run: |
+      #     echo "LAST_COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> ${GITHUB_ENV}
+      # - name: Setup Environment (Push & other)
+      #   if: ${{ github.event_name != 'pull_request' }}
+      #   shell: bash
+      #   run: |
+      #     echo "LAST_COMMIT_SHA=${GITHUB_SHA}" >> ${GITHUB_ENV}
+      - name: Run test inside Docker
+        run: make low-resources-test
