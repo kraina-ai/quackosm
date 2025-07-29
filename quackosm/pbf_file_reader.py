@@ -3288,10 +3288,15 @@ def _merge_parquet_dataset(
     connection.execute("SET enable_geoparquet_conversion = false;")
 
     exclude_clause = f"EXCLUDE {tuple(columns_to_drop)}" if columns_to_drop else ""
+    replace_clause = (
+        f"REPLACE (ST_AsText(ST_GeomFromWKB({GEOMETRY_COLUMN})) as {GEOMETRY_COLUMN})"
+        if save_as_wkt
+        else ""
+    )
 
     connection.execute(f"""
         COPY (
-            SELECT * {exclude_clause}
+            SELECT * {exclude_clause} {replace_clause}
             FROM ({parquet_relation.sql_query()})
         ) TO '{merged_parquet_path}' (
             FORMAT 'parquet',

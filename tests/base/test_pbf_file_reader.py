@@ -83,16 +83,18 @@ def test_pbf_to_geoparquet_parsing(
         sort_result=False,
     )
 
-    if save_as_wkt:
-        tab = pq.read_table(result)
-        assert tab.column("geometry").type == ga.wkt()
-    else:
-        tab = pq.read_table(result)
-        assert b"geo" in tab.schema.metadata
+    tab = pq.read_table(result)
+    assert b"geo" in tab.schema.metadata
 
-        decoded_geo_schema = json.loads(tab.schema.metadata[b"geo"].decode("utf-8"))
-        assert GEOMETRY_COLUMN == decoded_geo_schema["primary_column"]
-        assert GEOMETRY_COLUMN in decoded_geo_schema["columns"]
+    decoded_geo_schema = json.loads(tab.schema.metadata[b"geo"].decode("utf-8"))
+
+    assert GEOMETRY_COLUMN == decoded_geo_schema["primary_column"]
+    assert GEOMETRY_COLUMN in decoded_geo_schema["columns"]
+
+    if save_as_wkt:
+        assert decoded_geo_schema["columns"][GEOMETRY_COLUMN]["encoding"] == "WKT"
+    else:
+        assert decoded_geo_schema["columns"][GEOMETRY_COLUMN]["encoding"] == "WKB"
 
 
 @pytest.mark.parametrize(

@@ -53,7 +53,7 @@ def display_resources() -> None:
     print("Memory (psutil, all):", psutil.virtual_memory())
 
     with suppress(Exception):
-        print("CPU affinity (os):", os.sched_getaffinity(0))  # type: ignore[attr-defined]
+        print("CPU affinity (os):", os.sched_getaffinity(0))
         print("CPU affinity (psutil):", psutil.Process().cpu_affinity())
         print("Memory limit (cgroup):", bytes2human(int(open("/sys/fs/cgroup/memory.max").read())))
 
