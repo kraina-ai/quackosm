@@ -1918,66 +1918,79 @@ class PbfFileReader:
         query_timeout_seconds: Optional[int] = None,
         tmp_dir_path: Optional[Path] = None,
     ) -> None:
-        current_cpu_limit = self.cpu_limit
-        self.connection.sql(f"SET threads = {current_cpu_limit};")
-
         if isinstance(sql_queries, str):
             sql_queries = [sql_queries]
 
         if run_in_separate_process:
-            process = WorkerProcess(
-                target=_run_query,
-                args=(sql_queries, tmp_dir_path or self.tmp_dir_path, self.cpu_limit),
+            self._run_query_in_separate_process(
+                sql_queries=sql_queries,
+                query_timeout_seconds=query_timeout_seconds,
+                tmp_dir_path=tmp_dir_path,
             )
-            process.start()
-
-            start_time = time.time()
-            actual_memory = psutil.virtual_memory()
-            percentage_threshold = 95
-            if (actual_memory.total * 0.05) > MEMORY_1GB:
-                percentage_threshold = (
-                    100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
-                )
-
-            while process.is_alive():
-                actual_memory = psutil.virtual_memory()
-                if actual_memory.percent > percentage_threshold:
-                    raise MemoryError()
-
-                current_time = time.time()
-                elapsed_seconds = current_time - start_time
-                if query_timeout_seconds is not None and elapsed_seconds > query_timeout_seconds:
-                    raise TimeoutError()
-
-                sleep(0.5)
-
-            if process.exception:
-                error, traceback = process.exception
-                msg = f"{error}\n\nOriginal {traceback}"
-                raise type(error)(msg)
-
-            if process.exitcode != 0:
-                raise MemoryError()
         else:
-            finished_operation = False
-            while not finished_operation:
-                try:
-                    for sql_query in sql_queries:
-                        self.connection.sql(sql_query)
+            self._run_query_in_same_process(sql_queries=sql_queries)
 
-                    finished_operation = True
-                except (duckdb.OutOfMemoryException, MemoryError) as ex:
-                    if current_cpu_limit > 1:
-                        current_cpu_limit = ceil(current_cpu_limit / 2)
-                        self.connection.sql(f"SET threads = {current_cpu_limit};")
-                        if not self.verbosity_mode == "silent":
-                            log_message(
-                                f"Encountered {ex.__class__.__name__} during operation."
-                                " Retrying with lower number of threads"
-                                f" ({current_cpu_limit})."
-                            )
-                    else:
-                        raise
+    def _run_query_in_separate_process(
+        self,
+        sql_queries: list[str],
+        query_timeout_seconds: Optional[int] = None,
+        tmp_dir_path: Optional[Path] = None,
+    ) -> None:
+        process = WorkerProcess(
+            target=_run_query,
+            args=(sql_queries, tmp_dir_path or self.tmp_dir_path, self.cpu_limit),
+        )
+        process.start()
+
+        start_time = time.time()
+        actual_memory = psutil.virtual_memory()
+        percentage_threshold = 95
+        if (actual_memory.total * 0.05) > MEMORY_1GB:
+            percentage_threshold = 100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+
+        while process.is_alive():
+            actual_memory = psutil.virtual_memory()
+            if actual_memory.percent > percentage_threshold:
+                raise MemoryError()
+
+            current_time = time.time()
+            elapsed_seconds = current_time - start_time
+            if query_timeout_seconds is not None and elapsed_seconds > query_timeout_seconds:
+                raise TimeoutError()
+
+            sleep(0.5)
+
+        if process.exception:
+            error, traceback = process.exception
+            msg = f"{error}\n\nOriginal {traceback}"
+            raise type(error)(msg)
+
+        if process.exitcode != 0:
+            raise MemoryError()
+
+    def _run_query_in_same_process(self, sql_queries: list[str]) -> None:
+        current_cpu_limit = self.cpu_limit
+        self.connection.sql(f"SET threads = {current_cpu_limit};")
+
+        finished_operation = False
+        while not finished_operation:
+            try:
+                for sql_query in sql_queries:
+                    self.connection.sql(sql_query)
+
+                finished_operation = True
+            except (duckdb.OutOfMemoryException, MemoryError) as ex:
+                if current_cpu_limit > 1:
+                    current_cpu_limit = ceil(current_cpu_limit / 2)
+                    self.connection.sql(f"SET threads = {current_cpu_limit};")
+                    if not self.verbosity_mode == "silent":
+                        log_message(
+                            f"Encountered {ex.__class__.__name__} during operation."
+                            " Retrying with lower number of threads"
+                            f" ({current_cpu_limit})."
+                        )
+                else:
+                    raise
 
     def _calculate_unique_ids_to_parquet(
         self, file_path: Path, result_path: Optional[Path] = None
