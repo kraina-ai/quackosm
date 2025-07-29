@@ -10,7 +10,6 @@ from typing import Any, Callable, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
-import geoarrow.pyarrow as ga
 import geopandas as gpd
 import pandas as pd
 import pyarrow as pa
@@ -40,7 +39,7 @@ from quackosm import (
     convert_pbf_to_parquet,
     functions,
 )
-from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, METADATA_TAGS_TO_IGNORE, WGS84_CRS
+from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, METADATA_TAGS_TO_IGNORE
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
@@ -83,16 +82,18 @@ def test_pbf_to_geoparquet_parsing(
         sort_result=False,
     )
 
-    if save_as_wkt:
-        tab = pq.read_table(result)
-        assert tab.column("geometry").type == ga.wkt()
-    else:
-        tab = pq.read_table(result)
-        assert b"geo" in tab.schema.metadata
+    tab = pq.read_table(result)
+    assert b"geo" in tab.schema.metadata
 
-        decoded_geo_schema = json.loads(tab.schema.metadata[b"geo"].decode("utf-8"))
-        assert GEOMETRY_COLUMN == decoded_geo_schema["primary_column"]
-        assert GEOMETRY_COLUMN in decoded_geo_schema["columns"]
+    decoded_geo_schema = json.loads(tab.schema.metadata[b"geo"].decode("utf-8"))
+
+    assert GEOMETRY_COLUMN == decoded_geo_schema["primary_column"]
+    assert GEOMETRY_COLUMN in decoded_geo_schema["columns"]
+
+    if save_as_wkt:
+        assert decoded_geo_schema["columns"][GEOMETRY_COLUMN]["encoding"] == "WKT"
+    else:
+        assert decoded_geo_schema["columns"][GEOMETRY_COLUMN]["encoding"] == "WKB"
 
 
 @pytest.mark.parametrize(
@@ -968,21 +969,17 @@ def test_gdal_parity(extract_name: str) -> None:
     # Check if geometries are almost equal - same geom type, same points
     invalid_geometries_df.loc[
         invalid_geometries_df["geometry_both_closed_or_not"], "geometry_almost_equals"
-    ] = (
+    ] = gpd.GeoSeries(
+        invalid_geometries_df.loc[
+            invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
+        ],
+    ).geom_equals_exact(
         gpd.GeoSeries(
             invalid_geometries_df.loc[
-                invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
+                invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
             ],
-        )
-        .set_crs(WGS84_CRS)
-        .geom_equals_exact(
-            gpd.GeoSeries(
-                invalid_geometries_df.loc[
-                    invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
-                ],
-            ).set_crs(WGS84_CRS),
-            tolerance=tolerance,
-        )
+        ),
+        tolerance=tolerance,
     )
     invalid_geometries_df = invalid_geometries_df.loc[
         ~(
@@ -996,19 +993,15 @@ def test_gdal_parity(extract_name: str) -> None:
     # Check geometries equality - same geom type, same points
     invalid_geometries_df.loc[
         invalid_geometries_df["geometry_both_closed_or_not"], "geometry_equals"
-    ] = (
+    ] = gpd.GeoSeries(
+        invalid_geometries_df.loc[
+            invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
+        ],
+    ).geom_equals(
         gpd.GeoSeries(
             invalid_geometries_df.loc[
-                invalid_geometries_df["geometry_both_closed_or_not"], "duckdb_geometry"
+                invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
             ],
-        )
-        .set_crs(WGS84_CRS)
-        .geom_equals(
-            gpd.GeoSeries(
-                invalid_geometries_df.loc[
-                    invalid_geometries_df["geometry_both_closed_or_not"], "gdal_geometry"
-                ],
-            ).set_crs(WGS84_CRS)
         )
     )
     invalid_geometries_df = invalid_geometries_df.loc[
@@ -1035,11 +1028,10 @@ def test_gdal_parity(extract_name: str) -> None:
         gpd.GeoSeries(
             invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
         )
-        .set_crs(WGS84_CRS)
         .intersection(
             gpd.GeoSeries(
                 invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
-            ).set_crs(WGS84_CRS),
+            ),
         )
         .area
     )
@@ -1049,14 +1041,10 @@ def test_gdal_parity(extract_name: str) -> None:
         / (
             gpd.GeoSeries(
                 invalid_geometries_df.loc[matching_polygon_geometries_mask, "duckdb_geometry"]
-            )
-            .set_crs(WGS84_CRS)
-            .area
+            ).area
             + gpd.GeoSeries(
                 invalid_geometries_df.loc[matching_polygon_geometries_mask, "gdal_geometry"]
-            )
-            .set_crs(WGS84_CRS)
-            .area
+            ).area
             - invalid_geometries_df.loc[
                 matching_polygon_geometries_mask, "geometry_intersection_area"
             ]
