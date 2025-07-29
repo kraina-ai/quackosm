@@ -497,24 +497,6 @@ dependencies = [
 ]
 
 [[packages]]
-name = "polars"
-version = "1.31.0"
-requires-python = ">=3.9"
-sdist = {name = "polars-1.31.0.tar.gz", url = "https://files.pythonhosted.org/packages/fd/f5/de1b5ecd7d0bd0dd87aa392937f759f9cc3997c5866a9a7f94eabf37cd48/polars-1.31.0.tar.gz", hashes = {sha256 = "59a88054a5fc0135386268ceefdbb6a6cc012d21b5b44fed4f1d3faabbdcbf32"}}
-wheels = [
-    {name = "polars-1.31.0-cp39-abi3-macosx_10_12_x86_64.whl",url = "https://files.pythonhosted.org/packages/3d/6e/bdd0937653c1e7a564a09ae3bc7757ce83fedbf19da600c8b35d62c0182a/polars-1.31.0-cp39-abi3-macosx_10_12_x86_64.whl",hashes = {sha256 = "ccc68cd6877deecd46b13cbd2663ca89ab2a2cb1fe49d5cfc66a9cef166566d9"}},
-    {name = "polars-1.31.0-cp39-abi3-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/77/fe/81aaca3540c1a5530b4bc4fd7f1b6f77100243d7bb9b7ad3478b770d8b3e/polars-1.31.0-cp39-abi3-macosx_11_0_arm64.whl",hashes = {sha256 = "a94c5550df397ad3c2d6adc212e59fd93d9b044ec974dd3653e121e6487a7d21"}},
-    {name = "polars-1.31.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/b8/d9/5e2753784ea30d84b3e769a56f5e50ac5a89c129e87baa16ac0773eb4ef7/polars-1.31.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "ada7940ed92bea65d5500ae7ac1f599798149df8faa5a6db150327c9ddbee4f1"}},
-    {name = "polars-1.31.0-cp39-abi3-manylinux_2_24_aarch64.whl",url = "https://files.pythonhosted.org/packages/20/e8/a6bdfe7b687c1fe84bceb1f854c43415eaf0d2fdf3c679a9dc9c4776e462/polars-1.31.0-cp39-abi3-manylinux_2_24_aarch64.whl",hashes = {sha256 = "b324e6e3e8c6cc6593f9d72fe625f06af65e8d9d47c8686583585533a5e731e1"}},
-    {name = "polars-1.31.0-cp39-abi3-win_amd64.whl",url = "https://files.pythonhosted.org/packages/6e/f6/9d9ad9dc4480d66502497e90ce29efc063373e1598f4bd9b6a38af3e08e7/polars-1.31.0-cp39-abi3-win_amd64.whl",hashes = {sha256 = "3fd874d3432fc932863e8cceff2cff8a12a51976b053f2eb6326a0672134a632"}},
-    {name = "polars-1.31.0-cp39-abi3-win_arm64.whl",url = "https://files.pythonhosted.org/packages/40/4b/0673a68ac4d6527fac951970e929c3b4440c654f994f0c957bd5556deb38/polars-1.31.0-cp39-abi3-win_arm64.whl",hashes = {sha256 = "62ef23bb9d10dca4c2b945979f9a50812ac4ace4ed9e158a6b5d32a7322e6f75"}},
-]
-marker = "python_version >= \"3.10\" and \"default\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
 name = "pooch"
 version = "1.8.2"
 requires-python = ">=3.7"
@@ -667,11 +649,11 @@ dependencies = [
 
 [[packages]]
 name = "rq-geo-toolkit"
-version = "2025.6.1"
+version = "2025.7.0"
 requires-python = ">=3.9"
-sdist = {name = "rq_geo_toolkit-2025.6.1.tar.gz", url = "https://files.pythonhosted.org/packages/f4/74/4383aeb059085dc7b46ca44c18bbf84d1b41a1c1952b7f2a751c67060775/rq_geo_toolkit-2025.6.1.tar.gz", hashes = {sha256 = "fc7767145073ab669fa42c2fcdcce79a0b781a43c7eace6ca9bed479bbf86d39"}}
+sdist = {name = "rq_geo_toolkit-2025.7.0.tar.gz", url = "https://files.pythonhosted.org/packages/cf/6b/6cb5750806c9905ca274a0e437b72ca97163a06866cc68230e16f9dba104/rq_geo_toolkit-2025.7.0.tar.gz", hashes = {sha256 = "599047d83c263dca2e6522b30b9cce28546f425a85e43832e73ce41a7422259f"}}
 wheels = [
-    {name = "rq_geo_toolkit-2025.6.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/3a/e4/1637ef80e0c31efb0acd44164462270e0ec41be8e8aceb92db8063bef8ee/rq_geo_toolkit-2025.6.1-py3-none-any.whl",hashes = {sha256 = "483c9e9868f3860fb2741934963cc44081a871b0414fc48eb1b2f36d0d59c8e5"}},
+    {name = "rq_geo_toolkit-2025.7.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/e6/ae/c2c6363e01a1ce531b250abda1cd3e376d37cfa7ae5c004acdabc0829edb/rq_geo_toolkit-2025.7.0-py3-none-any.whl",hashes = {sha256 = "43bec577f434ddb169a283cf8c61694ba42ab5dfc30fbf862d977145d8738036"}},
 ]
 marker = "python_version >= \"3.10\" and \"default\" in dependency_groups"
 
@@ -1219,11 +1201,11 @@ dependencies = [
 
 [[packages]]
 name = "mkdocs-material"
-version = "9.6.15"
+version = "9.6.16"
 requires-python = ">=3.8"
-sdist = {name = "mkdocs_material-9.6.15.tar.gz", url = "https://files.pythonhosted.org/packages/95/c1/f804ba2db2ddc2183e900befe7dad64339a34fa935034e1ab405289d0a97/mkdocs_material-9.6.15.tar.gz", hashes = {sha256 = "64adf8fa8dba1a17905b6aee1894a5aafd966d4aeb44a11088519b0f5ca4f1b5"}}
+sdist = {name = "mkdocs_material-9.6.16.tar.gz", url = "https://files.pythonhosted.org/packages/dd/84/aec27a468c5e8c27689c71b516fb5a0d10b8fca45b9ad2dd9d6e43bc4296/mkdocs_material-9.6.16.tar.gz", hashes = {sha256 = "d07011df4a5c02ee0877496d9f1bfc986cfb93d964799b032dd99fe34c0e9d19"}}
 wheels = [
-    {name = "mkdocs_material-9.6.15-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/1d/30/dda19f0495a9096b64b6b3c07c4bfcff1c76ee0fc521086d53593f18b4c0/mkdocs_material-9.6.15-py3-none-any.whl",hashes = {sha256 = "ac969c94d4fe5eb7c924b6d2f43d7db41159ea91553d18a9afc4780c34f2717a"}},
+    {name = "mkdocs_material-9.6.16-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/65/f4/90ad67125b4dd66e7884e4dbdfab82e3679eb92b751116f8bb25ccfe2f0c/mkdocs_material-9.6.16-py3-none-any.whl",hashes = {sha256 = "8d1a1282b892fe1fdf77bfeb08c485ba3909dd743c9ba69a19a40f637c6ec18c"}},
 ]
 marker = "python_version >= \"3.10\" and \"docs\" in dependency_groups"
 
@@ -1260,11 +1242,11 @@ dependencies = [
 
 [[packages]]
 name = "mkdocstrings"
-version = "0.29.1"
+version = "0.30.0"
 requires-python = ">=3.9"
-sdist = {name = "mkdocstrings-0.29.1.tar.gz", url = "https://files.pythonhosted.org/packages/41/e8/d22922664a627a0d3d7ff4a6ca95800f5dde54f411982591b4621a76225d/mkdocstrings-0.29.1.tar.gz", hashes = {sha256 = "8722f8f8c5cd75da56671e0a0c1bbed1df9946c0cef74794d6141b34011abd42"}}
+sdist = {name = "mkdocstrings-0.30.0.tar.gz", url = "https://files.pythonhosted.org/packages/e2/0a/7e4776217d4802009c8238c75c5345e23014a4706a8414a62c0498858183/mkdocstrings-0.30.0.tar.gz", hashes = {sha256 = "5d8019b9c31ddacd780b6784ffcdd6f21c408f34c0bd1103b5351d609d5b4444"}}
 wheels = [
-    {name = "mkdocstrings-0.29.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/98/14/22533a578bf8b187e05d67e2c1721ce10e3f526610eebaf7a149d557ea7a/mkdocstrings-0.29.1-py3-none-any.whl",hashes = {sha256 = "37a9736134934eea89cbd055a513d40a020d87dfcae9e3052c2a6b8cd4af09b6"}},
+    {name = "mkdocstrings-0.30.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/de/b4/3c5eac68f31e124a55d255d318c7445840fa1be55e013f507556d6481913/mkdocstrings-0.30.0-py3-none-any.whl",hashes = {sha256 = "ae9e4a0d8c1789697ac776f2e034e2ddd71054ae1cf2c2bb1433ccfd07c226f2"}},
 ]
 marker = "python_version >= \"3.10\" and \"docs\" in dependency_groups"
 
@@ -4848,7 +4830,7 @@ marker = "\"cli-dev\" in dependency_groups and python_version >= \"3.10\" or \"d
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "ecb71192ba658549bc4f1df70112ca3d9866b0f52704085f775a2b2e79914bed"}
+hashes = {sha256 = "adc39fca81ee522e1de2b79eb974d866fc8e23720bf21cca6a37cadfe49b364a"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]

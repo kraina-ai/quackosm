@@ -14,17 +14,16 @@ import tempfile
 import time
 import warnings
 from collections.abc import Iterable
-from math import floor
+from math import ceil, floor
 from pathlib import Path
 from time import sleep
-from typing import Any, Callable, Literal, NamedTuple, Optional, Union, cast
+from typing import Any, Callable, Literal, NamedTuple, Optional, Union, cast, overload
 from uuid import uuid4
 
 import duckdb
 import geoarrow.pyarrow as ga
 import geopandas as gpd
 import numpy as np
-import polars as pl
 import psutil
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -59,6 +58,7 @@ from quackosm._exceptions import (
     InvalidGeometryFilter,
     MultiprocessingRuntimeError,
 )
+from quackosm._geoparquet_metadata import get_geoparquet_metadata
 from quackosm._intersection import intersect_nodes_with_geometry
 from quackosm._osm_tags_filters import (
     GroupedOsmTagsFilter,
@@ -68,6 +68,7 @@ from quackosm._osm_tags_filters import (
     merge_osm_tags_filter,
 )
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig, parse_dict_to_config_object
+from quackosm._parquet_multiprocessing import WorkerProcess
 from quackosm._rich_progress import (
     FORCE_TERMINAL,
     VERBOSITY_MODE,
@@ -130,12 +131,26 @@ class PbfFileReader:
         relations_with_unnested_way_refs: "duckdb.DuckDBPyRelation"
         relations_filtered_ids: "duckdb.DuckDBPyRelation"
 
-    ROWS_PER_GROUP_MEMORY_CONFIG = {
-        0: 100_000,
-        8: 500_000,
-        16: 1_000_000,
-        24: 5_000_000,
-    }
+    if version.parse(duckdb.__version__) >= version.parse("1.3.0"):
+        ROWS_PER_GROUP_MEMORY_CONFIG = {
+            0: 10_000,
+            1: 50_000,
+            2: 100_000,
+            4: 1_000_000,
+            8: 4_000_000,
+            16: 16_000_000,
+            32: 48_000_000,
+        }
+    else:
+        ROWS_PER_GROUP_MEMORY_CONFIG = {
+            0: 10_000,
+            1: 50_000,
+            2: 100_000,
+            4: 200_000,
+            8: 500_000,
+            16: 1_000_000,
+            24: 5_000_000,
+        }
 
     @deprecate_kwarg(old_arg_name="parquet_compression", new_arg_name="compression")  # type: ignore
     def __init__(
@@ -157,6 +172,7 @@ class PbfFileReader:
         ignore_metadata_tags: bool = True,
         debug_memory: bool = False,
         debug_times: bool = False,
+        cpu_limit: Optional[int] = None,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -212,6 +228,8 @@ class PbfFileReader:
                 operation for debugging. Defaults to `False`.
             debug_times (bool, optional): If turned on, will report timestamps at which second each
                 step has been executed. Defaults to `False`.
+            cpu_limit (int, optional): Max number of threads available for processing.
+                If `None`, will use all available threads. Defaults to `None`.
 
         Raises:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
@@ -249,6 +267,10 @@ class PbfFileReader:
 
         self.internal_rows_per_group: int = 0
         self.internal_parquet_compression = "zstd"
+
+        self.cpu_limit = (
+            cpu_limit or duckdb.sql("SELECT current_setting('threads') AS threads").fetchone()[0]
+        )
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
@@ -541,7 +563,9 @@ class PbfFileReader:
 
             try:
                 self.encountered_query_exception = False
-                self.connection = _set_up_duckdb_connection(tmp_dir_path=self.tmp_dir_path)
+                self.connection = _set_up_duckdb_connection(
+                    tmp_dir_path=self.tmp_dir_path, threads_limit=self.cpu_limit
+                )
 
                 original_geometry_filter = self.geometry_filter
 
@@ -979,7 +1003,9 @@ class PbfFileReader:
         if len(parsed_geoparquet_files) == 1:  # pragma: no cover
             return parsed_geoparquet_files
 
-        connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
+        connection = _set_up_duckdb_connection(
+            tmp_dir_path=tmp_dir_path, threads_limit=self.cpu_limit
+        )
 
         with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
             output_file_name = tmp_dir_path / "joined_features_without_duplicates"
@@ -993,8 +1019,10 @@ class PbfFileReader:
                     QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
                 ) TO '{output_file_name}' (
                     FORMAT 'parquet',
+                    OVERWRITE true,
                     PER_THREAD_OUTPUT true,
-                    ROW_GROUP_SIZE 25000,
+                    FILE_SIZE_BYTES '128MB',
+                    ROW_GROUP_SIZE_BYTES '16MB',
                     COMPRESSION '{self.internal_parquet_compression}'
                 )
             """
@@ -1013,7 +1041,9 @@ class PbfFileReader:
             parsed_geoparquet_files, key=lambda pq_file: pq_file.stat().st_size, reverse=True
         )
 
-        connection = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path)
+        connection = _set_up_duckdb_connection(
+            tmp_dir_path=tmp_dir_path, threads_limit=self.cpu_limit
+        )
 
         result_parquet_files = [sorted_parsed_geoparquet_files[0]]
         with self.task_progress_tracker.get_basic_bar("Removing duplicates") as bar:
@@ -1031,7 +1061,8 @@ class PbfFileReader:
                     ) TO '{filtered_result_parquet_file}' (
                         FORMAT 'parquet',
                         PER_THREAD_OUTPUT true,
-                        ROW_GROUP_SIZE 25000,
+                        FILE_SIZE_BYTES '128MB',
+                        ROW_GROUP_SIZE_BYTES '16MB',
                         COMPRESSION '{self.internal_parquet_compression}'
                     )
                 """
@@ -1160,6 +1191,7 @@ class PbfFileReader:
                 "relations_filtered_ids",
                 "required_ways_with_linestrings",
                 "valid_relation_parts",
+                "valid_relations_tmp",
                 "relation_inner_parts",
                 "relation_outer_parts",
                 "relation_outer_parts_with_holes",
@@ -1170,9 +1202,9 @@ class PbfFileReader:
         parsed_geometries = self.connection.sql(
             f"""
             SELECT * FROM read_parquet([
-                '{filtered_nodes_with_geometry_path}/**',
-                '{filtered_ways_with_proper_geometry_path}/**',
-                '{filtered_relations_with_geometry_path}/**'
+                '{filtered_nodes_with_geometry_path}/**/*.parquet',
+                '{filtered_ways_with_proper_geometry_path}/**/*.parquet',
+                '{filtered_relations_with_geometry_path}/**/*.parquet'
             ], union_by_name=True);
             """
         )
@@ -1862,8 +1894,10 @@ class PbfFileReader:
                 {relation.sql_query()}
             ) TO '{file_path}' (
                 FORMAT 'parquet',
+                OVERWRITE true,
                 PER_THREAD_OUTPUT true,
-                ROW_GROUP_SIZE 25000,
+                FILE_SIZE_BYTES '128MB',
+                ROW_GROUP_SIZE_BYTES '16MB',
                 COMPRESSION '{self.internal_parquet_compression}'
             )
         """
@@ -1875,7 +1909,7 @@ class PbfFileReader:
         if is_empty:
             relation.to_parquet(str(file_path / "empty.parquet"))
 
-        return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**')")
+        return self.connection.sql(f"SELECT * FROM read_parquet('{file_path}/**/*.parquet')")
 
     def _run_query(
         self,
@@ -1884,39 +1918,66 @@ class PbfFileReader:
         query_timeout_seconds: Optional[int] = None,
         tmp_dir_path: Optional[Path] = None,
     ) -> None:
+        current_cpu_limit = self.cpu_limit
+        self.connection.sql(f"SET threads = {current_cpu_limit};")
+
         if isinstance(sql_queries, str):
             sql_queries = [sql_queries]
 
         if run_in_separate_process:
-            with multiprocessing.get_context("spawn").Pool() as pool:
-                r = pool.apply_async(
-                    _run_query, args=(sql_queries, tmp_dir_path or self.tmp_dir_path)
+            process = WorkerProcess(
+                target=_run_query,
+                args=(sql_queries, tmp_dir_path or self.tmp_dir_path, self.cpu_limit),
+            )
+            process.start()
+
+            start_time = time.time()
+            actual_memory = psutil.virtual_memory()
+            percentage_threshold = 95
+            if (actual_memory.total * 0.05) > MEMORY_1GB:
+                percentage_threshold = (
+                    100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
                 )
-                start_time = time.time()
+
+            while process.is_alive():
                 actual_memory = psutil.virtual_memory()
-                percentage_threshold = 95
-                if (actual_memory.total * 0.05) > MEMORY_1GB:
-                    percentage_threshold = (
-                        100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
-                    )
-                while not r.ready():
-                    actual_memory = psutil.virtual_memory()
-                    if actual_memory.percent > percentage_threshold:
-                        raise MemoryError()
+                if actual_memory.percent > percentage_threshold:
+                    raise MemoryError()
 
-                    current_time = time.time()
-                    elapsed_seconds = current_time - start_time
-                    if (
-                        query_timeout_seconds is not None
-                        and elapsed_seconds > query_timeout_seconds
-                    ):
-                        raise TimeoutError()
+                current_time = time.time()
+                elapsed_seconds = current_time - start_time
+                if query_timeout_seconds is not None and elapsed_seconds > query_timeout_seconds:
+                    raise TimeoutError()
 
-                    sleep(0.5)
-                r.get()
+                sleep(0.5)
+
+            if process.exception:
+                error, traceback = process.exception
+                msg = f"{error}\n\nOriginal {traceback}"
+                raise type(error)(msg)
+
+            if process.exitcode != 0:
+                raise MemoryError()
         else:
-            for sql_query in sql_queries:
-                self.connection.sql(sql_query)
+            finished_operation = False
+            while not finished_operation:
+                try:
+                    for sql_query in sql_queries:
+                        self.connection.sql(sql_query)
+
+                    finished_operation = True
+                except (duckdb.OutOfMemoryException, MemoryError) as ex:
+                    if current_cpu_limit > 1:
+                        current_cpu_limit = ceil(current_cpu_limit / 2)
+                        self.connection.sql(f"SET threads = {current_cpu_limit};")
+                        if not self.verbosity_mode == "silent":
+                            log_message(
+                                f"Encountered {ex.__class__.__name__} during operation."
+                                " Retrying with lower number of threads"
+                                f" ({current_cpu_limit})."
+                            )
+                    else:
+                        raise
 
     def _calculate_unique_ids_to_parquet(
         self, file_path: Path, result_path: Optional[Path] = None
@@ -1924,16 +1985,20 @@ class PbfFileReader:
         if result_path is None:
             result_path = file_path / "distinct"
 
-        relation = self.connection.sql(f"SELECT id FROM read_parquet('{file_path}/**') GROUP BY id")
+        relation = self.connection.sql(
+            f"SELECT id FROM read_parquet('{file_path}/**/*.parquet') GROUP BY id"
+        )
 
-        self.connection.sql(
+        self._run_query(
             f"""
             COPY (
                 {relation.sql_query()}
             ) TO '{result_path}' (
                 FORMAT 'parquet',
+                OVERWRITE true,
                 PER_THREAD_OUTPUT true,
-                ROW_GROUP_SIZE 25000,
+                FILE_SIZE_BYTES '128MB',
+                ROW_GROUP_SIZE_BYTES '16MB',
                 COMPRESSION '{self.internal_parquet_compression}'
             )
             """
@@ -1945,7 +2010,7 @@ class PbfFileReader:
         if is_empty:
             relation.to_parquet(str(result_path / "empty.parquet"))
 
-        return self.connection.sql(f"SELECT * FROM read_parquet('{result_path}/**')")
+        return self.connection.sql(f"SELECT * FROM read_parquet('{result_path}/**/*.parquet')")
 
     def _get_filtered_nodes_with_geometry(
         self,
@@ -2038,28 +2103,20 @@ class PbfFileReader:
 
         while not finished_operation:
             reset_steps = 1
+            grouped_ways = False
             try:
-                if not self.encountered_query_exception:
-                    groups = self._group_ways(
-                        ways_ids=ways_ids,
-                        mode=mode,
-                        osm_parquet_files=osm_parquet_files,
-                        destination_dir_path=destination_dir_path,
-                        grouped_ways_tmp_path=grouped_ways_tmp_path,
-                        grouped_ways_path=grouped_ways_path,
-                        group_all_at_once=True,
-                    )
-                else:
-                    groups = self._group_ways(
-                        ways_ids=ways_ids,
-                        mode=mode,
-                        osm_parquet_files=osm_parquet_files,
-                        destination_dir_path=destination_dir_path,
-                        grouped_ways_tmp_path=grouped_ways_tmp_path,
-                        grouped_ways_path=grouped_ways_path,
-                        group_all_at_once=False,
-                    )
+                groups = self._group_ways(
+                    ways_ids=ways_ids,
+                    mode=mode,
+                    osm_parquet_files=osm_parquet_files,
+                    destination_dir_path=destination_dir_path,
+                    grouped_ways_tmp_path=grouped_ways_tmp_path,
+                    grouped_ways_path=grouped_ways_path,
+                    group_all_at_once=not self.encountered_query_exception,
+                )
                 reset_steps += 1
+
+                grouped_ways = True
 
                 self._delete_directories(grouped_ways_tmp_path)
 
@@ -2075,7 +2132,8 @@ class PbfFileReader:
 
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
-                self.encountered_query_exception = True
+                if not grouped_ways:
+                    self.encountered_query_exception = True
                 self.task_progress_tracker.major_step_number -= reset_steps
                 if self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     self._delete_directories(
@@ -2098,7 +2156,7 @@ class PbfFileReader:
                     raise
 
         ways_parquet = self.connection.sql(
-            f"SELECT * FROM read_parquet('{destination_dir_path}/**')"
+            f"SELECT * FROM read_parquet('{destination_dir_path}/**/*.parquet')"
         )
         return ways_parquet
 
@@ -2219,13 +2277,13 @@ class PbfFileReader:
                     )
 
             ways_with_nodes_points_relation_parquet = self.connection.sql(
-                f"SELECT * FROM read_parquet('{grouped_ways_ids_with_points_path}/**')"
+                f"SELECT * FROM read_parquet('{grouped_ways_ids_with_points_path}/**/*.parquet')"
             )
 
         with self.task_progress_tracker.get_spinner(
             f"Grouping {mode} ways - partitioning by group", next_step="minor"
         ):
-            self.connection.sql(
+            self._run_query(
                 f"""
                 COPY (
                     SELECT
@@ -2233,11 +2291,15 @@ class PbfFileReader:
                     FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
                 ) TO '{grouped_ways_path}' (
                     FORMAT 'parquet',
+                    OVERWRITE true,
                     PARTITION_BY ("group"),
                     ROW_GROUP_SIZE 25000,
                     COMPRESSION '{self.internal_parquet_compression}'
                 )
-                """
+                """,
+                run_in_separate_process=(
+                    self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
+                ),
             )
             if self.debug_memory:
                 log_message(f"Saved to directory: {grouped_ways_path}")
@@ -2253,15 +2315,30 @@ class PbfFileReader:
     ) -> None:
         for group in bar.track(range(groups + 1)):
             current_ways_group_path = grouped_ways_path / f"group={group}"
-            current_destination_path = destination_dir_path / f"group={group}" / "data.parquet"
-            current_destination_path.parent.mkdir(parents=True, exist_ok=True)
+            current_destination_path = destination_dir_path / f"group={group}"
+            current_destination_path.mkdir(parents=True, exist_ok=True)
 
-            _run_in_multiprocessing_pool(
-                _group_ways_with_polars, (current_ways_group_path, current_destination_path)
+            self._run_query(
+                f"""
+                COPY (
+                    SELECT id, list(point ORDER BY ref_idx ASC) AS linestring
+                    FROM read_parquet('{current_ways_group_path}/*.parquet')
+                    GROUP BY id
+                ) TO '{current_destination_path}' (
+                    FORMAT 'parquet',
+                    OVERWRITE true,
+                    PER_THREAD_OUTPUT true,
+                    ROW_GROUP_SIZE 25000,
+                    COMPRESSION '{self.internal_parquet_compression}'
+                )
+                """,
+                run_in_separate_process=(
+                    self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
+                ),
             )
 
             if self.debug_memory:
-                log_message(f"Saved to file: {current_destination_path}")
+                log_message(f"Saved to directory: {current_destination_path}")
 
             self._delete_directories(current_ways_group_path)
 
@@ -2355,68 +2432,23 @@ class PbfFileReader:
         osm_parquet_files: ConvertedOSMParquetFiles,
         required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
     ) -> Path:
-        valid_relation_parts = self.connection.sql(
-            f"""
-            WITH unnested_relations AS (
-                SELECT
-                    r.id,
-                    COALESCE(r.ref_role, 'outer') as ref_role,
-                    r.ref,
-                    linestring_to_linestring_geometry(w.linestring)::GEOMETRY as geometry
-                FROM ({osm_parquet_files.relations_with_unnested_way_refs.sql_query()}) r
-                SEMI JOIN ({osm_parquet_files.relations_filtered_ids.sql_query()}) fr
-                ON r.id = fr.id
-                JOIN ({required_ways_with_linestrings.sql_query()}) w
-                ON w.id = r.ref
-            ),
-            any_outer_refs AS (
-                SELECT id, bool_or(ref_role == 'outer') any_outer_refs
-                FROM unnested_relations
-                GROUP BY id
-            ),
-            relations_with_geometries AS (
-                SELECT
-                    x.id,
-                    CASE WHEN aor.any_outer_refs
-                        THEN x.ref_role ELSE 'outer'
-                    END as ref_role,
-                    x.geom geometry,
-                    row_number() OVER (PARTITION BY x.id) as geometry_id
-                FROM (
-                    SELECT
-                        id,
-                        ref_role,
-                        UNNEST(
-                            ST_Dump(ST_LineMerge(ST_Collect(list(geometry)))), recursive := true
-                        ),
-                    FROM unnested_relations
-                    GROUP BY id, ref_role
-                ) x
-                JOIN any_outer_refs aor ON aor.id = x.id
-                WHERE ST_NPoints(ST_RemoveRepeatedPoints(geom)) >= 4
-            ),
-            valid_relations AS (
-                SELECT id, is_valid
-                FROM (
-                    SELECT
-                        id,
-                        bool_and(
-                            ST_Equals(ST_StartPoint(geometry), ST_EndPoint(geometry))
-                        ) is_valid
-                    FROM relations_with_geometries
-                    GROUP BY id
+        finished_operation = False
+
+        while not finished_operation:
+            try:
+                valid_relation_parts_parquet = self._save_valid_relation_parts(
+                    osm_parquet_files=osm_parquet_files,
+                    required_ways_with_linestrings=required_ways_with_linestrings,
+                    process_all_at_once=not self.encountered_query_exception,
                 )
-                WHERE is_valid = true
-            )
-            SELECT * FROM relations_with_geometries
-            SEMI JOIN valid_relations ON relations_with_geometries.id = valid_relations.id
-            """
-        )
-        valid_relation_parts_parquet = self._save_parquet_file_with_geometry(
-            relation=valid_relation_parts,
-            file_path=self.tmp_dir_path / "valid_relation_parts",
-            step_name="Saving valid relations parts",
-        )
+                finished_operation = True
+            except (duckdb.OutOfMemoryException, MemoryError, TimeoutError):
+                if not self.encountered_query_exception:
+                    self.encountered_query_exception = True
+                    self.task_progress_tracker.major_step_number -= 1
+                else:
+                    raise
+
         relation_inner_parts = self.connection.sql(
             f"""
             SELECT id, geometry_id, ST_MakePolygon(ST_RemoveRepeatedPoints(geometry)) geometry
@@ -2518,15 +2550,208 @@ class PbfFileReader:
         )
         return result_path
 
+    def _save_valid_relation_parts(
+        self,
+        osm_parquet_files: ConvertedOSMParquetFiles,
+        required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
+        process_all_at_once: bool = True,
+    ) -> "duckdb.DuckDBPyRelation":
+        if process_all_at_once:
+            valid_relation_parts = self.connection.sql(
+                f"""
+                WITH unnested_relations AS (
+                    SELECT
+                        r.id,
+                        COALESCE(r.ref_role, 'outer') as ref_role,
+                        r.ref,
+                        linestring_to_linestring_geometry(w.linestring)::GEOMETRY as geometry
+                    FROM ({osm_parquet_files.relations_with_unnested_way_refs.sql_query()}) r
+                    SEMI JOIN ({osm_parquet_files.relations_filtered_ids.sql_query()}) fr
+                    ON r.id = fr.id
+                    JOIN ({required_ways_with_linestrings.sql_query()}) w
+                    ON w.id = r.ref
+                ),
+                any_outer_refs AS (
+                    SELECT id, bool_or(ref_role == 'outer') any_outer_refs
+                    FROM unnested_relations
+                    GROUP BY id
+                ),
+                relations_with_geometries AS (
+                    SELECT
+                        x.id,
+                        CASE WHEN aor.any_outer_refs
+                            THEN x.ref_role ELSE 'outer'
+                        END as ref_role,
+                        x.geom geometry,
+                        row_number() OVER (PARTITION BY x.id) as geometry_id
+                    FROM (
+                        SELECT
+                            id,
+                            ref_role,
+                            UNNEST(
+                                ST_Dump(ST_LineMerge(ST_Collect(list(geometry)))), recursive := true
+                            ),
+                        FROM unnested_relations
+                        GROUP BY id, ref_role
+                    ) x
+                    JOIN any_outer_refs aor ON aor.id = x.id
+                    WHERE ST_NPoints(ST_RemoveRepeatedPoints(geom)) >= 4
+                ),
+                valid_relations AS (
+                    SELECT id, is_valid
+                    FROM (
+                        SELECT
+                            id,
+                            bool_and(
+                                ST_Equals(ST_StartPoint(geometry), ST_EndPoint(geometry))
+                            ) is_valid
+                        FROM relations_with_geometries
+                        GROUP BY id
+                    )
+                    WHERE is_valid = true
+                )
+                SELECT * FROM relations_with_geometries
+                SEMI JOIN valid_relations ON relations_with_geometries.id = valid_relations.id
+                """
+            )
+            valid_relation_parts_parquet = self._save_parquet_file_with_geometry(
+                relation=valid_relation_parts,
+                file_path=self.tmp_dir_path / "valid_relation_parts",
+                step_name="Saving valid relations parts",
+            )
+        else:
+            valid_relations_tmp_path = self.tmp_dir_path / "valid_relations_tmp"
+
+            unnested_relations_with_linestrings = self.connection.sql(
+                f"""
+                SELECT
+                    r.id,
+                    COALESCE(r.ref_role, 'outer') as ref_role,
+                    r.ref,
+                    linestring_to_linestring_geometry(w.linestring)::GEOMETRY as geometry
+                FROM ({osm_parquet_files.relations_with_unnested_way_refs.sql_query()}) r
+                SEMI JOIN ({osm_parquet_files.relations_filtered_ids.sql_query()}) fr
+                ON r.id = fr.id
+                JOIN ({required_ways_with_linestrings.sql_query()}) w
+                ON w.id = r.ref
+                """
+            )
+            unnested_relations_with_linestrings_parquet = self._save_parquet_file_with_geometry(
+                relation=unnested_relations_with_linestrings,
+                file_path=valid_relations_tmp_path / "unnested_relations",
+                step_name="Saving valid relations parts - unnested linestrings",
+                with_minor_step=True,
+            )
+
+            with self.task_progress_tracker.get_spinner(
+                "Saving valid relations parts - finding outer refs", next_step="minor"
+            ):
+                any_outer_refs = self.connection.sql(
+                    f"""
+                    SELECT id, bool_or(ref_role == 'outer') any_outer_refs
+                    FROM ({unnested_relations_with_linestrings_parquet.sql_query()})
+                    GROUP BY id
+                    """
+                )
+
+                any_outer_refs_parquet = self._save_parquet_file(
+                    relation=any_outer_refs,
+                    file_path=valid_relations_tmp_path / "outer_refs",
+                    run_in_separate_process=False,
+                )
+
+            merged_linestrings = self.connection.sql(
+                f"""
+                SELECT
+                    x.id,
+                    CASE WHEN aor.any_outer_refs
+                        THEN x.ref_role ELSE 'outer'
+                    END as ref_role,
+                    x.geom geometry,
+                    row_number() OVER (PARTITION BY x.id) as geometry_id
+                FROM (
+                    SELECT
+                        id,
+                        ref_role,
+                        UNNEST(
+                            ST_Dump(ST_LineMerge(ST_Collect(list(geometry)))), recursive := true
+                        ),
+                    FROM (
+                        {unnested_relations_with_linestrings_parquet.sql_query()}
+                    ) unnested_relations
+                    GROUP BY id, ref_role
+                ) x
+                JOIN ({any_outer_refs_parquet.sql_query()}) aor ON aor.id = x.id
+                WHERE ST_NPoints(ST_RemoveRepeatedPoints(geom)) >= 4
+                """
+            )
+
+            merged_linestrings_parquet = self._save_parquet_file_with_geometry(
+                relation=merged_linestrings,
+                file_path=valid_relations_tmp_path / "merged_linestrings",
+                step_name="Saving valid relations parts - merging linestrings",
+                next_step="minor",
+            )
+
+            with self.task_progress_tracker.get_spinner(
+                "Saving valid relations parts - checking validity", next_step="minor"
+            ):
+                valid_relations = self.connection.sql(
+                    f"""
+                    SELECT id, is_valid
+                    FROM (
+                        SELECT
+                            id,
+                            bool_and(
+                                ST_Equals(ST_StartPoint(geometry), ST_EndPoint(geometry))
+                            ) is_valid
+                        FROM ({merged_linestrings_parquet.sql_query()})
+                        GROUP BY id
+                    )
+                    WHERE is_valid = true
+                    """
+                )
+
+                valid_relations_parquet = self._save_parquet_file(
+                    relation=valid_relations,
+                    file_path=valid_relations_tmp_path / "valid_relations",
+                    run_in_separate_process=False,
+                )
+
+            valid_relation_parts = self.connection.sql(
+                f"""
+                WITH relations_with_geometries AS (
+                    SELECT * FROM ({merged_linestrings_parquet.sql_query()})
+                ),
+                valid_relations AS (
+                    SELECT * FROM ({valid_relations_parquet.sql_query()})
+                )
+                SELECT * FROM relations_with_geometries
+                SEMI JOIN valid_relations ON relations_with_geometries.id = valid_relations.id
+                """
+            )
+            valid_relation_parts_parquet = self._save_parquet_file_with_geometry(
+                relation=valid_relation_parts,
+                file_path=self.tmp_dir_path / "valid_relation_parts",
+                step_name="Saving valid relations parts - filtering valid",
+                next_step="minor",
+            )
+
+        return valid_relation_parts_parquet
+
     def _save_parquet_file_with_geometry(
         self,
         relation: "duckdb.DuckDBPyRelation",
         file_path: Path,
         step_name: str,
+        next_step: Literal["major", "minor"] = "major",
         with_minor_step: bool = False,
     ) -> "duckdb.DuckDBPyRelation":
-        with self.task_progress_tracker.get_spinner(step_name, with_minor_step=with_minor_step):
-            self.connection.sql(
+        with self.task_progress_tracker.get_spinner(
+            step_name, next_step=next_step, with_minor_step=with_minor_step
+        ):
+            file_path.mkdir(exist_ok=True, parents=True)
+            self._run_query(
                 f"""
                 COPY (
                     SELECT
@@ -2534,8 +2759,10 @@ class PbfFileReader:
                     FROM ({relation.sql_query()})
                 ) TO '{file_path}' (
                     FORMAT 'parquet',
+                    OVERWRITE true,
                     PER_THREAD_OUTPUT true,
-                    ROW_GROUP_SIZE 25000,
+                    FILE_SIZE_BYTES '1024MB',
+                    ROW_GROUP_SIZE_BYTES '128MB',
                     COMPRESSION '{self.internal_parquet_compression}'
                 )
                 """
@@ -2554,7 +2781,7 @@ class PbfFileReader:
             THEN geometry::GEOMETRY
             ELSE ST_GeomFromWKB(geometry::BLOB)
             END AS geometry
-            FROM read_parquet('{file_path}/**')
+            FROM read_parquet('{file_path}/**/*.parquet')
             """
         )
 
@@ -2915,21 +3142,24 @@ class PbfFileReader:
                 if column_is_null
             ]
 
-            with self.task_progress_tracker.get_bar("Saving final geoparquet file") as bar:
+            with self.task_progress_tracker.get_spinner("Saving final geoparquet file"):
                 dataset = pq.ParquetDataset(input_file)
 
                 merged_parquet_path = self.tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
                 _merge_parquet_dataset(
                     dataset=dataset,
-                    connection=self.connection,
+                    tmp_dir_path=self.tmp_dir_path,
+                    cpu_limit=self.cpu_limit,
                     columns_to_drop=columns_to_drop,
                     merged_parquet_path=merged_parquet_path,
                     save_as_wkt=save_as_wkt,
-                    bar=bar,
                 )
 
+                self._delete_directories("osm_valid_elements")
+
             if sort_result:
-                with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
+                with self.task_progress_tracker.get_bar("Sorting result file by geometry") as bar:
+                    bar.create_manual_bar(pq.read_metadata(merged_parquet_path).num_rows)
                     _sort_geoparquet_file_by_geometry(
                         input_file_path=merged_parquet_path,
                         explode_tags=explode_tags,
@@ -2945,6 +3175,8 @@ class PbfFileReader:
                         row_group_size=self.row_group_size,
                         verbosity_mode=self.verbosity_mode,
                         working_directory=self.tmp_dir_path,
+                        threads_limit=self.cpu_limit,
+                        progress_bar=bar,
                     )
             else:
                 with self.task_progress_tracker.get_spinner("Compressing result file"):
@@ -2966,23 +3198,22 @@ class PbfFileReader:
         sort_result: bool,
         explode_tags: bool,
     ) -> None:
-        with self.task_progress_tracker.get_basic_bar("Combining results") as bar:
+        with self.task_progress_tracker.get_basic_spinner("Combining results"):
             dataset = pq.ParquetDataset(input_files)
 
             merged_parquet_path = tmp_dir_path / f"{result_file_path.stem}_merged.parquet"
-            connection = _set_up_duckdb_connection(tmp_dir_path)
             _merge_parquet_dataset(
                 dataset=dataset,
-                connection=connection,
+                tmp_dir_path=tmp_dir_path,
+                cpu_limit=self.cpu_limit,
                 columns_to_drop=[],
                 merged_parquet_path=merged_parquet_path,
                 save_as_wkt=save_as_wkt,
-                bar=bar,
             )
-            connection.close()
 
         if sort_result:
-            with self.task_progress_tracker.get_basic_spinner("Sorting result file by geometry"):
+            with self.task_progress_tracker.get_basic_bar("Sorting result file by geometry") as bar:
+                bar.create_manual_bar(pq.read_metadata(merged_parquet_path).num_rows)
                 _sort_geoparquet_file_by_geometry(
                     input_file_path=merged_parquet_path,
                     explode_tags=explode_tags,
@@ -2996,6 +3227,8 @@ class PbfFileReader:
                     row_group_size=self.row_group_size,
                     verbosity_mode=self.verbosity_mode,
                     working_directory=tmp_dir_path,
+                    threads_limit=self.cpu_limit,
+                    progress_bar=bar,
                 )
         else:
             with self.task_progress_tracker.get_basic_spinner("Compressing result file"):
@@ -3011,12 +3244,15 @@ class PbfFileReader:
 
 def _merge_parquet_dataset(
     dataset: "pq.ParquetDataset",
-    connection: "duckdb.DuckDBPyConnection",
+    tmp_dir_path: "Path",
+    cpu_limit: Optional[int],
     columns_to_drop: list[str],
     merged_parquet_path: Path,
     save_as_wkt: bool,
-    bar: TaskProgressBar,
 ) -> None:
+    connection, db_file_path = _set_up_duckdb_connection(
+        tmp_dir_path, is_main_connection=False, threads_limit=cpu_limit
+    )
     parquet_relation = connection.read_parquet(
         [str(_input_file) for _input_file in dataset.files],
         union_by_name=True,
@@ -3047,90 +3283,66 @@ def _merge_parquet_dataset(
         ).fetchall()
     )
 
-    main_schema = dataset.schema
-
-    writer = None
-    for fragment in bar.track(dataset.fragments):
-        if fragment.count_rows() == 0:
-            continue
-
-        missing_columns = set(main_schema.names).difference(set(fragment.physical_schema.names))
-
-        for original_batch in fragment.to_batches():
-            batch = original_batch
-            for column_field in missing_columns:
-                batch = batch.append_column(
-                    column_field,
-                    pa.nulls(size=batch.num_rows, type=main_schema.field(column_field).type),
-                )
-
-            batch = batch.select([field.name for field in main_schema])
-
-            if columns_to_drop:
-                batch = batch.drop_columns(columns_to_drop)
-
-            if save_as_wkt:
-                geometry_column = ga.as_wkt(ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS))
-                batch = batch.set_column(
-                    batch.schema.get_field_index(GEOMETRY_COLUMN),
-                    GEOMETRY_COLUMN,
-                    geometry_column,
-                )
-            else:
-                geometry_column = ga.as_wkb(ga.with_crs(batch.column(GEOMETRY_COLUMN), WGS84_CRS))
-                batch = batch.set_column(
-                    batch.schema.get_field_index(GEOMETRY_COLUMN),
-                    GEOMETRY_COLUMN,
-                    geometry_column,
-                )
-                batch = _replace_geo_metadata_in_batch(batch, geometry_bounds, geo_types)
-
-            if not writer:
-                writer = pq.ParquetWriter(merged_parquet_path, schema=batch.schema)
-
-            writer.write_batch(batch, row_group_size=PARQUET_ROW_GROUP_SIZE)
-
-    if writer:
-        writer.close()
-
-
-def _replace_geo_metadata_in_batch(
-    batch: pa.RecordBatch, bounds: tuple[float, float, float, float], geo_types: list[str]
-) -> pa.RecordBatch:
-    metadata = batch.schema.metadata or {}
-
-    # fill geo metadata if not exists
-    if b"geo" not in metadata and "geo" not in metadata:
-        geo_meta = io._geoparquet_metadata_from_schema(
-            batch.schema,
-            primary_geometry_column=GEOMETRY_COLUMN,
-            geometry_columns=[GEOMETRY_COLUMN],
-        )
-        metadata["geo"] = json.dumps(geo_meta)
-        batch = batch.replace_schema_metadata(metadata)
-
-    # replace bounding box
-    geo_meta = json.loads(batch.schema.metadata[b"geo"].decode())
-    geo_meta["columns"][GEOMETRY_COLUMN]["bbox"] = bounds
-    geo_meta["columns"][GEOMETRY_COLUMN]["geometry_types"] = list(
-        map(lambda geo_type: GEOMETRY_TYPES_MAPPING[geo_type], geo_types)
+    geo_metadata = get_geoparquet_metadata(
+        geometry_types=geo_types, bbox=geometry_bounds, encoding="WKB" if not save_as_wkt else "WKT"
     )
-    metadata[b"geo"] = json.dumps(geo_meta).encode()
-    batch = batch.replace_schema_metadata(metadata)
 
-    return batch
+    connection.execute("SET enable_geoparquet_conversion = false;")
+
+    exclude_clause = f"EXCLUDE {tuple(columns_to_drop)}" if columns_to_drop else ""
+
+    connection.execute(f"""
+        COPY (
+            SELECT * {exclude_clause}
+            FROM ({parquet_relation.sql_query()})
+        ) TO '{merged_parquet_path}' (
+            FORMAT 'parquet',
+            OVERWRITE true,
+            ROW_GROUP_SIZE_BYTES '128MB',
+            COMPRESSION 'zstd',
+            KV_METADATA {geo_metadata}
+        );
+    """)
+
+    connection.close()
+    db_file_path.unlink(missing_ok=True)
+
+
+@overload
+def _set_up_duckdb_connection(
+    tmp_dir_path: Path,
+    is_main_connection: Literal[True] = True,
+    preserve_insertion_order: bool = False,
+    threads_limit: Optional[int] = None,
+) -> "duckdb.DuckDBPyConnection": ...
+
+
+@overload
+def _set_up_duckdb_connection(
+    tmp_dir_path: Path,
+    is_main_connection: Literal[False] = False,
+    preserve_insertion_order: bool = False,
+    threads_limit: Optional[int] = None,
+) -> tuple["duckdb.DuckDBPyConnection", "Path"]: ...
 
 
 def _set_up_duckdb_connection(
-    tmp_dir_path: Path, is_main_connection: bool = True, preserve_insertion_order: bool = False
-) -> "duckdb.DuckDBPyConnection":
+    tmp_dir_path: Path,
+    is_main_connection: bool = True,
+    preserve_insertion_order: bool = False,
+    threads_limit: Optional[int] = None,
+) -> Union["duckdb.DuckDBPyConnection", tuple["duckdb.DuckDBPyConnection", "Path"]]:
     local_db_file = "db.duckdb" if is_main_connection else f"{secrets.token_hex(16)}.duckdb"
+    local_db_path = tmp_dir_path / local_db_file
     connection = duckdb.connect(
-        database=str(tmp_dir_path / local_db_file),
+        database=str(local_db_path),
         config=dict(preserve_insertion_order=preserve_insertion_order),
     )
     connection.sql("SET enable_progress_bar = false;")
     connection.sql("SET enable_progress_bar_print = false;")
+
+    if threads_limit:
+        connection.sql(f"SET threads = {threads_limit};")
 
     connection.install_extension("spatial")
     connection.load_extension("spatial")
@@ -3150,16 +3362,24 @@ def _set_up_duckdb_connection(
     """
     )
 
+    if not is_main_connection:
+        return connection, local_db_path
+
     return connection
 
 
-def _run_query(sql_queries: Union[str, list[str]], tmp_dir_path: Path) -> None:
+def _run_query(
+    sql_queries: Union[str, list[str]], tmp_dir_path: Path, threads_limit: Optional[int] = None
+) -> None:
     if isinstance(sql_queries, str):
         sql_queries = [sql_queries]
-    conn = _set_up_duckdb_connection(tmp_dir_path=tmp_dir_path, is_main_connection=False)
+    conn, db_file_path = _set_up_duckdb_connection(
+        tmp_dir_path=tmp_dir_path, is_main_connection=False, threads_limit=threads_limit
+    )
     for sql_query in sql_queries:
         conn.sql(sql_query)
     conn.close()
+    db_file_path.unlink(missing_ok=True)
 
 
 def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> None:
@@ -3184,23 +3404,6 @@ def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> No
             r.get()
     except Exception as ex:
         raise MultiprocessingRuntimeError() from ex
-
-
-def _group_ways_with_polars(current_ways_group_path: Path, current_destination_path: Path) -> None:
-    lf = (
-        pl.scan_parquet(
-            source=f"{current_ways_group_path}/*.parquet",
-            hive_partitioning=False,
-        )
-        .group_by("id")
-        .agg(pl.col("point").sort_by(pl.col("ref_idx")))
-        .rename({"point": "linestring"})
-    )
-
-    if version.parse(pl.__version__) >= version.parse("1.27.1"):
-        lf.sink_parquet(current_destination_path)
-    else:
-        lf.collect(streaming=True).write_parquet(current_destination_path)
 
 
 def _drop_duplicates_in_pyarrow_table(
@@ -3250,6 +3453,8 @@ def _sort_geoparquet_file_by_geometry(
     row_group_size: int,
     verbosity_mode: VERBOSITY_MODE,
     working_directory: Path,
+    threads_limit: Optional[int],
+    progress_bar: TaskProgressBar,
 ) -> Path:
     if save_as_wkt:
         raise ValueError("Geometry sorting is not supported for the WKT format.")
@@ -3274,6 +3479,7 @@ def _sort_geoparquet_file_by_geometry(
             output_file=compressed_parquet_path,
             value_columns=value_columns,
             working_directory=working_directory,
+            threads_limit=threads_limit,
         )
 
         input_file_path.unlink(missing_ok=True)
@@ -3289,6 +3495,7 @@ def _sort_geoparquet_file_by_geometry(
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
+            progress_callback=progress_bar.update_manual_bar,
         )
 
         _decompress_value_columns(
@@ -3320,9 +3527,13 @@ def _sort_geoparquet_file_by_geometry(
 
 
 def _compress_value_columns(
-    input_file: Path, output_file: Path, value_columns: list[str], working_directory: Path
+    input_file: Path,
+    output_file: Path,
+    value_columns: list[str],
+    working_directory: Path,
+    threads_limit: Optional[int] = None,
 ) -> None:
-    connection = _set_up_duckdb_connection(working_directory)
+    connection = _set_up_duckdb_connection(working_directory, threads_limit=threads_limit)
 
     index_case_clauses = ", ".join(
         f'CASE WHEN "{column}" IS NOT NULL THEN {column_idx} ELSE NULL END'
