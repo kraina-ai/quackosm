@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml pylock.toml pdm.toml README.md .
+COPY pyproject.toml pylock.toml pdm.toml README.md ./
 RUN pdm install --prod --skip post_install --no-self
 RUN pdm add --skip post_install -dG test coverage codecov-cli
 
