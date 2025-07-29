@@ -2,6 +2,7 @@
 
 import multiprocessing
 import os
+from contextlib import suppress
 from pathlib import Path
 
 import duckdb
@@ -51,12 +52,10 @@ def display_resources() -> None:
     print("Memory (psutil):", bytes2human(psutil.virtual_memory().total))
     print("Memory (psutil, all):", psutil.virtual_memory())
 
-    try:
+    with suppress(Exception):
         print("CPU affinity (os):", os.sched_getaffinity(0))  # type: ignore[attr-defined]
         print("CPU affinity (psutil):", psutil.Process().cpu_affinity())
         print("Memory limit (cgroup):", bytes2human(int(open("/sys/fs/cgroup/memory.max").read())))
-    except Exception:
-        pass
 
 
 if __name__ == "__main__":
