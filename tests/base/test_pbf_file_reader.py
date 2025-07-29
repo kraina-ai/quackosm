@@ -10,7 +10,6 @@ from typing import Any, Callable, Optional, Union, cast
 from unittest import TestCase
 
 import duckdb
-import geoarrow.pyarrow as ga
 import geopandas as gpd
 import pandas as pd
 import pyarrow as pa
