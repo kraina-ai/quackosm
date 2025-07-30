@@ -216,7 +216,9 @@ class TaskProgressBar:
 
     def update_manual_bar(self, current_progress: int) -> None:
         if self.progress:
-            self.progress.update(task_id=self.progress.task_ids[0], completed=current_progress)
+            self.progress.update(
+                task_id=self.progress.task_ids[0], completed=current_progress, refresh=True
+            )
 
     def track(self, iterable: Iterable[T]) -> Generator[T, None, None]:
         if self.progress is not None:

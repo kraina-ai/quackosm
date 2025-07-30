@@ -41,5 +41,6 @@ def test_big_file(extract_name: str, geometry_filter: Polygon, tags_filter: OsmT
         geometry_filter=geometry_filter,
     )
     # Reset rows_per_group value to test automatic downscaling
-    reader.internal_rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[24]
+    max_value = max(PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.keys())
+    reader.internal_rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[max_value]
     reader.convert_pbf_to_parquet(pbf_path=file_name, ignore_cache=True)
