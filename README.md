@@ -222,6 +222,8 @@ Finished operation in 0:00:03
 files/monaco_nofilter_noclip_compact.parquet
 ```
 
+> **Performance tip**: Use `--no-sort` flag for significantly better performance when sorting of features isn't required. By default sorting is turned on, but it takes additional time and memory to sort the features. For example with this flag turned off, converting osm extract for whole europe to parquet is ~50% faster.
+
 ### Let the QuackOSM automatically download the required OSM PBF files for you based on geometry 🔎🌍
 
 #### Load data as a GeoDataFrame
