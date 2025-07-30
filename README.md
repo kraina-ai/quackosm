@@ -181,7 +181,7 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 #### Use as CLI
 
 ```console
-$ quackosm monaco.osm.pbf 
+$ quackosm monaco.osm.pbf
 ⠋ [   1/32] Reading nodes • 0:00:00
 ⠋ [   2/32] Filtering nodes - intersection • 0:00:00
 ⠋ [   3/32] Filtering nodes - tags • 0:00:00
