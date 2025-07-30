@@ -181,7 +181,7 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 #### Use as CLI
 
 ```console
-$ quackosm monaco.osm.pbf
+$ quackosm monaco.osm.pbf 
 ⠋ [   1/32] Reading nodes • 0:00:00
 ⠋ [   2/32] Filtering nodes - intersection • 0:00:00
 ⠋ [   3/32] Filtering nodes - tags • 0:00:00
@@ -221,6 +221,8 @@ $ quackosm monaco.osm.pbf
 Finished operation in 0:00:03
 files/monaco_nofilter_noclip_compact.parquet
 ```
+
+> **Performance tip**: Use `--no-sort` flag for significantly better performance when sorting of features isn't required. By default sorting is turned on, but it takes additional time and memory to sort the features. For example with this flag turned off, converting osm extract for whole europe to parquet is ~50% faster.
 
 ### Let the QuackOSM automatically download the required OSM PBF files for you based on geometry 🔎🌍
 
