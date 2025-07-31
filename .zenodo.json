@@ -1,0 +1,14 @@
+{
+    "creators": [
+        {
+            "orcid": "0000-0002-3715-4869",
+            "name": "Kamil Raczycki",
+            "type": "Work Package leader"
+        }
+    ],
+    "license": "Apache-2.0",
+    "title": "QuackOSM: an open-source Python and CLI tool for reading OpenStreetMap PBF files using DuckDB",
+    "keywords": ["OpenStreetMap", "Python", "Geospatial"],
+    "upload_type": "software",
+    "language": "eng"
+}
