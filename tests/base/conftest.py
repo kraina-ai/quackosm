@@ -1,5 +1,6 @@
 """Common components for tests."""
 
+
 from pathlib import Path
 
 from shapely import to_geojson, to_wkt

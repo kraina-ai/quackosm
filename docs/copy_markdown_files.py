@@ -1,5 +1,6 @@
 """Markdown files copying utility function."""
 
+
 from pathlib import Path
 
 import mkdocs_gen_files
