@@ -9,6 +9,7 @@ https://github.com/joyanujoy/geolib/blob/19c8e544e3ed6d39a13af6e96461346a778ae68
 http://en.wikipedia.org/wiki/Geohash
 """
 
+
 from collections.abc import Generator
 
 base32 = "0123456789bcdefghjkmnpqrstuvwxyz"

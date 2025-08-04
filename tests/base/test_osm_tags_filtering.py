@@ -1,5 +1,6 @@
 """Tests for PbfFileReader OSM tags filtering."""
 
+
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Union

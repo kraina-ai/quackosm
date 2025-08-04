@@ -4,6 +4,7 @@ OpenStreetMap extracts tree.
 This module contains function for displaying available extracts in the tree form.
 """
 
+
 from typing import Callable
 
 import pandas as pd

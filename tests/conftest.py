@@ -1,5 +1,6 @@
 """Global conftest for QuackOSM tests."""
 
+
 import os
 import shutil
 from pathlib import Path

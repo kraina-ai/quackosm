@@ -1,5 +1,6 @@
 """Tests for proper URL detection."""
 
+
 import pytest
 
 from quackosm.pbf_file_reader import _is_url_path

@@ -1,5 +1,6 @@
 """Tests for Parquet multiprocessing wrapper."""
 
+
 import tempfile
 from pathlib import Path
 from random import random

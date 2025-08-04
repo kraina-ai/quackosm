@@ -1,5 +1,6 @@
 """Tests related to OSM extracts."""
 
+
 import datetime
 from contextlib import nullcontext as does_not_raise
 from typing import Any
