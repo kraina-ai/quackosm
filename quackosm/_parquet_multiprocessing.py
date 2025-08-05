@@ -163,6 +163,7 @@ def _report_exceptions(processes: list[WorkerSpawnProcess]) -> None:
     for p in processes:
         if p.is_alive():
             p.terminate()
+            p.join()
 
         if p.exception:
             exceptions.append(p.exception)
