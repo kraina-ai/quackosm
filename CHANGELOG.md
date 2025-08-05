@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to set threads limit using `cpu_limit` and `--cpu-limit` arguments
+
+### Changed
+
+- Bumped minimal `rq_geo_toolkit` version
+
+### Fixed
+
+- Added graceful subprocess termination if memory error is raised from the main process
+
 ## [0.16.0] - 2025-07-29
 
 ### Added

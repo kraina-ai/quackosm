@@ -1951,11 +1951,15 @@ class PbfFileReader:
         while process.is_alive():
             actual_memory = psutil.virtual_memory()
             if actual_memory.percent > percentage_threshold:
+                process.terminate()
+                process.join()
                 raise MemoryError()
 
             current_time = time.time()
             elapsed_seconds = current_time - start_time
             if query_timeout_seconds is not None and elapsed_seconds > query_timeout_seconds:
+                process.terminate()
+                process.join()
                 raise TimeoutError()
 
             sleep(0.5)

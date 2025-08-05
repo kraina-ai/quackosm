@@ -57,6 +57,7 @@ def convert_pbf_to_duckdb(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> Path:
     """
     Convert PBF file to DuckDB file.
@@ -123,6 +124,8 @@ def convert_pbf_to_duckdb(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -278,6 +281,7 @@ def convert_pbf_to_duckdb(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_pbf_to_duckdb(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -314,6 +318,7 @@ def convert_geometry_to_duckdb(
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a DuckDB file with OpenStreetMap features within given geometry.
@@ -391,6 +396,8 @@ def convert_geometry_to_duckdb(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -504,6 +511,7 @@ def convert_geometry_to_duckdb(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_geometry_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -538,6 +546,7 @@ def convert_osm_extract_to_duckdb(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a single OpenStreetMap extract from a given source and transform it to a DuckDB file.
@@ -607,6 +616,8 @@ def convert_osm_extract_to_duckdb(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -681,6 +692,7 @@ def convert_osm_extract_to_duckdb(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_pbf_to_duckdb(
         pbf_path=downloaded_osm_extract,
         result_file_path=result_file_path,
@@ -715,6 +727,7 @@ def convert_pbf_to_parquet(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> Path:
     """
     Convert PBF file to GeoParquet file.
@@ -783,6 +796,8 @@ def convert_pbf_to_parquet(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -936,6 +951,7 @@ def convert_pbf_to_parquet(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_pbf_to_parquet(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -972,6 +988,7 @@ def convert_geometry_to_parquet(
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -1051,6 +1068,8 @@ def convert_geometry_to_parquet(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -1161,6 +1180,7 @@ def convert_geometry_to_parquet(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_geometry_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -1195,6 +1215,7 @@ def convert_osm_extract_to_parquet(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a single OpenStreetMap extract from a given source and transform it to a GeoParquet file.
@@ -1266,6 +1287,8 @@ def convert_osm_extract_to_parquet(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -1339,6 +1362,7 @@ def convert_osm_extract_to_parquet(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_pbf_to_parquet(
         pbf_path=downloaded_osm_extract,
         result_file_path=result_file_path,
@@ -1372,6 +1396,7 @@ def convert_pbf_to_geodataframe(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame from a PBF file or list of PBF files.
@@ -1437,6 +1462,8 @@ def convert_pbf_to_geodataframe(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1567,6 +1594,7 @@ def convert_pbf_to_geodataframe(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_pbf_to_geodataframe(
         pbf_path=pbf_path,
         keep_all_tags=keep_all_tags,
@@ -1598,6 +1626,7 @@ def convert_geometry_to_geodataframe(
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame with OpenStreetMap features within given geometry.
@@ -1671,6 +1700,8 @@ def convert_geometry_to_geodataframe(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1741,6 +1772,7 @@ def convert_geometry_to_geodataframe(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_geometry_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
@@ -1770,6 +1802,7 @@ def convert_osm_extract_to_geodataframe(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get a single OpenStreetMap extract from a given source and return it as a GeoDataFrame.
@@ -1835,6 +1868,8 @@ def convert_osm_extract_to_geodataframe(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1901,6 +1936,7 @@ def convert_osm_extract_to_geodataframe(
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
     ).convert_pbf_to_geodataframe(
         pbf_path=downloaded_osm_extract,
         keep_all_tags=keep_all_tags,
