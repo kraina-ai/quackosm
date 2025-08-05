@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to set threads limit using `cpu_limit` and `--cpu-limit` arguments
+
 ### Fixed
 
 - Added graceful subprocess termination if memory error is raised from the main process
