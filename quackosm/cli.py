@@ -684,6 +684,17 @@ def main(
             show_default=False,
         ),
     ] = False,
+    cpu_limit: Annotated[
+        Optional[int],
+        typer.Option(
+            "--cpu-limit",
+            help=(
+                "Max number of threads available for processing."
+                " By default, will use all available threads."
+            ),
+            show_default=False,
+        ),
+    ] = None,
     show_extracts: Annotated[
         Optional[bool],
         typer.Option(
@@ -804,6 +815,7 @@ def main(
             sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
+            cpu_limit=cpu_limit,
         )
     elif pbf_file_duckdb:
         from quackosm.functions import convert_pbf_to_duckdb
@@ -828,6 +840,7 @@ def main(
             sort_result=sort_result,
             duckdb_table_name=duckdb_table_name or "quackosm",
             verbosity_mode=verbosity_mode,
+            cpu_limit=cpu_limit,
         )
     elif osm_extract_parquet:
         from quackosm._exceptions import OsmExtractSearchError
@@ -855,6 +868,7 @@ def main(
                 sort_result=sort_result,
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
+                cpu_limit=cpu_limit,
             )
         except OsmExtractSearchError as ex:
             from rich.console import Console
@@ -889,6 +903,7 @@ def main(
                 duckdb_table_name=duckdb_table_name or "quackosm",
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
+                cpu_limit=cpu_limit,
             )
         except OsmExtractSearchError as ex:
             from rich.console import Console
@@ -921,6 +936,7 @@ def main(
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
+            cpu_limit=cpu_limit,
         )
     elif geometry_duckdb:
         from quackosm.functions import convert_geometry_to_duckdb
@@ -948,6 +964,7 @@ def main(
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
+            cpu_limit=cpu_limit,
         )
     else:
         raise RuntimeError("Unknown operation mode")
