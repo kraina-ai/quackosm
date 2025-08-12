@@ -1,5 +1,6 @@
 """OpenStreetMap extract class."""
 
+
 import warnings
 from dataclasses import asdict, dataclass
 from datetime import datetime

@@ -4,6 +4,7 @@ Geofabrik OpenStreetMap extracts.
 This module contains wrapper for publically available Geofabrik download server.
 """
 
+
 import json
 import operator
 from typing import Optional

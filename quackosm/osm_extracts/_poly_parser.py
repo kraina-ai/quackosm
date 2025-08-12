@@ -1,5 +1,6 @@
 """Poly file parser function."""
 
+
 from typing import Any, Optional
 
 import requests

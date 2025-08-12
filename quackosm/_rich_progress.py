@@ -1,5 +1,6 @@
 """Wrapper over Rich progress bar."""
 
+
 import json
 import time
 from collections.abc import Generator, Iterable

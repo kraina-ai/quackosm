@@ -1,5 +1,6 @@
 """CLI module for parsing pbf file to geoparquet."""
 
+
 import json
 import logging
 from pathlib import Path

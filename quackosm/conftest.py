@@ -1,5 +1,6 @@
 """Fixtures for doctests."""
 
+
 import doctest
 import shutil
 from doctest import OutputChecker

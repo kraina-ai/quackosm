@@ -4,6 +4,7 @@ PBF File Reader.
 This module contains a reader capable of parsing a PBF file into a GeoDataFrame.
 """
 
+
 import hashlib
 import itertools
 import json
@@ -1561,10 +1562,11 @@ class PbfFileReader:
             )
         with self.task_progress_tracker.get_spinner("Unnesting ways"):
             ways_with_unnested_nodes_refs = self._sql_to_parquet_file(
-                sql_query="""
-                SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
-                FROM ways w
-                """,
+                sql_query=\
+                          """SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as
+                          ref_idx FROM ways w.
+                          """
+                   ,
                 file_path=self.tmp_dir_path / "ways_with_unnested_nodes_refs",
             )
         with self.task_progress_tracker.get_spinner("Filtering ways - valid refs"):
@@ -1654,7 +1656,8 @@ class PbfFileReader:
 
         with self.task_progress_tracker.get_spinner("Unnesting relations"):
             relations_with_unnested_way_refs = self._sql_to_parquet_file(
-                sql_query="""
+                sql_query=\
+                          """
                 WITH unnested_relation_refs AS (
                     SELECT
                         r.id,
@@ -1667,7 +1670,8 @@ class PbfFileReader:
                 SELECT id, ref, ref_role, ref_idx
                 FROM unnested_relation_refs
                 WHERE ref_type = 'way'
-                """,
+                """\
+                   ,
                 file_path=self.tmp_dir_path / "relations_with_unnested_way_refs",
             )
 
@@ -3363,29 +3367,26 @@ def _set_up_duckdb_connection(
 
     if threads_limit:
         connection.sql(f"SET threads = {threads_limit};")
-
     connection.install_extension("spatial")
     connection.load_extension("spatial")
-
-    connection.sql(
+              .sql(
         """
-        CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
-        ST_RemoveRepeatedPoints(
+        CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS ST_RemoveRepeatedPoints(
+
             ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
         )::GEOMETRY;
-    """
+        """
     )
     connection.sql(
-        """
-        CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
+        """CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
         ST_MakePolygon(linestring_to_linestring_geometry(ls));
-    """
+        """
     )
 
     if not is_main_connection:
         return connection, local_db_path
 
-    return connection
+return connection
 
 
 def _run_query(

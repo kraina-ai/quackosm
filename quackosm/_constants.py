@@ -1,5 +1,6 @@
 """Constants used across the project."""
 
+
 from rq_geo_toolkit.constants import (
     GEOMETRY_COLUMN,
     PARQUET_COMPRESSION,

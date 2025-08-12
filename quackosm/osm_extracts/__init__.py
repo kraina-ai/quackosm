@@ -5,6 +5,7 @@ This module contains iterators for publically available OpenStreetMap `*.osm.pbf
 repositories.
 """
 
+
 import difflib
 import warnings
 from collections.abc import Iterable

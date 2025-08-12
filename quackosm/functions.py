@@ -4,6 +4,7 @@ Functions.
 This module contains helper functions to simplify the usage.
 """
 
+
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, Optional, Union

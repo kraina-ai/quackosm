@@ -1,5 +1,6 @@
 """Capture the CLI help page and save it to the docs."""
 
+
 from pathlib import Path
 from typing import cast
 

@@ -4,6 +4,7 @@ BBBike OpenStreetMap extracts.
 This module contains wrapper for publically available BBBike download server.
 """
 
+
 from typing import Optional
 
 import geopandas as gpd

@@ -4,6 +4,7 @@ OpenStreetMap.fr extracts.
 This module contains wrapper for publically available OpenStreetMap.fr download server.
 """
 
+
 import re
 from typing import Any, Optional
 
