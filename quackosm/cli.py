@@ -9,6 +9,10 @@ import click
 import typer
 from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
+from quackosm._constants import (
+    PARQUET_COMPRESSION_LEVEL
+)
+
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
@@ -566,6 +570,15 @@ def main(
             help="Table name which the data will be imported into in the DuckDB database.",
         ),
     ] = "quackosm",
+    compression_level: Annotated[
+        bool,
+        typer.Option(
+            "--compression-level",
+            help=(
+                "ZSTD compression level from 0-22 for the output parquet file"
+            ),
+        ),
+    ] = PARQUET_COMPRESSION_LEVEL,
     ignore_cache: Annotated[
         bool,
         typer.Option(
@@ -802,6 +815,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             sort_result=sort_result,
+            compression_level=compression_level,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
         )
