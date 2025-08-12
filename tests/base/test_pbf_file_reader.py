@@ -121,8 +121,9 @@ def test_pbf_to_geoparquet_parsing_with_compression(
 
     metadata = pq.ParquetFile(result).metadata
 
+    # NOTE: cannot test if version is above 1.0 because of
+    # https://github.com/duckdb/duckdb/pull/16149
     print(metadata)
-    print(metadata.format_version)
 
     assert metadata.row_group(0).column(0).compression == compression.upper()
 
