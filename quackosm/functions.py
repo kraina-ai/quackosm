@@ -6,7 +6,7 @@ This module contains helper functions to simplify the usage.
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import geopandas as gpd
 from pandas.util._decorators import deprecate, deprecate_kwarg
@@ -16,6 +16,7 @@ from quackosm._constants import (
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
+    PARQUET_VERSION,
 )
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
@@ -47,6 +48,7 @@ def convert_pbf_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -96,9 +98,11 @@ def convert_pbf_to_duckdb(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -277,6 +281,7 @@ def convert_pbf_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
@@ -306,6 +311,7 @@ def convert_geometry_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -360,9 +366,11 @@ def convert_geometry_to_duckdb(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -504,6 +512,7 @@ def convert_geometry_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         osm_extract_source=osm_extract_source,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
@@ -536,6 +545,7 @@ def convert_osm_extract_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -588,9 +598,11 @@ def convert_osm_extract_to_duckdb(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -688,6 +700,7 @@ def convert_osm_extract_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
@@ -717,6 +730,7 @@ def convert_pbf_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -766,9 +780,11 @@ def convert_pbf_to_parquet(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -947,6 +963,7 @@ def convert_pbf_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
@@ -976,6 +993,7 @@ def convert_geometry_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1030,9 +1048,11 @@ def convert_geometry_to_parquet(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1173,6 +1193,7 @@ def convert_geometry_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         osm_extract_source=osm_extract_source,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
@@ -1205,6 +1226,7 @@ def convert_osm_extract_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1257,9 +1279,11 @@ def convert_osm_extract_to_parquet(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1358,6 +1382,7 @@ def convert_osm_extract_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
@@ -1387,6 +1412,7 @@ def convert_pbf_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1435,9 +1461,11 @@ def convert_pbf_to_geodataframe(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1590,6 +1618,7 @@ def convert_pbf_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
@@ -1615,6 +1644,7 @@ def convert_geometry_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1665,9 +1695,11 @@ def convert_geometry_to_geodataframe(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1765,6 +1797,7 @@ def convert_geometry_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         osm_extract_source=osm_extract_source,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
@@ -1793,6 +1826,7 @@ def convert_osm_extract_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1841,9 +1875,11 @@ def convert_osm_extract_to_geodataframe(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1932,6 +1968,7 @@ def convert_osm_extract_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,

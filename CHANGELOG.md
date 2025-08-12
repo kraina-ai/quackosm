@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Option to set threads limit using `cpu_limit` and `--cpu-limit` arguments
+- Support for Parquet version 2 with DuckDB >= `1.3.0`
+- Exposed parquet compression related flags to the CLI (`--compression`, `--compression-level`, `--row-group-size`, `--parquet-version`)
 
 ### Changed
 
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Added graceful subprocess termination if memory error is raised from the main process
+- Added support for `compression_level` only for `zstd` compression because of DuckDB limitations
 
 ## [0.16.0] - 2025-07-29
 

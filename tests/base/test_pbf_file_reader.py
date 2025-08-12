@@ -96,6 +96,37 @@ def test_pbf_to_geoparquet_parsing(
         assert decoded_geo_schema["columns"][GEOMETRY_COLUMN]["encoding"] == "WKB"
 
 
+@pytest.mark.parametrize("compression", ["snappy", "zstd"])  # type: ignore
+@pytest.mark.parametrize("compression_level", [3, 10])  # type: ignore
+@pytest.mark.parametrize("row_group_size", [1_000, 100_000])  # type: ignore
+@pytest.mark.parametrize("parquet_version", ["v1", "v2"])  # type: ignore
+def test_pbf_to_geoparquet_parsing_with_compression(
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
+    parquet_version: str,
+) -> None:
+    """Test if pbf to geoparquet conversion works with compression."""
+    pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result = PbfFileReader(
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
+        parquet_version=parquet_version,
+    ).convert_pbf_to_parquet(
+        pbf_path=pbf_file,
+        ignore_cache=True,
+        sort_result=False,
+    )
+
+    metadata = pq.ParquetFile(result).metadata
+
+    print(metadata)
+    print(metadata.format_version)
+
+    assert metadata.row_group(0).column(0).compression == compression.upper()
+
+
 @pytest.mark.parametrize(
     "result_file_path",
     [None, "quackosm.db", "files/quackosm.db", f"files/{random.getrandbits(128)}/quackosm.db"],

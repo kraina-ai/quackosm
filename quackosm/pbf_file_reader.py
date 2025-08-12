@@ -30,12 +30,11 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
-from packaging import version
 from pandas.util._decorators import deprecate, deprecate_kwarg
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
-from rq_geo_toolkit.duckdb import sql_escape
+from rq_geo_toolkit.duckdb import DUCKDB_ABOVE_130, sql_escape
 from rq_geo_toolkit.geoparquet_compression import (
     compress_parquet_with_duckdb,
     compress_query_with_duckdb,
@@ -52,6 +51,7 @@ from quackosm._constants import (
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
+    PARQUET_VERSION,
     WGS84_CRS,
 )
 from quackosm._exceptions import (
@@ -131,7 +131,7 @@ class PbfFileReader:
         relations_with_unnested_way_refs: "duckdb.DuckDBPyRelation"
         relations_filtered_ids: "duckdb.DuckDBPyRelation"
 
-    if version.parse(duckdb.__version__) >= version.parse("1.3.0"):
+    if DUCKDB_ABOVE_130:
         ROWS_PER_GROUP_MEMORY_CONFIG = {
             0: 10_000,
             1: 50_000,
@@ -141,6 +141,7 @@ class PbfFileReader:
             16: 16_000_000,
             32: 48_000_000,
         }
+        parquet_version_query = "PARQUET_VERSION v2,"
     else:
         ROWS_PER_GROUP_MEMORY_CONFIG = {
             0: 10_000,
@@ -151,6 +152,7 @@ class PbfFileReader:
             16: 1_000_000,
             24: 5_000_000,
         }
+        parquet_version_query = ""
 
     @deprecate_kwarg(old_arg_name="parquet_compression", new_arg_name="compression")  # type: ignore
     def __init__(
@@ -165,6 +167,7 @@ class PbfFileReader:
         compression: str = PARQUET_COMPRESSION,
         compression_level: int = PARQUET_COMPRESSION_LEVEL,
         row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+        parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
         verbosity_mode: VERBOSITY_MODE = "transient",
         geometry_coverage_iou_threshold: float = 0.01,
@@ -205,9 +208,11 @@ class PbfFileReader:
                 Defaults to "zstd".
             compression_level (int, optional): Compression level of the final parquet file.
                 Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-                Defaults to 3.
+                Supported only for zstd compression. Defaults to 3.
             row_group_size (int, optional): Approximate number of rows per row group in the final
                 parquet file. Defaults to 100_000.
+            parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+                save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
             osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
                 downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
                 Defaults to `any`.
@@ -264,6 +269,7 @@ class PbfFileReader:
         self.compression = compression
         self.compression_level = compression_level
         self.row_group_size = row_group_size
+        self.parquet_version = parquet_version
 
         self.internal_rows_per_group: int = 0
         self.internal_parquet_compression = "zstd"
@@ -1019,6 +1025,7 @@ class PbfFileReader:
                     QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
                 ) TO '{output_file_name}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PER_THREAD_OUTPUT true,
                     FILE_SIZE_BYTES '128MB',
@@ -1060,6 +1067,7 @@ class PbfFileReader:
                         USING (feature_id)
                     ) TO '{filtered_result_parquet_file}' (
                         FORMAT 'parquet',
+                        {PbfFileReader.parquet_version_query}
                         PER_THREAD_OUTPUT true,
                         FILE_SIZE_BYTES '128MB',
                         ROW_GROUP_SIZE_BYTES '16MB',
@@ -1894,6 +1902,7 @@ class PbfFileReader:
                 {relation.sql_query()}
             ) TO '{file_path}' (
                 FORMAT 'parquet',
+                {PbfFileReader.parquet_version_query}
                 OVERWRITE true,
                 PER_THREAD_OUTPUT true,
                 FILE_SIZE_BYTES '128MB',
@@ -2012,6 +2021,7 @@ class PbfFileReader:
                 {relation.sql_query()}
             ) TO '{result_path}' (
                 FORMAT 'parquet',
+                {PbfFileReader.parquet_version_query}
                 OVERWRITE true,
                 PER_THREAD_OUTPUT true,
                 FILE_SIZE_BYTES '128MB',
@@ -2308,6 +2318,7 @@ class PbfFileReader:
                     FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
                 ) TO '{grouped_ways_path}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PARTITION_BY ("group"),
                     ROW_GROUP_SIZE 25000,
@@ -2343,6 +2354,7 @@ class PbfFileReader:
                     GROUP BY id
                 ) TO '{current_destination_path}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PER_THREAD_OUTPUT true,
                     ROW_GROUP_SIZE 25000,
@@ -2776,6 +2788,7 @@ class PbfFileReader:
                     FROM ({relation.sql_query()})
                 ) TO '{file_path}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PER_THREAD_OUTPUT true,
                     FILE_SIZE_BYTES '1024MB',
@@ -3189,6 +3202,7 @@ class PbfFileReader:
                         compression=self.compression,
                         compression_level=self.compression_level,
                         row_group_size=self.row_group_size,
+                        parquet_version=self.parquet_version,
                         verbosity_mode=self.verbosity_mode,
                         working_directory=self.tmp_dir_path,
                         threads_limit=self.cpu_limit,
@@ -3202,6 +3216,7 @@ class PbfFileReader:
                         compression=self.compression,
                         compression_level=self.compression_level,
                         row_group_size=self.row_group_size,
+                        parquet_version=self.parquet_version,
                         working_directory=self.tmp_dir_path,
                     )
 
@@ -3240,6 +3255,7 @@ class PbfFileReader:
                     compression=self.compression,
                     compression_level=self.compression_level,
                     row_group_size=self.row_group_size,
+                    parquet_version=self.parquet_version,
                     verbosity_mode=self.verbosity_mode,
                     working_directory=tmp_dir_path,
                     threads_limit=self.cpu_limit,
@@ -3253,6 +3269,7 @@ class PbfFileReader:
                     compression=self.compression,
                     compression_level=self.compression_level,
                     row_group_size=self.row_group_size,
+                    parquet_version=self.parquet_version,
                     working_directory=tmp_dir_path,
                 )
 
@@ -3317,6 +3334,7 @@ def _merge_parquet_dataset(
             FROM ({parquet_relation.sql_query()})
         ) TO '{merged_parquet_path}' (
             FORMAT 'parquet',
+            {PbfFileReader.parquet_version_query}
             OVERWRITE true,
             ROW_GROUP_SIZE_BYTES '128MB',
             COMPRESSION 'zstd',
@@ -3471,6 +3489,7 @@ def _sort_geoparquet_file_by_geometry(
     compression: str,
     compression_level: int,
     row_group_size: int,
+    parquet_version: str,
     verbosity_mode: VERBOSITY_MODE,
     working_directory: Path,
     threads_limit: Optional[int],
@@ -3528,6 +3547,7 @@ def _sort_geoparquet_file_by_geometry(
             compression=compression,
             compression_level=compression_level,
             row_group_size=row_group_size,
+            parquet_version=parquet_version,
             verbosity_mode=verbosity_mode,
         )
 
@@ -3539,6 +3559,7 @@ def _sort_geoparquet_file_by_geometry(
             compression=compression,
             compression_level=compression_level,
             row_group_size=row_group_size,
+            parquet_version=parquet_version,
             working_directory=working_directory,
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
@@ -3596,6 +3617,7 @@ def _decompress_value_columns(
     compression: str,
     compression_level: int,
     row_group_size: int,
+    parquet_version: str,
     verbosity_mode: str,
 ) -> None:
     select_clauses = ", ".join(
@@ -3622,6 +3644,7 @@ def _decompress_value_columns(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
     )
