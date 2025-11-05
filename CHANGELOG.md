@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.3] - 2025-11-05
+
 ### Fixed
 
 - Changed BBBike extract polygon parsing logic to fallback to CSV regions file if `.poly` file is missing
@@ -556,7 +558,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.3...HEAD
+
+[0.16.3]: https://github.com/kraina-ai/quackosm/compare/0.16.2...0.16.3
 
 [0.16.2]: https://github.com/kraina-ai/quackosm/compare/0.16.1...0.16.2
 
