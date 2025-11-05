@@ -8,6 +8,7 @@ from typing import Optional
 
 import geopandas as gpd
 import requests
+from shapely import box
 from tqdm import tqdm
 
 from quackosm._rich_progress import FORCE_TERMINAL
@@ -20,6 +21,9 @@ from quackosm.osm_extracts.extract import (
 )
 
 BBBIKE_EXTRACTS_INDEX_URL = "https://download.bbbike.org/osm/bbbike"
+BBBIKE_EXTRACTS_CSV_LIST_URL = (
+    "https://raw.githubusercontent.com/wosch/bbbike-world/world/etc/cities.csv"
+)
 BBBIKE_INDEX_GDF: Optional[gpd.GeoDataFrame] = None
 
 __all__ = ["_get_bbbike_index"]
@@ -71,6 +75,12 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
         if extract_href.text != ".."
     ]
 
+    csv_regions_result = requests.get(
+        BBBIKE_EXTRACTS_CSV_LIST_URL,
+        headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
+    )
+    rows = csv_regions_result.text.splitlines()
+
     bbbike_enum_value = OsmExtractSource.bbbike.value
 
     with tqdm(disable=FORCE_TERMINAL, desc=bbbike_enum_value, total=len(extract_names)) as pbar:
@@ -79,7 +89,10 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
             poly_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.poly"
             polygon = parse_polygon_file(poly_url)
             if polygon is None:
-                continue
+                # Fallback to csv regions file
+                matching_row = [row for row in rows if row.startswith(extract_name + ":")][0]
+                coords = list(map(float, matching_row.split(":")[6].split()))
+                polygon = box(*coords)
             pbf_url = f"{BBBIKE_EXTRACTS_INDEX_URL}/{extract_name}/{extract_name}.osm.pbf"
             extracts.append(
                 OpenStreetMapExtract(

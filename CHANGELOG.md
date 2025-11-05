@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Changed BBBike extract polygon parsing logic to fallback to CSV regions file if `.poly` file is missing
+
 ## [0.16.2] - 2025-08-13
 
 ### Fixed
