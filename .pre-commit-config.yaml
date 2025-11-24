@@ -58,6 +58,7 @@ repos:
       - id: check-yaml
         exclude: mkdocs.yml # See https://github.com/readthedocs/readthedocs.org/issues/6889
       - id: check-added-large-files
+        exclude: ^precalculated_indexes/
         args: ["--maxkb=1000"]
       - id: detect-private-key
   - repo: https://github.com/dosisod/refurb

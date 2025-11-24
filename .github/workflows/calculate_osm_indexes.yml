@@ -1,0 +1,51 @@
+name: "Update precalculated OSM indexes and create PR"
+on: workflow_dispatch
+
+env:
+  PYTHON_VERSION: 3.12
+
+jobs:
+  bump-n-pr:
+    name: Update precalculated OSM indexes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CICD_PAT_TOKEN }}
+      - name: Configure Git user
+        run: |
+          git config --local user.name "Kraina CI/CD"
+          git config --local user.email "cicd@kraina.ai"
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/pylock.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-dev-
+      - name: Install pdm
+        run: pip install pdm uv
+      # - name: Install dependencies
+      #   run: uv pip install -r pyproject.toml --system
+      - name: Install quackosm
+        run: |
+          pdm build -v -d dist
+          uv pip install 'quackosm @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
+      - name: Execute jupyter notebooks
+        run: uv run dev/calculate_osm_indexes.py
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "chore: update precalculated osm indexes"
+          branch: update-resources-usage-plots
+          base: main
+          labels: Skip-Changelog
+          add-paths: docs/assets/images/*.png
+          token: ${{ secrets.CICD_PAT_TOKEN }}
+          author: Kraina CI/CD <cicd@kraina.ai>
+          committer: Kraina CI/CD <cicd@kraina.ai>
+          commit-message: "chore: update precalculated osm indexes"
