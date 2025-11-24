@@ -29,8 +29,6 @@ jobs:
             ${{ runner.os }}-pip-dev-
       - name: Install pdm
         run: pip install pdm uv
-      # - name: Install dependencies
-      #   run: uv pip install -r pyproject.toml --system
       - name: Install quackosm
         run: |
           pdm build -v -d dist
@@ -41,7 +39,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           title: "chore: update precalculated osm indexes"
-          branch: update-resources-usage-plots
+          branch: update-osm-precalculcated-indexes
           base: main
           labels: |
             Skip-Changelog
@@ -51,3 +49,17 @@ jobs:
           author: Kraina CI/CD <cicd@kraina.ai>
           committer: Kraina CI/CD <cicd@kraina.ai>
           commit-message: "chore: update precalculated osm indexes"
+      - name: Find pull request
+        uses: juliangruber/find-pull-request-action@v1
+        id: find-pull-request
+        with:
+          branch: update-osm-precalculcated-indexes
+      - name: Sleep for 60 seconds
+        run: sleep 60s
+        shell: bash
+      - name: Merge pull request
+        uses: juliangruber/merge-pull-request-action@v1
+        with:
+          github-token: ${{ secrets.CICD_PAT_TOKEN }}
+          number: ${{ steps.find-pull-request.outputs.number }}
+          method: squash
