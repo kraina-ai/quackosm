@@ -43,8 +43,10 @@ jobs:
           title: "chore: update precalculated osm indexes"
           branch: update-resources-usage-plots
           base: main
-          labels: Skip-Changelog
-          add-paths: docs/assets/images/*.png
+          labels: |
+            Skip-Changelog
+            Skip-Tests
+          add-paths: precalculated_indexes/*.geojson
           token: ${{ secrets.CICD_PAT_TOKEN }}
           author: Kraina CI/CD <cicd@kraina.ai>
           committer: Kraina CI/CD <cicd@kraina.ai>
