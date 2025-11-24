@@ -33,7 +33,7 @@ jobs:
         run: |
           pdm build -v -d dist
           uv pip install 'quackosm @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
-      - name: Execute jupyter notebooks
+      - name: Calculate OSM indexes
         run: uv run dev/calculate_osm_indexes.py
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
