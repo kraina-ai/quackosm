@@ -8,7 +8,7 @@ env:
   PYTHON_VERSION: 3.12
 
 jobs:
-  bump-n-pr:
+  calculate-indexes:
     name: Update precalculated OSM indexes
     runs-on: ubuntu-latest
     steps:

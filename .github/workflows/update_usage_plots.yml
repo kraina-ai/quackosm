@@ -5,7 +5,7 @@ env:
   PYTHON_VERSION: 3.12
 
 jobs:
-  bump-n-pr:
+  update-plots:
     name: Update resources usage plots 📈 and create PR
     runs-on: ubuntu-latest
     steps:
