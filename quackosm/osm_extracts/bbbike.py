@@ -4,7 +4,7 @@ BBBike OpenStreetMap extracts.
 This module contains wrapper for publically available BBBike download server.
 """
 
-from typing import Optional
+from typing import Any, Optional
 
 import geopandas as gpd
 import requests
@@ -29,17 +29,17 @@ BBBIKE_INDEX_GDF: Optional[gpd.GeoDataFrame] = None
 __all__ = ["_get_bbbike_index"]
 
 
-def _get_bbbike_index() -> gpd.GeoDataFrame:
+def _get_bbbike_index(**kwargs: Any) -> gpd.GeoDataFrame:
     global BBBIKE_INDEX_GDF  # noqa: PLW0603
 
     if BBBIKE_INDEX_GDF is None:
-        BBBIKE_INDEX_GDF = _load_bbbike_index()
+        BBBIKE_INDEX_GDF = _load_bbbike_index(**kwargs)
 
     return BBBIKE_INDEX_GDF
 
 
 @load_index_decorator(OsmExtractSource.bbbike)
-def _load_bbbike_index() -> gpd.GeoDataFrame:  # pragma: no cover
+def _load_bbbike_index(**kwargs: Any) -> gpd.GeoDataFrame:  # pragma: no cover
     """
     Load available extracts from BBBike download service.
 

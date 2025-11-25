@@ -1,7 +1,9 @@
 """Tests related to OSM extracts."""
 
 import datetime
+import tempfile
 from contextlib import nullcontext as does_not_raise
+from pathlib import Path
 from typing import Any
 from unittest import TestCase
 
@@ -32,8 +34,10 @@ from quackosm.osm_extracts import (
     find_smallest_containing_extracts_total,
     get_extract_by_query,
 )
+from quackosm.osm_extracts.bbbike import _load_bbbike_index
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,
+    _download_precalculated_index_from_github,
     _get_full_file_name_function,
     _get_global_cache_file_path,
     _get_local_cache_file_path,
@@ -447,7 +451,7 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
         )
         mocker.patch("quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None)
         with pytest.warns(MissingOsmCacheWarning):
-            display_available_extracts(source=extract_source)
+            _load_bbbike_index(force_recalculation=True)
 
     finally:
         if move_global_path:
@@ -516,3 +520,19 @@ def test_cache_clearing() -> None:
     if move_local_path:
         local_moved_path.rename(local_path)
         local_moved_path.unlink(missing_ok=True)
+
+
+def test_index_download() -> None:
+    """Test if downloading precalculated OSM index from Github works."""
+    global_bbbike_cache_file_path = _get_global_cache_file_path(OsmExtractSource.bbbike)
+    with tempfile.TemporaryDirectory(dir=Path(__file__).parent.resolve()) as tmp_dir_name:
+        tmp_file_path = Path(tmp_dir_name) / global_bbbike_cache_file_path.name
+        _download_precalculated_index_from_github(tmp_file_path)
+
+        clear_osm_index_cache(OsmExtractSource.bbbike)
+        assert not global_bbbike_cache_file_path.exists()
+        _load_bbbike_index(force_recalculation=False)
+
+        assert tmp_file_path.read_text() == global_bbbike_cache_file_path.read_text(), (
+            "Mismatch between downloaded and local index files."
+        )

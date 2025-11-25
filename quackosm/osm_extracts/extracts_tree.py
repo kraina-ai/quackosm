@@ -14,7 +14,7 @@ from quackosm.osm_extracts.extract import OsmExtractSource
 
 def get_available_extracts_as_rich_tree(
     source_enum: OsmExtractSource,
-    osm_extract_source_index_functions: dict[OsmExtractSource, Callable[[], pd.DataFrame]],
+    osm_extract_source_index_functions: dict[OsmExtractSource, Callable[..., pd.DataFrame]],
     use_full_names: bool = False,
 ) -> Tree:
     """Transform available OSM extracts into a tree from the Rich library."""

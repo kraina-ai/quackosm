@@ -39,8 +39,6 @@ repos:
             "--without-hashes",
             "-G",
             "cli",
-            "-G",
-            "index-generation",
             "-dG:all",
           ]
         files: ^pylock.toml$

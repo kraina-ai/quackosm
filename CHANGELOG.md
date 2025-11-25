@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Precalculated OSM indexes to the GitHub repository [#257](https://github.com/kraina-ai/quackosm/issues/257)
+- Automatic download of precalculated OSM indexes for fresh installation [#261](https://github.com/kraina-ai/quackosm/issues/261)
+
 ## [0.16.3] - 2025-11-05
 
 ### Fixed

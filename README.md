@@ -81,13 +81,11 @@ Required:
 
 - `shapely (>=2.0)`: For parsing WKT and GeoJSON strings and fixing geometries
 
-- `polars (>=1.9)`: For faster OSM ways grouping operation
-
 - `typeguard (>=3.0)`: For internal validation of types
 
 - `psutil (>=5.6.2)`: For automatic scaling of parameters based on available resources
 
-- `pooch (>=1.6.0)`: For downloading `*.osm.pbf` files
+- `pooch (>=1.6.0)`: For downloading `*.osm.pbf` files and precalculated OSM indexes
 
 - `rich (>=12.0.0)` & `tqdm (>=4.42.0)`: For showing progress bars
 
@@ -706,16 +704,19 @@ General schema of multiple segments that are concatenated together:
 
 ### Memory usage
 
-DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk.
+DuckDB queries requiring `JOIN`, `GROUP` and `ORDER BY` operations are very memory intensive. Because of that, some steps are divided into chunks (groups) with a set number of rows per chunk. QuackOSM runs all expensive queries in a separate process and automatically reduces number of available CPU cores if there is not enough memory.
 
 QuackOSM has been roughly tuned to different workloads. The `rows_per_group` variable is set based on an available memory in the system:
 
 |     Memory | Rows per group |
 | ---------: | -------------: |
-|     < 8 GB |        100 000 |
-|  8 - 16 GB |        500 000 |
-| 16 - 24 GB |      1 000 000 |
-|    > 24 GB |      5 000 000 |
+|     < 1 GB |         10 000 |
+|   1 - 2 GB |         50 000 |
+|   2 - 4 GB |        100 000 |
+|   4 - 8 GB |      1 000 000 |
+|  8 - 16 GB |      4 000 000 |
+| 16 - 32 GB |     16 000 000 |
+|    > 32 GB |     48 000 000 |
 
 > WSL usage: sometimes code can break since DuckDB is trying to use all available memory, that can be occupied by Windows.
 

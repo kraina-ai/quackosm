@@ -1,11 +1,14 @@
 name: "Update precalculated OSM indexes and create PR"
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 1 * *" # every 1st day of the month at 04:00 UTC
 
 env:
   PYTHON_VERSION: 3.12
 
 jobs:
-  bump-n-pr:
+  calculate-indexes:
     name: Update precalculated OSM indexes
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +36,7 @@ jobs:
         run: |
           pdm build -v -d dist
           uv pip install 'quackosm @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
-      - name: Execute jupyter notebooks
+      - name: Calculate OSM indexes
         run: uv run dev/calculate_osm_indexes.py
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
