@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.4] - 2025-11-25
+
 ### Added
 
 - Precalculated OSM indexes to the GitHub repository [#257](https://github.com/kraina-ai/quackosm/issues/257)
@@ -563,7 +565,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.3...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.4...HEAD
+
+[0.16.4]: https://github.com/kraina-ai/quackosm/compare/0.16.3...0.16.4
 
 [0.16.3]: https://github.com/kraina-ai/quackosm/compare/0.16.2...0.16.3
 
