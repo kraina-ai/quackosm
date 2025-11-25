@@ -1,5 +1,8 @@
 name: "Update precalculated OSM indexes and create PR"
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 1 * *" # every 1st day of the month at 04:00 UTC
 
 env:
   PYTHON_VERSION: 3.12
