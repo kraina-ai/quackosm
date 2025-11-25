@@ -22,3 +22,4 @@ def copy_geocode_cache() -> None:
     for file_path in existing_cache_directory.glob("*.json"):
         destination_path = geocoding_cache_directory / file_path.name
         shutil.copy(file_path, destination_path)
+        print(f"Copied {file_path} to {destination_path}")
