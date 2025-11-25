@@ -3,6 +3,7 @@ on: workflow_call
 
 jobs:
   run-tests:
+    if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'Skip-Tests') }}
     name: Run tests 🛠️ on multiple systems 🖥️ and Python 🐍 versions
     if: ${{ github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'Skip-Tests') }}
     runs-on: ${{ matrix.os }}
