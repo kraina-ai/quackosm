@@ -451,7 +451,7 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
         )
         mocker.patch("quackosm.osm_extracts.bbbike.BBBIKE_INDEX_GDF", new=None)
         with pytest.warns(MissingOsmCacheWarning):
-            display_available_extracts(source=extract_source)
+            _load_bbbike_index(force_recalculation=True)
 
     finally:
         if move_global_path:
