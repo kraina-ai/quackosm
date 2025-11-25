@@ -2,12 +2,13 @@
 
 from pathlib import Path
 
-from quackosm.osm_extracts import _get_combined_index, clear_osm_index_cache
+from quackosm.osm_extracts import OSM_EXTRACT_SOURCE_INDEX_FUNCTION, clear_osm_index_cache
 from quackosm.osm_extracts.extract import OsmExtractSource, _get_global_cache_file_path
 
 if __name__ == "__main__":
     clear_osm_index_cache()
-    indexes = _get_combined_index()
+    for get_index_function in OSM_EXTRACT_SOURCE_INDEX_FUNCTION.values():
+        get_index_function(force_recalculation=True)
 
     extract_sources = [_source for _source in OsmExtractSource if _source != OsmExtractSource.any]
 

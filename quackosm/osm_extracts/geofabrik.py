@@ -6,7 +6,7 @@ This module contains wrapper for publically available Geofabrik download server.
 
 import json
 import operator
-from typing import Optional
+from typing import Any, Optional
 
 import geopandas as gpd
 import pandas as pd
@@ -20,17 +20,17 @@ GEOFABRIK_INDEX_GDF: Optional[gpd.GeoDataFrame] = None
 __all__ = ["_get_geofabrik_index"]
 
 
-def _get_geofabrik_index() -> gpd.GeoDataFrame:
+def _get_geofabrik_index(**kwargs: Any) -> gpd.GeoDataFrame:
     global GEOFABRIK_INDEX_GDF  # noqa: PLW0603
 
     if GEOFABRIK_INDEX_GDF is None:
-        GEOFABRIK_INDEX_GDF = _load_geofabrik_index()
+        GEOFABRIK_INDEX_GDF = _load_geofabrik_index(**kwargs)
 
     return GEOFABRIK_INDEX_GDF
 
 
 @load_index_decorator(OsmExtractSource.geofabrik)
-def _load_geofabrik_index() -> gpd.GeoDataFrame:  # pragma: no cover
+def _load_geofabrik_index(**kwargs: Any) -> gpd.GeoDataFrame:  # pragma: no cover
     """
     Load available extracts from GeoFabrik download service.
 
