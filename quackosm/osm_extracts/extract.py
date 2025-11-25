@@ -57,7 +57,7 @@ class OsmExtractSource(str, Enum):
 
 def load_index_decorator(
     extract_source: OsmExtractSource,
-) -> Callable[[Callable[[], "GeoDataFrame"]], Callable[[], "GeoDataFrame"]]:
+) -> Callable[[Callable[..., "GeoDataFrame"]], Callable[..., "GeoDataFrame"]]:
     """
     Decorator for loading OSM extracts index.
 
@@ -66,7 +66,7 @@ def load_index_decorator(
             Used to save the index to cache.
     """
 
-    def inner(function: Callable[[], "GeoDataFrame"]) -> Callable[[], "GeoDataFrame"]:
+    def inner(function: Callable[..., "GeoDataFrame"]) -> Callable[..., "GeoDataFrame"]:
         def wrapper(**kwargs: Any) -> "GeoDataFrame":
             global_cache_file_path = _get_global_cache_file_path(extract_source)
             global_cache_file_path.parent.mkdir(exist_ok=True, parents=True)
