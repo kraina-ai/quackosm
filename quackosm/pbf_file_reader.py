@@ -1850,6 +1850,8 @@ class PbfFileReader:
                 sql_query=f"""
                 SELECT DISTINCT ref as id
                 FROM ({relations_unnested_filtered.sql_query()}) urr
+                SEMI JOIN ({ways_unnested.sql_query()}) uw
+                ON urr.ref = uw.id
                 ORDER BY id
                 """,
                 file_path=self.tmp_dir_path / "ways_ids_required",
@@ -2903,7 +2905,7 @@ class PbfFileReader:
                 and actual_memory.percent > mixed_percentage_physical_threshold
                 and swap_memory.percent > mixed_percentage_swap_threshold
             ):
-                print(elapsed_seconds, actual_memory.percent, swap_memory.percent)
+                # print(elapsed_seconds, actual_memory.percent, swap_memory.percent)
                 process.terminate()
                 process.join()
                 raise MemoryError()
