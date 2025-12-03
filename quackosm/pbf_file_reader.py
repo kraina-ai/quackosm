@@ -1954,15 +1954,16 @@ class PbfFileReader:
         # nodes IDs (required, valid)
         # - all needed to construct relations from RF
         with self.task_progress_tracker.get_spinner("Loading required nodes - by ways"):
-            nodes_ids_required_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT DISTINCT ref as id
-                FROM ({ways_unnested_filtered_required_valid.sql_query()}) uwr
-                ORDER BY id
-                """,
-                file_path=self.tmp_dir_path / "nodes_ids_required_valid",
-                single_file_output=True,
-            )
+            if is_intersecting or is_filtering:
+                nodes_ids_required_valid = self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT DISTINCT ref as id
+                    FROM ({ways_unnested_filtered_required_valid.sql_query()}) uwr
+                    ORDER BY id
+                    """,
+                    file_path=self.tmp_dir_path / "nodes_ids_required_valid",
+                    single_file_output=True,
+                )
         # nodes tags and points (filtered, required, valid)
         with self.task_progress_tracker.get_spinner("Filtering nodes - filtered and valid"):
             nodes_tags_and_points_filtered_valid = self._sql_to_parquet_file(
