@@ -18,9 +18,10 @@ def test_nodes_intersection() -> None:
     geom_filter = geocode_to_geometry("Monaco-Ville, Monaco")
 
     with tempfile.TemporaryDirectory(dir=Path(__file__).parent.resolve()) as tmp_dir_name:
+        tmp_dir_path = Path(tmp_dir_name)
         duckdb.install_extension("spatial")
         duckdb.load_extension("spatial")
-        nodes_destination = Path(tmp_dir_name) / "nodes_valid_with_tags"
+        nodes_destination = tmp_dir_path / "nodes_tags_and_points_valid"
         nodes_destination.mkdir(exist_ok=True, parents=True)
         duckdb.sql(
             f"""
@@ -52,10 +53,12 @@ def test_nodes_intersection() -> None:
             nodes_points["id"].combine_chunks().filter(pa.array(intersecting_points_mask))
         )
 
-        intersect_nodes_with_geometry(tmp_dir_path=Path(tmp_dir_name), geometry_filter=geom_filter)
+        intersect_nodes_with_geometry(
+            nodes_path=tmp_dir_path / "nodes_tags_and_points_valid",
+            result_path=tmp_dir_path / "nodes_ids_intersecting",
+            geometry_filter=geom_filter,
+        )
 
-        intersecting_points = pq.ParquetDataset(
-            Path(tmp_dir_name) / "nodes_intersecting_ids"
-        ).read()
+        intersecting_points = pq.ParquetDataset(tmp_dir_path / "nodes_ids_intersecting").read()
 
         assert set(intersecting_points["id"]) == set(intersecting_ids_array)
