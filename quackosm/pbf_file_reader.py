@@ -1824,7 +1824,7 @@ class PbfFileReader:
 
         # relations unnested (filtered)
         with self.task_progress_tracker.get_spinner("Filtering unnested relations"):
-            if is_filtering:
+            if is_intersecting or is_filtering:
                 relations_unnested_filtered = self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT *
@@ -1973,7 +1973,7 @@ class PbfFileReader:
             )
 
         with self.task_progress_tracker.get_spinner("Filtering nodes - required and valid"):
-            if is_filtering or is_intersecting:
+            if is_intersecting or is_filtering:
                 nodes_points_required_valid = self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id, lon, lat
@@ -2029,11 +2029,11 @@ class PbfFileReader:
                 FROM total_relation_refs
                 ANTI JOIN unmatched_relation_refs USING (id)
                 """,
-                file_path=self.tmp_dir_path / "relations_ids_valid_non_distinct",
+                file_path=self.tmp_dir_path / "relations_ids_filtered_valid_non_distinct",
             )
-            relations_ids_valid = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "relations_ids_valid_non_distinct",
-                self.tmp_dir_path / "relations_ids_valid",
+            relations_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
+                self.tmp_dir_path / "relations_ids_filtered_valid_non_distinct",
+                self.tmp_dir_path / "relations_ids_filtered_valid",
             )
         # relations tags (filtered, valid)
         with self.task_progress_tracker.get_spinner("Filtering relations tags"):
@@ -2041,7 +2041,7 @@ class PbfFileReader:
                 sql_query=f"""
                 SELECT *
                 FROM ({relations_tags.sql_query()}) r
-                SEMI JOIN ({relations_ids_valid.sql_query()}) rv USING (id)
+                SEMI JOIN ({relations_ids_filtered_valid.sql_query()}) rv USING (id)
                 """,
                 file_path=self.tmp_dir_path / "relations_tags_filtered_valid",
             )
@@ -2051,7 +2051,7 @@ class PbfFileReader:
                 sql_query=f"""
                 SELECT *
                 FROM ({relations_unnested_filtered.sql_query()}) urr
-                SEMI JOIN ({relations_ids_valid.sql_query()}) rv USING (id)
+                SEMI JOIN ({relations_ids_filtered_valid.sql_query()}) rv USING (id)
                 """,
                 file_path=self.tmp_dir_path / "relations_unnested_filtered_valid",
             )
@@ -2066,7 +2066,7 @@ class PbfFileReader:
             ways_filtered_ids=ways_ids_filtered_valid,
             relations_all_with_tags=relations_tags_filtered_valid,
             relations_with_unnested_way_refs=relations_unnested_filtered_valid,
-            relations_filtered_ids=relations_ids_filtered,
+            relations_filtered_ids=relations_ids_filtered_valid,
         )
 
     def _prefilter_elements_ids_without_filtering(
