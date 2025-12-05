@@ -1486,7 +1486,9 @@ class PbfFileReader:
         # nodes tags and points (valid) - NV
         # - select all with kind = 'node'
         # - select all with lat and lon not empty
-        with self.task_progress_tracker.get_spinner("Reading nodes"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - reading nodes", with_minor_step=True
+        ):
             nodes_tags_and_points_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT
@@ -1501,7 +1503,9 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "nodes_tags_and_points_valid",
             )
 
-        with self.task_progress_tracker.get_spinner("Saving nodes IDs"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - nodes valid ids", next_step="minor"
+        ):
             # nodes_ids_valid = self._sql_to_parquet_file(
             # TODO: backup to polars
             self._sql_to_parquet_file(
@@ -1519,7 +1523,9 @@ class PbfFileReader:
         # - select all from NI with tags filter
         filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
         if is_intersecting:
-            with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
+            with self.task_progress_tracker.get_bar(
+                "Filtering - nodes by intersection", next_step="minor"
+            ) as bar:
                 intersect_nodes_with_geometry(
                     nodes_path=self.tmp_dir_path / "nodes_tags_and_points_valid",
                     result_path=self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
@@ -1530,9 +1536,12 @@ class PbfFileReader:
                 nodes_ids_intersecting = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
                     self.tmp_dir_path / "nodes_ids_intersecting",
+                    order_ids=False,
                 )
 
-            with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - nodes by tags", next_step="minor"
+            ):
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
@@ -1549,11 +1558,16 @@ class PbfFileReader:
                 nodes_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "nodes_ids_filtered_valid_non_distinct",
                     self.tmp_dir_path / "nodes_ids_filtered_valid",
+                    order_ids=False,
                 )
         else:
-            with self.task_progress_tracker.get_spinner("Filtering nodes - intersection"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - nodes by intersection", next_step="minor"
+            ):
                 pass
-            with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - nodes by tags", next_step="minor"
+            ):
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
@@ -1569,6 +1583,7 @@ class PbfFileReader:
                 nodes_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "nodes_ids_filtered_valid_non_distinct",
                     self.tmp_dir_path / "nodes_ids_filtered_valid",
+                    order_ids=False,
                 )
             self._delete_directories(
                 ["nodes_ids_intersecting_non_distinct", "nodes_ids_filtered_valid_non_distinct"]
@@ -1576,7 +1591,7 @@ class PbfFileReader:
 
         # Ways first pass
         # ways tags
-        with self.task_progress_tracker.get_spinner("Reading ways"):
+        with self.task_progress_tracker.get_spinner("Filtering - reading ways", next_step="minor"):
             self.connection.sql(
                 f"""
                 SELECT *
@@ -1598,7 +1613,9 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "ways_tags",
             )
         # ways unnested
-        with self.task_progress_tracker.get_spinner("Unnesting ways"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - unnesting ways", next_step="minor"
+        ):
             ways_unnested = self._sql_to_parquet_file(
                 sql_query="""
                 SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
@@ -1612,7 +1629,9 @@ class PbfFileReader:
         # - select all from WI with tags filter
         filter_osm_way_ids_filter = self._generate_elements_filter(filter_osm_ids, "way")
         if is_intersecting:
-            with self.task_progress_tracker.get_bar("Filtering ways - intersection") as bar:
+            with self.task_progress_tracker.get_bar(
+                "Filtering - ways by intersection", next_step="minor"
+            ) as bar:
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT uwr.id
@@ -1624,9 +1643,12 @@ class PbfFileReader:
                 ways_ids_intersecting = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "ways_ids_intersecting_non_distinct",
                     self.tmp_dir_path / "ways_ids_intersecting",
+                    order_ids=False,
                 )
 
-            with self.task_progress_tracker.get_spinner("Filtering ways - tags"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - ways by tags", next_step="minor"
+            ):
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
@@ -1641,11 +1663,16 @@ class PbfFileReader:
                 ways_ids_filtered = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "ways_ids_filtered_non_distinct",
                     self.tmp_dir_path / "ways_ids_filtered",
+                    order_ids=False,
                 )
         else:
-            with self.task_progress_tracker.get_spinner("Filtering ways - intersection"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - ways by intersection", next_step="minor"
+            ):
                 pass
-            with self.task_progress_tracker.get_spinner("Filtering ways - tags"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - ways by tags", next_step="minor"
+            ):
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
@@ -1659,6 +1686,7 @@ class PbfFileReader:
                 ways_ids_filtered = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "ways_ids_filtered_non_distinct",
                     self.tmp_dir_path / "ways_ids_filtered",
+                    order_ids=False,
                 )
         self._delete_directories(
             ["ways_ids_intersecting_non_distinct", "ways_ids_filtered_non_distinct"]
@@ -1669,7 +1697,9 @@ class PbfFileReader:
         # - select all with kind = 'relation'
         # - select all with more then one ref
         # - select all with type in ['boundary', 'multipolygon']
-        with self.task_progress_tracker.get_spinner("Reading relations"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - reading relations", next_step="minor"
+        ):
             self.connection.sql(
                 f"""
                 SELECT *
@@ -1694,7 +1724,9 @@ class PbfFileReader:
             )
 
         # relations unnested
-        with self.task_progress_tracker.get_spinner("Unnesting relations"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - unnesting relations", next_step="minor"
+        ):
             relations_unnested = self._sql_to_parquet_file(
                 sql_query="""
                 WITH unnested_relation_refs AS (
@@ -1718,7 +1750,9 @@ class PbfFileReader:
         # - select all from RI with tags filter
         filter_osm_relation_ids_filter = self._generate_elements_filter(filter_osm_ids, "relation")
         if is_intersecting:
-            with self.task_progress_tracker.get_bar("Filtering relations - intersection") as bar:
+            with self.task_progress_tracker.get_bar(
+                "Filtering - relations by intersection", next_step="minor"
+            ) as bar:
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT urr.id
@@ -1730,9 +1764,12 @@ class PbfFileReader:
                 relations_ids_intersecting = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "relations_ids_intersecting_non_distinct",
                     self.tmp_dir_path / "relations_ids_intersecting",
+                    order_ids=False,
                 )
 
-            with self.task_progress_tracker.get_spinner("Filtering relations - tags"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - relations by tags", next_step="minor"
+            ):
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
@@ -1747,11 +1784,16 @@ class PbfFileReader:
                 relations_ids_filtered = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "relations_ids_filtered_non_distinct",
                     self.tmp_dir_path / "relations_ids_filtered",
+                    order_ids=False,
                 )
         else:
-            with self.task_progress_tracker.get_spinner("Filtering relations - intersection"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - relations by intersection", next_step="minor"
+            ):
                 pass
-            with self.task_progress_tracker.get_spinner("Filtering relations - tags"):
+            with self.task_progress_tracker.get_spinner(
+                "Filtering - relations by tags", next_step="minor"
+            ):
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
@@ -1765,13 +1807,16 @@ class PbfFileReader:
                 relations_ids_filtered = self._calculate_unique_ids_to_parquet(
                     self.tmp_dir_path / "relations_ids_filtered_non_distinct",
                     self.tmp_dir_path / "relations_ids_filtered",
+                    order_ids=False,
                 )
         self._delete_directories(
             ["relations_ids_intersecting_non_distinct", "relations_ids_filtered_non_distinct"]
         )
 
         # relations unnested (filtered)
-        with self.task_progress_tracker.get_spinner("Filtering unnested relations"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - unnested relations", next_step="minor"
+        ):
             if is_intersecting or is_filtering:
                 relations_unnested_filtered = self._sql_to_parquet_file(
                     sql_query=f"""
@@ -1794,7 +1839,9 @@ class PbfFileReader:
         # Ways second pass
         # ways IDs (required)
         # - all needed to construct relations from RF
-        with self.task_progress_tracker.get_spinner("Loading required ways - by relations"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - ways required ids", next_step="minor"
+        ):
             ways_ids_required = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT DISTINCT ref as id
@@ -1808,7 +1855,7 @@ class PbfFileReader:
             )
 
         # ways unnested (filtered, required)
-        with self.task_progress_tracker.get_spinner("Filtering unnested ways"):
+        with self.task_progress_tracker.get_spinner("Filtering - unnested ways", next_step="minor"):
             ways_unnested_filtered_required = self._sql_to_parquet_file(
                 sql_query=f"""
                 WITH ways_ids_filtered_and_required AS (
@@ -1825,7 +1872,9 @@ class PbfFileReader:
         self._delete_directories(["ways_unnested"])
 
         # ways IDs (valid)
-        with self.task_progress_tracker.get_spinner("Filtering ways - valid refs"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - ways valid ids", next_step="minor"
+        ):
             # TODO: add fallback to duckdb query if polars memory usage is too high
             ways_unnested_filtered_required_lf = pl.scan_parquet(
                 self.tmp_dir_path / "ways_unnested_filtered_required"
@@ -1848,13 +1897,14 @@ class PbfFileReader:
             valid_save_path.mkdir(exist_ok=True, parents=True)
             ways_ids_filtered_required_valid_lf.sink_parquet(valid_save_path / "data.parquet")
             ways_ids_valid = self._calculate_unique_ids_to_parquet(
-                valid_save_path,
-                self.tmp_dir_path / "ways_ids_valid",
+                valid_save_path, self.tmp_dir_path / "ways_ids_valid", order_ids=False
             )
         self._delete_directories(["nodes_ids_valid", "ways_ids_valid_non_distinct"])
 
         # ways IDs (filtered, valid)
-        with self.task_progress_tracker.get_spinner("Filtering ways - filtered and valid"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - ways filtered and valid", next_step="minor"
+        ):
             self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
@@ -1870,7 +1920,9 @@ class PbfFileReader:
         self._delete_directories(["ways_ids_filtered", "ways_ids_filtered_valid_non_distinct"])
 
         # ways IDs (required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering ways - required and valid"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - ways required and valid", next_step="minor"
+        ):
             self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
@@ -1886,7 +1938,7 @@ class PbfFileReader:
         self._delete_directories(["ways_ids_required", "ways_ids_required_valid_non_distinct"])
 
         # ways tags (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering ways tags"):
+        with self.task_progress_tracker.get_spinner("Filtering - ways tags", next_step="minor"):
             ways_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT *
@@ -1898,7 +1950,7 @@ class PbfFileReader:
         self._delete_directories(["ways_tags"])
 
         # ways unnested (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering unnested ways"):
+        with self.task_progress_tracker.get_spinner("Filtering - unnested ways", next_step="minor"):
             ways_unnested_filtered_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT *
@@ -1912,19 +1964,23 @@ class PbfFileReader:
         # Nodes second pass
         # nodes IDs (required, valid)
         # - all needed to construct relations from RF
-        with self.task_progress_tracker.get_spinner("Loading required nodes - by ways"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - nodes required ids", next_step="minor"
+        ):
             if is_intersecting or is_filtering:
                 nodes_ids_required_valid = self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT DISTINCT ref as id
                     FROM ({ways_unnested_filtered_required_valid.sql_query()}) uwr
-                    ORDER BY id
+                    -- ORDER BY id
                     """,
                     file_path=self.tmp_dir_path / "nodes_ids_required_valid",
                     single_file_output=True,
                 )
         # nodes tags and points (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering nodes - filtered and valid"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - nodes filtered", next_step="minor"
+        ):
             nodes_tags_and_points_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT *
@@ -1936,7 +1992,9 @@ class PbfFileReader:
 
         self._delete_directories(["nodes_ids_filtered_valid"])
 
-        with self.task_progress_tracker.get_spinner("Filtering nodes - required and valid"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - nodes required", next_step="minor"
+        ):
             if is_intersecting or is_filtering:
                 nodes_points_required_valid = self._sql_to_parquet_file(
                     sql_query=f"""
@@ -1959,7 +2017,9 @@ class PbfFileReader:
 
         # Relations second pass
         # relations IDs (valid)
-        with self.task_progress_tracker.get_spinner("Filtering relations - valid refs"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - relations valid ids", next_step="minor"
+        ):
             self._sql_to_parquet_file(
                 sql_query=f"""
                 WITH total_relation_refs AS (
@@ -1980,12 +2040,15 @@ class PbfFileReader:
             relations_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
                 self.tmp_dir_path / "relations_ids_filtered_valid_non_distinct",
                 self.tmp_dir_path / "relations_ids_filtered_valid",
+                order_ids=False,
             )
 
         self._delete_directories(["relations_ids_filtered_valid_non_distinct"])
 
         # relations tags (filtered, valid)
-        with self.task_progress_tracker.get_spinner("Filtering relations tags"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - relations tags", next_step="minor"
+        ):
             relations_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT *
@@ -1998,7 +2061,9 @@ class PbfFileReader:
         self._delete_directories(["relations_tags"])
 
         # relations unnested (filtered, valid)
-        with self.task_progress_tracker.get_spinner("Filtering unnested relations"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - unnested relations", next_step="minor"
+        ):
             relations_unnested_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT *
@@ -2288,13 +2353,17 @@ class PbfFileReader:
                     raise
 
     def _calculate_unique_ids_to_parquet(
-        self, file_path: Path, result_path: Optional[Path] = None
+        self,
+        file_path: Path,
+        result_path: Optional[Path] = None,
+        order_ids: bool = True,
     ) -> "duckdb.DuckDBPyRelation":
         if result_path is None:
             result_path = file_path / "distinct"
 
+        order_clause = "ORDER BY id" if order_ids else ""
         relation = self.connection.sql(
-            f"SELECT DISTINCT id FROM read_parquet('{file_path}/**/*.parquet') ORDER BY id"
+            f"SELECT DISTINCT id FROM read_parquet('{file_path}/**/*.parquet') {order_clause}"
         )
 
         result_path.mkdir(parents=True, exist_ok=True)
