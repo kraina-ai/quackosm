@@ -1862,31 +1862,12 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - ways valid ids", next_step="minor"
         ):
-            # TODO: add fallback to duckdb query if polars memory usage is too high
-            ways_unnested_filtered_required_lf = pl.scan_parquet(
-                self.tmp_dir_path / "ways_unnested_filtered_required"
+            ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
+                refs_unnested=self.tmp_dir_path / "ways_unnested_filtered_required",
+                sub_element_ids_valid=self.tmp_dir_path / "nodes_ids_valid",
+                save_path=self.tmp_dir_path / "ways_ids_valid",
             )
-            nodes_ids_valid_lf = pl.scan_parquet(self.tmp_dir_path / "nodes_ids_valid")
-            ways_ids_filtered_lf = pl.scan_parquet(self.tmp_dir_path / "ways_ids_filtered")
-            ways_ids_required_lf = pl.scan_parquet(self.tmp_dir_path / "ways_ids_required")
-
-            ways_ids_invalid_lf = ways_unnested_filtered_required_lf.join(
-                nodes_ids_valid_lf, left_on="ref", right_on="id", how="anti"
-            )
-
-            ways_ids_filtered_required_lf = pl.concat(
-                [ways_ids_filtered_lf, ways_ids_required_lf]
-            ).unique("id")
-            ways_ids_filtered_required_valid_lf = ways_ids_filtered_required_lf.join(
-                ways_ids_invalid_lf, on="id", how="anti"
-            )
-            valid_save_path = self.tmp_dir_path / "ways_ids_valid_non_distinct"
-            valid_save_path.mkdir(exist_ok=True, parents=True)
-            ways_ids_filtered_required_valid_lf.sink_parquet(valid_save_path / "data.parquet")
-            ways_ids_valid = self._calculate_unique_ids_to_parquet(
-                valid_save_path, self.tmp_dir_path / "ways_ids_valid", order_ids=False
-            )
-        self._delete_directories(["nodes_ids_valid", "ways_ids_valid_non_distinct"])
+        self._delete_directories(["nodes_ids_valid"])
 
         # ways IDs (filtered, valid)
         with self.task_progress_tracker.get_spinner(
@@ -1959,7 +1940,6 @@ class PbfFileReader:
                     sql_query=f"""
                     SELECT DISTINCT ref as id
                     FROM ({ways_unnested_filtered_required_valid.sql_query()}) uwr
-                    -- ORDER BY id
                     """,
                     file_path=self.tmp_dir_path / "nodes_ids_required_valid",
                     single_file_output=True,
@@ -2007,30 +1987,11 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - relations valid ids", next_step="minor"
         ):
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH total_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_unnested_filtered.sql_query()}) frr
-                ),
-                unmatched_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_unnested_filtered.sql_query()}) r
-                    ANTI JOIN ({ways_ids_required_valid.sql_query()}) wrv ON wrv.id = r.ref
-                )
-                SELECT id
-                FROM total_relation_refs
-                ANTI JOIN unmatched_relation_refs USING (id)
-                """,
-                file_path=self.tmp_dir_path / "relations_ids_filtered_valid_non_distinct",
+            relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
+                refs_unnested=self.tmp_dir_path / "relations_unnested_filtered",
+                sub_element_ids_valid=self.tmp_dir_path / "ways_ids_required_valid",
+                save_path=self.tmp_dir_path / "relations_ids_filtered_valid",
             )
-            relations_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "relations_ids_filtered_valid_non_distinct",
-                self.tmp_dir_path / "relations_ids_filtered_valid",
-                order_ids=False,
-            )
-
-        self._delete_directories(["relations_ids_filtered_valid_non_distinct"])
 
         # relations tags (filtered, valid)
         with self.task_progress_tracker.get_spinner(
@@ -2167,26 +2128,12 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - ways valid ids", next_step="minor"
         ):
-            # TODO: add fallback to duckdb query if polars memory usage is too high
-            ways_unnested_lf = pl.scan_parquet(self.tmp_dir_path / "ways_unnested")
-            nodes_ids_valid_lf = pl.scan_parquet(self.tmp_dir_path / "nodes_ids_valid")
-            ways_ids_lf = (
-                pl.scan_parquet(self.tmp_dir_path / "ways_unnested").select("id").unique("id")
+            ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
+                refs_unnested=self.tmp_dir_path / "ways_unnested",
+                sub_element_ids_valid=self.tmp_dir_path / "nodes_ids_valid",
+                save_path=self.tmp_dir_path / "ways_ids_valid",
             )
-            # ways_ids_required_lf = pl.scan_parquet(self.tmp_dir_path / "ways_ids_required")
-
-            ways_ids_invalid_lf = ways_unnested_lf.join(
-                nodes_ids_valid_lf, left_on="ref", right_on="id", how="anti"
-            )
-
-            ways_ids_valid_lf = ways_ids_lf.join(ways_ids_invalid_lf, on="id", how="anti")
-            valid_save_path = self.tmp_dir_path / "ways_ids_valid_non_distinct"
-            valid_save_path.mkdir(exist_ok=True, parents=True)
-            ways_ids_valid_lf.sink_parquet(valid_save_path / "data.parquet")
-            ways_ids_valid = self._calculate_unique_ids_to_parquet(
-                valid_save_path, self.tmp_dir_path / "ways_ids_valid", order_ids=False
-            )
-        self._delete_directories(["nodes_ids_valid", "ways_ids_valid_non_distinct"])
+        self._delete_directories(["nodes_ids_valid"])
 
         # ways tags (filtered, required, valid)
         with self.task_progress_tracker.get_spinner("Filtering - ways tags", next_step="minor"):
@@ -2266,30 +2213,11 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - relations valid ids", next_step="minor"
         ):
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH total_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_unnested.sql_query()}) frr
-                ),
-                unmatched_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_unnested.sql_query()}) r
-                    ANTI JOIN ({ways_ids_valid.sql_query()}) wrv ON wrv.id = r.ref
-                )
-                SELECT id
-                FROM total_relation_refs
-                ANTI JOIN unmatched_relation_refs USING (id)
-                """,
-                file_path=self.tmp_dir_path / "relations_ids_filtered_valid_non_distinct",
+            relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
+                refs_unnested=self.tmp_dir_path / "relations_unnested",
+                sub_element_ids_valid=self.tmp_dir_path / "ways_ids_valid",
+                save_path=self.tmp_dir_path / "relations_ids_filtered_valid",
             )
-            relations_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "relations_ids_filtered_valid_non_distinct",
-                self.tmp_dir_path / "relations_ids_filtered_valid",
-                order_ids=False,
-            )
-
-        self._delete_directories(["relations_ids_filtered_valid_non_distinct"])
 
         # relations tags (filtered, valid)
         with self.task_progress_tracker.get_spinner(
@@ -2385,6 +2313,53 @@ class PbfFileReader:
             ways_ids_filtered=ways_ids_filtered_valid,
             relations_tags_filtered=relations_tags_filtered_valid,
             relations_unnested_filtered=relations_unnested_filtered_valid,
+        )
+
+    def _calculate_element_valid_ids_based_on_refs(
+        self, refs_unnested: Path, sub_element_ids_valid: Path, save_path: Path
+    ) -> "duckdb.DuckDBPyRelation":
+        valid_non_distinct_save_path: Path = self.tmp_dir_path / f"{save_path.name}_non_distinct"
+        valid_non_distinct_save_path.mkdir(exist_ok=True, parents=True)
+        try:
+            _run_in_multiprocessing_pool(
+                _calculate_element_valid_ids_based_on_refs_with_polars,
+                (refs_unnested, sub_element_ids_valid, valid_non_distinct_save_path),
+            )
+        except MultiprocessingRuntimeError:
+            self._calculate_element_valid_ids_based_on_refs_with_duckdb(
+                refs_unnested=refs_unnested,
+                sub_element_ids_valid=sub_element_ids_valid,
+                non_distinct_save_path=valid_non_distinct_save_path,
+            )
+        element_ids_valid = self._calculate_unique_ids_to_parquet(
+            valid_non_distinct_save_path, save_path, order_ids=False
+        )
+        self._delete_directories([valid_non_distinct_save_path])
+        return element_ids_valid
+
+    def _calculate_element_valid_ids_based_on_refs_with_duckdb(
+        self,
+        refs_unnested: Path,
+        sub_element_ids_valid: Path,
+        non_distinct_save_path: Path,
+    ) -> None:
+        self._sql_to_parquet_file(
+            sql_query=f"""
+            WITH total_element_refs AS (
+                SELECT id
+                FROM read_parquet('{refs_unnested}/**/*.parquet')
+            ),
+            unmatched_element_refs AS (
+                SELECT id
+                FROM read_parquet('{refs_unnested}/**/*.parquet') e
+                ANTI JOIN read_parquet('{sub_element_ids_valid}/**/*.parquet') sev
+                ON sev.id = e.ref
+            )
+            SELECT id
+            FROM total_element_refs
+            ANTI JOIN unmatched_element_refs USING (id)
+            """,
+            file_path=non_distinct_save_path,
         )
 
     def _delete_directories(
@@ -4099,6 +4074,21 @@ def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> No
             r.get()
     except Exception as ex:
         raise MultiprocessingRuntimeError() from ex
+
+
+def _calculate_element_valid_ids_based_on_refs_with_polars(
+    refs_unnested: Path, sub_element_ids_valid: Path, non_distinct_save_path: Path
+) -> None:
+    refs_unnested_lf = pl.scan_parquet(refs_unnested)
+    sub_element_ids_valid_lf = pl.scan_parquet(sub_element_ids_valid)
+    elements_base_ids_lf = refs_unnested_lf.select("id").unique("id")
+
+    ways_ids_invalid_lf = refs_unnested_lf.join(
+        sub_element_ids_valid_lf, left_on="ref", right_on="id", how="anti"
+    )
+
+    elements_ids_valid_lf = elements_base_ids_lf.join(ways_ids_invalid_lf, on="id", how="anti")
+    elements_ids_valid_lf.sink_parquet(non_distinct_save_path / "data.parquet")
 
 
 def _drop_duplicates_in_pyarrow_table(
