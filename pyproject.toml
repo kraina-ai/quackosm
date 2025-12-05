@@ -19,6 +19,7 @@ dependencies = [
     "geopy>=2.0.0",
     "numpy>=1.26.0",
     "rq_geo_toolkit>=2025.8.3",
+    "polars>=1.9",
 ]
 requires-python = ">=3.9"
 readme = "README.md"
@@ -97,7 +98,7 @@ docs = [
     "contextily",
 ]
 license = ["licensecheck==2025.1.0", "pipdeptree"]
-cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
+cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify", "diagrams"]
 
 [project.scripts]
 quackosm = "quackosm.__main__:main"

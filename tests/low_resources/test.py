@@ -10,6 +10,7 @@ import psutil
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from psutil._common import bytes2human
+from shapely import box
 
 import quackosm as qosm
 
@@ -34,6 +35,15 @@ def test_country_file() -> None:
         pbf_path=file_name, ignore_cache=True, verbosity_mode="verbose", sort_result=True
     )
 
+    qosm.convert_pbf_to_parquet(
+        pbf_path=file_name,
+        tags_filter={"building": True},
+        geometry_filter=box(-9.396057, 38.592724, -8.985443, 38.868048),  # Lisbon
+        ignore_cache=True,
+        verbosity_mode="verbose",
+        sort_result=True,
+    )
+
 
 def display_resources() -> None:
     """Show available resources."""
@@ -53,7 +63,7 @@ def display_resources() -> None:
     print("Memory (psutil, all):", psutil.virtual_memory())
 
     with suppress(Exception):
-        print("CPU affinity (os):", os.sched_getaffinity(0))
+        print("CPU affinity (os):", os.sched_getaffinity(0))  # type: ignore[attr-defined]
         print("CPU affinity (psutil):", psutil.Process().cpu_affinity())
         print("Memory limit (cgroup):", bytes2human(int(open("/sys/fs/cgroup/memory.max").read())))
 
