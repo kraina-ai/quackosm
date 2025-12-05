@@ -1493,8 +1493,6 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - nodes valid ids", next_step="minor"
         ):
-            # nodes_ids_valid = self._sql_to_parquet_file(
-            # TODO: backup to polars
             self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
@@ -1804,23 +1802,14 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - unnested relations", next_step="minor"
         ):
-            if is_intersecting or is_filtering:
-                relations_unnested_filtered = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT *
-                    FROM ({relations_unnested.sql_query()}) urr
-                    SEMI JOIN ({relations_ids_filtered.sql_query()}) rf ON rf.id = urr.id
-                    """,
-                    file_path=self.tmp_dir_path / "relations_unnested_filtered",
-                )
-            else:
-                relations_unnested_filtered = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT *
-                    FROM ({relations_unnested.sql_query()}) urr
-                    """,
-                    file_path=self.tmp_dir_path / "relations_unnested_filtered",
-                )
+            relations_unnested_filtered = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT *
+                FROM ({relations_unnested.sql_query()}) urr
+                SEMI JOIN ({relations_ids_filtered.sql_query()}) rf ON rf.id = urr.id
+                """,
+                file_path=self.tmp_dir_path / "relations_unnested_filtered",
+            )
         self._delete_directories(["relations_ids_filtered", "relations_unnested"])
 
         # Ways second pass
@@ -1935,15 +1924,14 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - nodes required ids", next_step="minor"
         ):
-            if is_intersecting or is_filtering:
-                nodes_ids_required_valid = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT DISTINCT ref as id
-                    FROM ({ways_unnested_filtered_required_valid.sql_query()}) uwr
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_ids_required_valid",
-                    single_file_output=True,
-                )
+            nodes_ids_required_valid = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT DISTINCT ref as id
+                FROM ({ways_unnested_filtered_required_valid.sql_query()}) uwr
+                """,
+                file_path=self.tmp_dir_path / "nodes_ids_required_valid",
+                single_file_output=True,
+            )
         # nodes tags and points (filtered, required, valid)
         with self.task_progress_tracker.get_spinner(
             "Filtering - nodes filtered", next_step="minor"
@@ -1962,23 +1950,14 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - nodes required", next_step="minor"
         ):
-            if is_intersecting or is_filtering:
-                nodes_points_required_valid = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id, lon, lat
-                    FROM ({nodes_tags_and_points_valid.sql_query()}) n
-                    SEMI JOIN ({nodes_ids_required_valid.sql_query()}) nr USING (id)
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_points_required_valid",
-                )
-            else:
-                nodes_points_required_valid = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id, lon, lat
-                    FROM ({nodes_tags_and_points_valid.sql_query()}) n
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_points_required_valid",
-                )
+            nodes_points_required_valid = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id, lon, lat
+                FROM ({nodes_tags_and_points_valid.sql_query()}) n
+                SEMI JOIN ({nodes_ids_required_valid.sql_query()}) nr USING (id)
+                """,
+                file_path=self.tmp_dir_path / "nodes_points_required_valid",
+            )
 
         self._delete_directories(["nodes_tags_and_points_valid", "nodes_ids_required_valid"])
 
@@ -2061,8 +2040,6 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering - nodes valid ids", next_step="minor"
         ):
-            # nodes_ids_valid = self._sql_to_parquet_file(
-            # TODO: backup to polars
             self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
