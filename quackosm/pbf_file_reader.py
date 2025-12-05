@@ -1138,24 +1138,6 @@ class PbfFileReader:
             self.expanded_tags_filter = self._expand_osm_tags_filter(elements)
             self.merged_tags_filter = merge_osm_tags_filter(self.expanded_tags_filter)
 
-        # self.tags_sql_filter = self._generate_osm_tags_sql_filter()
-        # self.filtered_tags_clause = (
-        #     self._generate_filtered_tags_clause() if self.ignore_metadata_tags else "tags"
-        # )
-        # self.custom_sql_filter = self.custom_sql_filter or "1=1"
-
-        # self.is_intersecting = self.geometry_filter is not None
-        # self.is_filtering = (
-        #     self.tags_sql_filter != "(1=1)"
-        #     or self.custom_sql_filter != "1=1"
-        #     or len(filter_osm_ids) > 0
-        # )
-
-        # if self.run_old_prefilter_method:
-        #     converted_osm_parquet_files = self._prefilter_elements_ids_old(
-        # elements, filter_osm_ids
-        # )
-        # else:
         converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
         filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
@@ -2337,7 +2319,7 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "relations_unnested_filtered_valid",
             )
 
-        self._delete_directories(["relations_unnested_filtered", "relations_ids_filtered_valid"])
+        self._delete_directories(["relations_unnested", "relations_ids_filtered_valid"])
 
         # Ways second pass
         # ways IDs (required)
@@ -2367,7 +2349,7 @@ class PbfFileReader:
                 """,
                 file_path=self.tmp_dir_path / "ways_unnested_filtered_required_valid",
             )
-        self._delete_directories(["ways_ids_valid", "ways_unnested_filtered_required"])
+        self._delete_directories(["ways_ids_valid", "ways_unnested"])
 
         with self.task_progress_tracker.get_spinner(
             "Filtering - nodes filtered", next_step="minor"
@@ -2380,10 +2362,23 @@ class PbfFileReader:
                 """,
                 file_path=self.tmp_dir_path / "nodes_tags_and_points_filtered_valid",
             )
+        self._delete_directories(["nodes_ids_filtered_valid"])
+
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - nodes required", next_step="minor"
+        ):
+            nodes_points_required_valid = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id, lon, lat
+                FROM ({nodes_tags_and_points_valid.sql_query()}) n
+                """,
+                file_path=self.tmp_dir_path / "nodes_points_required_valid",
+            )
+        self._delete_directories(["nodes_tags_and_points_valid"])
 
         return PbfFileReader.ConvertedOSMParquetFiles(
             nodes_tags_and_points_filtered=nodes_tags_and_points_filtered_valid,
-            nodes_points_required=nodes_tags_and_points_valid,
+            nodes_points_required=nodes_points_required_valid,
             ways_tags_filtered=ways_tags_filtered_valid,
             ways_unnested_filtered_required=ways_unnested_filtered_required_valid,
             ways_ids_required=ways_ids_required_valid,
