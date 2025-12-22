@@ -2067,8 +2067,10 @@ class PbfFileReader:
         self._delete_directories(["nodes_ids_filtered_valid_non_distinct"])
 
         # Ways first pass
-        # ways tags
-        with self.task_progress_tracker.get_spinner("Filtering - reading ways", next_step="minor"):
+        # ways unnested
+        with self.task_progress_tracker.get_spinner(
+            "Filtering - unnesting ways", next_step="minor"
+        ):
             self.connection.sql(
                 f"""
                 SELECT *
@@ -2076,23 +2078,6 @@ class PbfFileReader:
                 WHERE kind = 'way' AND len(refs) >= 2
                 """
             ).to_view("ways", replace=True)
-            ways_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}, tags as raw_tags
-                    FROM ways w
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
-                SELECT id, tags, raw_tags
-                FROM filtered_tags
-                WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                """,
-                file_path=self.tmp_dir_path / "ways_tags",
-            )
-        # ways unnested
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - unnesting ways", next_step="minor"
-        ):
             ways_unnested = self._sql_to_parquet_file(
                 sql_query="""
                 SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
@@ -2116,9 +2101,15 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner("Filtering - ways tags", next_step="minor"):
             ways_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
-                SELECT *
-                FROM ({ways_tags.sql_query()}) w
-                SEMI JOIN ({ways_ids_valid.sql_query()}) USING (id)
+                WITH filtered_tags AS (
+                    SELECT id, {filtered_tags_clause}, tags as raw_tags
+                    FROM ways w
+                    SEMI JOIN ({ways_ids_valid.sql_query()}) USING (id)
+                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
+                )
+                SELECT id, tags, raw_tags
+                FROM filtered_tags
+                WHERE tags IS NOT NULL AND cardinality(tags) > 0
                 """,
                 file_path=self.tmp_dir_path / "ways_tags_filtered_valid",
             )
@@ -2130,7 +2121,6 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "ways_ids_filtered_valid",
                 single_file_output=True,
             )
-        self._delete_directories(["ways_tags"])
 
         # Relations first pass
         # relations tags
@@ -2536,8 +2526,6 @@ class PbfFileReader:
         )
         process.start()
 
-        # process_monitoring = psutil.Process(process.pid)
-
         start_time = time.time()
         actual_memory = psutil.virtual_memory()
         percentage_threshold = 95
@@ -2550,7 +2538,6 @@ class PbfFileReader:
         while process.is_alive():
             actual_memory = psutil.virtual_memory()
             swap_memory = psutil.swap_memory()
-            # print(actual_memory, swap_memory, process_monitoring.memory_info())
             current_time = time.time()
             elapsed_seconds = current_time - start_time
 
@@ -2561,7 +2548,6 @@ class PbfFileReader:
                 and actual_memory.percent > mixed_percentage_physical_threshold
                 and swap_memory.percent > mixed_percentage_swap_threshold
             ):
-                # print(elapsed_seconds, actual_memory.percent, swap_memory.percent)
                 process.terminate()
                 process.join()
                 raise MemoryError()
