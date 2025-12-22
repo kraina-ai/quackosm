@@ -729,27 +729,30 @@ Below you can see the chart of resources usage during operation. Generated on a 
 
 #### Monaco
 
-PBF file size: 525 KB
+PBF file size: <1MB
 
 [Geofabrik link](https://download.geofabrik.de/europe/monaco.html)
 
 ![Monaco PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/monaco_disk_spillage.png)
+![Monaco PBF file result filtered](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/monaco_filtered_disk_spillage.png)
 
 #### Estonia
 
-PBF file size: 100 MB
+PBF file size: ~100 MB
 
 [Geofabrik link](https://download.geofabrik.de/europe/estonia.html)
 
 ![Estonia PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/estonia_disk_spillage.png)
+![Estonia PBF file result filtered](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/estonia_filtered_disk_spillage.png)
 
 #### Poland
 
-PBF file size: 1.7 GB
+PBF file size: ~2 GB
 
 [Geofabrik link](https://download.geofabrik.de/europe/poland.html)
 
 ![Poland PBF file result](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_disk_spillage.png)
+![Poland PBF file result filtered](https://raw.githubusercontent.com/kraina-ai/quackosm/main/docs/assets/images/poland_filtered_disk_spillage.png)
 
 ## License
 
