@@ -2123,12 +2123,12 @@ class PbfFileReader:
             )
 
         # Relations first pass
-        # relations tags
+        # relations unnested
         # - select all with kind = 'relation'
         # - select all with more then one ref
         # - select all with type in ['boundary', 'multipolygon']
         with self.task_progress_tracker.get_spinner(
-            "Filtering - reading relations", next_step="minor"
+            "Filtering - unnesting relations", next_step="minor"
         ):
             self.connection.sql(
                 f"""
@@ -2139,24 +2139,6 @@ class PbfFileReader:
                 AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
                 """
             ).to_view("relations", replace=True)
-            relations_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}
-                    FROM relations r
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
-                SELECT id, tags
-                FROM filtered_tags
-                WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                """,
-                file_path=self.tmp_dir_path / "relations_tags",
-            )
-
-        # relations unnested
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - unnesting relations", next_step="minor"
-        ):
             relations_unnested = self._sql_to_parquet_file(
                 sql_query="""
                 WITH unnested_relation_refs AS (
@@ -2192,14 +2174,18 @@ class PbfFileReader:
         ):
             relations_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
-                SELECT *
-                FROM ({relations_tags.sql_query()}) r
-                SEMI JOIN ({relations_ids_filtered_valid.sql_query()}) rv USING (id)
+                WITH filtered_tags AS (
+                    SELECT id, {filtered_tags_clause}
+                    FROM relations r
+                    SEMI JOIN ({relations_ids_filtered_valid.sql_query()}) rv USING (id)
+                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
+                )
+                SELECT id, tags
+                FROM filtered_tags
+                WHERE tags IS NOT NULL AND cardinality(tags) > 0
                 """,
                 file_path=self.tmp_dir_path / "relations_tags_filtered_valid",
             )
-
-        self._delete_directories(["relations_tags"])
 
         # relations unnested (filtered, valid)
         with self.task_progress_tracker.get_spinner(
