@@ -561,7 +561,10 @@ class PbfFileReader:
                 self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
             )
 
-        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
+        with (
+            tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name,
+            multiprocessing.get_context("spawn").Pool(processes=1) as self.pool,
+        ):
             self.tmp_dir_path = Path(self.tmp_dir_name)
 
             if self.debug_memory:
@@ -997,9 +1000,12 @@ class PbfFileReader:
         with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
             output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
 
-            _run_in_multiprocessing_pool(
-                _drop_duplicates_in_pyarrow_table, (parsed_geoparquet_files, output_file_name)
-            )
+            with multiprocessing.get_context("spawn").Pool() as pool:
+                _run_in_multiprocessing_pool(
+                    pool,
+                    _drop_duplicates_in_pyarrow_table,
+                    (parsed_geoparquet_files, output_file_name),
+                )
 
             return [output_file_name]
 
@@ -2454,7 +2460,7 @@ class PbfFileReader:
         valid_non_distinct_save_path.mkdir(exist_ok=True, parents=True)
         try:
             _run_in_multiprocessing_pool(
-                _calculate_element_valid_ids_based_on_refs_with_polars,
+                self.pool, _calculate_element_valid_ids_based_on_refs_with_polars,
                 (refs_unnested, sub_element_ids_valid, valid_non_distinct_save_path),
             )
         except MultiprocessingRuntimeError:
@@ -4188,26 +4194,26 @@ def _run_query(
     db_file_path.unlink(missing_ok=True)
 
 
-def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> None:
+def _run_in_multiprocessing_pool(
+    pool: "multiprocessing.pool.Pool", function: Callable[..., None], args: Any
+) -> None:
     try:
-        with multiprocessing.get_context("spawn").Pool() as pool:
-            r = pool.apply_async(
-                func=function,
-                args=args,
-            )
+        print(pool)
+        r = pool.apply_async(
+            func=function,
+            args=args,
+        )
+        actual_memory = psutil.virtual_memory()
+        percentage_threshold = 95
+        if (actual_memory.total * 0.05) > MEMORY_1GB:
+            percentage_threshold = 100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+        while not r.ready():
             actual_memory = psutil.virtual_memory()
-            percentage_threshold = 95
-            if (actual_memory.total * 0.05) > MEMORY_1GB:
-                percentage_threshold = (
-                    100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
-                )
-            while not r.ready():
-                actual_memory = psutil.virtual_memory()
-                if actual_memory.percent > percentage_threshold:
-                    raise MemoryError()
+            if actual_memory.percent > percentage_threshold:
+                raise MemoryError()
 
-                sleep(0.5)
-            r.get()
+            sleep(0.5)
+        r.get()
     except Exception as ex:
         raise MultiprocessingRuntimeError() from ex
 
