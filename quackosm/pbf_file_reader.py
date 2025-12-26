@@ -4198,7 +4198,6 @@ def _run_in_multiprocessing_pool(
     pool: "multiprocessing.pool.Pool", function: Callable[..., None], args: Any
 ) -> None:
     try:
-        print(pool)
         r = pool.apply_async(
             func=function,
             args=args,
