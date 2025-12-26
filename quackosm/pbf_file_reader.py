@@ -2460,7 +2460,8 @@ class PbfFileReader:
         valid_non_distinct_save_path.mkdir(exist_ok=True, parents=True)
         try:
             _run_in_multiprocessing_pool(
-                self.pool, _calculate_element_valid_ids_based_on_refs_with_polars,
+                self.pool,
+                _calculate_element_valid_ids_based_on_refs_with_polars,
                 (refs_unnested, sub_element_ids_valid, valid_non_distinct_save_path),
             )
         except MultiprocessingRuntimeError:
