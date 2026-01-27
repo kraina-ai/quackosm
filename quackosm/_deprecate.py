@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from packaging import version
 from pandas import __version__ as pd_version
@@ -10,7 +10,7 @@ PANDAS_ABOVE_3 = version.parse(pd_version) >= version.parse("3.0.0")
 
 
 def deprecate(
-    name: str, alternative: Callable[..., Any], version: str, msg: str | None = None
+    name: str, alternative: Callable[..., Any], version: str, msg: Optional[str] = None
 ) -> Callable[[F], F]:
     if PANDAS_ABOVE_3:
         return pd_deprecate(  # type: ignore[no-any-return]
@@ -20,7 +20,7 @@ def deprecate(
     return pd_deprecate(name=name, alternative=alternative, version=version, msg=msg)  # type: ignore[no-any-return]
 
 
-def deprecate_kwarg(old_arg_name: str, new_arg_name: str | None) -> Callable[[F], F]:
+def deprecate_kwarg(old_arg_name: str, new_arg_name: Optional[str]) -> Callable[[F], F]:
     if PANDAS_ABOVE_3:
         return pd_deprecate_kwarg(  # type: ignore[no-any-return]
             old_arg_name=old_arg_name, new_arg_name=new_arg_name, klass=FutureWarning
