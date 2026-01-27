@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.5] - 2026-01-27
+
 ### Fixed
 
 - Changed `deprecate` logic after Pandas 3.0 release [#287](https://github.com/kraina-ai/quackosm/issues/287)
@@ -569,7 +571,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.4...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.5...HEAD
+
+[0.16.5]: https://github.com/kraina-ai/quackosm/compare/0.16.4...0.16.5
 
 [0.16.4]: https://github.com/kraina-ai/quackosm/compare/0.16.3...0.16.4
 
