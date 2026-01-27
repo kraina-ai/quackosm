@@ -295,28 +295,28 @@ class PbfFileReader:
         self.convert_pbf_to_gpq = deprecate(
             "convert_pbf_to_gpq",
             self.convert_pbf_to_parquet,
-            "0.8.1",
+            version="0.8.1",
             msg="Use `convert_pbf_to_parquet` instead. Deprecated since 0.8.1 version.",
         )
 
         self.convert_geometry_filter_to_gpq = deprecate(
             "convert_geometry_filter_to_gpq",
             self.convert_geometry_to_parquet,
-            "0.8.1",
+            version="0.8.1",
             msg="Use `convert_geometry_to_parquet` instead. Deprecated since 0.8.1 version.",
         )
 
         self.get_features_gdf = deprecate(
             "get_features_gdf",
             self.convert_pbf_to_geodataframe,
-            "0.8.1",
+            version="0.8.1",
             msg="Use `convert_pbf_to_geodataframe` instead. Deprecated since 0.8.1 version.",
         )
 
         self.get_features_gdf_from_geometry = deprecate(
             "get_features_gdf_from_geometry",
             self.convert_geometry_to_geodataframe,
-            "0.8.1",
+            version="0.8.1",
             msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
         )
 
