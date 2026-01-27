@@ -30,7 +30,6 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
-from pandas.util._decorators import deprecate, deprecate_kwarg
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
@@ -54,6 +53,7 @@ from quackosm._constants import (
     PARQUET_VERSION,
     WGS84_CRS,
 )
+from quackosm._deprecate import deprecate, deprecate_kwarg
 from quackosm._exceptions import (
     EmptyResultWarning,
     InvalidGeometryFilter,
@@ -154,7 +154,7 @@ class PbfFileReader:
         }
         parquet_version_query = ""
 
-    @deprecate_kwarg(old_arg_name="parquet_compression", new_arg_name="compression")  # type: ignore
+    @deprecate_kwarg(old_arg_name="parquet_compression", new_arg_name="compression")
     def __init__(
         self,
         tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -293,29 +293,29 @@ class PbfFileReader:
         )
 
         self.convert_pbf_to_gpq = deprecate(
-            "convert_pbf_to_gpq",
-            self.convert_pbf_to_parquet,
+            name="convert_pbf_to_gpq",
+            alternative=self.convert_pbf_to_parquet,
             version="0.8.1",
             msg="Use `convert_pbf_to_parquet` instead. Deprecated since 0.8.1 version.",
         )
 
         self.convert_geometry_filter_to_gpq = deprecate(
-            "convert_geometry_filter_to_gpq",
-            self.convert_geometry_to_parquet,
+            name="convert_geometry_filter_to_gpq",
+            alternative=self.convert_geometry_to_parquet,
             version="0.8.1",
             msg="Use `convert_geometry_to_parquet` instead. Deprecated since 0.8.1 version.",
         )
 
         self.get_features_gdf = deprecate(
-            "get_features_gdf",
-            self.convert_pbf_to_geodataframe,
+            name="get_features_gdf",
+            alternative=self.convert_pbf_to_geodataframe,
             version="0.8.1",
             msg="Use `convert_pbf_to_geodataframe` instead. Deprecated since 0.8.1 version.",
         )
 
         self.get_features_gdf_from_geometry = deprecate(
-            "get_features_gdf_from_geometry",
-            self.convert_geometry_to_geodataframe,
+            name="get_features_gdf_from_geometry",
+            alternative=self.convert_geometry_to_geodataframe,
             version="0.8.1",
             msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
         )
@@ -713,7 +713,7 @@ class PbfFileReader:
             ],
         )
 
-    @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
+    @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")
     def convert_pbf_to_geodataframe(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
