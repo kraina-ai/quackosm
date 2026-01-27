@@ -576,32 +576,32 @@ def test_geometry_sorting() -> None:
     "func,new_function_name",
     [
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.get_features_gdf,
                 file_paths=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
             ),
             "convert_pbf_to_geodataframe",
         ),
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.get_features_gdf,
                 pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
             ),
             "convert_pbf_to_geodataframe",
         ),
         (
-            partial(functions.get_features_gdf_from_geometry, geometry_filter=geometry_box()),
+            partial(functions.get_features_gdf_from_geometry, geometry_filter=geometry_box()),  # type: ignore[call-arg]
             "convert_geometry_to_geodataframe",
         ),
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.convert_pbf_to_gpq,
                 pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
             ),
             "convert_pbf_to_parquet",
         ),
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.convert_geometry_to_gpq,
                 geometry_filter=geometry_box(),
             ),
