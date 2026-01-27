@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Changed `deprecate` logic after Pandas 3.0 release [#287](https://github.com/kraina-ai/quackosm/issues/287)
+
 ## [0.16.4] - 2025-11-25
 
 ### Added

@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
 import geopandas as gpd
-from pandas.util._decorators import deprecate, deprecate_kwarg
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._constants import (
@@ -18,6 +17,7 @@ from quackosm._constants import (
     PARQUET_ROW_GROUP_SIZE,
     PARQUET_VERSION,
 )
+from quackosm._deprecate import deprecate, deprecate_kwarg
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
 from quackosm._rich_progress import VERBOSITY_MODE
@@ -1401,7 +1401,7 @@ def convert_osm_extract_to_parquet(
     return Path(result_path)
 
 
-@deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
+@deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")
 def convert_pbf_to_geodataframe(
     pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -1985,29 +1985,29 @@ def convert_osm_extract_to_geodataframe(
 
 
 convert_pbf_to_gpq = deprecate(
-    "convert_pbf_to_gpq",
-    convert_pbf_to_parquet,
-    "0.8.1",
+    name="convert_pbf_to_gpq",
+    alternative=convert_pbf_to_parquet,
+    version="0.8.1",
     msg="Use `convert_pbf_to_parquet` instead. Deprecated since 0.8.1 version.",
 )
 
 convert_geometry_to_gpq = deprecate(
-    "convert_geometry_to_gpq",
-    convert_geometry_to_parquet,
-    "0.8.1",
+    name="convert_geometry_to_gpq",
+    alternative=convert_geometry_to_parquet,
+    version="0.8.1",
     msg="Use `convert_geometry_to_parquet` instead. Deprecated since 0.8.1 version.",
 )
 
 get_features_gdf = deprecate(
-    "get_features_gdf",
-    convert_pbf_to_geodataframe,
-    "0.8.1",
+    name="get_features_gdf",
+    alternative=convert_pbf_to_geodataframe,
+    version="0.8.1",
     msg="Use `convert_pbf_to_geodataframe` instead. Deprecated since 0.8.1 version.",
 )
 
 get_features_gdf_from_geometry = deprecate(
-    "get_features_gdf_from_geometry",
-    convert_geometry_to_geodataframe,
-    "0.8.1",
+    name="get_features_gdf_from_geometry",
+    alternative=convert_geometry_to_geodataframe,
+    version="0.8.1",
     msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
 )
