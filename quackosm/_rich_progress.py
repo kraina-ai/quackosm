@@ -33,7 +33,7 @@ __all__ = [
     "show_total_elapsed_time",
 ]
 
-TOTAL_STEPS = 33
+TOTAL_STEPS = 16
 ProgressType = TypeVar("ProgressType", bound=Progress)
 
 
