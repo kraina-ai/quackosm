@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Option to pass additional parameters to the DuckDB connection config [#290](https://github.com/kraina-ai/quackosm/issues/290)
+
 ## [0.16.5] - 2026-01-27
 
 ### Fixed
