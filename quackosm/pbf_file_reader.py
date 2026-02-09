@@ -1050,6 +1050,7 @@ class PbfFileReader:
             if self.debug_memory:
                 log_message(f"Saved to directory: {output_file_name}")
             self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
+            connection.close()
             return list(output_file_name.glob("*.parquet"))
 
     def _drop_duplicated_features_in_joined_table_one_by_one(
@@ -1094,6 +1095,8 @@ class PbfFileReader:
                     log_message(f"Saved to directory: {filtered_result_parquet_file}")
                 connection.sql(query)
                 result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
+
+        connection.close()
         return result_parquet_files
 
     def _parse_pbf_file(
@@ -3661,6 +3664,8 @@ def _compress_value_columns(
     )
 
     relation.to_parquet(str(output_file))
+
+    connection.close()
 
 
 def _decompress_value_columns(
