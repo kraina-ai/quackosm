@@ -669,20 +669,25 @@ def test_metadata_tags_ignoring(ignore_metadata_tags: bool) -> None:
 def test_duckdb_conn_kwargs_config() -> None:
     """Test if duckdb connection config can be modified."""
     # extension_directory
-    with tempfile.TemporaryDirectory(dir=Path(__file__).parent.resolve()) as tmp_dir_name:
+    with tempfile.TemporaryDirectory(
+        dir=Path(__file__).parent.resolve(), ignore_cleanup_errors=True
+    ) as tmp_dir_name:
         print(tmp_dir_name)
         pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
-        PbfFileReader(
+        reader = PbfFileReader(
             duckdb_conn_kwargs={
                 "config_kwargs": {"extension_directory": tmp_dir_name},
                 "community_extensions_to_load": ["h3"],
             }
-        ).convert_pbf_to_parquet(
+        )
+        reader.convert_pbf_to_parquet(
             pbf_path=pbf_file,
             ignore_cache=True,
             keep_all_tags=True,
             sort_result=False,
         )
+
+        assert reader.connection is None
 
         generated_files_names = [f.name for f in Path(tmp_dir_name).glob("**/*") if f.is_file()]
         print(generated_files_names)
