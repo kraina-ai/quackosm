@@ -165,6 +165,7 @@ class PbfFileReader:
         tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
         geometry_filter: Optional[BaseGeometry] = None,
         custom_sql_filter: Optional[str] = None,
+        filter_logical_operator: str = "OR",
         working_directory: Union[str, Path] = "files",
         osm_way_polygon_features_config: Optional[
             Union[OsmWayPolygonConfig, dict[str, Any]]
@@ -202,6 +203,10 @@ class PbfFileReader:
             custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
                 to filter OSM features. It will be embedded into predefined queries and requires
                 DuckDB syntax to operate on tags map object. Defaults to `None`.
+            filter_logical_operator (str, optional): Logical operator used to join positive tag
+                filter conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+                of the tag conditions are included. With "AND", objects must match all tag
+                conditions. Defaults to "OR".
             working_directory (Union[str, Path], optional): Directory where to save
                 the parsed `*.parquet` files. Defaults to "files".
             osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -260,6 +265,9 @@ class PbfFileReader:
         self.merged_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
 
         self.custom_sql_filter = custom_sql_filter
+        self.filter_logical_operator = filter_logical_operator.upper()
+        if self.filter_logical_operator not in ("OR", "AND"):
+            raise ValueError("filter_logical_operator must be either 'OR' or 'AND'")
 
         self.geometry_coverage_iou_threshold = geometry_coverage_iou_threshold
         self.allow_uncovered_geometry = allow_uncovered_geometry
@@ -1866,7 +1874,7 @@ class PbfFileReader:
         if not positive_filter_clauses:
             positive_filter_clauses.append("(1=1)")
 
-        joined_filter_clauses = " OR ".join(positive_filter_clauses)
+        joined_filter_clauses = f" {self.filter_logical_operator} ".join(positive_filter_clauses)
         if negative_filter_clauses:
             joined_filter_clauses = (
                 f"({joined_filter_clauses}) AND ({' AND '.join(negative_filter_clauses)})"

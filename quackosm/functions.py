@@ -54,6 +54,7 @@ def convert_pbf_to_duckdb(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
@@ -115,6 +116,10 @@ def convert_pbf_to_duckdb(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         duckdb_table_name (str): Table in which to store the OSM data inside the DuckDB database.
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
@@ -280,6 +285,7 @@ def convert_pbf_to_duckdb(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -321,6 +327,7 @@ def convert_geometry_to_duckdb(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
@@ -387,6 +394,10 @@ def convert_geometry_to_duckdb(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         duckdb_table_name (str): Table in which to store the OSM data inside the DuckDB database.
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
@@ -515,6 +526,7 @@ def convert_geometry_to_duckdb(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -559,6 +571,7 @@ def convert_osm_extract_to_duckdb(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     duckdb_table_name: str = "quackosm",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
@@ -623,6 +636,10 @@ def convert_osm_extract_to_duckdb(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         duckdb_table_name (str): Table in which to store the OSM data inside the DuckDB database.
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
@@ -707,6 +724,7 @@ def convert_osm_extract_to_duckdb(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -748,6 +766,7 @@ def convert_pbf_to_parquet(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
@@ -809,6 +828,10 @@ def convert_pbf_to_parquet(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
         osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -974,6 +997,7 @@ def convert_pbf_to_parquet(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -1015,6 +1039,7 @@ def convert_geometry_to_parquet(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
@@ -1081,6 +1106,10 @@ def convert_geometry_to_parquet(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
         osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -1208,6 +1237,7 @@ def convert_geometry_to_parquet(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -1252,6 +1282,7 @@ def convert_osm_extract_to_parquet(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     save_as_wkt: bool = False,
@@ -1316,6 +1347,10 @@ def convert_osm_extract_to_parquet(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
         osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -1401,6 +1436,7 @@ def convert_osm_extract_to_parquet(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -1442,6 +1478,7 @@ def convert_pbf_to_geodataframe(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1502,6 +1539,10 @@ def convert_pbf_to_geodataframe(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
         osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -1641,6 +1682,7 @@ def convert_pbf_to_geodataframe(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -1678,6 +1720,7 @@ def convert_geometry_to_geodataframe(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1740,6 +1783,10 @@ def convert_geometry_to_geodataframe(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
         osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -1824,6 +1871,7 @@ def convert_geometry_to_geodataframe(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
@@ -1864,6 +1912,7 @@ def convert_osm_extract_to_geodataframe(
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
     custom_sql_filter: Optional[str] = None,
+    filter_logical_operator: str = "OR",
     working_directory: Union[str, Path] = "files",
     osm_way_polygon_features_config: Optional[Union[OsmWayPolygonConfig, dict[str, Any]]] = None,
     verbosity_mode: VERBOSITY_MODE = "transient",
@@ -1924,6 +1973,10 @@ def convert_osm_extract_to_geodataframe(
         custom_sql_filter (str, optional): Allows users to pass custom SQL conditions used
             to filter OSM features. It will be embedded into predefined queries and requires
             DuckDB syntax to operate on tags map object. Defaults to None.
+        filter_logical_operator (str, optional): Logical operator used to join positive tag filter
+            conditions. Either "OR" (default) or "AND". With "OR", objects matching any
+            of the tag conditions are included. With "AND", objects must match all tag
+            conditions. Defaults to "OR".
         working_directory (Union[str, Path], optional): Directory where to save
             the parsed `*.parquet` files. Defaults to "files".
         osm_way_polygon_features_config (Union[OsmWayPolygonConfig, dict[str, Any]], optional):
@@ -1999,6 +2052,7 @@ def convert_osm_extract_to_geodataframe(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
         custom_sql_filter=custom_sql_filter,
+        filter_logical_operator=filter_logical_operator,
         working_directory=working_directory,
         osm_way_polygon_features_config=osm_way_polygon_features_config,
         compression=compression,
