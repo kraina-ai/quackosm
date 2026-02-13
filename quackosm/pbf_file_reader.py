@@ -33,7 +33,12 @@ from geoarrow.pyarrow import io
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
-from rq_geo_toolkit.duckdb import DUCKDB_ABOVE_130, sql_escape
+from rq_geo_toolkit.duckdb import (
+    DUCKDB_ABOVE_130,
+    DuckDBConnKwargs,
+    set_up_duckdb_connection,
+    sql_escape,
+)
 from rq_geo_toolkit.geoparquet_compression import (
     compress_parquet_with_duckdb,
     compress_query_with_duckdb,
@@ -176,6 +181,7 @@ class PbfFileReader:
         debug_memory: bool = False,
         debug_times: bool = False,
         cpu_limit: Optional[int] = None,
+        duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -235,6 +241,8 @@ class PbfFileReader:
                 step has been executed. Defaults to `False`.
             cpu_limit (int, optional): Max number of threads available for processing.
                 If `None`, will use all available threads. Defaults to `None`.
+            duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+                provision a duckdb connection. Defaults to None.
 
         Raises:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
@@ -277,6 +285,8 @@ class PbfFileReader:
         self.cpu_limit = (
             cpu_limit or duckdb.sql("SELECT current_setting('threads') AS threads").fetchone()[0]
         )
+
+        self.duckdb_conn_kwargs = duckdb_conn_kwargs
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
@@ -570,7 +580,9 @@ class PbfFileReader:
             try:
                 self.encountered_query_exception = False
                 self.connection = _set_up_duckdb_connection(
-                    tmp_dir_path=self.tmp_dir_path, threads_limit=self.cpu_limit
+                    tmp_dir_path=self.tmp_dir_path,
+                    threads_limit=self.cpu_limit,
+                    duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                 )
 
                 original_geometry_filter = self.geometry_filter
@@ -1010,7 +1022,9 @@ class PbfFileReader:
             return parsed_geoparquet_files
 
         connection = _set_up_duckdb_connection(
-            tmp_dir_path=tmp_dir_path, threads_limit=self.cpu_limit
+            tmp_dir_path=tmp_dir_path,
+            threads_limit=self.cpu_limit,
+            duckdb_conn_kwargs=self.duckdb_conn_kwargs,
         )
 
         with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
@@ -1033,6 +1047,7 @@ class PbfFileReader:
                     COMPRESSION '{self.internal_parquet_compression}'
                 )
             """
+            connection.close()
             if self.debug_memory:
                 log_message(f"Saved to directory: {output_file_name}")
             self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
@@ -1049,7 +1064,9 @@ class PbfFileReader:
         )
 
         connection = _set_up_duckdb_connection(
-            tmp_dir_path=tmp_dir_path, threads_limit=self.cpu_limit
+            tmp_dir_path=tmp_dir_path,
+            threads_limit=self.cpu_limit,
+            duckdb_conn_kwargs=self.duckdb_conn_kwargs,
         )
 
         result_parquet_files = [sorted_parsed_geoparquet_files[0]]
@@ -1078,6 +1095,8 @@ class PbfFileReader:
                     log_message(f"Saved to directory: {filtered_result_parquet_file}")
                 connection.sql(query)
                 result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
+
+        connection.close()
         return result_parquet_files
 
     def _parse_pbf_file(
@@ -1947,7 +1966,12 @@ class PbfFileReader:
     ) -> None:
         process = WorkerProcess(
             target=_run_query,
-            args=(sql_queries, tmp_dir_path or self.tmp_dir_path, self.cpu_limit),
+            kwargs=dict(
+                sql_queries=sql_queries,
+                tmp_dir_path=tmp_dir_path or self.tmp_dir_path,
+                threads_limit=self.cpu_limit,
+                duckdb_conn_kwargs=self.duckdb_conn_kwargs,
+            ),
         )
         process.start()
 
@@ -3207,6 +3231,7 @@ class PbfFileReader:
                         working_directory=self.tmp_dir_path,
                         threads_limit=self.cpu_limit,
                         progress_bar=bar,
+                        duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                     )
             else:
                 with self.task_progress_tracker.get_spinner("Compressing result file"):
@@ -3218,6 +3243,7 @@ class PbfFileReader:
                         row_group_size=self.row_group_size,
                         parquet_version=self.parquet_version,
                         working_directory=self.tmp_dir_path,
+                        duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                     )
 
     def _combine_parquet_files(
@@ -3240,6 +3266,7 @@ class PbfFileReader:
                 columns_to_drop=[],
                 merged_parquet_path=merged_parquet_path,
                 save_as_wkt=save_as_wkt,
+                duckdb_conn_kwargs=self.duckdb_conn_kwargs,
             )
 
         if sort_result:
@@ -3260,6 +3287,7 @@ class PbfFileReader:
                     working_directory=tmp_dir_path,
                     threads_limit=self.cpu_limit,
                     progress_bar=bar,
+                    duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                 )
         else:
             with self.task_progress_tracker.get_basic_spinner("Compressing result file"):
@@ -3271,6 +3299,7 @@ class PbfFileReader:
                     row_group_size=self.row_group_size,
                     parquet_version=self.parquet_version,
                     working_directory=tmp_dir_path,
+                    duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                 )
 
 
@@ -3281,9 +3310,13 @@ def _merge_parquet_dataset(
     columns_to_drop: list[str],
     merged_parquet_path: Path,
     save_as_wkt: bool,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> None:
     connection, db_file_path = _set_up_duckdb_connection(
-        tmp_dir_path, is_main_connection=False, threads_limit=cpu_limit
+        tmp_dir_path,
+        is_main_connection=False,
+        threads_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     )
     parquet_relation = connection.read_parquet(
         [str(_input_file) for _input_file in dataset.files],
@@ -3352,6 +3385,7 @@ def _set_up_duckdb_connection(
     is_main_connection: Literal[True] = True,
     preserve_insertion_order: bool = False,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> "duckdb.DuckDBPyConnection": ...
 
 
@@ -3361,6 +3395,7 @@ def _set_up_duckdb_connection(
     is_main_connection: Literal[False] = False,
     preserve_insertion_order: bool = False,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> tuple["duckdb.DuckDBPyConnection", "Path"]: ...
 
 
@@ -3369,21 +3404,26 @@ def _set_up_duckdb_connection(
     is_main_connection: bool = True,
     preserve_insertion_order: bool = False,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Union["duckdb.DuckDBPyConnection", tuple["duckdb.DuckDBPyConnection", "Path"]]:
-    local_db_file = "db.duckdb" if is_main_connection else f"{secrets.token_hex(16)}.duckdb"
-    local_db_path = tmp_dir_path / local_db_file
-    connection = duckdb.connect(
-        database=str(local_db_path),
-        config=dict(preserve_insertion_order=preserve_insertion_order),
-    )
-    connection.sql("SET enable_progress_bar = false;")
-    connection.sql("SET enable_progress_bar_print = false;")
-
+    duckdb_conn_kwargs = duckdb_conn_kwargs or {}
+    duckdb_conn_kwargs["randomize_db_file_name"] = not is_main_connection
+    duckdb_conn_kwargs["provisioning_queries"] = [
+        *duckdb_conn_kwargs.get("provisioning_queries", []),
+        "SET enable_progress_bar = false;",
+        "SET enable_progress_bar_print = false;",
+    ]
     if threads_limit:
-        connection.sql(f"SET threads = {threads_limit};")
+        duckdb_conn_kwargs["provisioning_queries"].append(f"SET threads = {threads_limit};")
 
-    connection.install_extension("spatial")
-    connection.load_extension("spatial")
+    duckdb_conn_kwargs["official_extensions_to_load"] = list(
+        set([*duckdb_conn_kwargs.get("official_extensions_to_load", []), "spatial"])
+    )
+    connection = set_up_duckdb_connection(
+        tmp_dir_path=tmp_dir_path,
+        preserve_insertion_order=preserve_insertion_order,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
+    )
 
     connection.sql(
         """
@@ -3391,28 +3431,36 @@ def _set_up_duckdb_connection(
         ST_RemoveRepeatedPoints(
             ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
         )::GEOMETRY;
-    """
+        """
     )
     connection.sql(
         """
         CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
         ST_MakePolygon(linestring_to_linestring_geometry(ls));
-    """
+        """
     )
 
     if not is_main_connection:
+        db_file_name = connection.sql("SHOW DATABASES;").fetchone()[0]
+        local_db_path = tmp_dir_path / f"{db_file_name}.duckdb"
         return connection, local_db_path
 
     return connection
 
 
 def _run_query(
-    sql_queries: Union[str, list[str]], tmp_dir_path: Path, threads_limit: Optional[int] = None
+    sql_queries: Union[str, list[str]],
+    tmp_dir_path: Path,
+    threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> None:
     if isinstance(sql_queries, str):
         sql_queries = [sql_queries]
     conn, db_file_path = _set_up_duckdb_connection(
-        tmp_dir_path=tmp_dir_path, is_main_connection=False, threads_limit=threads_limit
+        tmp_dir_path=tmp_dir_path,
+        is_main_connection=False,
+        threads_limit=threads_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     )
     for sql_query in sql_queries:
         conn.sql(sql_query)
@@ -3494,6 +3542,7 @@ def _sort_geoparquet_file_by_geometry(
     working_directory: Path,
     threads_limit: Optional[int],
     progress_bar: TaskProgressBar,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs],
 ) -> Path:
     total_rows = pq.read_metadata(input_file_path).num_rows
     progress_bar.create_manual_bar(total_rows)
@@ -3521,6 +3570,7 @@ def _sort_geoparquet_file_by_geometry(
             value_columns=value_columns,
             working_directory=working_directory,
             threads_limit=threads_limit,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
         input_file_path.unlink(missing_ok=True)
@@ -3537,6 +3587,7 @@ def _sort_geoparquet_file_by_geometry(
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
             progress_callback=progress_bar.update_manual_bar,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
         _decompress_value_columns(
@@ -3549,6 +3600,7 @@ def _sort_geoparquet_file_by_geometry(
             row_group_size=row_group_size,
             parquet_version=parquet_version,
             verbosity_mode=verbosity_mode,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
         sorted_parquet_path.unlink(missing_ok=True)
@@ -3564,6 +3616,8 @@ def _sort_geoparquet_file_by_geometry(
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
+            progress_callback=progress_bar.update_manual_bar,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
     progress_bar.update_manual_bar(total_rows)
@@ -3577,8 +3631,11 @@ def _compress_value_columns(
     value_columns: list[str],
     working_directory: Path,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> None:
-    connection = _set_up_duckdb_connection(working_directory, threads_limit=threads_limit)
+    connection = _set_up_duckdb_connection(
+        working_directory, threads_limit=threads_limit, duckdb_conn_kwargs=duckdb_conn_kwargs
+    )
 
     index_case_clauses = ", ".join(
         f'CASE WHEN "{column}" IS NOT NULL THEN {column_idx} ELSE NULL END'
@@ -3608,6 +3665,8 @@ def _compress_value_columns(
 
     relation.to_parquet(str(output_file))
 
+    connection.close()
+
 
 def _decompress_value_columns(
     input_file: Path,
@@ -3619,6 +3678,7 @@ def _decompress_value_columns(
     row_group_size: int,
     parquet_version: str,
     verbosity_mode: str,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs],
 ) -> None:
     select_clauses = ", ".join(
         f"""
@@ -3647,4 +3707,5 @@ def _decompress_value_columns(
         parquet_version=parquet_version,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     )

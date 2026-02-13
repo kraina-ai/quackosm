@@ -65,7 +65,7 @@ conda install conda-forge::quackosm
 
 ### Required Python version?
 
-QuackOSM supports **Python >= 3.9**
+QuackOSM supports **Python >= 3.10**
 
 ### Dependencies
 

@@ -2,6 +2,7 @@
 
 import json
 import random
+import tempfile
 import warnings
 from functools import partial
 from itertools import permutations
@@ -663,6 +664,35 @@ def test_metadata_tags_ignoring(ignore_metadata_tags: bool) -> None:
         assert all(tag not in all_tags for tag in METADATA_TAGS_TO_IGNORE)
     else:
         assert any(tag in all_tags for tag in METADATA_TAGS_TO_IGNORE)
+
+
+def test_duckdb_conn_kwargs_config() -> None:
+    """Test if duckdb connection config can be modified."""
+    # extension_directory
+    with tempfile.TemporaryDirectory(
+        dir=Path(__file__).parent.resolve(), ignore_cleanup_errors=True
+    ) as tmp_dir_name:
+        print(tmp_dir_name)
+        pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+        reader = PbfFileReader(
+            duckdb_conn_kwargs={
+                "config_kwargs": {"extension_directory": tmp_dir_name},
+                "community_extensions_to_load": ["h3"],
+            }
+        )
+        reader.convert_pbf_to_parquet(
+            pbf_path=pbf_file,
+            ignore_cache=True,
+            keep_all_tags=True,
+            sort_result=False,
+        )
+
+        assert reader.connection is None
+
+        generated_files_names = [f.name for f in Path(tmp_dir_name).glob("**/*") if f.is_file()]
+        print(generated_files_names)
+        assert "spatial.duckdb_extension" in generated_files_names
+        assert "h3.duckdb_extension" in generated_files_names
 
 
 def check_if_relation_in_osm_is_valid_based_on_tags(pbf_file: str, relation_id: str) -> bool:
