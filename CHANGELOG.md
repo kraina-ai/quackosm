@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-02-13
+
 ### Added
 
 - Option to pass additional parameters to the DuckDB connection config [#290](https://github.com/kraina-ai/quackosm/issues/290)
@@ -579,7 +581,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.5...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.17.0...HEAD
+
+[0.17.0]: https://github.com/kraina-ai/quackosm/compare/0.16.5...0.17.0
 
 [0.16.5]: https://github.com/kraina-ai/quackosm/compare/0.16.4...0.16.5
 
