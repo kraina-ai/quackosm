@@ -961,9 +961,11 @@ def test_gdal_parity(extract_name: str) -> None:
 
     # Check tags
     joined_df["tags_keys_difference"] = joined_df.apply(
-        lambda x: set(x.duckdb_tags.keys())
-        .symmetric_difference(x.source_tags.keys())
-        .difference(["area"]),
+        lambda x: (
+            set(x.duckdb_tags.keys())
+            .symmetric_difference(x.source_tags.keys())
+            .difference(["area"])
+        ),
         axis=1,
     )
 
@@ -979,9 +981,11 @@ def test_gdal_parity(extract_name: str) -> None:
         joined_df.loc[mismatched_rows, "tags_keys_difference"] = joined_df.loc[
             mismatched_rows
         ].apply(
-            lambda x: set(x.duckdb_tags.keys())
-            .symmetric_difference(x.source_tags.keys())
-            .difference(["area"]),
+            lambda x: (
+                set(x.duckdb_tags.keys())
+                .symmetric_difference(x.source_tags.keys())
+                .difference(["area"])
+            ),
             axis=1,
         )
 
@@ -1138,8 +1142,10 @@ def test_gdal_parity(extract_name: str) -> None:
         invalid_geometries_df["geometry_close_hausdorff_distance"],
         "is_duckdb_geometry_the_same_type_but_different_number_of_points",
     ] = invalid_geometries_df.loc[invalid_geometries_df["geometry_close_hausdorff_distance"]].apply(
-        lambda x: x.duckdb_geometry_type == x.gdal_geometry_type
-        and x.duckdb_geometry_num_points != x.gdal_geometry_num_points,
+        lambda x: (
+            x.duckdb_geometry_type == x.gdal_geometry_type
+            and x.duckdb_geometry_num_points != x.gdal_geometry_num_points
+        ),
         axis=1,
     )
     invalid_geometries_df = invalid_geometries_df.loc[
@@ -1156,12 +1162,14 @@ def test_gdal_parity(extract_name: str) -> None:
         invalid_geometries_df["geometry_close_hausdorff_distance"],
         "is_duckdb_polygon_and_gdal_linestring",
     ] = invalid_geometries_df.loc[invalid_geometries_df["geometry_close_hausdorff_distance"]].apply(
-        lambda x: x.duckdb_geometry_type
-        in (
-            "Polygon",
-            "MultiPolygon",
-        )
-        and x.gdal_geometry_type in ("LineString", "MultiLineString"),
+        lambda x: (
+            x.duckdb_geometry_type
+            in (
+                "Polygon",
+                "MultiPolygon",
+            )
+            and x.gdal_geometry_type in ("LineString", "MultiLineString")
+        ),
         axis=1,
     )
 
@@ -1205,12 +1213,14 @@ def test_gdal_parity(extract_name: str) -> None:
         invalid_geometries_df["geometry_close_hausdorff_distance"],
         "is_duckdb_linestring_and_gdal_polygon",
     ] = invalid_geometries_df.loc[invalid_geometries_df["geometry_close_hausdorff_distance"]].apply(
-        lambda x: x.duckdb_geometry_type
-        in (
-            "LineString",
-            "MultiLineString",
-        )
-        and x.gdal_geometry_type in ("Polygon", "MultiPolygon"),
+        lambda x: (
+            x.duckdb_geometry_type
+            in (
+                "LineString",
+                "MultiLineString",
+            )
+            and x.gdal_geometry_type in ("Polygon", "MultiPolygon")
+        ),
         axis=1,
     )
 
