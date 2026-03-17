@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed blob to geometry casting for newer DuckDB versions (above 1.3.0)
+
 ## [0.17.0] - 2026-02-13
 
 ### Added
