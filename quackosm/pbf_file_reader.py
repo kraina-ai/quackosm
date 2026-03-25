@@ -2828,14 +2828,7 @@ class PbfFileReader:
         if is_empty:
             relation.to_parquet(str(file_path / "empty.parquet"))
 
-        if DUCKDB_ABOVE_130:
-            return self.connection.sql(
-                f"""
-                SELECT *
-                FROM read_parquet('{file_path}/**/*.parquet')
-                """
-            )
-        else:
+        if not DUCKDB_ABOVE_130:
             return self.connection.sql(
                 f"""
                 SELECT * EXCLUDE(geometry),
@@ -2846,6 +2839,13 @@ class PbfFileReader:
                 FROM read_parquet('{file_path}/**/*.parquet')
                 """
             )
+
+        return self.connection.sql(
+            f"""
+            SELECT *
+            FROM read_parquet('{file_path}/**/*.parquet')
+            """
+        )
 
     def _concatenate_results_to_geoparquet(
         self,
