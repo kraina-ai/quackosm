@@ -2828,21 +2828,13 @@ class PbfFileReader:
         if is_empty:
             relation.to_parquet(str(file_path / "empty.parquet"))
 
-        if not DUCKDB_ABOVE_130:
-            return self.connection.sql(
-                f"""
-                SELECT * EXCLUDE(geometry),
-                CASE WHEN typeof(geometry) = 'GEOMETRY'
-                THEN geometry::GEOMETRY
-                ELSE ST_GeomFromWKB(geometry::BLOB)
-                END AS geometry
-                FROM read_parquet('{file_path}/**/*.parquet')
-                """
-            )
-
         return self.connection.sql(
             f"""
-            SELECT *
+            SELECT * EXCLUDE(geometry),
+            CASE WHEN typeof(geometry) = 'GEOMETRY'
+            THEN geometry::GEOMETRY
+            ELSE ST_GeomFromWKB(geometry::BLOB)
+            END AS geometry
             FROM read_parquet('{file_path}/**/*.parquet')
             """
         )
