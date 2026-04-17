@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-04-17
+
 ### Changed
 
 - Removed blob to geometry casting for newer DuckDB versions (above 1.3.0)
@@ -585,7 +587,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.17.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.17.1...HEAD
+
+[0.17.1]: https://github.com/kraina-ai/quackosm/compare/0.17.0...0.17.1
 
 [0.17.0]: https://github.com/kraina-ai/quackosm/compare/0.16.5...0.17.0
 
