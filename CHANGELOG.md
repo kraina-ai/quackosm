@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-04-17
+
+### Changed
+
+- Removed blob to geometry casting for newer DuckDB versions (above 1.3.0)
+
+## [0.17.0] - 2026-02-13
+
+### Added
+
+- Option to pass additional parameters to the DuckDB connection config [#290](https://github.com/kraina-ai/quackosm/issues/290)
+
+### Removed
+
+- Support for Python version 3.9
+
+## [0.16.5] - 2026-01-27
+
+### Fixed
+
+- Changed `deprecate` logic after Pandas 3.0 release [#287](https://github.com/kraina-ai/quackosm/issues/287)
+
 ## [0.16.4] - 2025-11-25
 
 ### Added
@@ -565,7 +587,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.4...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.17.1...HEAD
+
+[0.17.1]: https://github.com/kraina-ai/quackosm/compare/0.17.0...0.17.1
+
+[0.17.0]: https://github.com/kraina-ai/quackosm/compare/0.16.5...0.17.0
+
+[0.16.5]: https://github.com/kraina-ai/quackosm/compare/0.16.4...0.16.5
 
 [0.16.4]: https://github.com/kraina-ai/quackosm/compare/0.16.3...0.16.4
 

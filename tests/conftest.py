@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
+import pytest
 from pytest import Item
 
 
@@ -22,6 +23,16 @@ def copy_geocode_cache() -> None:
 def pytest_runtest_setup(item: Item) -> None:
     """Setup python encoding before `pytest_runtest_call(item)`."""
     os.environ["PYTHONIOENCODING"] = "utf-8"
+
+
+@pytest.fixture(autouse=True, scope="session")
+def remove_monaco_db_file():  # type: ignore
+    """Remove old DuckDB file with tests results."""
+    file_to_find = Path("files/monaco_nofilter_noclip_compact_sorted.duckdb")
+    print(file_to_find, file_to_find.exists())
+    if file_to_find.exists():
+        file_to_find.unlink()
+    print(file_to_find, file_to_find.exists())
 
 
 copy_geocode_cache()

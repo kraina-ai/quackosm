@@ -965,7 +965,6 @@ def main(
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
                 duckdb_table_name=duckdb_table_name or "quackosm",
-                save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
                 cpu_limit=cpu_limit,
             )
