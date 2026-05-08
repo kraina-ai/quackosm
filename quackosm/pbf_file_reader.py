@@ -1164,83 +1164,81 @@ class PbfFileReader:
             self.merged_tags_filter = merge_osm_tags_filter(self.expanded_tags_filter)
 
         converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
-        # converted_osm_parquet_files = self._prefilter_elements_ids_old(elements, filter_osm_ids)
-        # converted_osm_parquet_files = self._prefilter_elements_ids_new_v2(elements, filter_osm_ids)
 
-        # filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
-        #     converted_osm_parquet_files
-        # )
-        # self._delete_directories(["nodes_tags_and_points_filtered_valid"])
+        filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
+            converted_osm_parquet_files
+        )
+        self._delete_directories(["nodes_tags_and_points_filtered_valid"])
 
-        # filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
-        #     osm_parquet_files=converted_osm_parquet_files
-        # )
-        # required_ways_with_linestrings = self._get_required_ways_with_linestrings(
-        #     osm_parquet_files=converted_osm_parquet_files
-        # )
+        filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
+            osm_parquet_files=converted_osm_parquet_files
+        )
+        required_ways_with_linestrings = self._get_required_ways_with_linestrings(
+            osm_parquet_files=converted_osm_parquet_files
+        )
 
-        # self._delete_directories(
-        #     [
-        #         "nodes_points_required_valid",
-        #         "ways_required_grouped",
-        #         "ways_ids_required_valid",
-        #         "ways_ids_filtered_valid",
-        #         "ways_unnested_filtered_required_valid",
-        #         "required_ways_ids_grouped",
-        #         "required_ways_grouped",
-        #         "required_ways_tmp",
-        #         "filtered_ways_ids_grouped",
-        #         "filtered_ways_grouped",
-        #         "filtered_ways_tmp",
-        #     ],
-        # )
+        self._delete_directories(
+            [
+                "nodes_points_required_valid",
+                "ways_required_grouped",
+                "ways_ids_required_valid",
+                "ways_ids_filtered_valid",
+                "ways_unnested_filtered_required_valid",
+                "required_ways_ids_grouped",
+                "required_ways_grouped",
+                "required_ways_tmp",
+                "filtered_ways_ids_grouped",
+                "filtered_ways_grouped",
+                "filtered_ways_tmp",
+            ],
+        )
 
-        # filtered_ways_with_proper_geometry_path = self._get_filtered_ways_with_proper_geometry(
-        #     converted_osm_parquet_files, filtered_ways_with_linestrings
-        # )
-        # self._delete_directories(
-        #     [
-        #         "ways_prepared_ids",
-        #         "ways_tags_filtered_valid",
-        #         "filtered_ways_with_linestrings",
-        #     ],
-        # )
+        filtered_ways_with_proper_geometry_path = self._get_filtered_ways_with_proper_geometry(
+            converted_osm_parquet_files, filtered_ways_with_linestrings
+        )
+        self._delete_directories(
+            [
+                "ways_prepared_ids",
+                "ways_tags_filtered_valid",
+                "filtered_ways_with_linestrings",
+            ],
+        )
 
-        # filtered_relations_with_geometry_path = self._get_filtered_relations_with_geometry(
-        #     converted_osm_parquet_files, required_ways_with_linestrings
-        # )
-        # self._delete_directories(
-        #     [
-        #         "relations_tags_filtered_valid",
-        #         "relations_unnested_filtered_valid",
-        #         "required_ways_with_linestrings",
-        #         "valid_relation_parts",
-        #         "valid_relations_tmp",
-        #         "relation_inner_parts",
-        #         "relation_outer_parts",
-        #         "relation_outer_parts_with_holes",
-        #         "relation_outer_parts_without_holes",
-        #     ],
-        # )
+        filtered_relations_with_geometry_path = self._get_filtered_relations_with_geometry(
+            converted_osm_parquet_files, required_ways_with_linestrings
+        )
+        self._delete_directories(
+            [
+                "relations_tags_filtered_valid",
+                "relations_unnested_filtered_valid",
+                "required_ways_with_linestrings",
+                "valid_relation_parts",
+                "valid_relations_tmp",
+                "relation_inner_parts",
+                "relation_outer_parts",
+                "relation_outer_parts_with_holes",
+                "relation_outer_parts_without_holes",
+            ],
+        )
 
-        # parsed_geometries = self.connection.sql(
-        #     f"""
-        #     SELECT * FROM read_parquet([
-        #         '{filtered_nodes_with_geometry_path}/**/*.parquet',
-        #         '{filtered_ways_with_proper_geometry_path}/**/*.parquet',
-        #         '{filtered_relations_with_geometry_path}/**/*.parquet'
-        #     ], union_by_name=True);
-        #     """
-        # )
+        parsed_geometries = self.connection.sql(
+            f"""
+            SELECT * FROM read_parquet([
+                '{filtered_nodes_with_geometry_path}/**/*.parquet',
+                '{filtered_ways_with_proper_geometry_path}/**/*.parquet',
+                '{filtered_relations_with_geometry_path}/**/*.parquet'
+            ], union_by_name=True);
+            """
+        )
 
-        # self._concatenate_results_to_geoparquet(
-        #     parsed_geometries=parsed_geometries,
-        #     save_file_path=result_file_path,
-        #     keep_all_tags=keep_all_tags,
-        #     explode_tags=explode_tags,
-        #     save_as_wkt=save_as_wkt,
-        #     sort_result=sort_result,
-        # )
+        self._concatenate_results_to_geoparquet(
+            parsed_geometries=parsed_geometries,
+            save_file_path=result_file_path,
+            keep_all_tags=keep_all_tags,
+            explode_tags=explode_tags,
+            save_as_wkt=save_as_wkt,
+            sort_result=sort_result,
+        )
 
         return result_file_path
 
@@ -1477,465 +1475,6 @@ class PbfFileReader:
         value_with_percent = value_with_star.replace("*", "%")
         return cast("str", sql_escape(value_with_percent))
 
-    def _prefilter_elements_ids_new_v2(
-        self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
-    ) -> ConvertedOSMParquetFiles:
-        tags_sql_filter = self._generate_osm_tags_sql_filter()
-        filtered_tags_clause = (
-            self._generate_filtered_tags_clause() if self.ignore_metadata_tags else "tags"
-        )
-        custom_sql_filter = self.custom_sql_filter or "1=1"
-
-        is_intersecting = self.geometry_filter is not None
-        is_filtering = (
-            tags_sql_filter != "(1=1)" or custom_sql_filter != "1=1" or len(filter_osm_ids) > 0
-        )
-
-        # no filter
-        with self.task_progress_tracker.get_spinner("Reading valid nodes"):
-            # NODES - VALID (NV)
-            # - select all with kind = 'node'
-            # - select all with lat and lon not empty
-            v_nodes_all = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT
-                    id,
-                    lon,
-                    lat
-                FROM ({elements.sql_query()})
-                WHERE kind = 'node'
-                AND lat IS NOT NULL AND lon IS NOT NULL
-                """,
-                file_path=self.tmp_dir_path / "v_nodes_all",
-            )
-
-        with self.task_progress_tracker.get_spinner("Reading valid ways"):
-            # NODES - VALID (NV)
-            # - select all with kind = 'node'
-            # - select all with lat and lon not empty
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()}) w
-                WHERE kind = 'way' AND len(refs) >= 2
-                """
-            ).to_view("ways", replace=True)
-
-            v_ways_all = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH unnested_ways as (
-                    SELECT id, unnest(refs) as ref
-                    FROM ways
-                    WHERE kind = 'way'
-                ),
-                unmatched_element_refs AS (
-                    SELECT id
-                    FROM unnested_ways e
-                    ANTI JOIN ({v_nodes_all.sql_query()}) sev
-                    ON sev.id = e.ref
-                )
-                SELECT id FROM unnested_ways
-                EXCEPT
-                SELECT id FROM unmatched_element_refs
-                """,
-                file_path=self.tmp_dir_path / "v_ways_all",
-            )
-
-            # v_ways_all = self._sql_to_parquet_file(
-            #     sql_query=f"""
-            #     WITH unnested_ways as (
-            #         SELECT id, unnest(refs) as ref
-            #         FROM ways
-            #         WHERE kind = 'way'
-            #     ),
-            #     unmatched_element_refs AS (
-            #         SELECT id
-            #         FROM unnested_ways e
-            #         ANTI JOIN ({v_nodes_all.sql_query()}) sev
-            #         ON sev.id = e.ref
-            #     )
-            #     SELECT id
-            #     FROM unnested_ways
-            #     ANTI JOIN unmatched_element_refs USING (id)
-            #     """,
-            #     file_path=self.tmp_dir_path / "v_ways_all",
-            # )
-
-            # v_ways_all = self._sql_to_parquet_file(
-            #     sql_query=f"""
-            #     WITH unnested_ways as (
-            #         SELECT id, unnest(refs) as ref
-            #         FROM ways
-            #         WHERE kind = 'way'
-            #     )
-            #     SELECT w.id
-            #     FROM unnested_ways w
-            #     LEFT JOIN ({v_nodes_all.sql_query()}) n
-            #     ON w.ref = n.id
-            #     GROUP BY w.id
-            #     HAVING count(w.ref) = count(n.id);
-            #     """,
-            #     file_path=self.tmp_dir_path / "v_ways_all",
-            # )
-
-        with self.task_progress_tracker.get_spinner("Reading valid relations"):
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()})
-                WHERE kind = 'relation' AND len(refs) > 0
-                AND list_contains(map_keys(tags), 'type')
-                AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
-                """
-            ).to_view("relations", replace=True)
-
-            v_relations_all = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH unnested_relations as (
-                    SELECT id, UNNEST(refs) as ref, UNNEST(ref_types) as type
-                    FROM relations
-                )
-                SELECT r.id
-                FROM unnested_relations r
-                LEFT JOIN ({v_ways_all.sql_query()}) vw
-                ON r.ref = vw.id
-                WHERE r.type = 'way'
-                GROUP BY r.id
-                HAVING count(r.ref) = count(vw.id);
-                """,
-                file_path=self.tmp_dir_path / "v_relations_all",
-            )
-
-    #         CREATE OR REPLACE TEMP VIEW v_relations_valid_topology AS
-    # SELECT r.id
-    # FROM (
-    #     SELECT id, UNNEST(refs) as ref, UNNEST(ref_types) as type
-    #     FROM ST_ReadOSM('{pbf_path}') WHERE kind = 'relation'
-    # ) r
-    # LEFT JOIN v_ways_valid_topology vwt ON r.ref = vwt.id AND r.type = 'way'
-    # GROUP BY r.id
-    # HAVING count(CASE WHEN type = 'way' THEN ref END) = count(vwt.id);
-
-    # filter
-
-    # if not is_intersecting and not is_filtering:
-    #     print("no filter")
-    #     return self._prepare_osm_elements_without_filtering(
-    #         elements=elements, filtered_tags_clause=filtered_tags_clause
-    #     )
-
-    def _prefilter_elements_ids_old(
-        self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
-    ) -> ConvertedOSMParquetFiles:
-        sql_filter = self._generate_osm_tags_sql_filter()
-        filtered_tags_clause = (
-            self._generate_filtered_tags_clause() if self.ignore_metadata_tags else "tags"
-        )
-        custom_sql_filter = self.custom_sql_filter or "1=1"
-
-        is_intersecting = self.geometry_filter is not None
-
-        with self.task_progress_tracker.get_spinner("Reading nodes"):
-            # NODES - VALID (NV)
-            # - select all with kind = 'node'
-            # - select all with lat and lon not empty
-            nodes_valid_with_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT
-                    id,
-                    {filtered_tags_clause},
-                    lon,
-                    lat
-                FROM ({elements.sql_query()})
-                WHERE kind = 'node'
-                AND lat IS NOT NULL AND lon IS NOT NULL
-                """,
-                file_path=self.tmp_dir_path / "nodes_valid_with_tags",
-            )
-        # NODES - INTERSECTING (NI)
-        # - select all from NV which intersect given geometry filter
-        # NODES - FILTERED (NF)
-        # - select all from NI with tags filter
-        filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
-        if is_intersecting:
-            with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
-                intersect_nodes_with_geometry(
-                    nodes_path=self.tmp_dir_path / "nodes_valid_with_tags",
-                    result_path=self.tmp_dir_path / "nodes_intersecting_ids",
-                    geometry_filter=self.geometry_filter,
-                    progress_bar=bar,
-                )
-
-                nodes_intersecting_ids = self.connection.read_parquet(
-                    str(self.tmp_dir_path / "nodes_intersecting_ids" / "*.parquet")
-                )
-
-            with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    SEMI JOIN ({nodes_intersecting_ids.sql_query()}) ni ON n.id = ni.id
-                    WHERE tags IS NOT NULL
-                    AND cardinality(tags) > 0
-                    AND ({sql_filter})
-                    AND ({filter_osm_node_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-                )
-        else:
-            with self.task_progress_tracker.get_spinner("Filtering nodes - intersection"):
-                pass
-            with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
-                nodes_intersecting_ids = nodes_valid_with_tags
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    WHERE tags IS NOT NULL
-                    AND cardinality(tags) > 0
-                    AND ({sql_filter})
-                    AND ({filter_osm_node_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-                )
-        with self.task_progress_tracker.get_spinner("Calculating distinct filtered nodes ids"):
-            nodes_filtered_ids = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-                self.tmp_dir_path / "nodes_filtered_ids",
-            )
-
-        with self.task_progress_tracker.get_spinner("Reading ways"):
-            # WAYS - VALID (WV)
-            # - select all with kind = 'way'
-            # - select all with more then one ref
-            # - join all NV to refs
-            # - select all where all refs has been joined (total_refs == found_refs)
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()}) w
-                WHERE kind = 'way' AND len(refs) >= 2
-                """
-            ).to_view("ways", replace=True)
-            ways_all_with_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}, tags as raw_tags
-                    FROM ways w
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
-                SELECT id, tags, raw_tags
-                FROM filtered_tags
-                WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                """,
-                file_path=self.tmp_dir_path / "ways_all_with_tags",
-            )
-        with self.task_progress_tracker.get_spinner("Unnesting ways"):
-            ways_with_unnested_nodes_refs = self._sql_to_parquet_file(
-                sql_query="""
-                SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
-                FROM ways w
-                """,
-                file_path=self.tmp_dir_path / "ways_with_unnested_nodes_refs",
-            )
-        with self.task_progress_tracker.get_spinner("Filtering ways - valid refs"):
-            ways_valid_ids = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH total_ways_with_nodes_refs AS (
-                    SELECT id
-                    FROM ({ways_with_unnested_nodes_refs.sql_query()})
-                ),
-                unmatched_ways_with_nodes_refs AS (
-                    SELECT id
-                    FROM ({ways_with_unnested_nodes_refs.sql_query()}) w
-                    ANTI JOIN ({nodes_valid_with_tags.sql_query()}) nv ON nv.id = w.ref
-                )
-                SELECT DISTINCT id
-                FROM total_ways_with_nodes_refs
-                ANTI JOIN unmatched_ways_with_nodes_refs USING (id)
-                """,
-                file_path=self.tmp_dir_path / "ways_valid_ids",
-            )
-
-        with self.task_progress_tracker.get_spinner("Filtering ways - intersection"):
-            # WAYS - INTERSECTING (WI)
-            # - select all from WV with joining any from NV on ref
-            if is_intersecting:
-                ways_intersecting_ids = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT DISTINCT uwr.id
-                    FROM ({ways_with_unnested_nodes_refs.sql_query()}) uwr
-                    SEMI JOIN ({ways_valid_ids.sql_query()}) wv ON uwr.id = wv.id
-                    SEMI JOIN ({nodes_intersecting_ids.sql_query()}) n ON n.id = uwr.ref
-                    """,
-                    file_path=self.tmp_dir_path / "ways_intersecting_ids",
-                )
-            else:
-                ways_intersecting_ids = ways_valid_ids
-        with self.task_progress_tracker.get_spinner("Filtering ways - tags"):
-            # WAYS - FILTERED (WF)
-            # - select all from WI with tags filter
-            filter_osm_way_ids_filter = self._generate_elements_filter(filter_osm_ids, "way")
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT id FROM ({ways_all_with_tags.sql_query()}) w
-                SEMI JOIN ({ways_intersecting_ids.sql_query()}) wi ON w.id = wi.id
-                WHERE ({sql_filter})
-                AND ({filter_osm_way_ids_filter})
-                AND ({custom_sql_filter})
-                """,
-                file_path=self.tmp_dir_path / "ways_filtered_non_distinct_ids",
-            )
-
-        with self.task_progress_tracker.get_spinner("Calculating distinct filtered ways ids"):
-            ways_filtered_ids = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "ways_filtered_non_distinct_ids",
-                self.tmp_dir_path / "ways_filtered_ids",
-            )
-
-        with self.task_progress_tracker.get_spinner("Reading relations"):
-            # RELATIONS - VALID (RV)
-            # - select all with kind = 'relation'
-            # - select all with more then one ref
-            # - select all with type in ['boundary', 'multipolygon']
-            # - join all WV to refs
-            # - select all where all refs has been joined (total_refs == found_refs)
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()})
-                WHERE kind = 'relation' AND len(refs) > 0
-                AND list_contains(map_keys(tags), 'type')
-                AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
-                """
-            ).to_view("relations", replace=True)
-            relations_all_with_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}
-                    FROM relations r
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
-                SELECT id, tags
-                FROM filtered_tags
-                WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                """,
-                file_path=self.tmp_dir_path / "relations_all_with_tags",
-            )
-
-        with self.task_progress_tracker.get_spinner("Unnesting relations"):
-            relations_with_unnested_way_refs = self._sql_to_parquet_file(
-                sql_query="""
-                WITH unnested_relation_refs AS (
-                    SELECT
-                        r.id,
-                        UNNEST(refs) as ref,
-                        UNNEST(ref_types) as ref_type,
-                        UNNEST(ref_roles) as ref_role,
-                        UNNEST(range(length(refs))) as ref_idx
-                    FROM relations r
-                )
-                SELECT id, ref, ref_role, ref_idx
-                FROM unnested_relation_refs
-                WHERE ref_type = 'way'
-                """,
-                file_path=self.tmp_dir_path / "relations_with_unnested_way_refs",
-            )
-
-        with self.task_progress_tracker.get_spinner("Filtering relations - valid refs"):
-            relations_valid_ids = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH total_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_with_unnested_way_refs.sql_query()}) frr
-                ),
-                unmatched_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_with_unnested_way_refs.sql_query()}) r
-                    ANTI JOIN ({ways_valid_ids.sql_query()}) wv ON wv.id = r.ref
-                )
-                SELECT DISTINCT id
-                FROM total_relation_refs
-                ANTI JOIN unmatched_relation_refs USING (id)
-                """,
-                file_path=self.tmp_dir_path / "relations_valid_ids",
-            )
-
-        with self.task_progress_tracker.get_spinner("Filtering relations - intersection"):
-            # RELATIONS - INTERSECTING (RI)
-            # - select all from RW with joining any from RV on ref
-            if is_intersecting:
-                relations_intersecting_ids = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT frr.id
-                    FROM ({relations_with_unnested_way_refs.sql_query()}) frr
-                    SEMI JOIN ({relations_valid_ids.sql_query()}) rv ON frr.id = rv.id
-                    SEMI JOIN ({ways_intersecting_ids.sql_query()}) wi ON wi.id = frr.ref
-                    """,
-                    file_path=self.tmp_dir_path / "relations_intersecting_ids",
-                )
-            else:
-                relations_intersecting_ids = relations_valid_ids
-
-        with self.task_progress_tracker.get_spinner("Filtering relations - tags"):
-            # RELATIONS - FILTERED (RF)
-            # - select all from RI with tags filter
-            filter_osm_relation_ids_filter = self._generate_elements_filter(
-                filter_osm_ids, "relation"
-            )
-
-            relations_ids_path = self.tmp_dir_path / "relations_ids"
-            relations_ids_path.mkdir(parents=True, exist_ok=True)
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT id FROM ({relations_all_with_tags.sql_query()}) r
-                SEMI JOIN ({relations_intersecting_ids.sql_query()}) ri ON r.id = ri.id
-                WHERE ({sql_filter})
-                AND ({filter_osm_relation_ids_filter})
-                AND ({custom_sql_filter})
-                """,
-                file_path=relations_ids_path / "filtered",
-            )
-
-        with self.task_progress_tracker.get_spinner("Calculating distinct filtered relations ids"):
-            relations_filtered_ids = self._calculate_unique_ids_to_parquet(
-                relations_ids_path / "filtered", self.tmp_dir_path / "relations_filtered_ids"
-            )
-
-        ways_prepared_ids_path = self.tmp_dir_path / "ways_prepared_ids"
-        ways_prepared_ids_path.mkdir(parents=True, exist_ok=True)
-
-        with self.task_progress_tracker.get_spinner("Loading required ways - by relations"):
-            # WAYS - REQUIRED (WR)
-            # - required - all IDs from WF
-            #   + all needed to construct relations from RF
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT ref as id
-                FROM ({relations_with_unnested_way_refs.sql_query()}) frr
-                SEMI JOIN ({relations_filtered_ids.sql_query()}) fri ON fri.id = frr.id
-                """,
-                file_path=ways_prepared_ids_path / "required_by_relations",
-            )
-
-        with self.task_progress_tracker.get_spinner("Calculating distinct required ways ids"):
-            ways_required_ids = self._calculate_unique_ids_to_parquet(
-                ways_prepared_ids_path, self.tmp_dir_path / "ways_required_ids"
-            )
-
-        # return PbfFileReader.ConvertedOSMParquetFiles(
-        #     nodes_valid_with_tags=nodes_valid_with_tags,
-        #     nodes_filtered_ids=nodes_filtered_ids,
-        #     ways_all_with_tags=ways_all_with_tags,
-        #     ways_with_unnested_nodes_refs=ways_with_unnested_nodes_refs,
-        #     ways_required_ids=ways_required_ids,
-        #     ways_filtered_ids=ways_filtered_ids,
-        #     relations_all_with_tags=relations_all_with_tags,
-        #     relations_with_unnested_way_refs=relations_with_unnested_way_refs,
-        #     relations_filtered_ids=relations_filtered_ids,
-        # )
-
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
     ) -> ConvertedOSMParquetFiles:
@@ -1955,31 +1494,6 @@ class PbfFileReader:
             return self._prepare_osm_elements_without_filtering(
                 elements=elements, filtered_tags_clause=filtered_tags_clause
             )
-
-        # ============================= new method ===================================
-
-        # If filtering by tags
-        # Read nodes / ways / relations that match tags filter / custom filter / id filter
-        # - save only kind and id
-        # - dont read tags
-        # - read filtered relations (id, ref, ref_idx, ref_role) - done
-        # - read filtered and required ways (id, ref, ref_idx) - done
-        # - read filtered and required nodes (id, lat, lon) - done
-
-        # If filtering by geometry
-        # - Intersect filtered and required nodes - done
-        # - Intersect filtered and required ways - done
-        # - Intersect filtered relations - done
-
-        # check valid ways
-        # check valid relations
-
-        # Read tags for valid, required, filtered elements
-
-        # =========== start ===============
-        filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
-        filter_osm_way_ids_filter = self._generate_elements_filter(filter_osm_ids, "way")
-        filter_osm_relation_ids_filter = self._generate_elements_filter(filter_osm_ids, "relation")
 
         self.connection.sql(
             f"""
@@ -2010,10 +1524,68 @@ class PbfFileReader:
             """
         ).to_view("relations", replace=True)
 
+        # ============================= new method ===================================
+
+        # If filtering by tags
+        # - [elements_filtered_ids, relations_filtered_ids, ways_filtered_ids, nodes_filtered_ids]
+        #   Read nodes / ways / relations that match tags filter / custom filter / id filter
+        #   - Save only kind and id
+        #   - Dont read tags
+        # - [relations_filtered_unnested]
+        #   Read filtered relations (id, ref, ref_idx, ref_role)
+        # - [ways_required_ids, ways_filtered_required_ids, ways_filtered_required_unnested]
+        #   Read filtered and required ways (id, ref, ref_idx)
+        # - [nodes_required_ids, nodes_filtered_required_points]
+        #   Read filtered and required nodes (id, lat, lon)
+        # Else:
+        # - Read every ID for every element with refs
+
+        # If filtering by geometry:
+        # - [nodes_filtered_required_bbox_intersected_points]
+        #   Read filtered and required nodes with intersection by bounding box of the filter
+        # - [nodes_filtered_required_intersected_ids]
+        #   Intersect properly loaded nodes
+        # - [ways_filtered_required_intersected_ids]
+        #   Intersect filtered and required ways
+        # - [relations_filtered_intersected_ids]
+        #   Intersect filtered relations
+        # - [relations_filtered_intersected_unnested]
+        #   Prepare filtered and intersected relations ids and unnested refs
+        # - [ways_filtered_required_intersected_unnested]
+        #   Prepare filtered, intersected and required ways ids and unnested refs
+        # - [nodes_filtered_required_intersected_valid_ids]
+        #   Prepare filtered, intersected and required nodes ids
+        # Else:
+        # - [
+        #     nodes_filtered_required_intersected_valid_ids,
+        #     ways_filtered_required_intersected_ids,
+        #     relations_filtered_intersected_ids
+        #   ]
+        # - [ways_filtered_required_intersected_unnested, relations_filtered_intersected_unnested]
+        #   Pass all previous ids further as required and filtered
+
+        # Check validity:
+        # - [ways_filtered_intersected_valid_ids, ways_required_intersected_valid_ids]
+        #   Check if ways are valid by matching valid required nodes
+        # - [relations_filtered_intersected_valid_ids]
+        #   Check if relations are valid by matching valid required ways
+
+        # Read tags for valid, required, filtered elements
+        # - [
+        #     nodes_filtered_intersected_valid_tags,
+        #     ways_filtered_intersected_valid_tags,
+        #     relations_filtered_intersected_valid_tags
+        #   ]
+
+        # =========== start ===============
+        filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
+        filter_osm_way_ids_filter = self._generate_elements_filter(filter_osm_ids, "way")
+        filter_osm_relation_ids_filter = self._generate_elements_filter(filter_osm_ids, "relation")
+
         with self.task_progress_tracker.get_spinner(
-            "Filtering - elements by tags", with_minor_step=True
+            "Filtering: elements by tags", with_minor_step=True
         ):
-            elements_ids_filtered = self._sql_to_parquet_file(
+            elements_filtered_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT kind, id
                 FROM ({elements.sql_query()})
@@ -2027,50 +1599,46 @@ class PbfFileReader:
                 )
                 AND ({custom_sql_filter})
                 """,
-                file_path=self.tmp_dir_path / "elements_ids_filtered",
+                file_path=self.tmp_dir_path / "elements_filtered_ids",
             )
-            # print(elements_ids_filtered)
+            # print(elements_filtered_ids)
 
-            nodes_ids_filtered_by_tags = self._sql_to_parquet_file(
+            nodes_filtered_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
-                FROM ({elements_ids_filtered.sql_query()})
+                FROM ({elements_filtered_ids.sql_query()})
                 WHERE kind = 'node'
                 """,
-                file_path=self.tmp_dir_path / "nodes_ids_filtered_by_tags",
+                file_path=self.tmp_dir_path / "nodes_filtered_ids",
                 single_file_output=True,
             )
 
-            ways_ids_filtered_by_tags = self._sql_to_parquet_file(
+            ways_filtered_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
-                FROM ({elements_ids_filtered.sql_query()})
+                FROM ({elements_filtered_ids.sql_query()})
                 WHERE kind = 'way'
                 """,
-                file_path=self.tmp_dir_path / "ways_ids_filtered_by_tags",
+                file_path=self.tmp_dir_path / "ways_filtered_ids",
                 single_file_output=True,
             )
 
-            relations_ids_filtered_by_tags = self._sql_to_parquet_file(
+            relations_filtered_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
-                FROM ({elements_ids_filtered.sql_query()})
+                FROM ({elements_filtered_ids.sql_query()})
                 WHERE kind = 'relation'
                 """,
-                file_path=self.tmp_dir_path / "relations_ids_filtered_by_tags",
+                file_path=self.tmp_dir_path / "relations_filtered_ids",
                 single_file_output=True,
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - unnesting relations", next_step="minor"
+            "Filtering: unnesting relations", next_step="minor"
         ):
-            relations_unnested = self._sql_to_parquet_file(
+            relations_filtered_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
-                WITH filtered_relation_ids AS (
-                    SELECT id
-                    FROM ({relations_ids_filtered_by_tags.sql_query()})
-                ),
-                unnested_relation_refs AS (
+                WITH unnested_relation_refs AS (
                     SELECT
                         r.id,
                         UNNEST(refs) as ref,
@@ -2078,274 +1646,321 @@ class PbfFileReader:
                         UNNEST(ref_roles) as ref_role,
                         UNNEST(range(length(refs))) as ref_idx
                     FROM relations r
-                    SEMI JOIN filtered_relation_ids USING (id)
+                    SEMI JOIN ({relations_filtered_ids.sql_query()}) USING (id)
                 )
                 SELECT id, ref, ref_role, ref_idx
                 FROM unnested_relation_refs
                 WHERE ref_type = 'way'
                 """,
-                file_path=self.tmp_dir_path / "relations_unnested",
+                file_path=self.tmp_dir_path / "relations_filtered_unnested",
             )
             # print(relations_unnested)
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - ways required ids", next_step="minor"
+            "Filtering: ways required ids", next_step="minor"
         ):
-            ways_ids_required = self._sql_to_parquet_file(
+            ways_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT DISTINCT ref as id
-                FROM ({relations_unnested.sql_query()})
+                FROM ({relations_filtered_unnested.sql_query()})
                 """,
-                file_path=self.tmp_dir_path / "ways_ids_required",
+                file_path=self.tmp_dir_path / "ways_required_ids",
                 single_file_output=True,
             )
-            ways_ids_filtered_by_tags_and_required = self._sql_to_parquet_file(
+            ways_filtered_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
-                FROM ({ways_ids_required.sql_query()})
+                FROM ({ways_filtered_ids.sql_query()})
                 UNION
                 SELECT id
-                FROM ({ways_ids_filtered_by_tags.sql_query()})
+                FROM ({ways_required_ids.sql_query()})
                 """,
-                file_path=self.tmp_dir_path / "ways_ids_filtered_by_tags_and_required",
+                file_path=self.tmp_dir_path / "ways_filtered_required_ids",
                 single_file_output=True,
             )
             # print(ways_ids_filtered_by_tags_and_required)
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - unnesting ways", next_step="minor"
-        ):
-            ways_unnested = self._sql_to_parquet_file(
+        with self.task_progress_tracker.get_spinner("Filtering: unnesting ways", next_step="minor"):
+            ways_filtered_required_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
-                WITH filtered_and_required_ways_ids AS (
-                    SELECT id
-                    FROM ({ways_ids_filtered_by_tags_and_required.sql_query()})
-                    UNION
-                    SELECT id
-                    FROM ({ways_ids_filtered_by_tags.sql_query()})
-                )
                 SELECT
                     id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
                 FROM ways
-                SEMI JOIN filtered_and_required_ways_ids USING (id)
+                SEMI JOIN ({ways_filtered_required_ids.sql_query()}) USING (id)
                 """,
-                file_path=self.tmp_dir_path / "ways_unnested",
+                file_path=self.tmp_dir_path / "ways_filtered_required_unnested",
             )
             # print(ways_unnested)
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - nodes required ids", next_step="minor"
+            "Filtering: nodes required ids", next_step="minor"
         ):
-            nodes_ids_required = self._sql_to_parquet_file(
+            nodes_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT DISTINCT ref as id
-                FROM ({ways_unnested.sql_query()})
+                FROM ({ways_filtered_required_unnested.sql_query()})
                 """,
-                file_path=self.tmp_dir_path / "nodes_ids_required",
+                file_path=self.tmp_dir_path / "nodes_required_ids",
                 single_file_output=True,
             )
-            nodes_ids_filtered_by_tags_and_required = self._sql_to_parquet_file(
+            nodes_filtered_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
-                FROM ({nodes_ids_required.sql_query()})
+                FROM ({nodes_filtered_ids.sql_query()})
                 UNION
                 SELECT id
-                FROM ({nodes_ids_filtered_by_tags.sql_query()})
+                FROM ({nodes_required_ids.sql_query()})
                 """,
-                file_path=self.tmp_dir_path / "nodes_ids_filtered_by_tags_and_required",
+                file_path=self.tmp_dir_path / "nodes_filtered_required_ids",
                 single_file_output=True,
             )
             # print(nodes_ids_filtered_by_tags_and_required)
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - reading nodes points", next_step="minor"
+            "Filtering: reading nodes points", next_step="minor"
         ):
-            nodes_points_path = self.tmp_dir_path / "nodes_points"
-            nodes_points = self._sql_to_parquet_file(
+            bbox_intersecting_clause = ""
+            if is_intersecting:
+                x_min, y_min, x_max, y_max = cast("BaseGeometry", self.geometry_filter).bounds
+                bbox_intersecting_clause = f"""
+                WHERE lat BETWEEN {y_min} AND {y_max}
+                AND lon BETWEEN {x_min} AND {x_max}
+                """
+            nodes_filtered_required_bbox_intersected_points_path = (
+                self.tmp_dir_path / "nodes_filtered_required_bbox_intersected_points"
+            )
+            nodes_filtered_required_bbox_intersected_points = self._sql_to_parquet_file(
                 sql_query=f"""
-                WITH filtered_and_required_nodes_ids AS (
-                    SELECT id
-                    FROM ({nodes_ids_filtered_by_tags_and_required.sql_query()})
-                )
                 SELECT
                     id, lat, lon
                 FROM nodes
-                SEMI JOIN filtered_and_required_nodes_ids USING (id)
+                SEMI JOIN ({nodes_filtered_required_ids.sql_query()}) USING (id)
+                {bbox_intersecting_clause}
                 """,
-                file_path=nodes_points_path,
+                file_path=nodes_filtered_required_bbox_intersected_points_path,
             )
-            # print(nodes_points)
 
         with self.task_progress_tracker.get_bar(
-            "Filtering - nodes by intersection", next_step="minor"
+            "Filtering: nodes by intersection", next_step="minor"
         ) as bar:
             if is_intersecting:
                 intersect_nodes_with_geometry(
-                    nodes_path=nodes_points_path,
-                    result_path=self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
-                    geometry_filter=self.geometry_filter,
+                    nodes_path=nodes_filtered_required_bbox_intersected_points_path,
+                    result_path=self.tmp_dir_path
+                    / "nodes_filtered_required_intersected_ids_tmp_non_distinct",
+                    geometry_filter=cast("BaseGeometry", self.geometry_filter),
                     progress_bar=bar,
                 )
 
-                nodes_ids_intersecting = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
-                    self.tmp_dir_path / "nodes_ids_intersecting",
+                nodes_filtered_required_intersected_ids_tmp = self._calculate_unique_ids_to_parquet(
+                    self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp_non_distinct",
+                    self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp",
                     order_ids=False,
                 )
-                nodes_ids_filtered_and_intersecting = self._sql_to_parquet_file(
+                nodes_filtered_intersected_ids = self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
-                    FROM ({nodes_ids_filtered_by_tags.sql_query()})
-                    JOIN ({nodes_ids_intersecting.sql_query()}) USING (id)
+                    FROM ({nodes_filtered_ids.sql_query()})
+                    JOIN ({nodes_filtered_required_intersected_ids_tmp.sql_query()}) USING (id)
                     """,
-                    file_path=self.tmp_dir_path / "nodes_ids_filtered_and_intersecting",
+                    file_path=self.tmp_dir_path / "nodes_filtered_intersected_ids",
                     single_file_output=True,
                 )
             else:
-                nodes_ids_intersecting = nodes_points
-                nodes_ids_filtered_and_intersecting = nodes_ids_filtered_by_tags
-            # print(nodes_ids_filtered_by_tags.count("*"))
-            # print(nodes_ids_filtered_and_intersecting.count("*"))
+                nodes_filtered_required_intersected_ids_tmp = (
+                    nodes_filtered_required_bbox_intersected_points
+                )
+                nodes_filtered_intersected_ids = nodes_filtered_ids
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - ways by intersection", next_step="minor"
+            "Filtering: ways by intersection", next_step="minor"
         ):
             if is_intersecting:
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT uwr.id
-                    FROM ({ways_unnested.sql_query()}) uwr
-                    SEMI JOIN ({nodes_ids_intersecting.sql_query()}) n ON n.id = uwr.ref
+                    FROM ({ways_filtered_required_unnested.sql_query()}) uwr
+                    SEMI JOIN ({nodes_filtered_required_intersected_ids_tmp.sql_query()}) n
+                    ON n.id = uwr.ref
                     """,
-                    file_path=self.tmp_dir_path / "ways_ids_intersecting_non_distinct",
+                    file_path=self.tmp_dir_path
+                    / "ways_filtered_required_intersected_ids_tmp_non_distinct",
                 )
-                ways_ids_intersecting = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "ways_ids_intersecting_non_distinct",
-                    self.tmp_dir_path / "ways_ids_intersecting",
+                ways_filtered_required_intersected_ids_tmp = self._calculate_unique_ids_to_parquet(
+                    self.tmp_dir_path / "ways_filtered_required_intersected_ids_tmp_non_distinct",
+                    self.tmp_dir_path / "ways_filtered_required_intersected_ids_tmp",
                     order_ids=False,
                 )
-                ways_ids_filtered_and_intersecting = self._sql_to_parquet_file(
+                ways_filtered_intersected_ids = self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT id
-                    FROM ({ways_ids_filtered_by_tags.sql_query()})
-                    JOIN ({ways_ids_intersecting.sql_query()}) USING (id)
+                    FROM ({ways_filtered_ids.sql_query()})
+                    JOIN ({ways_filtered_required_intersected_ids_tmp.sql_query()}) USING (id)
                     """,
-                    file_path=self.tmp_dir_path / "ways_ids_filtered_and_intersecting",
+                    file_path=self.tmp_dir_path / "ways_filtered_intersected_ids",
                     single_file_output=True,
                 )
             else:
-                ways_ids_intersecting = ways_ids_filtered_by_tags_and_required
-                ways_ids_filtered_and_intersecting = ways_ids_filtered_by_tags
+                ways_filtered_required_intersected_ids_tmp = ways_filtered_required_ids
+                ways_filtered_intersected_ids = ways_filtered_ids
             # print(ways_ids_filtered_and_intersecting)
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - relations by intersection", next_step="minor"
+            "Filtering: relations by intersection", next_step="minor"
         ):
             if is_intersecting:
                 self._sql_to_parquet_file(
                     sql_query=f"""
                     SELECT urr.id
-                    FROM ({relations_unnested.sql_query()}) urr
-                    SEMI JOIN ({ways_ids_intersecting.sql_query()}) wi ON wi.id = urr.ref
+                    FROM ({relations_filtered_unnested.sql_query()}) urr
+                    SEMI JOIN ({ways_filtered_required_intersected_ids_tmp.sql_query()}) wi
+                    ON wi.id = urr.ref
                     """,
-                    file_path=self.tmp_dir_path / "relations_ids_intersecting_non_distinct",
+                    file_path=self.tmp_dir_path / "relations_filtered_intersected_ids_non_distinct",
                 )
-                relations_ids_intersecting = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "relations_ids_intersecting_non_distinct",
-                    self.tmp_dir_path / "relations_ids_intersecting",
+                relations_filtered_intersected_ids = self._calculate_unique_ids_to_parquet(
+                    self.tmp_dir_path / "relations_filtered_intersected_ids_non_distinct",
+                    self.tmp_dir_path / "relations_filtered_intersected_ids",
                     order_ids=False,
                 )
-                relations_ids_filtered_and_intersecting = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id
-                    FROM ({relations_ids_filtered_by_tags.sql_query()})
-                    JOIN ({relations_ids_intersecting.sql_query()}) USING (id)
-                    """,
-                    file_path=self.tmp_dir_path / "relations_ids_filtered_and_intersecting",
-                    single_file_output=True,
-                )
             else:
-                relations_ids_intersecting = relations_ids_filtered_by_tags
-                relations_ids_filtered_and_intersecting = relations_ids_filtered_by_tags
+                relations_filtered_intersected_ids = relations_filtered_ids
             # print(relations_ids_filtered_and_intersecting)
 
-        with self.task_progress_tracker.get_spinner("Filtering - unnested ways", next_step="minor"):
-            ways_unnested_filtered_required = self._sql_to_parquet_file(
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: unnested intersected relations", next_step="minor"
+        ):
+            relations_filtered_intersected_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
-                WITH ways_ids_filtered_and_required AS (
-                    SELECT id FROM ({ways_ids_filtered_and_intersecting.sql_query()})
-                    UNION
-                    SELECT id FROM ({ways_ids_required.sql_query()})
-                )
                 SELECT *
-                FROM ({ways_unnested.sql_query()}) uwr
-                SEMI JOIN ways_ids_filtered_and_required wfr ON wfr.id = uwr.id
+                FROM ({relations_filtered_unnested.sql_query()})
+                SEMI JOIN ({relations_filtered_intersected_ids.sql_query()}) USING (id)
                 """,
-                file_path=self.tmp_dir_path / "ways_unnested_filtered_required",
+                file_path=self.tmp_dir_path / "relations_filtered_intersected_unnested",
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - ways valid ids", next_step="minor"
+            "Filtering: ways required intersected ids", next_step="minor"
         ):
-            ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
-                refs_unnested=self.tmp_dir_path / "ways_unnested_filtered_required",
-                sub_element_ids_valid=self.tmp_dir_path / "nodes_ids_required",
-                save_path=self.tmp_dir_path / "ways_ids_valid",
+            ways_required_intersected_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT DISTINCT ref as id
+                FROM ({relations_filtered_intersected_unnested.sql_query()})
+                """,
+                file_path=self.tmp_dir_path / "ways_required_intersected_ids",
+                single_file_output=True,
             )
-
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - ways required and valid", next_step="minor"
-        ):
-            self._sql_to_parquet_file(
+            ways_filtered_required_intersected_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
-                FROM ({ways_ids_required.sql_query()}) wr
-                SEMI JOIN ({ways_ids_valid.sql_query()}) USING (id)
+                FROM ({ways_filtered_intersected_ids.sql_query()})
+                UNION
+                SELECT id
+                FROM ({ways_required_intersected_ids.sql_query()})
                 """,
-                file_path=self.tmp_dir_path / "ways_ids_required_valid_non_distinct",
-            )
-            ways_ids_required_valid = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "ways_ids_required_valid_non_distinct",
-                self.tmp_dir_path / "ways_ids_required_valid",
+                file_path=self.tmp_dir_path / "ways_filtered_required_intersected_ids",
+                single_file_output=True,
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - unnested relations", next_step="minor"
+            "Filtering: unnested intersected ways", next_step="minor"
         ):
-            relations_unnested_filtered = self._sql_to_parquet_file(
+            ways_filtered_required_intersected_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT *
-                FROM ({relations_unnested.sql_query()})
-                SEMI JOIN ({relations_ids_filtered_and_intersecting.sql_query()}) USING (id)
+                FROM ({ways_filtered_required_unnested.sql_query()})
+                SEMI JOIN ({ways_filtered_required_intersected_ids.sql_query()}) USING (id)
                 """,
-                file_path=self.tmp_dir_path / "relations_unnested_filtered",
+                file_path=self.tmp_dir_path / "ways_filtered_required_intersected_unnested",
+                single_file_output=True,
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - relations valid ids", next_step="minor"
+            "Filtering: nodes required intersected ids", next_step="minor"
         ):
-            relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
-                refs_unnested=self.tmp_dir_path / "relations_unnested_filtered",
-                sub_element_ids_valid=self.tmp_dir_path / "ways_ids_required_valid",
-                save_path=self.tmp_dir_path / "relations_ids_filtered_valid",
+            nodes_filtered_required_intersected_valid_points = self._sql_to_parquet_file(
+                sql_query=f"""
+                WITH filtered_and_required_nodes AS (
+                    SELECT id
+                    FROM ({nodes_filtered_intersected_ids.sql_query()})
+                    UNION
+                    SELECT DISTINCT ref as id
+                    FROM ({ways_filtered_required_intersected_unnested.sql_query()}) w
+                )
+                SELECT id, lat, lon
+                FROM nodes
+                SEMI JOIN filtered_and_required_nodes USING (id)
+                """,
+                file_path=self.tmp_dir_path / "nodes_filtered_required_intersected_valid_points",
+                single_file_output=True,
+            )
+
+        with self.task_progress_tracker.get_spinner("Filtering: ways valid ids", next_step="minor"):
+            ways_filtered_required_intersected_valid_ids = (
+                self._calculate_element_valid_ids_based_on_refs(
+                    refs_unnested=self.tmp_dir_path / "ways_filtered_required_intersected_unnested",
+                    sub_element_ids_valid=self.tmp_dir_path
+                    / "nodes_filtered_required_intersected_valid_points",
+                    save_path=self.tmp_dir_path / "ways_filtered_required_intersected_valid_ids",
+                )
+            )
+
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: ways required and valid", next_step="minor"
+        ):
+            ways_required_intersected_valid_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({ways_required_intersected_ids.sql_query()}) wr
+                SEMI JOIN ({ways_filtered_required_intersected_valid_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "ways_required_intersected_valid_ids",
+            )
+            ways_filtered_intersected_valid_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({ways_filtered_intersected_ids.sql_query()}) wr
+                SEMI JOIN ({ways_filtered_required_intersected_valid_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "ways_required_intersected_valid_ids",
+            )
+
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: relations valid ids", next_step="minor"
+        ):
+            relations_filtered_intersected_valid_ids = (
+                self._calculate_element_valid_ids_based_on_refs(
+                    refs_unnested=self.tmp_dir_path / "relations_filtered_intersected_unnested",
+                    sub_element_ids_valid=self.tmp_dir_path / "ways_required_intersected_valid_ids",
+                    save_path=self.tmp_dir_path / "relations_filtered_intersected_valid_ids",
+                )
+            )
+            relations_filtered_intersected_valid_unnested = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT *
+                FROM ({relations_filtered_intersected_unnested.sql_query()})
+                SEMI JOIN ({relations_filtered_intersected_valid_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "relations_filtered_intersected_valid_unnested",
+                single_file_output=True,
             )
 
         filtered_elements_path = self.tmp_dir_path / "filtered_elements"
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read elements tags", next_step="minor"
+            "Filtering: read elements tags", next_step="minor"
         ):
             filtered_elements = self.connection.sql(
                 f"""
                 WITH filtered_elements AS (
                     SELECT 'node' as kind, id
-                    FROM ({nodes_ids_filtered_and_intersecting.sql_query()})
+                    FROM ({nodes_filtered_intersected_ids.sql_query()})
                     UNION
                     SELECT 'way' as kind, id
-                    FROM ({ways_ids_filtered_and_intersecting.sql_query()})
+                    FROM ({ways_filtered_intersected_valid_ids.sql_query()})
                     UNION
                     SELECT 'relation' as kind, id
-                    FROM ({relations_ids_filtered_and_intersecting.sql_query()})
+                    FROM ({relations_filtered_intersected_valid_ids.sql_query()})
                 ),
                 elements_tags AS (
                     SELECT
@@ -2377,895 +1992,52 @@ class PbfFileReader:
                 filtered_elements, filtered_elements_path
             )
 
-        nodes_tags_filtered_valid_path = self.tmp_dir_path / "nodes_tags_filtered_valid"
-        ways_tags_filtered_valid_path = self.tmp_dir_path / "ways_tags_filtered_valid"
-        relations_tags_filtered_valid_path = self.tmp_dir_path / "relations_tags_filtered_valid"
+        nodes_filtered_intersected_valid_tags_path = (
+            self.tmp_dir_path / "nodes_filtered_intersected_valid_tags"
+        )
+        ways_filtered_intersected_valid_tags_path = (
+            self.tmp_dir_path / "ways_filtered_intersected_valid_tags"
+        )
+        relations_filtered_intersected_valid_tags_path = (
+            self.tmp_dir_path / "relations_filtered_intersected_valid_tags"
+        )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read nodes tags", next_step="minor"
+            "Filtering: read nodes tags", next_step="minor"
         ):
-            nodes_tags_filtered_valid = self._save_parquet_file(
-                all_filtered_elements.filter("kind = 'node'")
-                .join(nodes_ids_filtered_and_intersecting, condition="id", how="semi")
-                .select("id, tags"),
-                nodes_tags_filtered_valid_path,
+            nodes_filtered_intersected_valid_tags = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'node'").select("id, tags"),
+                nodes_filtered_intersected_valid_tags_path,
+            )
+
+        with self.task_progress_tracker.get_spinner("Filtering: read ways tags", next_step="minor"):
+            ways_filtered_intersected_valid_tags = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'way'").select("id, tags, raw_tags"),
+                ways_filtered_intersected_valid_tags_path,
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read ways tags", next_step="minor"
+            "Filtering: read relations tags", next_step="minor"
         ):
-            ways_tags_filtered_valid = self._save_parquet_file(
-                all_filtered_elements.filter("kind = 'way'")
-                .join(ways_ids_valid, condition="id", how="semi")
-                .select("id, tags, raw_tags"),
-                ways_tags_filtered_valid_path,
-            )
-
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - read relations tags", next_step="minor"
-        ):
-            relations_tags_filtered_valid = self._save_parquet_file(
-                all_filtered_elements.filter("kind = 'relation'")
-                .join(relations_ids_filtered_valid, condition="id", how="semi")
-                .select("id, tags"),
-                relations_tags_filtered_valid_path,
+            relations_filtered_intersected_valid_tags = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'relation'").select("id, tags"),
+                relations_filtered_intersected_valid_tags_path,
             )
 
         return PbfFileReader.ConvertedOSMParquetFiles(
             # nodes_tags_and_points_filtered=nodes_tags_and_points_filtered_valid,
-            nodes_tags_filtered=nodes_tags_filtered_valid,
-            nodes_points_required=nodes_points,
-            ways_tags_filtered=ways_tags_filtered_valid,
-            ways_unnested_filtered_required=ways_unnested_filtered_required,
-            ways_ids_required=ways_ids_required_valid,
-            relations_tags_filtered=relations_tags_filtered_valid,
-            relations_unnested_filtered=relations_unnested,
-        )
-
-        # with self.task_progress_tracker.get_bar(
-        #     "Filtering - reading elements tags", next_step="minor"
-        # ) as bar:
-        #     ways_tags = self._sql_to_parquet_file(
-        #         sql_query=f"""
-        #         WITH filtered_tags AS (
-        #             SELECT id, {filtered_tags_clause}, tags as raw_tags
-        #             FROM ways w
-        #             WHERE tags IS NOT NULL AND cardinality(tags) > 0
-        #         )
-        #         SELECT id, tags, raw_tags
-        #         FROM filtered_tags
-        #         WHERE tags IS NOT NULL AND cardinality(tags) > 0
-        #         """,
-        #         file_path=self.tmp_dir_path / "ways_tags",
-        #     )
-
-        # ============================= older method ===================================
-
-        # First PBF pass
-        # Read nodes points, ways and relations unnested
-
-        # Filter points by intersection
-        # Filter ways unnested by intersection
-        # Filter relations unnested by intersection
-
-        # Second PBF pass
-        # Read elements by tags + use intersecting ids per kind and filter all by tags in one query
-
-        # check valid ways
-        # check valid relations
-
-        # first pass - all unnested plus ids
-        unnested_elements_path = self.tmp_dir_path / "unnested_elements"
-
-        nodes_points_valid_path = self.tmp_dir_path / "nodes_points_valid"
-        ways_unnested_path = self.tmp_dir_path / "ways_unnested"
-        relations_unnested_path = self.tmp_dir_path / "relations_unnested"
-
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - read elements refs", with_minor_step=True
-        ):
-            unnested_elements = self.connection.sql(
-                f"""
-                WITH unnested_elements AS (
-                    SELECT
-                        kind,
-                        id,
-                        lat,
-                        lon,
-                        UNNEST(COALESCE(refs, [NULL])) as ref,
-                        UNNEST(COALESCE(ref_types, [NULL])) as ref_type,
-                        UNNEST(COALESCE(ref_roles, [NULL])) as ref_role,
-                        UNNEST(range(length(coalesce(refs, [NULL])))) as ref_idx
-                    FROM ({elements.sql_query()})
-                    WHERE (
-                        -- valid nodes
-                        kind = 'node'
-                        AND lat IS NOT NULL
-                        AND lon IS NOT NULL
-                    )
-                    OR (
-                        -- valid ways
-                        kind = 'way'
-                        AND len(refs) >= 2
-                    )
-                    OR (
-                        -- valid relations
-                        kind = 'relation'
-                        AND len(refs) > 0
-                        AND list_contains(map_keys(tags), 'type')
-                        AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
-                    )
-                )
-                SELECT *
-                FROM unnested_elements
-                WHERE kind != 'relation' or ref_type = 'way'
-                """
-            )
-
-            # self._sql_to_parquet_file()
-
-            self._run_query(
-                f"""
-                COPY (
-                    {unnested_elements.sql_query()}
-                ) TO '{unnested_elements_path}' (
-                    FORMAT 'parquet',
-                    {PbfFileReader.parquet_version_query}
-                    OVERWRITE true,
-                    PARTITION_BY ("kind"),
-                    ROW_GROUP_SIZE_BYTES '16MB',
-                    COMPRESSION '{self.internal_parquet_compression}'
-                )
-                """,
-            )
-
-            _move_parquet_files_to_another_directory(
-                source_directory=unnested_elements_path / "kind=node",
-                destination_directory=nodes_points_valid_path,
-            )
-
-            _move_parquet_files_to_another_directory(
-                source_directory=unnested_elements_path / "kind=way",
-                destination_directory=ways_unnested_path,
-            )
-
-            _move_parquet_files_to_another_directory(
-                source_directory=unnested_elements_path / "kind=relation",
-                destination_directory=relations_unnested_path,
-            )
-
-            _ = self.connection.sql(
-                f"SELECT * FROM read_parquet('{nodes_points_valid_path}/*.parquet')"
-            )
-            ways_unnested = self.connection.sql(
-                f"SELECT * FROM read_parquet('{ways_unnested_path}/*.parquet')"
-            )
-            relations_unnested = self.connection.sql(
-                f"SELECT * FROM read_parquet('{relations_unnested_path}/*.parquet')"
-            )
-
-        with self.task_progress_tracker.get_bar(
-            "Filtering - nodes by intersection", next_step="minor"
-        ) as bar:
-            if is_intersecting:
-                intersect_nodes_with_geometry(
-                    nodes_path=nodes_points_valid_path,
-                    result_path=self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
-                    geometry_filter=self.geometry_filter,
-                    progress_bar=bar,
-                )
-
-                nodes_ids_intersecting = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
-                    self.tmp_dir_path / "nodes_ids_intersecting",
-                    order_ids=False,
-                )
-            else:
-                pass  # ??? TODO: should i copy ids?
-
-        # Nodes first pass
-        # nodes tags and points (valid) - NV
-        # - select all with kind = 'node'
-        # - select all with lat and lon not empty
-        # with self.task_progress_tracker.get_spinner(
-        #     "Filtering - reading nodes", with_minor_step=True
-        # ):
-        #     nodes_tags_and_points_valid = self._sql_to_parquet_file(
-        #         sql_query=f"""
-        #         SELECT
-        #             id,
-        #             {filtered_tags_clause},
-        #             lon,
-        #             lat
-        #         FROM ({elements.sql_query()})
-        #         WHERE kind = 'node'
-        #         AND lat IS NOT NULL AND lon IS NOT NULL
-        #         """,
-        #         file_path=self.tmp_dir_path / "nodes_tags_and_points_valid",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner(
-        #     "Filtering - nodes valid ids", next_step="minor"
-        # ):
-        #     self._sql_to_parquet_file(
-        #         sql_query=f"""
-        #         SELECT id
-        #         FROM ({nodes_tags_and_points_valid.sql_query()})
-        #         """,
-        #         file_path=self.tmp_dir_path / "nodes_ids_valid",
-        #         single_file_output=True,
-        #     )
-
-        # nodes IDs (intersecting) - NI
-        # - select all from NV which intersect given geometry filter
-        # nodes IDs (filtered, valid) - NFV
-        # - select all from NI with tags filter
-        filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
-        if is_intersecting:
-            with self.task_progress_tracker.get_bar(
-                "Filtering - nodes by intersection", next_step="minor"
-            ) as bar:
-                intersect_nodes_with_geometry(
-                    nodes_path=self.tmp_dir_path / "nodes_tags_and_points_valid",
-                    result_path=self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
-                    geometry_filter=self.geometry_filter,
-                    progress_bar=bar,
-                )
-
-                nodes_ids_intersecting = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "nodes_ids_intersecting_non_distinct",
-                    self.tmp_dir_path / "nodes_ids_intersecting",
-                    order_ids=False,
-                )
-
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - nodes by tags", next_step="minor"
-            ):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id
-                    FROM ({nodes_tags_and_points_valid.sql_query()}) n
-                    SEMI JOIN ({nodes_ids_intersecting.sql_query()}) ni ON n.id = ni.id
-                    WHERE tags IS NOT NULL
-                    AND cardinality(tags) > 0
-                    AND ({tags_sql_filter})
-                    AND ({filter_osm_node_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_ids_filtered_valid_non_distinct",
-                )
-                nodes_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "nodes_ids_filtered_valid_non_distinct",
-                    self.tmp_dir_path / "nodes_ids_filtered_valid",
-                    order_ids=False,
-                )
-        else:
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - nodes by intersection", next_step="minor"
-            ):
-                pass
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - nodes by tags", next_step="minor"
-            ):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id
-                    FROM ({nodes_tags_and_points_valid.sql_query()}) n
-                    WHERE tags IS NOT NULL
-                    AND cardinality(tags) > 0
-                    AND ({tags_sql_filter})
-                    AND ({filter_osm_node_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_ids_filtered_valid_non_distinct",
-                )
-                nodes_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "nodes_ids_filtered_valid_non_distinct",
-                    self.tmp_dir_path / "nodes_ids_filtered_valid",
-                    order_ids=False,
-                )
-            self._delete_directories(
-                ["nodes_ids_intersecting_non_distinct", "nodes_ids_filtered_valid_non_distinct"]
-            )
-
-        # Ways first pass
-        # ways tags
-        with self.task_progress_tracker.get_spinner("Filtering - reading ways", next_step="minor"):
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()}) w
-                WHERE kind = 'way' AND len(refs) >= 2
-                """
-            ).to_view("ways", replace=True)
-            ways_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}, tags as raw_tags
-                    FROM ways w
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
-                SELECT id, tags, raw_tags
-                FROM filtered_tags
-                WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                """,
-                file_path=self.tmp_dir_path / "ways_tags",
-            )
-        # ways unnested
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - unnesting ways", next_step="minor"
-        ):
-            ways_unnested = self._sql_to_parquet_file(
-                sql_query="""
-                SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
-                FROM ways w
-                """,
-                file_path=self.tmp_dir_path / "ways_unnested",
-            )
-        # ways IDs (intersecting) - WI
-        # - select all from ways unnested with joining any from NI on ref
-        # ways IDs (filtered) - WF
-        # - select all from WI with tags filter
-        filter_osm_way_ids_filter = self._generate_elements_filter(filter_osm_ids, "way")
-        if is_intersecting:
-            with self.task_progress_tracker.get_bar(
-                "Filtering - ways by intersection", next_step="minor"
-            ) as bar:
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT uwr.id
-                    FROM ({ways_unnested.sql_query()}) uwr
-                    SEMI JOIN ({nodes_ids_intersecting.sql_query()}) n ON n.id = uwr.ref
-                    """,
-                    file_path=self.tmp_dir_path / "ways_ids_intersecting_non_distinct",
-                )
-                ways_ids_intersecting = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "ways_ids_intersecting_non_distinct",
-                    self.tmp_dir_path / "ways_ids_intersecting",
-                    order_ids=False,
-                )
-
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - ways by tags", next_step="minor"
-            ):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id
-                    FROM ({ways_tags.sql_query()}) w
-                    SEMI JOIN ({ways_ids_intersecting.sql_query()}) wi ON w.id = wi.id
-                    WHERE ({tags_sql_filter})
-                    AND ({filter_osm_way_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "ways_ids_filtered_non_distinct",
-                )
-                ways_ids_filtered = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "ways_ids_filtered_non_distinct",
-                    self.tmp_dir_path / "ways_ids_filtered",
-                    order_ids=False,
-                )
-        else:
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - ways by intersection", next_step="minor"
-            ):
-                pass
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - ways by tags", next_step="minor"
-            ):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id
-                    FROM ({ways_tags.sql_query()}) w
-                    WHERE ({tags_sql_filter})
-                    AND ({filter_osm_way_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "ways_ids_filtered_non_distinct",
-                )
-                ways_ids_filtered = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "ways_ids_filtered_non_distinct",
-                    self.tmp_dir_path / "ways_ids_filtered",
-                    order_ids=False,
-                )
-        self._delete_directories(
-            ["ways_ids_intersecting_non_distinct", "ways_ids_filtered_non_distinct"]
-        )
-
-        # Relations first pass
-        # relations tags
-        # - select all with kind = 'relation'
-        # - select all with more then one ref
-        # - select all with type in ['boundary', 'multipolygon']
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - reading relations", next_step="minor"
-        ):
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()})
-                WHERE kind = 'relation' AND len(refs) > 0
-                AND list_contains(map_keys(tags), 'type')
-                AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
-                """
-            ).to_view("relations", replace=True)
-            relations_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}
-                    FROM relations r
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
-                SELECT id, tags
-                FROM filtered_tags
-                WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                """,
-                file_path=self.tmp_dir_path / "relations_tags",
-            )
-
-        # relations unnested
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - unnesting relations", next_step="minor"
-        ):
-            relations_unnested = self._sql_to_parquet_file(
-                sql_query="""
-                WITH unnested_relation_refs AS (
-                    SELECT
-                        r.id,
-                        UNNEST(refs) as ref,
-                        UNNEST(ref_types) as ref_type,
-                        UNNEST(ref_roles) as ref_role,
-                        UNNEST(range(length(refs))) as ref_idx
-                    FROM relations r
-                )
-                SELECT id, ref, ref_role, ref_idx
-                FROM unnested_relation_refs
-                WHERE ref_type = 'way'
-                """,
-                file_path=self.tmp_dir_path / "relations_unnested",
-            )
-        # relations IDs (intersecting)
-        # - select all from relations unnested with joining any from WI on ref
-        # relations IDs (filtered)
-        # - select all from RI with tags filter
-        filter_osm_relation_ids_filter = self._generate_elements_filter(filter_osm_ids, "relation")
-        if is_intersecting:
-            with self.task_progress_tracker.get_bar(
-                "Filtering - relations by intersection", next_step="minor"
-            ) as bar:
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT urr.id
-                    FROM ({relations_unnested.sql_query()}) urr
-                    SEMI JOIN ({ways_ids_intersecting.sql_query()}) wi ON wi.id = urr.ref
-                    """,
-                    file_path=self.tmp_dir_path / "relations_ids_intersecting_non_distinct",
-                )
-                relations_ids_intersecting = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "relations_ids_intersecting_non_distinct",
-                    self.tmp_dir_path / "relations_ids_intersecting",
-                    order_ids=False,
-                )
-
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - relations by tags", next_step="minor"
-            ):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id
-                    FROM ({relations_tags.sql_query()}) r
-                    SEMI JOIN ({relations_ids_intersecting.sql_query()}) ri ON r.id = ri.id
-                    WHERE ({tags_sql_filter})
-                    AND ({filter_osm_relation_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "relations_ids_filtered_non_distinct",
-                )
-                relations_ids_filtered = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "relations_ids_filtered_non_distinct",
-                    self.tmp_dir_path / "relations_ids_filtered",
-                    order_ids=False,
-                )
-        else:
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - relations by intersection", next_step="minor"
-            ):
-                pass
-            with self.task_progress_tracker.get_spinner(
-                "Filtering - relations by tags", next_step="minor"
-            ):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id
-                    FROM ({relations_tags.sql_query()}) r
-                    WHERE ({tags_sql_filter})
-                    AND ({filter_osm_relation_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "relations_ids_filtered_non_distinct",
-                )
-                relations_ids_filtered = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "relations_ids_filtered_non_distinct",
-                    self.tmp_dir_path / "relations_ids_filtered",
-                    order_ids=False,
-                )
-        self._delete_directories(
-            ["relations_ids_intersecting_non_distinct", "relations_ids_filtered_non_distinct"]
-        )
-
-        # relations unnested (filtered)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - unnested relations", next_step="minor"
-        ):
-            relations_unnested_filtered = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT *
-                FROM ({relations_unnested.sql_query()}) urr
-                SEMI JOIN ({relations_ids_filtered.sql_query()}) rf ON rf.id = urr.id
-                """,
-                file_path=self.tmp_dir_path / "relations_unnested_filtered",
-            )
-        self._delete_directories(["relations_ids_filtered", "relations_unnested"])
-
-        # Ways second pass
-        # ways IDs (required)
-        # - all needed to construct relations from RF
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - ways required ids", next_step="minor"
-        ):
-            ways_ids_required = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT DISTINCT ref as id
-                FROM ({relations_unnested_filtered.sql_query()}) urr
-                SEMI JOIN ({ways_unnested.sql_query()}) uw
-                ON urr.ref = uw.id
-                ORDER BY id
-                """,
-                file_path=self.tmp_dir_path / "ways_ids_required",
-                single_file_output=True,
-            )
-
-        # ways unnested (filtered, required)
-        with self.task_progress_tracker.get_spinner("Filtering - unnested ways", next_step="minor"):
-            ways_unnested_filtered_required = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH ways_ids_filtered_and_required AS (
-                    SELECT id FROM ({ways_ids_filtered.sql_query()})
-                    UNION
-                    SELECT id FROM ({ways_ids_required.sql_query()})
-                )
-                SELECT *
-                FROM ({ways_unnested.sql_query()}) uwr
-                SEMI JOIN ways_ids_filtered_and_required wfr ON wfr.id = uwr.id
-                """,
-                file_path=self.tmp_dir_path / "ways_unnested_filtered_required",
-            )
-        self._delete_directories(["ways_unnested"])
-
-        # ways IDs (valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - ways valid ids", next_step="minor"
-        ):
-            ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
-                refs_unnested=self.tmp_dir_path / "ways_unnested_filtered_required",
-                sub_element_ids_valid=self.tmp_dir_path / "nodes_ids_valid",
-                save_path=self.tmp_dir_path / "ways_ids_valid",
-            )
-        self._delete_directories(["nodes_ids_valid"])
-
-        # ways IDs (filtered, valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - ways filtered and valid", next_step="minor"
-        ):
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT id
-                FROM ({ways_ids_filtered.sql_query()}) wf
-                SEMI JOIN ({ways_ids_valid.sql_query()}) USING (id)
-                """,
-                file_path=self.tmp_dir_path / "ways_ids_filtered_valid_non_distinct",
-            )
-            ways_ids_filtered_valid = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "ways_ids_filtered_valid_non_distinct",
-                self.tmp_dir_path / "ways_ids_filtered_valid",
-            )
-        self._delete_directories(["ways_ids_filtered", "ways_ids_filtered_valid_non_distinct"])
-
-        # ways IDs (required, valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - ways required and valid", next_step="minor"
-        ):
-            self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT id
-                FROM ({ways_ids_required.sql_query()}) wr
-                SEMI JOIN ({ways_ids_valid.sql_query()}) USING (id)
-                """,
-                file_path=self.tmp_dir_path / "ways_ids_required_valid_non_distinct",
-            )
-            ways_ids_required_valid = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "ways_ids_required_valid_non_distinct",
-                self.tmp_dir_path / "ways_ids_required_valid",
-            )
-        self._delete_directories(["ways_ids_required", "ways_ids_required_valid_non_distinct"])
-
-        # ways tags (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering - ways tags", next_step="minor"):
-            ways_tags_filtered_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT *
-                FROM ({ways_tags.sql_query()}) w
-                SEMI JOIN ({ways_ids_filtered_valid.sql_query()}) USING (id)
-                """,
-                file_path=self.tmp_dir_path / "ways_tags_filtered_valid",
-            )
-        self._delete_directories(["ways_tags"])
-
-        # ways unnested (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering - unnested ways", next_step="minor"):
-            ways_unnested_filtered_required_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT *
-                FROM ({ways_unnested_filtered_required.sql_query()}) uwr
-                SEMI JOIN ({ways_ids_valid.sql_query()}) wv ON wv.id = uwr.id
-                """,
-                file_path=self.tmp_dir_path / "ways_unnested_filtered_required_valid",
-            )
-        self._delete_directories(["ways_ids_valid", "ways_unnested_filtered_required"])
-
-        # Nodes second pass
-        # nodes IDs (required, valid)
-        # - all needed to construct relations from RF
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - nodes required ids", next_step="minor"
-        ):
-            nodes_ids_required_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT DISTINCT ref as id
-                FROM ({ways_unnested_filtered_required_valid.sql_query()}) uwr
-                """,
-                file_path=self.tmp_dir_path / "nodes_ids_required_valid",
-                single_file_output=True,
-            )
-        # nodes tags and points (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - nodes filtered", next_step="minor"
-        ):
-            nodes_tags_and_points_filtered_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT *
-                FROM ({nodes_tags_and_points_valid.sql_query()}) n
-                SEMI JOIN ({nodes_ids_filtered_valid.sql_query()}) nf USING (id)
-                """,
-                file_path=self.tmp_dir_path / "nodes_tags_and_points_filtered_valid",
-            )
-
-        self._delete_directories(["nodes_ids_filtered_valid"])
-
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - nodes required", next_step="minor"
-        ):
-            nodes_points_required_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT id, lon, lat
-                FROM ({nodes_tags_and_points_valid.sql_query()}) n
-                SEMI JOIN ({nodes_ids_required_valid.sql_query()}) nr USING (id)
-                """,
-                file_path=self.tmp_dir_path / "nodes_points_required_valid",
-            )
-
-        self._delete_directories(["nodes_tags_and_points_valid", "nodes_ids_required_valid"])
-
-        # Relations second pass
-        # relations IDs (valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - relations valid ids", next_step="minor"
-        ):
-            relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
-                refs_unnested=self.tmp_dir_path / "relations_unnested_filtered",
-                sub_element_ids_valid=self.tmp_dir_path / "ways_ids_required_valid",
-                save_path=self.tmp_dir_path / "relations_ids_filtered_valid",
-            )
-
-        # relations tags (filtered, valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - relations tags", next_step="minor"
-        ):
-            relations_tags_filtered_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT *
-                FROM ({relations_tags.sql_query()}) r
-                SEMI JOIN ({relations_ids_filtered_valid.sql_query()}) rv USING (id)
-                """,
-                file_path=self.tmp_dir_path / "relations_tags_filtered_valid",
-            )
-
-        self._delete_directories(["relations_tags"])
-
-        # relations unnested (filtered, valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - unnested relations", next_step="minor"
-        ):
-            relations_unnested_filtered_valid = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT *
-                FROM ({relations_unnested_filtered.sql_query()}) urr
-                SEMI JOIN ({relations_ids_filtered_valid.sql_query()}) rv USING (id)
-                """,
-                file_path=self.tmp_dir_path / "relations_unnested_filtered_valid",
-            )
-
-        self._delete_directories(["relations_unnested_filtered", "relations_ids_filtered_valid"])
-
-        return PbfFileReader.ConvertedOSMParquetFiles(
-            nodes_tags_and_points_filtered=nodes_tags_and_points_filtered_valid,
-            nodes_points_required=nodes_points_required_valid,
-            ways_tags_filtered=ways_tags_filtered_valid,
-            ways_unnested_filtered_required=ways_unnested_filtered_required_valid,
-            ways_ids_required=ways_ids_required_valid,
-            ways_ids_filtered=ways_ids_filtered_valid,
-            relations_tags_filtered=relations_tags_filtered_valid,
-            relations_unnested_filtered=relations_unnested_filtered_valid,
+            nodes_tags_filtered=nodes_filtered_intersected_valid_tags,
+            nodes_points_required=nodes_filtered_required_intersected_valid_points,
+            ways_tags_filtered=ways_filtered_intersected_valid_tags,
+            ways_unnested_filtered_required=ways_filtered_required_intersected_unnested,
+            ways_ids_required=ways_required_intersected_valid_ids,
+            relations_tags_filtered=relations_filtered_intersected_valid_tags,
+            relations_unnested_filtered=relations_filtered_intersected_valid_unnested,
         )
 
     def _prepare_osm_elements_without_filtering(
         self, elements: "duckdb.DuckDBPyRelation", filtered_tags_clause: str
     ) -> ConvertedOSMParquetFiles:
-        # old method:
-        # nodes points + tags
-
-        # nodes tags - cardinality etc - (old - filtered_ids only)
-
-        # ways tags
-        # ways unnested
-        # ways valid
-
-        # relations tags
-        # relations unnested
-        # relations valid
-
-        # ways required
-
-        # reimplement old one
-
-        # with self.task_progress_tracker.get_spinner("Reading nodes"):
-        #     # NODES - VALID (NV)
-        #     # - select all with kind = 'node'
-        #     # - select all with lat and lon not empty
-        #     nodes_valid_with_tags = self._sql_to_parquet_file(
-        #         sql_query=f"""
-        #         SELECT
-        #             id,
-        #             {filtered_tags_clause},
-        #             lon,
-        #             lat
-        #         FROM ({elements.sql_query()})
-        #         WHERE kind = 'node'
-        #         AND lat IS NOT NULL AND lon IS NOT NULL
-        #         """,
-        #         file_path=self.tmp_dir_path / "nodes_valid_with_tags",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
-        #     self._sql_to_parquet_file(
-        #         sql_query=f"""
-        #         SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
-        #         WHERE tags IS NOT NULL
-        #         AND cardinality(tags) > 0
-        #         """,
-        #         file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner("Calculating distinct filtered nodes ids"):
-        #     nodes_filtered_ids = self._calculate_unique_ids_to_parquet(
-        #         self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-        #         self.tmp_dir_path / "nodes_filtered_ids",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner("Reading ways"):
-        #     # WAYS - VALID (WV)
-        #     # - select all with kind = 'way'
-        #     # - select all with more then one ref
-        #     # - join all NV to refs
-        #     # - select all where all refs has been joined (total_refs == found_refs)
-        #     self.connection.sql(
-        #         f"""
-        #         SELECT *
-        #         FROM ({elements.sql_query()}) w
-        #         WHERE kind = 'way' AND len(refs) >= 2
-        #         """
-        #     ).to_view("ways", replace=True)
-        #     ways_all_with_tags = self._sql_to_parquet_file(
-        #         sql_query=f"""
-        #         WITH filtered_tags AS (
-        #             SELECT id, {filtered_tags_clause}, tags as raw_tags
-        #             FROM ways w
-        #             WHERE tags IS NOT NULL AND cardinality(tags) > 0
-        #         )
-        #         SELECT id, tags, raw_tags
-        #         FROM filtered_tags
-        #         WHERE tags IS NOT NULL AND cardinality(tags) > 0
-        #         """,
-        #         file_path=self.tmp_dir_path / "ways_all_with_tags",
-        #     )
-        # with self.task_progress_tracker.get_spinner("Unnesting ways"):
-        #     ways_with_unnested_nodes_refs = self._sql_to_parquet_file(
-        #         sql_query="""
-        #         SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
-        #         FROM ways w
-        #         """,
-        #         file_path=self.tmp_dir_path / "ways_with_unnested_nodes_refs",
-        #     )
-        # with self.task_progress_tracker.get_spinner("Filtering ways - valid refs"):
-        #     ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
-        #         refs_unnested=self.tmp_dir_path / "ways_with_unnested_nodes_refs",
-        #         sub_element_ids_valid=self.tmp_dir_path / "nodes_valid_with_tags",
-        #         save_path=self.tmp_dir_path / "ways_ids_valid",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner("Calculating distinct filtered ways ids"):
-        #     ways_filtered_ids = self._calculate_unique_ids_to_parquet(
-        #         self.tmp_dir_path / "ways_all_with_tags",
-        #         self.tmp_dir_path / "ways_filtered_ids",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner("Reading relations"):
-        #     # RELATIONS - VALID (RV)
-        #     # - select all with kind = 'relation'
-        #     # - select all with more then one ref
-        #     # - select all with type in ['boundary', 'multipolygon']
-        #     # - join all WV to refs
-        #     # - select all where all refs has been joined (total_refs == found_refs)
-        #     self.connection.sql(
-        #         f"""
-        #         SELECT *
-        #         FROM ({elements.sql_query()})
-        #         WHERE kind = 'relation' AND len(refs) > 0
-        #         AND list_contains(map_keys(tags), 'type')
-        #         AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
-        #         """
-        #     ).to_view("relations", replace=True)
-        #     relations_all_with_tags = self._sql_to_parquet_file(
-        #         sql_query=f"""
-        #         WITH filtered_tags AS (
-        #             SELECT id, {filtered_tags_clause}
-        #             FROM relations r
-        #             WHERE tags IS NOT NULL AND cardinality(tags) > 0
-        #         )
-        #         SELECT id, tags
-        #         FROM filtered_tags
-        #         WHERE tags IS NOT NULL AND cardinality(tags) > 0
-        #         """,
-        #         file_path=self.tmp_dir_path / "relations_all_with_tags",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner("Unnesting relations"):
-        #     relations_with_unnested_way_refs = self._sql_to_parquet_file(
-        #         sql_query="""
-        #         WITH unnested_relation_refs AS (
-        #             SELECT
-        #                 r.id,
-        #                 UNNEST(refs) as ref,
-        #                 UNNEST(ref_types) as ref_type,
-        #                 UNNEST(ref_roles) as ref_role,
-        #                 UNNEST(range(length(refs))) as ref_idx
-        #             FROM relations r
-        #         )
-        #         SELECT id, ref, ref_role, ref_idx
-        #         FROM unnested_relation_refs
-        #         WHERE ref_type = 'way'
-        #         """,
-        #         file_path=self.tmp_dir_path / "relations_with_unnested_way_refs",
-        #     )
-
-        # with self.task_progress_tracker.get_spinner("Filtering relations - valid refs"):
-        #     relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
-        #         refs_unnested=self.tmp_dir_path / "relations_with_unnested_way_refs",
-        #         sub_element_ids_valid=self.tmp_dir_path / "ways_ids_valid",
-        #         save_path=self.tmp_dir_path / "relations_ids_filtered_valid",
-        #     )
-
-        # ========================= new ============================
-
         # first pass - all unnested plus ids
         unnested_elements_path = self.tmp_dir_path / "unnested_elements"
 
@@ -3275,9 +2047,6 @@ class PbfFileReader:
         ways_unnested_path = self.tmp_dir_path / "ways_unnested"
         relations_unnested_path = self.tmp_dir_path / "relations_unnested"
 
-        # nodes_tags_and_points_filtered_valid_path = (
-        #     self.tmp_dir_path / "nodes_tags_and_points_filtered_valid"
-        # )
         ways_tags_filtered_valid_path = self.tmp_dir_path / "ways_tags_filtered_valid"
         relations_tags_filtered_valid_path = self.tmp_dir_path / "relations_tags_filtered_valid"
 
@@ -3291,7 +2060,7 @@ class PbfFileReader:
             """
         ).to_view("nodes", replace=True)
 
-        with self.task_progress_tracker.get_spinner("Filtering - read nodes", with_minor_step=True):
+        with self.task_progress_tracker.get_spinner("Filtering: read nodes", with_minor_step=True):
             # pass
             nodes_tags_and_points_valid = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -3308,7 +2077,7 @@ class PbfFileReader:
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read nodes points", next_step="minor"
+            "Filtering: read nodes points", next_step="minor"
         ):
             nodes_points_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -3319,7 +2088,7 @@ class PbfFileReader:
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read nodes tags", next_step="minor"
+            "Filtering: read nodes tags", next_step="minor"
         ):
             nodes_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -3333,7 +2102,7 @@ class PbfFileReader:
         self._delete_directories([nodes_tags_and_points_valid_path])
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read elements refs", next_step="minor"
+            "Filtering: read elements refs", next_step="minor"
         ):
             unnested_elements = self.connection.sql(
                 f"""
@@ -3375,16 +2144,14 @@ class PbfFileReader:
                 unnested_elements, unnested_elements_path
             )
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - read ways refs", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Filtering: read ways refs", next_step="minor"):
             ways_unnested = self._save_parquet_file(
                 all_unnested_elements.filter("kind = 'way'").select("id, ref, ref_idx"),
                 ways_unnested_path,
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read relations refs", next_step="minor"
+            "Filtering: read relations refs", next_step="minor"
         ):
             relations_unnested = self._save_parquet_file(
                 all_unnested_elements.filter("kind = 'relation'").select(
@@ -3398,9 +2165,7 @@ class PbfFileReader:
         ways_ids_valid_path = self.tmp_dir_path / "ways_ids_valid"
 
         # ways IDs (valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - ways valid ids", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Filtering: ways valid ids", next_step="minor"):
             ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
                 refs_unnested=ways_unnested_path,
                 sub_element_ids_valid=nodes_points_required_valid_path,
@@ -3409,7 +2174,7 @@ class PbfFileReader:
 
         # relations IDs (valid)
         with self.task_progress_tracker.get_spinner(
-            "Filtering - relations valid ids", next_step="minor"
+            "Filtering: relations valid ids", next_step="minor"
         ):
             relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
                 refs_unnested=relations_unnested_path,
@@ -3419,7 +2184,7 @@ class PbfFileReader:
 
         # relations unnested (filtered, valid)
         with self.task_progress_tracker.get_spinner(
-            "Filtering - unnested relations", next_step="minor"
+            "Filtering: unnested relations", next_step="minor"
         ):
             relations_unnested_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -3436,7 +2201,7 @@ class PbfFileReader:
         # ways IDs (required)
         # - all needed to construct relations from RF
         with self.task_progress_tracker.get_spinner(
-            "Filtering - ways required and valid", next_step="minor"
+            "Filtering: ways required and valid", next_step="minor"
         ):
             ways_ids_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -3451,7 +2216,7 @@ class PbfFileReader:
             )
 
         # ways unnested (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering - unnested ways", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Filtering: unnested ways", next_step="minor"):
             ways_unnested_filtered_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, ref, ref_idx
@@ -3467,7 +2232,7 @@ class PbfFileReader:
         filtered_elements_path = self.tmp_dir_path / "filtered_elements"
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read elements tags", next_step="minor"
+            "Filtering: read elements tags", next_step="minor"
         ):
             filtered_elements = self.connection.sql(
                 f"""
@@ -3499,9 +2264,7 @@ class PbfFileReader:
                 filtered_elements, filtered_elements_path
             )
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering - read ways tags", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Filtering: read ways tags", next_step="minor"):
             ways_tags_filtered_valid = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'way'")
                 .join(ways_ids_valid, condition="id", how="semi")
@@ -3510,7 +2273,7 @@ class PbfFileReader:
             )
 
         with self.task_progress_tracker.get_spinner(
-            "Filtering - read relations tags", next_step="minor"
+            "Filtering: read relations tags", next_step="minor"
         ):
             relations_tags_filtered_valid = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'relation'")
