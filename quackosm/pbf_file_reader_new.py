@@ -1490,7 +1490,7 @@ class PbfFileReader:
         )
 
         if not is_intersecting and not is_filtering:
-            print("no filter")
+            # print("no filter")
             return self._prepare_osm_elements_without_filtering(
                 elements=elements, filtered_tags_clause=filtered_tags_clause
             )
