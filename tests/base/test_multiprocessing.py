@@ -1,5 +1,6 @@
 """Tests for Parquet multiprocessing wrapper."""
 
+import multiprocessing
 import tempfile
 from pathlib import Path
 from random import random
@@ -55,5 +56,8 @@ def test_parquet_exception_wrapping() -> None:
 
 def test_pool_exception_wrapping() -> None:
     """Test if multiprocessing pool exception raising works."""
-    with pytest.raises(MultiprocessingRuntimeError):
-        _run_in_multiprocessing_pool(raise_error, (None,))
+    with (
+        pytest.raises(MultiprocessingRuntimeError),
+        multiprocessing.get_context("spawn").Pool() as pool,
+    ):
+        _run_in_multiprocessing_pool(pool, raise_error, (None,))
