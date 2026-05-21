@@ -1744,16 +1744,25 @@ class PbfFileReader:
             "Filtering: nodes by intersection", next_step="minor"
         ) as bar:
             if is_intersecting:
+                tmp_intersected_nodes_ids_path = (
+                    self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp_non_distinct"
+                )
                 intersect_nodes_with_geometry(
                     nodes_path=nodes_filtered_required_bbox_intersected_points_path,
-                    result_path=self.tmp_dir_path
-                    / "nodes_filtered_required_intersected_ids_tmp_non_distinct",
+                    result_path=tmp_intersected_nodes_ids_path,
                     geometry_filter=cast("BaseGeometry", self.geometry_filter),
                     progress_bar=bar,
                 )
 
+                is_empty = not any(tmp_intersected_nodes_ids_path.iterdir())
+                if is_empty:
+                    empty_table = pa.schema({"id": pa.int64()}).empty_table()
+                    pq.write_table(
+                        table=empty_table, where=tmp_intersected_nodes_ids_path / "empty.parquet"
+                    )
+
                 nodes_filtered_required_intersected_ids_tmp = self._calculate_unique_ids_to_parquet(
-                    self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp_non_distinct",
+                    tmp_intersected_nodes_ids_path,
                     self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp",
                     order_ids=False,
                 )
