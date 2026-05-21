@@ -1168,7 +1168,12 @@ class PbfFileReader:
         filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
             converted_osm_parquet_files
         )
-        self._delete_directories(["nodes_tags_and_points_filtered_valid"])
+        self._delete_directories(
+            [
+                "nodes_tags_filtered_valid",
+                "nodes_filtered_intersected_valid_tags",
+            ]
+        )
 
         filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
             osm_parquet_files=converted_osm_parquet_files
@@ -1180,16 +1185,15 @@ class PbfFileReader:
         self._delete_directories(
             [
                 "nodes_points_required_valid",
-                "ways_required_grouped",
                 "ways_ids_required_valid",
-                "ways_ids_filtered_valid",
                 "ways_unnested_filtered_required_valid",
-                "required_ways_ids_grouped",
                 "required_ways_grouped",
                 "required_ways_tmp",
-                "filtered_ways_ids_grouped",
                 "filtered_ways_grouped",
                 "filtered_ways_tmp",
+                "nodes_filtered_required_intersected_valid_points",
+                "ways_filtered_required_intersected_unnested",
+                "ways_required_intersected_valid_ids",
             ],
         )
 
@@ -1198,9 +1202,9 @@ class PbfFileReader:
         )
         self._delete_directories(
             [
-                "ways_prepared_ids",
                 "ways_tags_filtered_valid",
                 "filtered_ways_with_linestrings",
+                "ways_filtered_intersected_valid_tags",
             ],
         )
 
@@ -1218,6 +1222,8 @@ class PbfFileReader:
                 "relation_outer_parts",
                 "relation_outer_parts_with_holes",
                 "relation_outer_parts_without_holes",
+                "relations_filtered_intersected_valid_tags",
+                "relations_filtered_intersected_valid_unnested",
             ],
         )
 
@@ -1490,7 +1496,6 @@ class PbfFileReader:
         )
 
         if not is_intersecting and not is_filtering:
-            # print("no filter")
             return self._prepare_osm_elements_without_filtering(
                 elements=elements, filtered_tags_clause=filtered_tags_clause
             )
@@ -1585,23 +1590,43 @@ class PbfFileReader:
         with self.task_progress_tracker.get_spinner(
             "Filtering: elements by tags", with_minor_step=True
         ):
-            elements_filtered_ids = self._sql_to_parquet_file(
-                sql_query=f"""
-                SELECT kind, id
-                FROM ({elements.sql_query()})
-                WHERE tags IS NOT NULL
-                AND cardinality(tags) > 0
-                AND ({tags_sql_filter})
-                AND (
-                    {filter_osm_node_ids_filter} OR
-                    {filter_osm_way_ids_filter} OR
-                    {filter_osm_relation_ids_filter}
+            if self.custom_sql_filter:
+                elements_filtered_ids = self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT kind, id
+                    FROM (
+                        SELECT * EXCLUDE (tags), {filtered_tags_clause}
+                        FROM ({elements.sql_query()})
+                        WHERE tags IS NOT NULL
+                        AND cardinality(tags) > 0
+                        AND ({tags_sql_filter})
+                        AND (
+                            {filter_osm_node_ids_filter} OR
+                            {filter_osm_way_ids_filter} OR
+                            {filter_osm_relation_ids_filter}
+                        )
+                    )
+                    WHERE cardinality(tags) > 0
+                    AND ({custom_sql_filter})
+                    """,
+                    file_path=self.tmp_dir_path / "elements_filtered_ids",
                 )
-                AND ({custom_sql_filter})
-                """,
-                file_path=self.tmp_dir_path / "elements_filtered_ids",
-            )
-            # print(elements_filtered_ids)
+            else:
+                elements_filtered_ids = self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT kind, id
+                    FROM ({elements.sql_query()})
+                    WHERE tags IS NOT NULL
+                    AND cardinality(tags) > 0
+                    AND ({tags_sql_filter})
+                    AND (
+                        {filter_osm_node_ids_filter} OR
+                        {filter_osm_way_ids_filter} OR
+                        {filter_osm_relation_ids_filter}
+                    )
+                    """,
+                    file_path=self.tmp_dir_path / "elements_filtered_ids",
+                )
 
             nodes_filtered_ids = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1633,6 +1658,8 @@ class PbfFileReader:
                 single_file_output=True,
             )
 
+        self._delete_directories(["elements_filtered_ids"])
+
         with self.task_progress_tracker.get_spinner(
             "Filtering: unnesting relations", next_step="minor"
         ):
@@ -1654,7 +1681,6 @@ class PbfFileReader:
                 """,
                 file_path=self.tmp_dir_path / "relations_filtered_unnested",
             )
-            # print(relations_unnested)
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: ways required ids", next_step="minor"
@@ -1678,7 +1704,8 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "ways_filtered_required_ids",
                 single_file_output=True,
             )
-            # print(ways_ids_filtered_by_tags_and_required)
+
+        self._delete_directories(["ways_required_ids"])
 
         with self.task_progress_tracker.get_spinner("Filtering: unnesting ways", next_step="minor"):
             ways_filtered_required_unnested = self._sql_to_parquet_file(
@@ -1690,7 +1717,8 @@ class PbfFileReader:
                 """,
                 file_path=self.tmp_dir_path / "ways_filtered_required_unnested",
             )
-            # print(ways_unnested)
+
+        self._delete_directories(["ways_filtered_required_ids"])
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: nodes required ids", next_step="minor"
@@ -1714,7 +1742,8 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "nodes_filtered_required_ids",
                 single_file_output=True,
             )
-            # print(nodes_ids_filtered_by_tags_and_required)
+
+        self._delete_directories(["nodes_required_ids"])
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: reading nodes points", next_step="minor"
@@ -1739,6 +1768,8 @@ class PbfFileReader:
                 """,
                 file_path=nodes_filtered_required_bbox_intersected_points_path,
             )
+
+        self._delete_directories(["nodes_filtered_required_ids"])
 
         with self.task_progress_tracker.get_bar(
             "Filtering: nodes by intersection", next_step="minor"
@@ -1775,11 +1806,19 @@ class PbfFileReader:
                     file_path=self.tmp_dir_path / "nodes_filtered_intersected_ids",
                     single_file_output=True,
                 )
+                self._delete_directories(
+                    [
+                        "nodes_filtered_ids",
+                        "nodes_filtered_required_intersected_ids_tmp_non_distinct",
+                    ]
+                )
             else:
                 nodes_filtered_required_intersected_ids_tmp = (
                     nodes_filtered_required_bbox_intersected_points
                 )
                 nodes_filtered_intersected_ids = nodes_filtered_ids
+
+        self._delete_directories(["nodes_filtered_required_bbox_intersected_points"])
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: ways by intersection", next_step="minor"
@@ -1809,10 +1848,15 @@ class PbfFileReader:
                     file_path=self.tmp_dir_path / "ways_filtered_intersected_ids",
                     single_file_output=True,
                 )
+                self._delete_directories(
+                    [
+                        "nodes_filtered_required_intersected_ids_tmp",
+                        "ways_filtered_required_intersected_ids_tmp_non_distinct",
+                    ]
+                )
             else:
                 ways_filtered_required_intersected_ids_tmp = ways_filtered_required_ids
                 ways_filtered_intersected_ids = ways_filtered_ids
-            # print(ways_ids_filtered_and_intersecting)
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: relations by intersection", next_step="minor"
@@ -1832,9 +1876,14 @@ class PbfFileReader:
                     self.tmp_dir_path / "relations_filtered_intersected_ids",
                     order_ids=False,
                 )
+                self._delete_directories(
+                    [
+                        "ways_filtered_required_intersected_ids_tmp",
+                        "relations_filtered_intersected_ids_non_distinct",
+                    ]
+                )
             else:
                 relations_filtered_intersected_ids = relations_filtered_ids
-            # print(relations_ids_filtered_and_intersecting)
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: unnested intersected relations", next_step="minor"
@@ -1847,6 +1896,14 @@ class PbfFileReader:
                 """,
                 file_path=self.tmp_dir_path / "relations_filtered_intersected_unnested",
             )
+
+        self._delete_directories(
+            [
+                "relations_filtered_unnested",
+                "relations_filtered_ids",
+                "relations_filtered_intersected_ids",
+            ]
+        )
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: ways required intersected ids", next_step="minor"
@@ -1883,6 +1940,13 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "ways_filtered_required_intersected_unnested",
                 single_file_output=True,
             )
+
+        self._delete_directories(
+            [
+                "ways_filtered_required_unnested",
+                "ways_filtered_required_intersected_ids",
+            ]
+        )
 
         with self.task_progress_tracker.get_spinner(
             "Filtering: nodes required intersected ids", next_step="minor"
@@ -1934,6 +1998,15 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "ways_filtered_intersected_valid_ids",
             )
 
+        self._delete_directories(
+            [
+                "ways_filtered_ids",
+                "ways_filtered_intersected_ids",
+                "ways_filtered_required_intersected_valid_ids",
+                "ways_required_intersected_ids",
+            ]
+        )
+
         with self.task_progress_tracker.get_spinner(
             "Filtering: relations valid ids", next_step="minor"
         ):
@@ -1953,6 +2026,8 @@ class PbfFileReader:
                 file_path=self.tmp_dir_path / "relations_filtered_intersected_valid_unnested",
                 single_file_output=True,
             )
+
+        self._delete_directories(["relations_filtered_intersected_unnested"])
 
         filtered_elements_path = self.tmp_dir_path / "filtered_elements"
 
@@ -2033,8 +2108,17 @@ class PbfFileReader:
                 relations_filtered_intersected_valid_tags_path,
             )
 
+        self._delete_directories(
+            [
+                "nodes_filtered_ids",
+                "nodes_filtered_intersected_ids",
+                "ways_filtered_intersected_valid_ids",
+                "relations_filtered_intersected_valid_ids",
+                "filtered_elements",
+            ]
+        )
+
         return PbfFileReader.ConvertedOSMParquetFiles(
-            # nodes_tags_and_points_filtered=nodes_tags_and_points_filtered_valid,
             nodes_tags_filtered=nodes_filtered_intersected_valid_tags,
             nodes_points_required=nodes_filtered_required_intersected_valid_points,
             ways_tags_filtered=ways_filtered_intersected_valid_tags,
