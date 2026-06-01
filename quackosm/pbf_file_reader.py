@@ -1591,7 +1591,8 @@ class PbfFileReader:
                 sql_query="""
                 SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
                 FROM ways w
-                """,
+                """
+                   ,
                 file_path=self.tmp_dir_path / "ways_with_unnested_nodes_refs",
             )
         with self.task_progress_tracker.get_spinner("Filtering ways - valid refs"):
@@ -3431,18 +3432,16 @@ def _set_up_duckdb_connection(
         preserve_insertion_order=preserve_insertion_order,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
     )
-
-    connection.sql(
+              .sql(
         """
-        CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
-        ST_RemoveRepeatedPoints(
+        CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS ST_RemoveRepeatedPoints(
+
             ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
         )::GEOMETRY;
         """
     )
     connection.sql(
-        """
-        CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
+        """CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
         ST_MakePolygon(linestring_to_linestring_geometry(ls));
         """
     )
