@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored whole PbfFileReader prefiltering implementation to reduce memory and disk usage
+    - Changed raw OSM tags manipulation query to reduce DuckDB operations
+    - Created dedicated paths for reading all features from the PBF file vs intersecting and/or filtering
+    - Renamed temporal directories names
+    - When filtering and/or intersecting added multiple steps operating on a much smaller dataset than previously
+    - Bundled all filtering steps into a single major step in progress reporting
+- Reduced number of major steps in the progress bar form 33 to 16
+
+### Added
+
+- Internal testing of resources usage for filtered and intersected scenarios
+
 ## [0.17.1] - 2026-04-17
 
 ### Changed
