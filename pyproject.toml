@@ -96,7 +96,7 @@ docs = [
     "contextily",
 ]
 license = ["licensecheck==2025.1.0", "pipdeptree"]
-cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify", "diagrams"]
+cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
 
 [project.scripts]
 quackosm = "quackosm.__main__:main"
