@@ -175,6 +175,21 @@ dependencies = [
 ]
 
 [[packages]]
+name = "click"
+version = "8.2.1"
+requires-python = ">=3.10"
+sdist = {name = "click-8.2.1.tar.gz", url = "https://files.pythonhosted.org/packages/60/6c/8ca2efa64cf75a977a0d7fac081354553ebe483345c734fb6b6515d96bbc/click-8.2.1.tar.gz", hashes = {sha256 = "27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202"}}
+wheels = [
+    {name = "click-8.2.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/85/32/10bb5764d90a8eee674e9dc6f4db6a0ab47c8c4d0d83c27f7c39ac415a4d/click-8.2.1-py3-none-any.whl",hashes = {sha256 = "61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b"}},
+]
+marker = "\"default\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "colorama; platform_system == \"Windows\"",
+]
+
+[[packages]]
 name = "duckdb"
 version = "1.3.2"
 requires-python = ">=3.7.0"
@@ -1714,21 +1729,6 @@ marker = "\"default\" in dependency_groups or \"cli-dev\" in dependency_groups o
 
 [packages.tool.pdm]
 dependencies = []
-
-[[packages]]
-name = "click"
-version = "8.2.1"
-requires-python = ">=3.10"
-sdist = {name = "click-8.2.1.tar.gz", url = "https://files.pythonhosted.org/packages/60/6c/8ca2efa64cf75a977a0d7fac081354553ebe483345c734fb6b6515d96bbc/click-8.2.1.tar.gz", hashes = {sha256 = "27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202"}}
-wheels = [
-    {name = "click-8.2.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/85/32/10bb5764d90a8eee674e9dc6f4db6a0ab47c8c4d0d83c27f7c39ac415a4d/click-8.2.1-py3-none-any.whl",hashes = {sha256 = "61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b"}},
-]
-marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "colorama; platform_system == \"Windows\"",
-]
 
 [[packages]]
 name = "comm"
@@ -4832,7 +4832,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "fe54ad5c78679f10303966ec5d189ae0e4de5125777dc60c746b53b696dd61c1"}
+hashes = {sha256 = "bf1e1e00f55df5796cb36a09ccb2234dcc1f3bcc7ba0c847257b419ab1c47ed3"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
