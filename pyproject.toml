@@ -31,7 +31,7 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
+"Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -50,7 +50,7 @@ Changelog = "https://github.com/kraina-ai/quackosm/blob/main/CHANGELOG.md"
 [project.optional-dependencies]
 cli = [
     "typer[all]>=0.9.0",
-    "s2sphere>=0.2.5",
+        "s2sphere>=0.2.5",
 ]
 
 [dependency-groups]
@@ -187,6 +187,7 @@ push = false
     '^version = "{version}"$',
 ]
 "quackosm/__init__.py" = ['^__version__ = "{version}"$']
+"CITATION.cff" = ['^version: {version}$']
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
