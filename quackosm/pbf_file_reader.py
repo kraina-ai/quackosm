@@ -3030,9 +3030,16 @@ class PbfFileReader:
                 )
         else:
             ways_ids_grouped_files = list(grouped_ways_ids_with_group_path.glob("**/*.parquet"))
-            ways_with_unnested_nodes_refs_files = list(
-                (self.tmp_dir_path / "ways_unnested_filtered_required_valid").glob("**/*.parquet")
+            directories_to_check = (
+                "ways_unnested_filtered_required_valid",
+                "ways_filtered_required_intersected_unnested",
             )
+            ways_with_unnested_nodes_refs_files = [
+                path
+                for directory in directories_to_check
+                for path in (self.tmp_dir_path / directory).glob("**/*.parquet")
+            ]
+
             with self.task_progress_tracker.get_bar(
                 f"Grouping {mode} ways - joining with nodes", next_step="minor"
             ) as bar:
