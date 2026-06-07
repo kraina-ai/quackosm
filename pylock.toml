@@ -182,7 +182,7 @@ sdist = {name = "click-8.2.1.tar.gz", url = "https://files.pythonhosted.org/pack
 wheels = [
     {name = "click-8.2.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/85/32/10bb5764d90a8eee674e9dc6f4db6a0ab47c8c4d0d83c27f7c39ac415a4d/click-8.2.1-py3-none-any.whl",hashes = {sha256 = "61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b"}},
 ]
-marker = "\"default\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups"
+marker = "\"cli\" in extras or \"dev\" in dependency_groups or \"docs\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = [
@@ -805,6 +805,24 @@ dependencies = [
 ]
 
 [[packages]]
+name = "typer"
+version = "0.25.1"
+requires-python = ">=3.10"
+sdist = {name = "typer-0.25.1.tar.gz", url = "https://files.pythonhosted.org/packages/e4/51/9aed62104cea109b820bbd6c14245af756112017d309da813ef107d42e7e/typer-0.25.1.tar.gz", hashes = {sha256 = "9616eb8853a09ffeabab1698952f33c6f29ffdbceb4eaeecf571880e8d7664cc"}}
+wheels = [
+    {name = "typer-0.25.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/3f/f9/2b3ff4e56e5fa7debfaf9eb135d0da96f3e9a1d5b27222223c7296336e5f/typer-0.25.1-py3-none-any.whl",hashes = {sha256 = "75caa44ed46a03fb2dab8808753ffacdbfea88495e74c85a28c5eefcf5f39c89"}},
+]
+marker = "\"cli\" in extras"
+
+[packages.tool.pdm]
+dependencies = [
+    "click>=8.2.1",
+    "shellingham>=1.3.0",
+    "rich>=13.8.0",
+    "annotated-doc>=0.0.2",
+]
+
+[[packages]]
 name = "adjusttext"
 version = "1.3.0"
 sdist = {name = "adjusttext-1.3.0.tar.gz", url = "https://files.pythonhosted.org/packages/4c/d4/6585f3b6fdb75648bca294664af4becc8aa2fb3fb08f4e4e9fd27e10d773/adjusttext-1.3.0.tar.gz", hashes = {sha256 = "4ab75cd4453af4828876ac3e964f2c49be642ea834f0c1f7449558d5f12cbca1"}}
@@ -1272,24 +1290,6 @@ dependencies = [
     "mkdocs>=1.6",
     "mkdocs-autorefs>=1.4",
     "pymdown-extensions>=6.3",
-]
-
-[[packages]]
-name = "typer"
-version = "0.26.7"
-requires-python = ">=3.10"
-sdist = {name = "typer-0.26.7.tar.gz", url = "https://files.pythonhosted.org/packages/5e/ed/ef06584ccdd5c410df0837951ecd7e15d9a6144ea1bd4c73cecab1a89891/typer-0.26.7.tar.gz", hashes = {sha256 = "e314a34c617e419c091b2830dda3ea1f257134ff593061a8f5b9717ab8dddb3a"}}
-wheels = [
-    {name = "typer-0.26.7-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/24/25/2201973529af2c954de0bb725323c3aaed6d7f0ceee8f550dec9185df013/typer-0.26.7-py3-none-any.whl",hashes = {sha256 = "5c87cfbc5d34491c5346ebf49c23e18d56ccb863268d3a8d592b26087c2f5e58"}},
-]
-marker = "\"cli\" in extras"
-
-[packages.tool.pdm]
-dependencies = [
-    "shellingham>=1.3.0",
-    "rich>=13.8.0",
-    "annotated-doc>=0.0.2",
-    "colorama; platform_system == \"Windows\"",
 ]
 
 [[packages]]
@@ -4832,7 +4832,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "bf1e1e00f55df5796cb36a09ccb2234dcc1f3bcc7ba0c847257b419ab1c47ed3"}
+hashes = {sha256 = "ff3cca4790e57dffa049da92095a05aeebaa83d501f48f2d509db37af51952fe"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
