@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Internal testing of resources usage for filtered and intersected scenarios
 - Explicit `click` to the dependencies, since `typer` removed it from its own dependencies
+- CITATION.cff file with Zenodo DOI
 
 ## [0.17.1] - 2026-04-17
 
