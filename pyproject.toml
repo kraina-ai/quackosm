@@ -187,6 +187,7 @@ push = false
     '^version = "{version}"$',
 ]
 "quackosm/__init__.py" = ['^__version__ = "{version}"$']
+"CITATION.cff" = ['^version: {version}$']
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
