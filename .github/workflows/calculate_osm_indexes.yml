@@ -1,0 +1,68 @@
+name: "Update precalculated OSM indexes and create PR"
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 1 * *" # every 1st day of the month at 04:00 UTC
+
+env:
+  PYTHON_VERSION: 3.12
+
+jobs:
+  calculate-indexes:
+    name: Update precalculated OSM indexes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CICD_PAT_TOKEN }}
+      - name: Configure Git user
+        run: |
+          git config --local user.name "Kraina CI/CD"
+          git config --local user.email "cicd@kraina.ai"
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/pylock.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-dev-
+      - name: Install pdm
+        run: pip install pdm uv
+      - name: Install quackosm
+        run: |
+          pdm build -v -d dist
+          uv pip install 'quackosm @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
+      - name: Calculate OSM indexes
+        run: uv run dev/calculate_osm_indexes.py
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          title: "chore: update precalculated osm indexes"
+          branch: update-osm-precalculcated-indexes
+          base: main
+          labels: |
+            Skip-Changelog
+            Skip-Tests
+          add-paths: precalculated_indexes/*.geojson
+          token: ${{ secrets.CICD_PAT_TOKEN }}
+          author: Kraina CI/CD <cicd@kraina.ai>
+          committer: Kraina CI/CD <cicd@kraina.ai>
+          commit-message: "chore: update precalculated osm indexes"
+      - name: Find pull request
+        uses: juliangruber/find-pull-request-action@v1
+        id: find-pull-request
+        with:
+          branch: update-osm-precalculcated-indexes
+      - name: Sleep for 60 seconds
+        run: sleep 60s
+        shell: bash
+      - name: Merge pull request
+        uses: juliangruber/merge-pull-request-action@v1
+        with:
+          github-token: ${{ secrets.CICD_PAT_TOKEN }}
+          number: ${{ steps.find-pull-request.outputs.number }}
+          method: squash

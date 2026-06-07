@@ -27,17 +27,17 @@ OPENSTREETMAP_FR_INDEX_GDF: Optional[gpd.GeoDataFrame] = None
 __all__ = ["_get_openstreetmap_fr_index"]
 
 
-def _get_openstreetmap_fr_index() -> gpd.GeoDataFrame:
+def _get_openstreetmap_fr_index(**kwargs: Any) -> gpd.GeoDataFrame:
     global OPENSTREETMAP_FR_INDEX_GDF  # noqa: PLW0603
 
     if OPENSTREETMAP_FR_INDEX_GDF is None:
-        OPENSTREETMAP_FR_INDEX_GDF = _load_openstreetmap_fr_index()
+        OPENSTREETMAP_FR_INDEX_GDF = _load_openstreetmap_fr_index(**kwargs)
 
     return OPENSTREETMAP_FR_INDEX_GDF
 
 
 @load_index_decorator(OsmExtractSource.osm_fr)
-def _load_openstreetmap_fr_index() -> gpd.GeoDataFrame:  # pragma: no cover
+def _load_openstreetmap_fr_index(**kwargs: Any) -> gpd.GeoDataFrame:  # pragma: no cover
     """
     Load available extracts from OpenStreetMap.fr download service.
 

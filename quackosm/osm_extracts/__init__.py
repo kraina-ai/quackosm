@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
-from pandas.util._decorators import deprecate
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from rich import get_console
@@ -24,6 +23,7 @@ from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
 
+from quackosm._deprecate import deprecate
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
@@ -861,8 +861,8 @@ def _flatten_geometry(geometry: BaseGeometry) -> list[BaseGeometry]:
 
 
 find_smallest_containing_extract = deprecate(
-    "find_smallest_containing_extract",
-    find_smallest_containing_extracts,
-    "0.9.0",
+    name="find_smallest_containing_extract",
+    alternative=find_smallest_containing_extracts,
+    version="0.9.0",
     msg="Use `find_smallest_containing_extracts` instead. Deprecated since 0.9.0 version.",
 )

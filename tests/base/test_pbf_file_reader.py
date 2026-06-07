@@ -2,6 +2,7 @@
 
 import json
 import random
+import tempfile
 import warnings
 from functools import partial
 from itertools import permutations
@@ -94,6 +95,38 @@ def test_pbf_to_geoparquet_parsing(
         assert decoded_geo_schema["columns"][GEOMETRY_COLUMN]["encoding"] == "WKT"
     else:
         assert decoded_geo_schema["columns"][GEOMETRY_COLUMN]["encoding"] == "WKB"
+
+
+@pytest.mark.parametrize("compression", ["snappy", "zstd"])  # type: ignore
+@pytest.mark.parametrize("compression_level", [3, 10])  # type: ignore
+@pytest.mark.parametrize("row_group_size", [1_000, 100_000])  # type: ignore
+@pytest.mark.parametrize("parquet_version", ["v1", "v2"])  # type: ignore
+def test_pbf_to_geoparquet_parsing_with_compression(
+    compression: str,
+    compression_level: int,
+    row_group_size: int,
+    parquet_version: str,
+) -> None:
+    """Test if pbf to geoparquet conversion works with compression."""
+    pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    result = PbfFileReader(
+        compression=compression,
+        compression_level=compression_level,
+        row_group_size=row_group_size,
+        parquet_version=parquet_version,
+    ).convert_pbf_to_parquet(
+        pbf_path=pbf_file,
+        ignore_cache=True,
+        sort_result=False,
+    )
+
+    metadata = pq.ParquetFile(result).metadata
+
+    # NOTE: cannot test if version is above 1.0 because of
+    # https://github.com/duckdb/duckdb/pull/16149
+    print(metadata)
+
+    assert metadata.row_group(0).column(0).compression == compression.upper()
 
 
 @pytest.mark.parametrize(
@@ -544,32 +577,32 @@ def test_geometry_sorting() -> None:
     "func,new_function_name",
     [
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.get_features_gdf,
                 file_paths=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
             ),
             "convert_pbf_to_geodataframe",
         ),
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.get_features_gdf,
                 pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
             ),
             "convert_pbf_to_geodataframe",
         ),
         (
-            partial(functions.get_features_gdf_from_geometry, geometry_filter=geometry_box()),
+            partial(functions.get_features_gdf_from_geometry, geometry_filter=geometry_box()),  # type: ignore[call-arg]
             "convert_geometry_to_geodataframe",
         ),
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.convert_pbf_to_gpq,
                 pbf_path=Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf",
             ),
             "convert_pbf_to_parquet",
         ),
         (
-            partial(
+            partial(  # type: ignore[call-arg]
                 functions.convert_geometry_to_gpq,
                 geometry_filter=geometry_box(),
             ),
@@ -631,6 +664,35 @@ def test_metadata_tags_ignoring(ignore_metadata_tags: bool) -> None:
         assert all(tag not in all_tags for tag in METADATA_TAGS_TO_IGNORE)
     else:
         assert any(tag in all_tags for tag in METADATA_TAGS_TO_IGNORE)
+
+
+def test_duckdb_conn_kwargs_config() -> None:
+    """Test if duckdb connection config can be modified."""
+    # extension_directory
+    with tempfile.TemporaryDirectory(
+        dir=Path(__file__).parent.resolve(), ignore_cleanup_errors=True
+    ) as tmp_dir_name:
+        print(tmp_dir_name)
+        pbf_file = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+        reader = PbfFileReader(
+            duckdb_conn_kwargs={
+                "config_kwargs": {"extension_directory": tmp_dir_name},
+                "community_extensions_to_load": ["h3"],
+            }
+        )
+        reader.convert_pbf_to_parquet(
+            pbf_path=pbf_file,
+            ignore_cache=True,
+            keep_all_tags=True,
+            sort_result=False,
+        )
+
+        assert reader.connection is None
+
+        generated_files_names = [f.name for f in Path(tmp_dir_name).glob("**/*") if f.is_file()]
+        print(generated_files_names)
+        assert "spatial.duckdb_extension" in generated_files_names
+        assert "h3.duckdb_extension" in generated_files_names
 
 
 def check_if_relation_in_osm_is_valid_based_on_tags(pbf_file: str, relation_id: str) -> bool:

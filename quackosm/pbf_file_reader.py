@@ -30,12 +30,15 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
-from packaging import version
-from pandas.util._decorators import deprecate, deprecate_kwarg
 from pooch import get_logger as get_pooch_logger
 from pooch import retrieve
 from pooch.utils import parse_url
-from rq_geo_toolkit.duckdb import sql_escape
+from rq_geo_toolkit.duckdb import (
+    DUCKDB_ABOVE_130,
+    DuckDBConnKwargs,
+    set_up_duckdb_connection,
+    sql_escape,
+)
 from rq_geo_toolkit.geoparquet_compression import (
     compress_parquet_with_duckdb,
     compress_query_with_duckdb,
@@ -52,8 +55,10 @@ from quackosm._constants import (
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
+    PARQUET_VERSION,
     WGS84_CRS,
 )
+from quackosm._deprecate import deprecate, deprecate_kwarg
 from quackosm._exceptions import (
     EmptyResultWarning,
     InvalidGeometryFilter,
@@ -119,19 +124,17 @@ class PbfFileReader:
     class ConvertedOSMParquetFiles(NamedTuple):
         """List of parquet files read from the `*.osm.pbf` file."""
 
-        nodes_valid_with_tags: "duckdb.DuckDBPyRelation"
-        nodes_filtered_ids: "duckdb.DuckDBPyRelation"
+        nodes_tags_filtered: "duckdb.DuckDBPyRelation"
+        nodes_points_required: "duckdb.DuckDBPyRelation"
 
-        ways_all_with_tags: "duckdb.DuckDBPyRelation"
-        ways_with_unnested_nodes_refs: "duckdb.DuckDBPyRelation"
-        ways_required_ids: "duckdb.DuckDBPyRelation"
-        ways_filtered_ids: "duckdb.DuckDBPyRelation"
+        ways_tags_filtered: "duckdb.DuckDBPyRelation"
+        ways_unnested_filtered_required: "duckdb.DuckDBPyRelation"
+        ways_ids_required: "duckdb.DuckDBPyRelation"
 
-        relations_all_with_tags: "duckdb.DuckDBPyRelation"
-        relations_with_unnested_way_refs: "duckdb.DuckDBPyRelation"
-        relations_filtered_ids: "duckdb.DuckDBPyRelation"
+        relations_tags_filtered: "duckdb.DuckDBPyRelation"
+        relations_unnested_filtered: "duckdb.DuckDBPyRelation"
 
-    if version.parse(duckdb.__version__) >= version.parse("1.3.0"):
+    if DUCKDB_ABOVE_130:
         ROWS_PER_GROUP_MEMORY_CONFIG = {
             0: 10_000,
             1: 50_000,
@@ -141,6 +144,7 @@ class PbfFileReader:
             16: 16_000_000,
             32: 48_000_000,
         }
+        parquet_version_query = "PARQUET_VERSION v2,"
     else:
         ROWS_PER_GROUP_MEMORY_CONFIG = {
             0: 10_000,
@@ -151,8 +155,9 @@ class PbfFileReader:
             16: 1_000_000,
             24: 5_000_000,
         }
+        parquet_version_query = ""
 
-    @deprecate_kwarg(old_arg_name="parquet_compression", new_arg_name="compression")  # type: ignore
+    @deprecate_kwarg(old_arg_name="parquet_compression", new_arg_name="compression")
     def __init__(
         self,
         tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -165,6 +170,7 @@ class PbfFileReader:
         compression: str = PARQUET_COMPRESSION,
         compression_level: int = PARQUET_COMPRESSION_LEVEL,
         row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+        parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
         osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
         verbosity_mode: VERBOSITY_MODE = "transient",
         geometry_coverage_iou_threshold: float = 0.01,
@@ -173,6 +179,7 @@ class PbfFileReader:
         debug_memory: bool = False,
         debug_times: bool = False,
         cpu_limit: Optional[int] = None,
+        duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -205,9 +212,11 @@ class PbfFileReader:
                 Defaults to "zstd".
             compression_level (int, optional): Compression level of the final parquet file.
                 Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-                Defaults to 3.
+                Supported only for zstd compression. Defaults to 3.
             row_group_size (int, optional): Approximate number of rows per row group in the final
                 parquet file. Defaults to 100_000.
+            parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+                save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
             osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
                 downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
                 Defaults to `any`.
@@ -230,6 +239,8 @@ class PbfFileReader:
                 step has been executed. Defaults to `False`.
             cpu_limit (int, optional): Max number of threads available for processing.
                 If `None`, will use all available threads. Defaults to `None`.
+            duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+                provision a duckdb connection. Defaults to None.
 
         Raises:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
@@ -264,6 +275,7 @@ class PbfFileReader:
         self.compression = compression
         self.compression_level = compression_level
         self.row_group_size = row_group_size
+        self.parquet_version = parquet_version
 
         self.internal_rows_per_group: int = 0
         self.internal_parquet_compression = "zstd"
@@ -271,6 +283,8 @@ class PbfFileReader:
         self.cpu_limit = (
             cpu_limit or duckdb.sql("SELECT current_setting('threads') AS threads").fetchone()[0]
         )
+
+        self.duckdb_conn_kwargs = duckdb_conn_kwargs
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
@@ -287,30 +301,30 @@ class PbfFileReader:
         )
 
         self.convert_pbf_to_gpq = deprecate(
-            "convert_pbf_to_gpq",
-            self.convert_pbf_to_parquet,
-            "0.8.1",
+            name="convert_pbf_to_gpq",
+            alternative=self.convert_pbf_to_parquet,
+            version="0.8.1",
             msg="Use `convert_pbf_to_parquet` instead. Deprecated since 0.8.1 version.",
         )
 
         self.convert_geometry_filter_to_gpq = deprecate(
-            "convert_geometry_filter_to_gpq",
-            self.convert_geometry_to_parquet,
-            "0.8.1",
+            name="convert_geometry_filter_to_gpq",
+            alternative=self.convert_geometry_to_parquet,
+            version="0.8.1",
             msg="Use `convert_geometry_to_parquet` instead. Deprecated since 0.8.1 version.",
         )
 
         self.get_features_gdf = deprecate(
-            "get_features_gdf",
-            self.convert_pbf_to_geodataframe,
-            "0.8.1",
+            name="get_features_gdf",
+            alternative=self.convert_pbf_to_geodataframe,
+            version="0.8.1",
             msg="Use `convert_pbf_to_geodataframe` instead. Deprecated since 0.8.1 version.",
         )
 
         self.get_features_gdf_from_geometry = deprecate(
-            "get_features_gdf_from_geometry",
-            self.convert_geometry_to_geodataframe,
-            "0.8.1",
+            name="get_features_gdf_from_geometry",
+            alternative=self.convert_geometry_to_geodataframe,
+            version="0.8.1",
             msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
         )
 
@@ -555,7 +569,10 @@ class PbfFileReader:
                 self.tags_filter is not None and self.is_tags_filter_positive and not keep_all_tags
             )
 
-        with tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name:
+        with (
+            tempfile.TemporaryDirectory(dir=self.working_directory.resolve()) as self.tmp_dir_name,
+            multiprocessing.get_context("spawn").Pool(processes=1) as self.pool,
+        ):
             self.tmp_dir_path = Path(self.tmp_dir_name)
 
             if self.debug_memory:
@@ -564,7 +581,9 @@ class PbfFileReader:
             try:
                 self.encountered_query_exception = False
                 self.connection = _set_up_duckdb_connection(
-                    tmp_dir_path=self.tmp_dir_path, threads_limit=self.cpu_limit
+                    tmp_dir_path=self.tmp_dir_path,
+                    threads_limit=self.cpu_limit,
+                    duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                 )
 
                 original_geometry_filter = self.geometry_filter
@@ -707,7 +726,7 @@ class PbfFileReader:
             ],
         )
 
-    @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
+    @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")
     def convert_pbf_to_geodataframe(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -991,9 +1010,12 @@ class PbfFileReader:
         with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
             output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
 
-            _run_in_multiprocessing_pool(
-                _drop_duplicates_in_pyarrow_table, (parsed_geoparquet_files, output_file_name)
-            )
+            with multiprocessing.get_context("spawn").Pool(processes=1) as pool:
+                _run_in_multiprocessing_pool(
+                    pool,
+                    _drop_duplicates_in_pyarrow_table,
+                    (parsed_geoparquet_files, output_file_name),
+                )
 
             return [output_file_name]
 
@@ -1004,7 +1026,9 @@ class PbfFileReader:
             return parsed_geoparquet_files
 
         connection = _set_up_duckdb_connection(
-            tmp_dir_path=tmp_dir_path, threads_limit=self.cpu_limit
+            tmp_dir_path=tmp_dir_path,
+            threads_limit=self.cpu_limit,
+            duckdb_conn_kwargs=self.duckdb_conn_kwargs,
         )
 
         with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
@@ -1019,6 +1043,7 @@ class PbfFileReader:
                     QUALIFY row_number() OVER (PARTITION BY feature_id) = 1
                 ) TO '{output_file_name}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PER_THREAD_OUTPUT true,
                     FILE_SIZE_BYTES '128MB',
@@ -1026,6 +1051,7 @@ class PbfFileReader:
                     COMPRESSION '{self.internal_parquet_compression}'
                 )
             """
+            connection.close()
             if self.debug_memory:
                 log_message(f"Saved to directory: {output_file_name}")
             self._run_query(query, run_in_separate_process=True, tmp_dir_path=tmp_dir_path)
@@ -1042,7 +1068,9 @@ class PbfFileReader:
         )
 
         connection = _set_up_duckdb_connection(
-            tmp_dir_path=tmp_dir_path, threads_limit=self.cpu_limit
+            tmp_dir_path=tmp_dir_path,
+            threads_limit=self.cpu_limit,
+            duckdb_conn_kwargs=self.duckdb_conn_kwargs,
         )
 
         result_parquet_files = [sorted_parsed_geoparquet_files[0]]
@@ -1060,6 +1088,7 @@ class PbfFileReader:
                         USING (feature_id)
                     ) TO '{filtered_result_parquet_file}' (
                         FORMAT 'parquet',
+                        {PbfFileReader.parquet_version_query}
                         PER_THREAD_OUTPUT true,
                         FILE_SIZE_BYTES '128MB',
                         ROW_GROUP_SIZE_BYTES '16MB',
@@ -1070,6 +1099,8 @@ class PbfFileReader:
                     log_message(f"Saved to directory: {filtered_result_parquet_file}")
                 connection.sql(query)
                 result_parquet_files.extend(filtered_result_parquet_file.glob("*.parquet"))
+
+        connection.close()
         return result_parquet_files
 
     def _parse_pbf_file(
@@ -1132,21 +1163,15 @@ class PbfFileReader:
 
         converted_osm_parquet_files = self._prefilter_elements_ids(elements, filter_osm_ids)
 
-        self._delete_directories(
-            [
-                "nodes_filtered_non_distinct_ids",
-                "nodes_prepared_ids",
-                "ways_valid_ids",
-                "ways_filtered_non_distinct_ids",
-                "relations_valid_ids",
-                "relations_ids",
-            ],
-        )
-
         filtered_nodes_with_geometry_path = self._get_filtered_nodes_with_geometry(
             converted_osm_parquet_files
         )
-        self._delete_directories("nodes_filtered_ids")
+        self._delete_directories(
+            [
+                "nodes_tags_filtered_valid",
+                "nodes_filtered_intersected_valid_tags",
+            ]
+        )
 
         filtered_ways_with_linestrings = self._get_filtered_ways_with_linestrings(
             osm_parquet_files=converted_osm_parquet_files
@@ -1154,18 +1179,19 @@ class PbfFileReader:
         required_ways_with_linestrings = self._get_required_ways_with_linestrings(
             osm_parquet_files=converted_osm_parquet_files
         )
+
         self._delete_directories(
             [
-                "nodes_valid_with_tags",
-                "ways_required_grouped",
-                "ways_required_ids",
-                "ways_with_unnested_nodes_refs",
-                "required_ways_ids_grouped",
+                "nodes_points_required_valid",
+                "ways_ids_required_valid",
+                "ways_unnested_filtered_required_valid",
                 "required_ways_grouped",
                 "required_ways_tmp",
-                "filtered_ways_ids_grouped",
                 "filtered_ways_grouped",
                 "filtered_ways_tmp",
+                "nodes_filtered_required_intersected_valid_points",
+                "ways_filtered_required_intersected_unnested",
+                "ways_required_intersected_valid_ids",
             ],
         )
 
@@ -1174,10 +1200,9 @@ class PbfFileReader:
         )
         self._delete_directories(
             [
-                "ways_prepared_ids",
-                "ways_filtered_ids",
-                "ways_all_with_tags",
+                "ways_tags_filtered_valid",
                 "filtered_ways_with_linestrings",
+                "ways_filtered_intersected_valid_tags",
             ],
         )
 
@@ -1186,9 +1211,8 @@ class PbfFileReader:
         )
         self._delete_directories(
             [
-                "relations_all_with_tags",
-                "relations_with_unnested_way_refs",
-                "relations_filtered_ids",
+                "relations_tags_filtered_valid",
+                "relations_unnested_filtered_valid",
                 "required_ways_with_linestrings",
                 "valid_relation_parts",
                 "valid_relations_tmp",
@@ -1196,6 +1220,8 @@ class PbfFileReader:
                 "relation_outer_parts",
                 "relation_outer_parts_with_holes",
                 "relation_outer_parts_without_holes",
+                "relations_filtered_intersected_valid_tags",
+                "relations_filtered_intersected_valid_unnested",
             ],
         )
 
@@ -1456,19 +1482,673 @@ class PbfFileReader:
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]
     ) -> ConvertedOSMParquetFiles:
-        sql_filter = self._generate_osm_tags_sql_filter()
+        tags_sql_filter = self._generate_osm_tags_sql_filter()
         filtered_tags_clause = (
             self._generate_filtered_tags_clause() if self.ignore_metadata_tags else "tags"
         )
         custom_sql_filter = self.custom_sql_filter or "1=1"
 
         is_intersecting = self.geometry_filter is not None
+        is_filtering = (
+            tags_sql_filter != "(1=1)" or custom_sql_filter != "1=1" or len(filter_osm_ids) > 0
+        )
 
-        with self.task_progress_tracker.get_spinner("Reading nodes"):
-            # NODES - VALID (NV)
-            # - select all with kind = 'node'
-            # - select all with lat and lon not empty
-            nodes_valid_with_tags = self._sql_to_parquet_file(
+        if not is_intersecting and not is_filtering:
+            return self._prepare_osm_elements_without_filtering(
+                elements=elements, filtered_tags_clause=filtered_tags_clause
+            )
+
+        self.connection.sql(
+            f"""
+            SELECT *
+            FROM ({elements.sql_query()}) w
+            WHERE kind = 'node'
+              AND lat IS NOT NULL
+              AND lon IS NOT NULL
+            """
+        ).to_view("nodes", replace=True)
+
+        self.connection.sql(
+            f"""
+            SELECT *
+            FROM ({elements.sql_query()}) w
+            WHERE kind = 'way'
+              AND len(refs) >= 2
+            """
+        ).to_view("ways", replace=True)
+
+        self.connection.sql(
+            f"""
+            SELECT *
+            FROM ({elements.sql_query()})
+            WHERE kind = 'relation' AND len(refs) > 0
+              AND list_contains(map_keys(tags), 'type')
+              AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
+            """
+        ).to_view("relations", replace=True)
+
+        filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
+        filter_osm_way_ids_filter = self._generate_elements_filter(filter_osm_ids, "way")
+        filter_osm_relation_ids_filter = self._generate_elements_filter(filter_osm_ids, "relation")
+
+        # Filter all elements by tags / custom SQL / explicit OSM IDs.
+        # Save only kind+id (no tags yet) and split into per-kind ID files
+        # (nodes_filtered_ids, ways_filtered_ids, relations_filtered_ids).
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: elements by tags", with_minor_step=True
+        ):
+            if self.custom_sql_filter:
+                elements_filtered_ids = self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT kind, id
+                    FROM (
+                        SELECT * EXCLUDE (tags), {filtered_tags_clause}
+                        FROM ({elements.sql_query()})
+                        WHERE tags IS NOT NULL
+                        AND cardinality(tags) > 0
+                        AND ({tags_sql_filter})
+                        AND (
+                            {filter_osm_node_ids_filter} OR
+                            {filter_osm_way_ids_filter} OR
+                            {filter_osm_relation_ids_filter}
+                        )
+                    )
+                    WHERE cardinality(tags) > 0
+                    AND ({custom_sql_filter})
+                    """,
+                    file_path=self.tmp_dir_path / "elements_filtered_ids",
+                )
+            else:
+                elements_filtered_ids = self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT kind, id
+                    FROM ({elements.sql_query()})
+                    WHERE tags IS NOT NULL
+                    AND cardinality(tags) > 0
+                    AND ({tags_sql_filter})
+                    AND (
+                        {filter_osm_node_ids_filter} OR
+                        {filter_osm_way_ids_filter} OR
+                        {filter_osm_relation_ids_filter}
+                    )
+                    """,
+                    file_path=self.tmp_dir_path / "elements_filtered_ids",
+                )
+
+            nodes_filtered_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({elements_filtered_ids.sql_query()})
+                WHERE kind = 'node'
+                """,
+                file_path=self.tmp_dir_path / "nodes_filtered_ids",
+                single_file_output=True,
+            )
+
+            ways_filtered_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({elements_filtered_ids.sql_query()})
+                WHERE kind = 'way'
+                """,
+                file_path=self.tmp_dir_path / "ways_filtered_ids",
+                single_file_output=True,
+            )
+
+            relations_filtered_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({elements_filtered_ids.sql_query()})
+                WHERE kind = 'relation'
+                """,
+                file_path=self.tmp_dir_path / "relations_filtered_ids",
+                single_file_output=True,
+            )
+
+        self._delete_directories(["elements_filtered_ids"])
+
+        # Expand filtered relation refs into individual rows, keeping only way-type members.
+        # Output: (id, ref, ref_role, ref_idx) for each way referenced by a filtered relation.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: unnesting relations", next_step="minor"
+        ):
+            relations_filtered_unnested = self._sql_to_parquet_file(
+                sql_query=f"""
+                WITH unnested_relation_refs AS (
+                    SELECT
+                        r.id,
+                        UNNEST(refs) as ref,
+                        UNNEST(ref_types) as ref_type,
+                        UNNEST(ref_roles) as ref_role,
+                        UNNEST(range(length(refs))) as ref_idx
+                    FROM relations r
+                    SEMI JOIN ({relations_filtered_ids.sql_query()}) USING (id)
+                )
+                SELECT id, ref, ref_role, ref_idx
+                FROM unnested_relation_refs
+                WHERE ref_type = 'way'
+                """,
+                file_path=self.tmp_dir_path / "relations_filtered_unnested",
+            )
+
+        # Collect IDs of ways referenced by filtered relations (ways_required_ids),
+        # then merge with directly filtered ways into a single combined set
+        # (ways_filtered_required_ids).
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: ways required ids", next_step="minor"
+        ):
+            ways_required_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT DISTINCT ref as id
+                FROM ({relations_filtered_unnested.sql_query()})
+                """,
+                file_path=self.tmp_dir_path / "ways_required_ids",
+                single_file_output=True,
+            )
+            ways_filtered_required_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({ways_filtered_ids.sql_query()})
+                UNION
+                SELECT id
+                FROM ({ways_required_ids.sql_query()})
+                """,
+                file_path=self.tmp_dir_path / "ways_filtered_required_ids",
+                single_file_output=True,
+            )
+
+        self._delete_directories(["ways_required_ids"])
+
+        # Expand all filtered+required way refs into individual rows.
+        # Output: (id, ref, ref_idx) for each node referenced by a filtered or required way.
+        with self.task_progress_tracker.get_spinner("Filtering: unnesting ways", next_step="minor"):
+            ways_filtered_required_unnested = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT
+                    id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
+                FROM ways
+                SEMI JOIN ({ways_filtered_required_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "ways_filtered_required_unnested",
+            )
+
+        self._delete_directories(["ways_filtered_required_ids"])
+
+        # Collect IDs of nodes referenced by all filtered+required ways (nodes_required_ids),
+        # then merge with directly filtered nodes into a single combined set
+        # (nodes_filtered_required_ids).
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: nodes required ids", next_step="minor"
+        ):
+            nodes_required_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT DISTINCT ref as id
+                FROM ({ways_filtered_required_unnested.sql_query()})
+                """,
+                file_path=self.tmp_dir_path / "nodes_required_ids",
+                single_file_output=True,
+            )
+            nodes_filtered_required_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({nodes_filtered_ids.sql_query()})
+                UNION
+                SELECT id
+                FROM ({nodes_required_ids.sql_query()})
+                """,
+                file_path=self.tmp_dir_path / "nodes_filtered_required_ids",
+                single_file_output=True,
+            )
+
+        self._delete_directories(["nodes_required_ids"])
+
+        # Read lat/lon for all filtered+required nodes.
+        # When a geometry filter is set, pre-filter by its bounding box to reduce data volume
+        # before the precise intersection check that follows.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: reading nodes points", next_step="minor"
+        ):
+            bbox_intersecting_clause = ""
+            if is_intersecting:
+                x_min, y_min, x_max, y_max = cast("BaseGeometry", self.geometry_filter).bounds
+                bbox_intersecting_clause = f"""
+                WHERE lat BETWEEN {y_min} AND {y_max}
+                AND lon BETWEEN {x_min} AND {x_max}
+                """
+            nodes_filtered_required_bbox_intersected_points_path = (
+                self.tmp_dir_path / "nodes_filtered_required_bbox_intersected_points"
+            )
+            nodes_filtered_required_bbox_intersected_points = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT
+                    id, lat, lon
+                FROM nodes
+                SEMI JOIN ({nodes_filtered_required_ids.sql_query()}) USING (id)
+                {bbox_intersecting_clause}
+                """,
+                file_path=nodes_filtered_required_bbox_intersected_points_path,
+            )
+
+        self._delete_directories(["nodes_filtered_required_ids"])
+
+        # Precise geometry intersection for nodes.
+        # When intersecting: run the actual polygon test, deduplicate, then split into
+        # nodes_filtered_intersected_ids (matched by filter) vs. the broader intersected set
+        # (also includes nodes required by ways). When not intersecting: pass all points through.
+        with self.task_progress_tracker.get_bar(
+            "Filtering: nodes by intersection", next_step="minor"
+        ) as bar:
+            if is_intersecting:
+                tmp_intersected_nodes_ids_path = (
+                    self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp_non_distinct"
+                )
+                intersect_nodes_with_geometry(
+                    nodes_path=nodes_filtered_required_bbox_intersected_points_path,
+                    result_path=tmp_intersected_nodes_ids_path,
+                    geometry_filter=cast("BaseGeometry", self.geometry_filter),
+                    progress_bar=bar,
+                )
+
+                is_empty = not any(tmp_intersected_nodes_ids_path.iterdir())
+                if is_empty:
+                    empty_table = pa.schema({"id": pa.int64()}).empty_table()
+                    pq.write_table(
+                        table=empty_table, where=tmp_intersected_nodes_ids_path / "empty.parquet"
+                    )
+
+                nodes_filtered_required_intersected_ids_tmp = self._calculate_unique_ids_to_parquet(
+                    tmp_intersected_nodes_ids_path,
+                    self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp",
+                    order_ids=False,
+                )
+                nodes_filtered_intersected_ids = self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT id
+                    FROM ({nodes_filtered_ids.sql_query()})
+                    JOIN ({nodes_filtered_required_intersected_ids_tmp.sql_query()}) USING (id)
+                    """,
+                    file_path=self.tmp_dir_path / "nodes_filtered_intersected_ids",
+                    single_file_output=True,
+                )
+                self._delete_directories(
+                    [
+                        "nodes_filtered_ids",
+                        "nodes_filtered_required_intersected_ids_tmp_non_distinct",
+                    ]
+                )
+            else:
+                nodes_filtered_required_intersected_ids_tmp = (
+                    nodes_filtered_required_bbox_intersected_points
+                )
+                nodes_filtered_intersected_ids = nodes_filtered_ids
+
+        self._delete_directories(["nodes_filtered_required_bbox_intersected_points"])
+
+        # Keep only ways that have at least one node inside the geometry.
+        # When intersecting: derive intersecting way IDs from the intersected node set, then
+        # split into ways_filtered_intersected_ids and the broader required set.
+        # When not intersecting: pass all ways through.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: ways by intersection", next_step="minor"
+        ):
+            if is_intersecting:
+                self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT uwr.id
+                    FROM ({ways_filtered_required_unnested.sql_query()}) uwr
+                    SEMI JOIN ({nodes_filtered_required_intersected_ids_tmp.sql_query()}) n
+                    ON n.id = uwr.ref
+                    """,
+                    file_path=self.tmp_dir_path
+                    / "ways_filtered_required_intersected_ids_tmp_non_distinct",
+                )
+                ways_filtered_required_intersected_ids_tmp = self._calculate_unique_ids_to_parquet(
+                    self.tmp_dir_path / "ways_filtered_required_intersected_ids_tmp_non_distinct",
+                    self.tmp_dir_path / "ways_filtered_required_intersected_ids_tmp",
+                    order_ids=False,
+                )
+                ways_filtered_intersected_ids = self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT id
+                    FROM ({ways_filtered_ids.sql_query()})
+                    JOIN ({ways_filtered_required_intersected_ids_tmp.sql_query()}) USING (id)
+                    """,
+                    file_path=self.tmp_dir_path / "ways_filtered_intersected_ids",
+                    single_file_output=True,
+                )
+                self._delete_directories(
+                    [
+                        "nodes_filtered_required_intersected_ids_tmp",
+                        "ways_filtered_required_intersected_ids_tmp_non_distinct",
+                    ]
+                )
+            else:
+                ways_filtered_required_intersected_ids_tmp = ways_filtered_required_ids
+                ways_filtered_intersected_ids = ways_filtered_ids
+
+        # Keep only relations that reference at least one intersecting way.
+        # When not intersecting: all filtered relations pass through unchanged.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: relations by intersection", next_step="minor"
+        ):
+            if is_intersecting:
+                self._sql_to_parquet_file(
+                    sql_query=f"""
+                    SELECT urr.id
+                    FROM ({relations_filtered_unnested.sql_query()}) urr
+                    SEMI JOIN ({ways_filtered_required_intersected_ids_tmp.sql_query()}) wi
+                    ON wi.id = urr.ref
+                    """,
+                    file_path=self.tmp_dir_path / "relations_filtered_intersected_ids_non_distinct",
+                )
+                relations_filtered_intersected_ids = self._calculate_unique_ids_to_parquet(
+                    self.tmp_dir_path / "relations_filtered_intersected_ids_non_distinct",
+                    self.tmp_dir_path / "relations_filtered_intersected_ids",
+                    order_ids=False,
+                )
+                self._delete_directories(
+                    [
+                        "ways_filtered_required_intersected_ids_tmp",
+                        "relations_filtered_intersected_ids_non_distinct",
+                    ]
+                )
+            else:
+                relations_filtered_intersected_ids = relations_filtered_ids
+
+        # Trim the unnested relation refs to only those relations that passed geometry intersection.
+        # Output: (id, ref, ref_role, ref_idx) restricted to the intersected relation IDs.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: unnested intersected relations", next_step="minor"
+        ):
+            relations_filtered_intersected_unnested = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT *
+                FROM ({relations_filtered_unnested.sql_query()})
+                SEMI JOIN ({relations_filtered_intersected_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "relations_filtered_intersected_unnested",
+            )
+
+        self._delete_directories(
+            [
+                "relations_filtered_unnested",
+                "relations_filtered_ids",
+                "relations_filtered_intersected_ids",
+            ]
+        )
+
+        # Re-derive required way IDs from the now-intersected relations,
+        # then merge with directly intersected filtered ways into the final combined set.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: ways required intersected ids", next_step="minor"
+        ):
+            ways_required_intersected_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT DISTINCT ref as id
+                FROM ({relations_filtered_intersected_unnested.sql_query()})
+                """,
+                file_path=self.tmp_dir_path / "ways_required_intersected_ids",
+                single_file_output=True,
+            )
+            ways_filtered_required_intersected_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({ways_filtered_intersected_ids.sql_query()})
+                UNION
+                SELECT id
+                FROM ({ways_required_intersected_ids.sql_query()})
+                """,
+                file_path=self.tmp_dir_path / "ways_filtered_required_intersected_ids",
+                single_file_output=True,
+            )
+
+        # Trim the unnested way refs to only the ways that passed geometry intersection.
+        # Output: (id, ref, ref_idx) restricted to the intersected+required way IDs.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: unnested intersected ways", next_step="minor"
+        ):
+            ways_filtered_required_intersected_unnested = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT *
+                FROM ({ways_filtered_required_unnested.sql_query()})
+                SEMI JOIN ({ways_filtered_required_intersected_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "ways_filtered_required_intersected_unnested",
+                single_file_output=True,
+            )
+
+        self._delete_directories(
+            [
+                "ways_filtered_required_unnested",
+                "ways_filtered_required_intersected_ids",
+            ]
+        )
+
+        # Collect the final set of node IDs: directly filtered+intersected nodes
+        # plus all nodes referenced by the valid intersected ways.
+        # Load their coordinates from the nodes view for downstream geometry assembly.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: nodes required intersected ids", next_step="minor"
+        ):
+            nodes_filtered_required_intersected_valid_points = self._sql_to_parquet_file(
+                sql_query=f"""
+                WITH filtered_and_required_nodes AS (
+                    SELECT id
+                    FROM ({nodes_filtered_intersected_ids.sql_query()})
+                    UNION
+                    SELECT DISTINCT ref as id
+                    FROM ({ways_filtered_required_intersected_unnested.sql_query()}) w
+                )
+                SELECT id, lat, lon
+                FROM nodes
+                SEMI JOIN filtered_and_required_nodes USING (id)
+                """,
+                file_path=self.tmp_dir_path / "nodes_filtered_required_intersected_valid_points",
+                single_file_output=True,
+            )
+
+        # Validate ways: keep only those whose every referenced node is present
+        # in the valid node set (i.e. no dangling refs).
+        with self.task_progress_tracker.get_spinner("Filtering: ways valid ids", next_step="minor"):
+            ways_filtered_required_intersected_valid_ids = (
+                self._calculate_element_valid_ids_based_on_refs(
+                    refs_unnested=self.tmp_dir_path / "ways_filtered_required_intersected_unnested",
+                    sub_element_ids_valid=self.tmp_dir_path
+                    / "nodes_filtered_required_intersected_valid_points",
+                    save_path=self.tmp_dir_path / "ways_filtered_required_intersected_valid_ids",
+                )
+            )
+
+        # Split valid way IDs into two groups:
+        # - ways_required_intersected_valid_ids: needed by relations but not directly
+        #   matched by filter
+        # - ways_filtered_intersected_valid_ids: directly matched by tag/id filter
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: ways required and valid", next_step="minor"
+        ):
+            ways_required_intersected_valid_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({ways_required_intersected_ids.sql_query()}) wr
+                SEMI JOIN ({ways_filtered_required_intersected_valid_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "ways_required_intersected_valid_ids",
+            )
+            ways_filtered_intersected_valid_ids = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id
+                FROM ({ways_filtered_intersected_ids.sql_query()}) wr
+                SEMI JOIN ({ways_filtered_required_intersected_valid_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "ways_filtered_intersected_valid_ids",
+            )
+
+        self._delete_directories(
+            [
+                "ways_filtered_ids",
+                "ways_filtered_intersected_ids",
+                "ways_filtered_required_intersected_valid_ids",
+                "ways_required_intersected_ids",
+            ]
+        )
+
+        # Validate relations: keep only those whose every referenced way is present
+        # in the valid way set. Also trim the unnested refs to match, producing
+        # the final (id, ref, ref_role, ref_idx) table ready for geometry assembly.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: relations valid ids", next_step="minor"
+        ):
+            relations_filtered_intersected_valid_ids = (
+                self._calculate_element_valid_ids_based_on_refs(
+                    refs_unnested=self.tmp_dir_path / "relations_filtered_intersected_unnested",
+                    sub_element_ids_valid=self.tmp_dir_path / "ways_required_intersected_valid_ids",
+                    save_path=self.tmp_dir_path / "relations_filtered_intersected_valid_ids",
+                )
+            )
+            relations_filtered_intersected_valid_unnested = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT *
+                FROM ({relations_filtered_intersected_unnested.sql_query()})
+                SEMI JOIN ({relations_filtered_intersected_valid_ids.sql_query()}) USING (id)
+                """,
+                file_path=self.tmp_dir_path / "relations_filtered_intersected_valid_unnested",
+                single_file_output=True,
+            )
+
+        self._delete_directories(["relations_filtered_intersected_unnested"])
+
+        filtered_elements_path = self.tmp_dir_path / "filtered_elements"
+
+        # Read full tags for all valid filtered elements (nodes, ways, relations).
+        # For ways, also keep raw_tags (before metadata stripping) needed for polygon
+        # feature detection.
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read elements tags", next_step="minor"
+        ):
+            filtered_elements = self.connection.sql(
+                f"""
+                WITH filtered_elements AS (
+                    SELECT 'node' as kind, id
+                    FROM ({nodes_filtered_intersected_ids.sql_query()})
+                    UNION
+                    SELECT 'way' as kind, id
+                    FROM ({ways_filtered_intersected_valid_ids.sql_query()})
+                    UNION
+                    SELECT 'relation' as kind, id
+                    FROM ({relations_filtered_intersected_valid_ids.sql_query()})
+                ),
+                elements_tags AS (
+                    SELECT
+                        kind,
+                        id,
+                        {filtered_tags_clause},
+                        CASE
+                            WHEN kind = 'way'
+                            THEN tags
+                            ELSE NULL
+                        END AS raw_tags
+                    FROM ({elements.sql_query()})
+                    SEMI JOIN filtered_elements USING (kind, id)
+                    WHERE tags IS NOT NULL
+                      AND cardinality(tags) > 0
+                )
+                SELECT
+                    kind,
+                    id,
+                    tags,
+                    raw_tags
+                FROM elements_tags
+                WHERE tags IS NOT NULL
+                  AND cardinality(tags) > 0
+                """
+            )
+
+            all_filtered_elements = self._save_parquet_file(
+                filtered_elements, filtered_elements_path
+            )
+
+        nodes_filtered_intersected_valid_tags_path = (
+            self.tmp_dir_path / "nodes_filtered_intersected_valid_tags"
+        )
+        ways_filtered_intersected_valid_tags_path = (
+            self.tmp_dir_path / "ways_filtered_intersected_valid_tags"
+        )
+        relations_filtered_intersected_valid_tags_path = (
+            self.tmp_dir_path / "relations_filtered_intersected_valid_tags"
+        )
+
+        # Split combined filtered elements into per-kind parquet file: nodes (id, tags).
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read nodes tags", next_step="minor"
+        ):
+            nodes_filtered_intersected_valid_tags = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'node'").select("id, tags"),
+                nodes_filtered_intersected_valid_tags_path,
+            )
+
+        # Split combined filtered elements into per-kind parquet file: ways (id, tags, raw_tags).
+        with self.task_progress_tracker.get_spinner("Filtering: read ways tags", next_step="minor"):
+            ways_filtered_intersected_valid_tags = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'way'").select("id, tags, raw_tags"),
+                ways_filtered_intersected_valid_tags_path,
+            )
+
+        # Split combined filtered elements into per-kind parquet file: relations (id, tags).
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read relations tags", next_step="minor"
+        ):
+            relations_filtered_intersected_valid_tags = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'relation'").select("id, tags"),
+                relations_filtered_intersected_valid_tags_path,
+            )
+
+        self._delete_directories(
+            [
+                "nodes_filtered_ids",
+                "nodes_filtered_intersected_ids",
+                "ways_filtered_intersected_valid_ids",
+                "relations_filtered_intersected_valid_ids",
+                "filtered_elements",
+            ]
+        )
+
+        return PbfFileReader.ConvertedOSMParquetFiles(
+            nodes_tags_filtered=nodes_filtered_intersected_valid_tags,
+            nodes_points_required=nodes_filtered_required_intersected_valid_points,
+            ways_tags_filtered=ways_filtered_intersected_valid_tags,
+            ways_unnested_filtered_required=ways_filtered_required_intersected_unnested,
+            ways_ids_required=ways_required_intersected_valid_ids,
+            relations_tags_filtered=relations_filtered_intersected_valid_tags,
+            relations_unnested_filtered=relations_filtered_intersected_valid_unnested,
+        )
+
+    def _prepare_osm_elements_without_filtering(
+        self, elements: "duckdb.DuckDBPyRelation", filtered_tags_clause: str
+    ) -> ConvertedOSMParquetFiles:
+        # first pass - all unnested plus ids
+        unnested_elements_path = self.tmp_dir_path / "unnested_elements"
+
+        nodes_tags_and_points_valid_path = self.tmp_dir_path / "nodes_tags_and_points_valid"
+        nodes_tags_filtered_valid_path = self.tmp_dir_path / "nodes_tags_filtered_valid"
+        nodes_points_required_valid_path = self.tmp_dir_path / "nodes_points_required_valid"
+        ways_unnested_path = self.tmp_dir_path / "ways_unnested"
+        relations_unnested_path = self.tmp_dir_path / "relations_unnested"
+
+        ways_tags_filtered_valid_path = self.tmp_dir_path / "ways_tags_filtered_valid"
+        relations_tags_filtered_valid_path = self.tmp_dir_path / "relations_tags_filtered_valid"
+
+        self.connection.sql(
+            f"""
+            SELECT *
+            FROM ({elements.sql_query()}) n
+            WHERE kind = 'node'
+            AND lat IS NOT NULL
+            AND lon IS NOT NULL
+            """
+        ).to_view("nodes", replace=True)
+
+        with self.task_progress_tracker.get_spinner("Filtering: read nodes", with_minor_step=True):
+            nodes_tags_and_points_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT
                     id,
@@ -1479,289 +2159,280 @@ class PbfFileReader:
                 WHERE kind = 'node'
                 AND lat IS NOT NULL AND lon IS NOT NULL
                 """,
-                file_path=self.tmp_dir_path / "nodes_valid_with_tags",
-            )
-        # NODES - INTERSECTING (NI)
-        # - select all from NV which intersect given geometry filter
-        # NODES - FILTERED (NF)
-        # - select all from NI with tags filter
-        filter_osm_node_ids_filter = self._generate_elements_filter(filter_osm_ids, "node")
-        if is_intersecting:
-            with self.task_progress_tracker.get_bar("Filtering nodes - intersection") as bar:
-                intersect_nodes_with_geometry(
-                    tmp_dir_path=self.tmp_dir_path,
-                    geometry_filter=self.geometry_filter,
-                    progress_bar=bar,
-                )
-
-                nodes_intersecting_ids = self.connection.read_parquet(
-                    str(self.tmp_dir_path / "nodes_intersecting_ids" / "*.parquet")
-                )
-
-            with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    SEMI JOIN ({nodes_intersecting_ids.sql_query()}) ni ON n.id = ni.id
-                    WHERE tags IS NOT NULL
-                    AND cardinality(tags) > 0
-                    AND ({sql_filter})
-                    AND ({filter_osm_node_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-                )
-        else:
-            with self.task_progress_tracker.get_spinner("Filtering nodes - intersection"):
-                pass
-            with self.task_progress_tracker.get_spinner("Filtering nodes - tags"):
-                nodes_intersecting_ids = nodes_valid_with_tags
-                self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT id FROM ({nodes_valid_with_tags.sql_query()}) n
-                    WHERE tags IS NOT NULL
-                    AND cardinality(tags) > 0
-                    AND ({sql_filter})
-                    AND ({filter_osm_node_ids_filter})
-                    AND ({custom_sql_filter})
-                    """,
-                    file_path=self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-                )
-        with self.task_progress_tracker.get_spinner("Calculating distinct filtered nodes ids"):
-            nodes_filtered_ids = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "nodes_filtered_non_distinct_ids",
-                self.tmp_dir_path / "nodes_filtered_ids",
+                file_path=nodes_tags_and_points_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Reading ways"):
-            # WAYS - VALID (WV)
-            # - select all with kind = 'way'
-            # - select all with more then one ref
-            # - join all NV to refs
-            # - select all where all refs has been joined (total_refs == found_refs)
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()}) w
-                WHERE kind = 'way' AND len(refs) >= 2
-                """
-            ).to_view("ways", replace=True)
-            ways_all_with_tags = self._sql_to_parquet_file(
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read nodes points", next_step="minor"
+        ):
+            nodes_points_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}, tags as raw_tags
-                    FROM ways w
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
-                SELECT id, tags, raw_tags
-                FROM filtered_tags
-                WHERE tags IS NOT NULL AND cardinality(tags) > 0
+                SELECT id, lat, lon
+                FROM ({nodes_tags_and_points_valid.sql_query()}) n
                 """,
-                file_path=self.tmp_dir_path / "ways_all_with_tags",
-            )
-        with self.task_progress_tracker.get_spinner("Unnesting ways"):
-            ways_with_unnested_nodes_refs = self._sql_to_parquet_file(
-                sql_query="""
-                SELECT w.id, UNNEST(refs) as ref, UNNEST(range(length(refs))) as ref_idx
-                FROM ways w
-                """,
-                file_path=self.tmp_dir_path / "ways_with_unnested_nodes_refs",
-            )
-        with self.task_progress_tracker.get_spinner("Filtering ways - valid refs"):
-            ways_valid_ids = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH total_ways_with_nodes_refs AS (
-                    SELECT id
-                    FROM ({ways_with_unnested_nodes_refs.sql_query()})
-                ),
-                unmatched_ways_with_nodes_refs AS (
-                    SELECT id
-                    FROM ({ways_with_unnested_nodes_refs.sql_query()}) w
-                    ANTI JOIN ({nodes_valid_with_tags.sql_query()}) nv ON nv.id = w.ref
-                )
-                SELECT DISTINCT id
-                FROM total_ways_with_nodes_refs
-                ANTI JOIN unmatched_ways_with_nodes_refs USING (id)
-                """,
-                file_path=self.tmp_dir_path / "ways_valid_ids",
+                file_path=nodes_points_required_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Filtering ways - intersection"):
-            # WAYS - INTERSECTING (WI)
-            # - select all from WV with joining any from NV on ref
-            if is_intersecting:
-                ways_intersecting_ids = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT DISTINCT uwr.id
-                    FROM ({ways_with_unnested_nodes_refs.sql_query()}) uwr
-                    SEMI JOIN ({ways_valid_ids.sql_query()}) wv ON uwr.id = wv.id
-                    SEMI JOIN ({nodes_intersecting_ids.sql_query()}) n ON n.id = uwr.ref
-                    """,
-                    file_path=self.tmp_dir_path / "ways_intersecting_ids",
-                )
-            else:
-                ways_intersecting_ids = ways_valid_ids
-        with self.task_progress_tracker.get_spinner("Filtering ways - tags"):
-            # WAYS - FILTERED (WF)
-            # - select all from WI with tags filter
-            filter_osm_way_ids_filter = self._generate_elements_filter(filter_osm_ids, "way")
-            self._sql_to_parquet_file(
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read nodes tags", next_step="minor"
+        ):
+            nodes_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
-                SELECT id FROM ({ways_all_with_tags.sql_query()}) w
-                SEMI JOIN ({ways_intersecting_ids.sql_query()}) wi ON w.id = wi.id
-                WHERE ({sql_filter})
-                AND ({filter_osm_way_ids_filter})
-                AND ({custom_sql_filter})
-                """,
-                file_path=self.tmp_dir_path / "ways_filtered_non_distinct_ids",
-            )
-
-        with self.task_progress_tracker.get_spinner("Calculating distinct filtered ways ids"):
-            ways_filtered_ids = self._calculate_unique_ids_to_parquet(
-                self.tmp_dir_path / "ways_filtered_non_distinct_ids",
-                self.tmp_dir_path / "ways_filtered_ids",
-            )
-
-        with self.task_progress_tracker.get_spinner("Reading relations"):
-            # RELATIONS - VALID (RV)
-            # - select all with kind = 'relation'
-            # - select all with more then one ref
-            # - select all with type in ['boundary', 'multipolygon']
-            # - join all WV to refs
-            # - select all where all refs has been joined (total_refs == found_refs)
-            self.connection.sql(
-                f"""
-                SELECT *
-                FROM ({elements.sql_query()})
-                WHERE kind = 'relation' AND len(refs) > 0
-                AND list_contains(map_keys(tags), 'type')
-                AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
-                """
-            ).to_view("relations", replace=True)
-            relations_all_with_tags = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH filtered_tags AS (
-                    SELECT id, {filtered_tags_clause}
-                    FROM relations r
-                    WHERE tags IS NOT NULL AND cardinality(tags) > 0
-                )
                 SELECT id, tags
-                FROM filtered_tags
+                FROM ({nodes_tags_and_points_valid.sql_query()})
                 WHERE tags IS NOT NULL AND cardinality(tags) > 0
                 """,
-                file_path=self.tmp_dir_path / "relations_all_with_tags",
+                file_path=nodes_tags_filtered_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Unnesting relations"):
-            relations_with_unnested_way_refs = self._sql_to_parquet_file(
-                sql_query="""
-                WITH unnested_relation_refs AS (
+        self._delete_directories([nodes_tags_and_points_valid_path])
+
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read elements refs", next_step="minor"
+        ):
+            unnested_elements = self.connection.sql(
+                f"""
+                WITH unnested_elements AS (
                     SELECT
-                        r.id,
-                        UNNEST(refs) as ref,
-                        UNNEST(ref_types) as ref_type,
-                        UNNEST(ref_roles) as ref_role,
-                        UNNEST(range(length(refs))) as ref_idx
-                    FROM relations r
+                        kind,
+                        id,
+                        UNNEST(COALESCE(refs, [NULL])) as ref,
+                        UNNEST(COALESCE(ref_types, [NULL])) as ref_type,
+                        UNNEST(COALESCE(ref_roles, [NULL])) as ref_role,
+                        UNNEST(range(length(coalesce(refs, [NULL])))) as ref_idx
+                    FROM ({elements.sql_query()})
+                    WHERE (
+                        -- valid ways
+                        kind = 'way'
+                        AND len(refs) >= 2
+                    )
+                    OR (
+                        -- valid relations
+                        kind = 'relation'
+                        AND len(refs) > 0
+                        AND list_contains(map_keys(tags), 'type')
+                        AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon'])
+                    )
                 )
-                SELECT id, ref, ref_role, ref_idx
-                FROM unnested_relation_refs
-                WHERE ref_type = 'way'
-                """,
-                file_path=self.tmp_dir_path / "relations_with_unnested_way_refs",
+                SELECT
+                    kind,
+                    id,
+                    ref,
+                    ref_type,
+                    ref_role,
+                    ref_idx
+                FROM unnested_elements
+                WHERE kind == 'way' OR (kind == 'relation' AND ref_type = 'way')
+                """
             )
 
-        with self.task_progress_tracker.get_spinner("Filtering relations - valid refs"):
-            relations_valid_ids = self._sql_to_parquet_file(
-                sql_query=f"""
-                WITH total_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_with_unnested_way_refs.sql_query()}) frr
+            all_unnested_elements = self._save_parquet_file(
+                unnested_elements, unnested_elements_path
+            )
+
+        with self.task_progress_tracker.get_spinner("Filtering: read ways refs", next_step="minor"):
+            ways_unnested = self._save_parquet_file(
+                all_unnested_elements.filter("kind = 'way'").select("id, ref, ref_idx"),
+                ways_unnested_path,
+            )
+
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read relations refs", next_step="minor"
+        ):
+            relations_unnested = self._save_parquet_file(
+                all_unnested_elements.filter("kind = 'relation'").select(
+                    "id, ref, ref_role, ref_idx"
                 ),
-                unmatched_relation_refs AS (
-                    SELECT id
-                    FROM ({relations_with_unnested_way_refs.sql_query()}) r
-                    ANTI JOIN ({ways_valid_ids.sql_query()}) wv ON wv.id = r.ref
-                )
-                SELECT DISTINCT id
-                FROM total_relation_refs
-                ANTI JOIN unmatched_relation_refs USING (id)
-                """,
-                file_path=self.tmp_dir_path / "relations_valid_ids",
+                relations_unnested_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Filtering relations - intersection"):
-            # RELATIONS - INTERSECTING (RI)
-            # - select all from RW with joining any from RV on ref
-            if is_intersecting:
-                relations_intersecting_ids = self._sql_to_parquet_file(
-                    sql_query=f"""
-                    SELECT frr.id
-                    FROM ({relations_with_unnested_way_refs.sql_query()}) frr
-                    SEMI JOIN ({relations_valid_ids.sql_query()}) rv ON frr.id = rv.id
-                    SEMI JOIN ({ways_intersecting_ids.sql_query()}) wi ON wi.id = frr.ref
-                    """,
-                    file_path=self.tmp_dir_path / "relations_intersecting_ids",
-                )
-            else:
-                relations_intersecting_ids = relations_valid_ids
+        self._delete_directories([unnested_elements_path])
 
-        with self.task_progress_tracker.get_spinner("Filtering relations - tags"):
-            # RELATIONS - FILTERED (RF)
-            # - select all from RI with tags filter
-            filter_osm_relation_ids_filter = self._generate_elements_filter(
-                filter_osm_ids, "relation"
+        ways_ids_valid_path = self.tmp_dir_path / "ways_ids_valid"
+
+        # ways IDs (valid)
+        with self.task_progress_tracker.get_spinner("Filtering: ways valid ids", next_step="minor"):
+            ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
+                refs_unnested=ways_unnested_path,
+                sub_element_ids_valid=nodes_points_required_valid_path,
+                save_path=ways_ids_valid_path,
             )
 
-            relations_ids_path = self.tmp_dir_path / "relations_ids"
-            relations_ids_path.mkdir(parents=True, exist_ok=True)
-            self._sql_to_parquet_file(
+        # relations IDs (valid)
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: relations valid ids", next_step="minor"
+        ):
+            relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
+                refs_unnested=relations_unnested_path,
+                sub_element_ids_valid=ways_ids_valid_path,
+                save_path=self.tmp_dir_path / "relations_ids_filtered_valid",
+            )
+
+        # relations unnested (filtered, valid)
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: unnested relations", next_step="minor"
+        ):
+            relations_unnested_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
-                SELECT id FROM ({relations_all_with_tags.sql_query()}) r
-                SEMI JOIN ({relations_intersecting_ids.sql_query()}) ri ON r.id = ri.id
-                WHERE ({sql_filter})
-                AND ({filter_osm_relation_ids_filter})
-                AND ({custom_sql_filter})
+                SELECT id, ref, ref_role, ref_idx
+                FROM ({relations_unnested.sql_query()}) urr
+                SEMI JOIN ({relations_ids_filtered_valid.sql_query()}) rv USING (id)
                 """,
-                file_path=relations_ids_path / "filtered",
+                file_path=self.tmp_dir_path / "relations_unnested_filtered_valid",
             )
 
-        with self.task_progress_tracker.get_spinner("Calculating distinct filtered relations ids"):
-            relations_filtered_ids = self._calculate_unique_ids_to_parquet(
-                relations_ids_path / "filtered", self.tmp_dir_path / "relations_filtered_ids"
-            )
+        self._delete_directories([relations_unnested_path])
 
-        ways_prepared_ids_path = self.tmp_dir_path / "ways_prepared_ids"
-        ways_prepared_ids_path.mkdir(parents=True, exist_ok=True)
-
-        with self.task_progress_tracker.get_spinner("Loading required ways - by relations"):
-            # WAYS - REQUIRED (WR)
-            # - required - all IDs from WF
-            #   + all needed to construct relations from RF
-            self._sql_to_parquet_file(
+        # Ways second pass
+        # ways IDs (required)
+        # - all needed to construct relations from relations filtered
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: ways required and valid", next_step="minor"
+        ):
+            ways_ids_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
-                SELECT ref as id
-                FROM ({relations_with_unnested_way_refs.sql_query()}) frr
-                SEMI JOIN ({relations_filtered_ids.sql_query()}) fri ON fri.id = frr.id
+                SELECT DISTINCT ref as id
+                FROM ({relations_unnested_filtered_valid.sql_query()}) urr
+                SEMI JOIN ({ways_ids_valid.sql_query()}) w
+                ON urr.ref = w.id
+                ORDER BY id
                 """,
-                file_path=ways_prepared_ids_path / "required_by_relations",
+                file_path=self.tmp_dir_path / "ways_ids_required_valid",
+                single_file_output=True,
             )
 
-        with self.task_progress_tracker.get_spinner("Calculating distinct required ways ids"):
-            ways_required_ids = self._calculate_unique_ids_to_parquet(
-                ways_prepared_ids_path, self.tmp_dir_path / "ways_required_ids"
+        # ways unnested (filtered, required, valid)
+        with self.task_progress_tracker.get_spinner("Filtering: unnested ways", next_step="minor"):
+            ways_unnested_filtered_required_valid = self._sql_to_parquet_file(
+                sql_query=f"""
+                SELECT id, ref, ref_idx
+                FROM ({ways_unnested.sql_query()}) uwr
+                SEMI JOIN ({ways_ids_valid.sql_query()}) wv ON wv.id = uwr.id
+                """,
+                file_path=self.tmp_dir_path / "ways_unnested_filtered_required_valid",
             )
+
+        self._delete_directories(["ways_unnested"])
+
+        # filter valid tags
+        filtered_elements_path = self.tmp_dir_path / "filtered_elements"
+
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read elements tags", next_step="minor"
+        ):
+            filtered_elements = self.connection.sql(
+                f"""
+                WITH filtered_elements AS (
+                    SELECT
+                        kind,
+                        id,
+                        {filtered_tags_clause},
+                        CASE
+                            WHEN kind = 'way'
+                            THEN tags
+                            ELSE NULL
+                        END AS raw_tags
+                    FROM ({elements.sql_query()})
+                    WHERE kind != 'node'
+                )
+                SELECT
+                    kind,
+                    id,
+                    tags,
+                    raw_tags
+                FROM filtered_elements fe
+                WHERE tags IS NOT NULL
+                AND cardinality(tags) > 0
+                """
+            )
+
+            all_filtered_elements = self._save_parquet_file(
+                filtered_elements, filtered_elements_path
+            )
+
+        with self.task_progress_tracker.get_spinner("Filtering: read ways tags", next_step="minor"):
+            ways_tags_filtered_valid = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'way'")
+                .join(ways_ids_valid, condition="id", how="semi")
+                .select("id, tags, raw_tags"),
+                ways_tags_filtered_valid_path,
+            )
+
+        with self.task_progress_tracker.get_spinner(
+            "Filtering: read relations tags", next_step="minor"
+        ):
+            relations_tags_filtered_valid = self._save_parquet_file(
+                all_filtered_elements.filter("kind = 'relation'")
+                .join(relations_ids_filtered_valid, condition="id", how="semi")
+                .select("id, tags"),
+                relations_tags_filtered_valid_path,
+            )
+
+        self._delete_directories(
+            [filtered_elements_path, "ways_ids_valid", "relations_ids_filtered_valid"]
+        )
 
         return PbfFileReader.ConvertedOSMParquetFiles(
-            nodes_valid_with_tags=nodes_valid_with_tags,
-            nodes_filtered_ids=nodes_filtered_ids,
-            ways_all_with_tags=ways_all_with_tags,
-            ways_with_unnested_nodes_refs=ways_with_unnested_nodes_refs,
-            ways_required_ids=ways_required_ids,
-            ways_filtered_ids=ways_filtered_ids,
-            relations_all_with_tags=relations_all_with_tags,
-            relations_with_unnested_way_refs=relations_with_unnested_way_refs,
-            relations_filtered_ids=relations_filtered_ids,
+            nodes_tags_filtered=nodes_tags_filtered_valid,
+            nodes_points_required=nodes_points_required_valid,
+            ways_tags_filtered=ways_tags_filtered_valid,
+            ways_unnested_filtered_required=ways_unnested_filtered_required_valid,
+            ways_ids_required=ways_ids_required_valid,
+            relations_tags_filtered=relations_tags_filtered_valid,
+            relations_unnested_filtered=relations_unnested_filtered_valid,
+        )
+
+    def _calculate_element_valid_ids_based_on_refs(
+        self, refs_unnested: Path, sub_element_ids_valid: Path, save_path: Path
+    ) -> "duckdb.DuckDBPyRelation":
+        valid_non_distinct_save_path: Path = self.tmp_dir_path / f"{save_path.name}_non_distinct"
+        valid_non_distinct_save_path.mkdir(exist_ok=True, parents=True)
+        try:
+            self._calculate_element_valid_ids_based_on_refs_with_duckdb(
+                refs_unnested=refs_unnested,
+                sub_element_ids_valid=sub_element_ids_valid,
+                non_distinct_save_path=valid_non_distinct_save_path,
+                run_in_separate_process=True,
+            )
+        except (MultiprocessingRuntimeError, MemoryError, duckdb.OutOfMemoryException):
+            self._calculate_element_valid_ids_based_on_refs_with_duckdb(
+                refs_unnested=refs_unnested,
+                sub_element_ids_valid=sub_element_ids_valid,
+                non_distinct_save_path=valid_non_distinct_save_path,
+                run_in_separate_process=False,
+            )
+        element_ids_valid = self._calculate_unique_ids_to_parquet(
+            valid_non_distinct_save_path, save_path, order_ids=False
+        )
+        self._delete_directories([valid_non_distinct_save_path])
+        return element_ids_valid
+
+    def _calculate_element_valid_ids_based_on_refs_with_duckdb(
+        self,
+        refs_unnested: Path,
+        sub_element_ids_valid: Path,
+        non_distinct_save_path: Path,
+        run_in_separate_process: bool = False,
+    ) -> None:
+        sql_query = f"""
+        WITH total_element_refs AS (
+            SELECT id
+            FROM read_parquet('{refs_unnested}/**/*.parquet')
+        ),
+        unmatched_element_refs AS (
+            SELECT id
+            FROM read_parquet('{refs_unnested}/**/*.parquet') e
+            ANTI JOIN read_parquet('{sub_element_ids_valid}/**/*.parquet') sev
+            ON sev.id = e.ref
+        )
+        SELECT id
+        FROM total_element_refs
+        ANTI JOIN unmatched_element_refs USING (id)
+        """
+        self._sql_to_parquet_file(
+            sql_query=sql_query,
+            file_path=non_distinct_save_path,
+            run_in_separate_process=run_in_separate_process,
         )
 
     def _delete_directories(
@@ -1850,17 +2521,69 @@ class PbfFileReader:
     def _generate_filtered_tags_clause(self) -> str:
         """Prepare filtered tags clause by removing tags commonly ignored by OGR."""
         escaped_tags_to_ignore = [f"'{tag}'" for tag in METADATA_TAGS_TO_IGNORE]
+        ignore_list_str = f"[{','.join(escaped_tags_to_ignore)}]"
+
+        # DuckDB 1.3.0 introduced slightly different lambda syntax capabilities
+        if not DUCKDB_ABOVE_130:
+            lambda_syntax = f"tag_entry -> not list_contains({ignore_list_str}, tag_entry.key)"
+            opengeo_check = "list_filter(map_keys(tags), k -> starts_with(k, 'openGeoDB:'))"
+        else:
+            lambda_syntax = f"lambda tag_entry: not list_contains({ignore_list_str}, tag_entry.key)"
+            opengeo_check = "list_filter(map_keys(tags), lambda k: starts_with(k, 'openGeoDB:'))"
 
         return f"""
-        map_from_entries(
-            [
-                tag_entry
-                for tag_entry in map_entries(tags)
-                if not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
-                and not starts_with(tag_entry.key, 'openGeoDB:')
-            ]
-        ) as tags
+            CASE
+                -- FAST CHECK: Does the map contain any of our ignored keys or openGeoDB keys?
+                WHEN len(list_intersect(map_keys(tags), {ignore_list_str})) > 0
+                OR len({opengeo_check}) > 0
+                -- SLOW PATH: Rebuild the map only for the few rows that need it
+                THEN map_from_entries(
+                    list_filter(
+                        map_entries(tags),
+                        {lambda_syntax}
+                        and not starts_with(tag_entry.key, 'openGeoDB:')
+                    )
+                )
+                -- FAST PATH: Return the original map untouched
+                ELSE tags
+            END as tags
         """
+
+    # def _generate_filtered_tags_clause(self) -> str:
+    #     """Prepare filtered tags clause by removing tags commonly ignored by OGR."""
+    #     escaped_tags_to_ignore = [f"'{tag}'" for tag in METADATA_TAGS_TO_IGNORE]
+
+    #     if not DUCKDB_ABOVE_130:
+    #         return f"""
+    #         map_from_entries(
+    #             list_filter(
+    #                 map_entries(tags),
+    #                 tag_entry -> not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
+    #                 and not starts_with(tag_entry.key, 'openGeoDB:')
+    #             )
+    #         ) as tags
+    #         """
+
+    #     return f"""
+    #         map_from_entries(
+    #             list_filter(
+    #                 map_entries(tags),
+    #                 lambda tag_entry: not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
+    #                 and not starts_with(tag_entry.key, 'openGeoDB:')
+    #             )
+    #         ) as tags
+    #         """
+
+    #     # return f"""
+    #     # map_from_entries(
+    #     #     [
+    #     #         tag_entry
+    #     #         for tag_entry in map_entries(tags)
+    #     #         if not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
+    #     #         and not starts_with(tag_entry.key, 'openGeoDB:')
+    #     #     ]
+    #     # ) as tags
+    #     # """
 
     def _generate_elements_filter(
         self, filter_osm_ids: list[str], element_type: Literal["node", "way", "relation"]
@@ -1879,28 +2602,56 @@ class PbfFileReader:
 
         return filter_osm_ids_filter
 
-    def _sql_to_parquet_file(self, sql_query: str, file_path: Path) -> "duckdb.DuckDBPyRelation":
+    def _sql_to_parquet_file(
+        self,
+        sql_query: str,
+        file_path: Path,
+        single_file_output: bool = False,
+        run_in_separate_process: bool = False,
+    ) -> "duckdb.DuckDBPyRelation":
         relation = self.connection.sql(sql_query)
-        return self._save_parquet_file(relation, file_path)
+        return self._save_parquet_file(
+            relation,
+            file_path,
+            single_file_output=single_file_output,
+            run_in_separate_process=run_in_separate_process,
+        )
 
     def _save_parquet_file(
         self,
         relation: "duckdb.DuckDBPyRelation",
         file_path: Path,
+        single_file_output: bool = False,
         run_in_separate_process: bool = False,
     ) -> "duckdb.DuckDBPyRelation":
-        query = f"""
-            COPY (
-                {relation.sql_query()}
-            ) TO '{file_path}' (
-                FORMAT 'parquet',
-                OVERWRITE true,
-                PER_THREAD_OUTPUT true,
-                FILE_SIZE_BYTES '128MB',
-                ROW_GROUP_SIZE_BYTES '16MB',
-                COMPRESSION '{self.internal_parquet_compression}'
-            )
-        """
+        if single_file_output:
+            file_path.mkdir(exist_ok=True, parents=True)
+            query = f"""
+                COPY (
+                    {relation.sql_query()}
+                ) TO '{file_path}/data.parquet' (
+                    FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
+                    OVERWRITE true,
+                    PER_THREAD_OUTPUT false,
+                    ROW_GROUP_SIZE_BYTES '16MB',
+                    COMPRESSION '{self.internal_parquet_compression}'
+                )
+            """
+        else:
+            query = f"""
+                COPY (
+                    {relation.sql_query()}
+                ) TO '{file_path}' (
+                    FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
+                    OVERWRITE true,
+                    PER_THREAD_OUTPUT true,
+                    FILE_SIZE_BYTES '128MB',
+                    ROW_GROUP_SIZE_BYTES '16MB',
+                    COMPRESSION '{self.internal_parquet_compression}'
+                )
+            """
         self._run_query(query, run_in_separate_process)
         if self.debug_memory:
             log_message(f"Saved to directory: {file_path}")
@@ -1938,7 +2689,12 @@ class PbfFileReader:
     ) -> None:
         process = WorkerProcess(
             target=_run_query,
-            args=(sql_queries, tmp_dir_path or self.tmp_dir_path, self.cpu_limit),
+            kwargs=dict(
+                sql_queries=sql_queries,
+                tmp_dir_path=tmp_dir_path or self.tmp_dir_path,
+                threads_limit=self.cpu_limit,
+                duckdb_conn_kwargs=self.duckdb_conn_kwargs,
+            ),
         )
         process.start()
 
@@ -1948,14 +2704,29 @@ class PbfFileReader:
         if (actual_memory.total * 0.05) > MEMORY_1GB:
             percentage_threshold = 100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
 
+        mixed_percentage_physical_threshold = 80
+        mixed_percentage_swap_threshold = 90
+
         while process.is_alive():
             actual_memory = psutil.virtual_memory()
-            if actual_memory.percent > percentage_threshold:
-                raise MemoryError()
-
+            swap_memory = psutil.swap_memory()
             current_time = time.time()
             elapsed_seconds = current_time - start_time
+
+            if actual_memory.percent > percentage_threshold or (
+                # after 30 seconds of running the query, check if swap is highly utilized
+                # using swap with DuckDB slows query very much
+                elapsed_seconds > 30
+                and actual_memory.percent > mixed_percentage_physical_threshold
+                and swap_memory.percent > mixed_percentage_swap_threshold
+            ):
+                process.terminate()
+                process.join()
+                raise MemoryError()
+
             if query_timeout_seconds is not None and elapsed_seconds > query_timeout_seconds:
+                process.terminate()
+                process.join()
                 raise TimeoutError()
 
             sleep(0.5)
@@ -1993,24 +2764,30 @@ class PbfFileReader:
                     raise
 
     def _calculate_unique_ids_to_parquet(
-        self, file_path: Path, result_path: Optional[Path] = None
+        self,
+        file_path: Path,
+        result_path: Optional[Path] = None,
+        order_ids: bool = True,
     ) -> "duckdb.DuckDBPyRelation":
         if result_path is None:
             result_path = file_path / "distinct"
 
+        order_clause = "ORDER BY id" if order_ids else ""
         relation = self.connection.sql(
-            f"SELECT id FROM read_parquet('{file_path}/**/*.parquet') GROUP BY id"
+            f"SELECT DISTINCT id FROM read_parquet('{file_path}/**/*.parquet') {order_clause}"
         )
+
+        result_path.mkdir(parents=True, exist_ok=True)
 
         self._run_query(
             f"""
             COPY (
                 {relation.sql_query()}
-            ) TO '{result_path}' (
+            ) TO '{result_path}/data.parquet' (
                 FORMAT 'parquet',
+                {PbfFileReader.parquet_version_query}
                 OVERWRITE true,
-                PER_THREAD_OUTPUT true,
-                FILE_SIZE_BYTES '128MB',
+                PER_THREAD_OUTPUT false,
                 ROW_GROUP_SIZE_BYTES '16MB',
                 COMPRESSION '{self.internal_parquet_compression}'
             )
@@ -2034,9 +2811,10 @@ class PbfFileReader:
             SELECT
                 'node/' || n.id as feature_id,
                 n.tags,
-                ST_Point(round(n.lon, 7), round(n.lat, 7)) geometry
-            FROM ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
-            SEMI JOIN ({osm_parquet_files.nodes_filtered_ids.sql_query()}) fn ON n.id = fn.id
+                ST_Point(round(p.lon, 7), round(p.lat, 7)) geometry
+            FROM ({osm_parquet_files.nodes_tags_filtered.sql_query()}) n
+            JOIN ({osm_parquet_files.nodes_points_required.sql_query()}) p
+            USING (id)
             """
         )
         result_path = self.tmp_dir_path / "filtered_nodes_with_geometry"
@@ -2047,27 +2825,27 @@ class PbfFileReader:
         )
         return result_path
 
-    def _get_ways_refs_with_nodes_structs(
-        self,
-        osm_parquet_files: ConvertedOSMParquetFiles,
-    ) -> "duckdb.DuckDBPyRelation":
-        ways_refs_with_nodes_structs = self.connection.sql(
-            f"""
-            SELECT
-                w.id,
-                w.ref,
-                w.ref_idx,
-                struct_pack(x := round(n.lon, 7), y := round(n.lat, 7))::POINT_2D point
-            FROM ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
-            JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w ON w.ref = n.id
-            """
-        )
-        with self.task_progress_tracker.get_spinner("Saving required nodes with structs"):
-            ways_refs_parquet = self._save_parquet_file(
-                relation=ways_refs_with_nodes_structs,
-                file_path=self.tmp_dir_path / "ways_refs_with_nodes_structs",
-            )
-        return ways_refs_parquet
+    # def _get_ways_refs_with_nodes_structs(
+    #     self,
+    #     osm_parquet_files: ConvertedOSMParquetFiles,
+    # ) -> "duckdb.DuckDBPyRelation":
+    #     ways_refs_with_nodes_structs = self.connection.sql(
+    #         f"""
+    #         SELECT
+    #             w.id,
+    #             w.ref,
+    #             w.ref_idx,
+    #             struct_pack(x := round(n.lon, 7), y := round(n.lat, 7))::POINT_2D point
+    #         FROM ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
+    #         JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w ON w.ref = n.id
+    #         """
+    #     )
+    #     with self.task_progress_tracker.get_spinner("Saving required nodes with structs"):
+    #         ways_refs_parquet = self._save_parquet_file(
+    #             relation=ways_refs_with_nodes_structs,
+    #             file_path=self.tmp_dir_path / "ways_refs_with_nodes_structs",
+    #         )
+    #     return ways_refs_parquet
 
     def _get_filtered_ways_with_linestrings(
         self,
@@ -2078,7 +2856,7 @@ class PbfFileReader:
         destination_dir_path = self.tmp_dir_path / "filtered_ways_with_linestrings"
 
         return self._get_ways_with_linestrings(
-            ways_ids=osm_parquet_files.ways_filtered_ids,
+            ways_ids=osm_parquet_files.ways_tags_filtered.select("id"),
             mode="filtered",
             osm_parquet_files=osm_parquet_files,
             destination_dir_path=destination_dir_path,
@@ -2095,7 +2873,7 @@ class PbfFileReader:
         destination_dir_path = self.tmp_dir_path / "required_ways_with_linestrings"
 
         return self._get_ways_with_linestrings(
-            ways_ids=osm_parquet_files.ways_required_ids,
+            ways_ids=osm_parquet_files.ways_ids_required,
             mode="required",
             osm_parquet_files=osm_parquet_files,
             destination_dir_path=destination_dir_path,
@@ -2145,10 +2923,19 @@ class PbfFileReader:
 
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
+                lower_number_of_rows = True
+                if not grouped_ways and not self.encountered_query_exception:
+                    lower_number_of_rows = False
                 if not grouped_ways:
                     self.encountered_query_exception = True
                 self.task_progress_tracker.major_step_number -= reset_steps
-                if self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
+                if not lower_number_of_rows:
+                    if not self.verbosity_mode == "silent":
+                        log_message(
+                            f"Encountered {ex.__class__.__name__} during operation."
+                            " Retrying with another grouping method."
+                        )
+                elif self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     self._delete_directories(
                         [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                     )
@@ -2227,9 +3014,9 @@ class PbfFileReader:
                         w.ref_idx,
                         rw."group"
                     FROM ({ways_ids_grouped_relation_parquet.sql_query()}) rw
-                    JOIN ({osm_parquet_files.ways_with_unnested_nodes_refs.sql_query()}) w
+                    JOIN ({osm_parquet_files.ways_unnested_filtered_required.sql_query()}) w
                     ON rw.id = w.id
-                    JOIN ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
+                    JOIN ({osm_parquet_files.nodes_points_required.sql_query()}) n
                     ON w.ref = n.id
                     """
                 )
@@ -2243,9 +3030,16 @@ class PbfFileReader:
                 )
         else:
             ways_ids_grouped_files = list(grouped_ways_ids_with_group_path.glob("**/*.parquet"))
-            ways_with_unnested_nodes_refs_files = list(
-                (self.tmp_dir_path / "ways_with_unnested_nodes_refs").glob("**/*.parquet")
+            directories_to_check = (
+                "ways_unnested_filtered_required_valid",
+                "ways_filtered_required_intersected_unnested",
             )
+            ways_with_unnested_nodes_refs_files = [
+                path
+                for directory in directories_to_check
+                for path in (self.tmp_dir_path / directory).glob("**/*.parquet")
+            ]
+
             with self.task_progress_tracker.get_bar(
                 f"Grouping {mode} ways - joining with nodes", next_step="minor"
             ) as bar:
@@ -2275,7 +3069,7 @@ class PbfFileReader:
                         FROM read_parquet('{ways_ids_grouped_parquet_file}') rw
                         JOIN read_parquet('{ways_with_unnested_nodes_refs_parquet_file}') w
                         ON rw.id = w.id
-                        JOIN ({osm_parquet_files.nodes_valid_with_tags.sql_query()}) n
+                        JOIN ({osm_parquet_files.nodes_points_required.sql_query()}) n
                         ON w.ref = n.id
                         """
                     )
@@ -2304,9 +3098,10 @@ class PbfFileReader:
                     FROM ({ways_with_nodes_points_relation_parquet.sql_query()}) w
                 ) TO '{grouped_ways_path}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PARTITION_BY ("group"),
-                    ROW_GROUP_SIZE 25000,
+                    ROW_GROUP_SIZE_BYTES '16MB',
                     COMPRESSION '{self.internal_parquet_compression}'
                 )
                 """,
@@ -2339,9 +3134,11 @@ class PbfFileReader:
                     GROUP BY id
                 ) TO '{current_destination_path}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PER_THREAD_OUTPUT true,
-                    ROW_GROUP_SIZE 25000,
+                    FILE_SIZE_BYTES '128MB',
+                    ROW_GROUP_SIZE_BYTES '16MB',
                     COMPRESSION '{self.internal_parquet_compression}'
                 )
                 """,
@@ -2358,7 +3155,7 @@ class PbfFileReader:
     def _get_filtered_ways_with_proper_geometry(
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
-        required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
+        filtered_ways_with_linestrings: "duckdb.DuckDBPyRelation",
     ) -> "duckdb.DuckDBPyRelation":
         osm_way_polygon_features_filter_clauses = [
             "list_contains(map_keys(raw_tags), 'area') AND "
@@ -2390,7 +3187,7 @@ class PbfFileReader:
 
         ways_with_proper_geometry = self.connection.sql(
             f"""
-            WITH required_ways_with_linestrings AS (
+            WITH filtered_ways_with_linestrings AS (
                 SELECT
                     w.id,
                     w.tags,
@@ -2413,9 +3210,8 @@ class PbfFileReader:
                         )
                         AND ({" OR ".join(osm_way_polygon_features_filter_clauses)})
                     ) AS is_polygon
-                FROM ({required_ways_with_linestrings.sql_query()}) w_l
-                SEMI JOIN ({osm_parquet_files.ways_filtered_ids.sql_query()}) fw ON w_l.id = fw.id
-                JOIN ({osm_parquet_files.ways_all_with_tags.sql_query()}) w ON w.id = w_l.id
+                FROM ({filtered_ways_with_linestrings.sql_query()}) w_l
+                JOIN ({osm_parquet_files.ways_tags_filtered.sql_query()}) w ON w.id = w_l.id
             ),
             proper_geometries AS (
                 SELECT
@@ -2427,7 +3223,7 @@ class PbfFileReader:
                         ELSE linestring_to_linestring_geometry(linestring)
                     END)::GEOMETRY AS geometry
                 FROM
-                    required_ways_with_linestrings w
+                    filtered_ways_with_linestrings w
             )
             SELECT 'way/' || id as feature_id, tags, geometry FROM proper_geometries
             """
@@ -2549,7 +3345,7 @@ class PbfFileReader:
             )
             SELECT 'relation/' || r_g.id as feature_id, r.tags, r_g.geometry
             FROM final_geometries r_g
-            JOIN ({osm_parquet_files.relations_all_with_tags.sql_query()}) r
+            JOIN ({osm_parquet_files.relations_tags_filtered.sql_query()}) r
             ON r.id = r_g.id
             WHERE NOT ST_IsEmpty(r_g.geometry)
             """
@@ -2578,9 +3374,7 @@ class PbfFileReader:
                         COALESCE(r.ref_role, 'outer') as ref_role,
                         r.ref,
                         linestring_to_linestring_geometry(w.linestring)::GEOMETRY as geometry
-                    FROM ({osm_parquet_files.relations_with_unnested_way_refs.sql_query()}) r
-                    SEMI JOIN ({osm_parquet_files.relations_filtered_ids.sql_query()}) fr
-                    ON r.id = fr.id
+                    FROM ({osm_parquet_files.relations_unnested_filtered.sql_query()}) r
                     JOIN ({required_ways_with_linestrings.sql_query()}) w
                     ON w.id = r.ref
                 ),
@@ -2642,9 +3436,7 @@ class PbfFileReader:
                     COALESCE(r.ref_role, 'outer') as ref_role,
                     r.ref,
                     linestring_to_linestring_geometry(w.linestring)::GEOMETRY as geometry
-                FROM ({osm_parquet_files.relations_with_unnested_way_refs.sql_query()}) r
-                SEMI JOIN ({osm_parquet_files.relations_filtered_ids.sql_query()}) fr
-                ON r.id = fr.id
+                FROM ({osm_parquet_files.relations_unnested_filtered.sql_query()}) r
                 JOIN ({required_ways_with_linestrings.sql_query()}) w
                 ON w.id = r.ref
                 """
@@ -2772,6 +3564,7 @@ class PbfFileReader:
                     FROM ({relation.sql_query()})
                 ) TO '{file_path}' (
                     FORMAT 'parquet',
+                    {PbfFileReader.parquet_version_query}
                     OVERWRITE true,
                     PER_THREAD_OUTPUT true,
                     FILE_SIZE_BYTES '1024MB',
@@ -2783,20 +3576,27 @@ class PbfFileReader:
             if self.debug_memory:
                 log_message(f"Saved to directory: {file_path}")
 
-        is_empty = not any(file_path.iterdir())
-        if is_empty:
+        has_no_files = not any(file_path.iterdir())
+        if has_no_files:
             relation.to_parquet(str(file_path / "empty.parquet"))
 
-        return self.connection.sql(
-            f"""
-            SELECT * EXCLUDE(geometry),
-            CASE WHEN typeof(geometry) = 'GEOMETRY'
-            THEN geometry::GEOMETRY
-            ELSE ST_GeomFromWKB(geometry::BLOB)
-            END AS geometry
-            FROM read_parquet('{file_path}/**/*.parquet')
-            """
-        )
+        saved_relation = self.connection.sql(f"FROM read_parquet('{file_path}/**/*.parquet')")
+
+        is_empty = saved_relation.count("*").fetchone()[0] == 0
+
+        if not DUCKDB_ABOVE_130 or is_empty:
+            return self.connection.sql(
+                f"""
+                SELECT * EXCLUDE(geometry),
+                CASE WHEN typeof(geometry) = 'GEOMETRY'
+                THEN geometry::GEOMETRY
+                ELSE ST_GeomFromWKB(geometry::BLOB)
+                END AS geometry
+                FROM ({saved_relation.sql_query()})
+                """
+            )
+
+        return saved_relation
 
     def _concatenate_results_to_geoparquet(
         self,
@@ -3185,10 +3985,12 @@ class PbfFileReader:
                         compression=self.compression,
                         compression_level=self.compression_level,
                         row_group_size=self.row_group_size,
+                        parquet_version=self.parquet_version,
                         verbosity_mode=self.verbosity_mode,
                         working_directory=self.tmp_dir_path,
                         threads_limit=self.cpu_limit,
                         progress_bar=bar,
+                        duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                     )
             else:
                 with self.task_progress_tracker.get_spinner("Compressing result file"):
@@ -3198,7 +4000,9 @@ class PbfFileReader:
                         compression=self.compression,
                         compression_level=self.compression_level,
                         row_group_size=self.row_group_size,
+                        parquet_version=self.parquet_version,
                         working_directory=self.tmp_dir_path,
+                        duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                     )
 
     def _combine_parquet_files(
@@ -3221,6 +4025,7 @@ class PbfFileReader:
                 columns_to_drop=[],
                 merged_parquet_path=merged_parquet_path,
                 save_as_wkt=save_as_wkt,
+                duckdb_conn_kwargs=self.duckdb_conn_kwargs,
             )
 
         if sort_result:
@@ -3236,10 +4041,12 @@ class PbfFileReader:
                     compression=self.compression,
                     compression_level=self.compression_level,
                     row_group_size=self.row_group_size,
+                    parquet_version=self.parquet_version,
                     verbosity_mode=self.verbosity_mode,
                     working_directory=tmp_dir_path,
                     threads_limit=self.cpu_limit,
                     progress_bar=bar,
+                    duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                 )
         else:
             with self.task_progress_tracker.get_basic_spinner("Compressing result file"):
@@ -3249,8 +4056,18 @@ class PbfFileReader:
                     compression=self.compression,
                     compression_level=self.compression_level,
                     row_group_size=self.row_group_size,
+                    parquet_version=self.parquet_version,
                     working_directory=tmp_dir_path,
+                    duckdb_conn_kwargs=self.duckdb_conn_kwargs,
                 )
+
+
+def _move_parquet_files_to_another_directory(
+    source_directory: Path, destination_directory: Path
+) -> None:
+    destination_directory.mkdir(exist_ok=True, parents=True)
+    for source_file in source_directory.glob("*.parquet"):
+        source_file.rename(destination_directory / source_file.name)
 
 
 def _merge_parquet_dataset(
@@ -3260,9 +4077,13 @@ def _merge_parquet_dataset(
     columns_to_drop: list[str],
     merged_parquet_path: Path,
     save_as_wkt: bool,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> None:
     connection, db_file_path = _set_up_duckdb_connection(
-        tmp_dir_path, is_main_connection=False, threads_limit=cpu_limit
+        tmp_dir_path,
+        is_main_connection=False,
+        threads_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     )
     parquet_relation = connection.read_parquet(
         [str(_input_file) for _input_file in dataset.files],
@@ -3313,6 +4134,7 @@ def _merge_parquet_dataset(
             FROM ({parquet_relation.sql_query()})
         ) TO '{merged_parquet_path}' (
             FORMAT 'parquet',
+            {PbfFileReader.parquet_version_query}
             OVERWRITE true,
             ROW_GROUP_SIZE_BYTES '128MB',
             COMPRESSION 'zstd',
@@ -3330,6 +4152,7 @@ def _set_up_duckdb_connection(
     is_main_connection: Literal[True] = True,
     preserve_insertion_order: bool = False,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> "duckdb.DuckDBPyConnection": ...
 
 
@@ -3339,6 +4162,7 @@ def _set_up_duckdb_connection(
     is_main_connection: Literal[False] = False,
     preserve_insertion_order: bool = False,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> tuple["duckdb.DuckDBPyConnection", "Path"]: ...
 
 
@@ -3347,21 +4171,26 @@ def _set_up_duckdb_connection(
     is_main_connection: bool = True,
     preserve_insertion_order: bool = False,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Union["duckdb.DuckDBPyConnection", tuple["duckdb.DuckDBPyConnection", "Path"]]:
-    local_db_file = "db.duckdb" if is_main_connection else f"{secrets.token_hex(16)}.duckdb"
-    local_db_path = tmp_dir_path / local_db_file
-    connection = duckdb.connect(
-        database=str(local_db_path),
-        config=dict(preserve_insertion_order=preserve_insertion_order),
-    )
-    connection.sql("SET enable_progress_bar = false;")
-    connection.sql("SET enable_progress_bar_print = false;")
-
+    duckdb_conn_kwargs = duckdb_conn_kwargs or {}
+    duckdb_conn_kwargs["randomize_db_file_name"] = not is_main_connection
+    duckdb_conn_kwargs["provisioning_queries"] = [
+        *duckdb_conn_kwargs.get("provisioning_queries", []),
+        "SET enable_progress_bar = false;",
+        "SET enable_progress_bar_print = false;",
+    ]
     if threads_limit:
-        connection.sql(f"SET threads = {threads_limit};")
+        duckdb_conn_kwargs["provisioning_queries"].append(f"SET threads = {threads_limit};")
 
-    connection.install_extension("spatial")
-    connection.load_extension("spatial")
+    duckdb_conn_kwargs["official_extensions_to_load"] = list(
+        set([*duckdb_conn_kwargs.get("official_extensions_to_load", []), "spatial"])
+    )
+    connection = set_up_duckdb_connection(
+        tmp_dir_path=tmp_dir_path,
+        preserve_insertion_order=preserve_insertion_order,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
+    )
 
     connection.sql(
         """
@@ -3369,28 +4198,36 @@ def _set_up_duckdb_connection(
         ST_RemoveRepeatedPoints(
             ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
         )::GEOMETRY;
-    """
+        """
     )
     connection.sql(
         """
         CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
         ST_MakePolygon(linestring_to_linestring_geometry(ls));
-    """
+        """
     )
 
     if not is_main_connection:
+        db_file_name = connection.sql("SHOW DATABASES;").fetchone()[0]
+        local_db_path = tmp_dir_path / f"{db_file_name}.duckdb"
         return connection, local_db_path
 
     return connection
 
 
 def _run_query(
-    sql_queries: Union[str, list[str]], tmp_dir_path: Path, threads_limit: Optional[int] = None
+    sql_queries: Union[str, list[str]],
+    tmp_dir_path: Path,
+    threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> None:
     if isinstance(sql_queries, str):
         sql_queries = [sql_queries]
     conn, db_file_path = _set_up_duckdb_connection(
-        tmp_dir_path=tmp_dir_path, is_main_connection=False, threads_limit=threads_limit
+        tmp_dir_path=tmp_dir_path,
+        is_main_connection=False,
+        threads_limit=threads_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     )
     for sql_query in sql_queries:
         conn.sql(sql_query)
@@ -3398,28 +4235,42 @@ def _run_query(
     db_file_path.unlink(missing_ok=True)
 
 
-def _run_in_multiprocessing_pool(function: Callable[..., None], args: Any) -> None:
+def _run_in_multiprocessing_pool(
+    pool: "multiprocessing.pool.Pool", function: Callable[..., None], args: Any
+) -> None:
     try:
-        with multiprocessing.get_context("spawn").Pool() as pool:
-            r = pool.apply_async(
-                func=function,
-                args=args,
-            )
+        r = pool.apply_async(
+            func=function,
+            args=args,
+        )
+        actual_memory = psutil.virtual_memory()
+        percentage_threshold = 95
+        if (actual_memory.total * 0.05) > MEMORY_1GB:
+            percentage_threshold = 100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+        while not r.ready():
             actual_memory = psutil.virtual_memory()
-            percentage_threshold = 95
-            if (actual_memory.total * 0.05) > MEMORY_1GB:
-                percentage_threshold = (
-                    100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
-                )
-            while not r.ready():
-                actual_memory = psutil.virtual_memory()
-                if actual_memory.percent > percentage_threshold:
-                    raise MemoryError()
+            if actual_memory.percent > percentage_threshold:
+                raise MemoryError()
 
-                sleep(0.5)
-            r.get()
+            sleep(0.5)
+        r.get()
     except Exception as ex:
         raise MultiprocessingRuntimeError() from ex
+
+
+# def _calculate_element_valid_ids_based_on_refs_with_polars(
+#     refs_unnested: Path, sub_element_ids_valid: Path, non_distinct_save_path: Path
+# ) -> None:
+#     refs_unnested_lf = pl.scan_parquet(refs_unnested)
+#     sub_element_ids_valid_lf = pl.scan_parquet(sub_element_ids_valid)
+#     elements_base_ids_lf = refs_unnested_lf.select("id").unique("id")
+
+#     ways_ids_invalid_lf = refs_unnested_lf.join(
+#         sub_element_ids_valid_lf, left_on="ref", right_on="id", how="anti"
+#     )
+
+#     elements_ids_valid_lf = elements_base_ids_lf.join(ways_ids_invalid_lf, on="id", how="anti")
+#     elements_ids_valid_lf.sink_parquet(non_distinct_save_path / "data.parquet")
 
 
 def _drop_duplicates_in_pyarrow_table(
@@ -3467,10 +4318,12 @@ def _sort_geoparquet_file_by_geometry(
     compression: str,
     compression_level: int,
     row_group_size: int,
+    parquet_version: str,
     verbosity_mode: VERBOSITY_MODE,
     working_directory: Path,
     threads_limit: Optional[int],
     progress_bar: TaskProgressBar,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs],
 ) -> Path:
     total_rows = pq.read_metadata(input_file_path).num_rows
     progress_bar.create_manual_bar(total_rows)
@@ -3498,6 +4351,7 @@ def _sort_geoparquet_file_by_geometry(
             value_columns=value_columns,
             working_directory=working_directory,
             threads_limit=threads_limit,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
         input_file_path.unlink(missing_ok=True)
@@ -3514,6 +4368,7 @@ def _sort_geoparquet_file_by_geometry(
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
             progress_callback=progress_bar.update_manual_bar,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
         _decompress_value_columns(
@@ -3524,7 +4379,9 @@ def _sort_geoparquet_file_by_geometry(
             compression=compression,
             compression_level=compression_level,
             row_group_size=row_group_size,
+            parquet_version=parquet_version,
             verbosity_mode=verbosity_mode,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
         sorted_parquet_path.unlink(missing_ok=True)
@@ -3535,10 +4392,13 @@ def _sort_geoparquet_file_by_geometry(
             compression=compression,
             compression_level=compression_level,
             row_group_size=row_group_size,
+            parquet_version=parquet_version,
             working_directory=working_directory,
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
+            progress_callback=progress_bar.update_manual_bar,
+            duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
     progress_bar.update_manual_bar(total_rows)
@@ -3552,8 +4412,11 @@ def _compress_value_columns(
     value_columns: list[str],
     working_directory: Path,
     threads_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> None:
-    connection = _set_up_duckdb_connection(working_directory, threads_limit=threads_limit)
+    connection = _set_up_duckdb_connection(
+        working_directory, threads_limit=threads_limit, duckdb_conn_kwargs=duckdb_conn_kwargs
+    )
 
     index_case_clauses = ", ".join(
         f'CASE WHEN "{column}" IS NOT NULL THEN {column_idx} ELSE NULL END'
@@ -3583,6 +4446,8 @@ def _compress_value_columns(
 
     relation.to_parquet(str(output_file))
 
+    connection.close()
+
 
 def _decompress_value_columns(
     input_file: Path,
@@ -3592,7 +4457,9 @@ def _decompress_value_columns(
     compression: str,
     compression_level: int,
     row_group_size: int,
+    parquet_version: str,
     verbosity_mode: str,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs],
 ) -> None:
     select_clauses = ", ".join(
         f"""
@@ -3618,6 +4485,8 @@ def _decompress_value_columns(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         working_directory=working_directory,
         verbosity_mode=verbosity_mode,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     )

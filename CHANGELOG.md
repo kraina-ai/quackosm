@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored whole PbfFileReader prefiltering implementation to reduce memory and disk usage
+    - Changed raw OSM tags manipulation query to reduce DuckDB operations
+    - Created dedicated paths for reading all features from the PBF file vs intersecting and/or filtering
+    - Renamed temporal directories names
+    - When filtering and/or intersecting added multiple steps operating on a much smaller dataset than previously
+    - Bundled all filtering steps into a single major step in progress reporting
+- Reduced number of major steps in the progress bar from 33 to 16
+
+### Added
+
+- Internal testing of resources usage for filtered and intersected scenarios
+- Explicit `click` to the dependencies, since `typer` removed it from its own dependencies
+
+## [0.17.1] - 2026-04-17
+
+### Changed
+
+- Removed blob to geometry casting for newer DuckDB versions (above 1.3.0)
+
+## [0.17.0] - 2026-02-13
+
+### Added
+
+- Option to pass additional parameters to the DuckDB connection config [#290](https://github.com/kraina-ai/quackosm/issues/290)
+
+### Removed
+
+- Support for Python version 3.9
+
+## [0.16.5] - 2026-01-27
+
+### Fixed
+
+- Changed `deprecate` logic after Pandas 3.0 release [#287](https://github.com/kraina-ai/quackosm/issues/287)
+
+## [0.16.4] - 2025-11-25
+
+### Added
+
+- Precalculated OSM indexes to the GitHub repository [#257](https://github.com/kraina-ai/quackosm/issues/257)
+- Automatic download of precalculated OSM indexes for fresh installation [#261](https://github.com/kraina-ai/quackosm/issues/261)
+
+## [0.16.3] - 2025-11-05
+
+### Fixed
+
+- Changed BBBike extract polygon parsing logic to fallback to CSV regions file if `.poly` file is missing
+
+## [0.16.2] - 2025-08-13
+
+### Fixed
+
+- Changed `OsmTagsFilter` type checking
+
+## [0.16.1] - 2025-08-12
+
+### Added
+
+- Option to set threads limit using `cpu_limit` and `--cpu-limit` arguments
+- Support for Parquet version 2 with DuckDB >= `1.3.0`
+- Exposed parquet compression related flags to the CLI (`--compression`, `--compression-level`, `--row-group-size`, `--parquet-version`)
+
+### Changed
+
+- Bumped minimal `rq_geo_toolkit` version
+
+### Fixed
+
+- Added graceful subprocess termination if memory error is raised from the main process
+- Added support for `compression_level` only for `zstd` compression because of DuckDB limitations
+
 ## [0.16.0] - 2025-07-29
 
 ### Added
@@ -529,7 +602,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.16.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.17.1...HEAD
+
+[0.17.1]: https://github.com/kraina-ai/quackosm/compare/0.17.0...0.17.1
+
+[0.17.0]: https://github.com/kraina-ai/quackosm/compare/0.16.5...0.17.0
+
+[0.16.5]: https://github.com/kraina-ai/quackosm/compare/0.16.4...0.16.5
+
+[0.16.4]: https://github.com/kraina-ai/quackosm/compare/0.16.3...0.16.4
+
+[0.16.3]: https://github.com/kraina-ai/quackosm/compare/0.16.2...0.16.3
+
+[0.16.2]: https://github.com/kraina-ai/quackosm/compare/0.16.1...0.16.2
+
+[0.16.1]: https://github.com/kraina-ai/quackosm/compare/0.16.0...0.16.1
 
 [0.16.0]: https://github.com/kraina-ai/quackosm/compare/0.15.3...0.16.0
 

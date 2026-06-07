@@ -6,17 +6,19 @@ This module contains helper functions to simplify the usage.
 
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 import geopandas as gpd
-from pandas.util._decorators import deprecate, deprecate_kwarg
+from rq_geo_toolkit.duckdb import DuckDBConnKwargs
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._constants import (
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
+    PARQUET_VERSION,
 )
+from quackosm._deprecate import deprecate, deprecate_kwarg
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
 from quackosm._rich_progress import VERBOSITY_MODE
@@ -47,6 +49,7 @@ def convert_pbf_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -57,6 +60,8 @@ def convert_pbf_to_duckdb(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Path:
     """
     Convert PBF file to DuckDB file.
@@ -95,9 +100,11 @@ def convert_pbf_to_duckdb(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -123,6 +130,10 @@ def convert_pbf_to_duckdb(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -274,10 +285,13 @@ def convert_pbf_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_pbf_to_duckdb(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -302,6 +316,7 @@ def convert_geometry_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -314,6 +329,8 @@ def convert_geometry_to_duckdb(
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Path:
     """
     Get a DuckDB file with OpenStreetMap features within given geometry.
@@ -355,9 +372,11 @@ def convert_geometry_to_duckdb(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -391,6 +410,10 @@ def convert_geometry_to_duckdb(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -497,6 +520,7 @@ def convert_geometry_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         osm_extract_source=osm_extract_source,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
@@ -504,6 +528,8 @@ def convert_geometry_to_duckdb(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_geometry_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -528,6 +554,7 @@ def convert_osm_extract_to_duckdb(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -538,6 +565,8 @@ def convert_osm_extract_to_duckdb(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Path:
     """
     Get a single OpenStreetMap extract from a given source and transform it to a DuckDB file.
@@ -579,9 +608,11 @@ def convert_osm_extract_to_duckdb(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -607,6 +638,10 @@ def convert_osm_extract_to_duckdb(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -677,10 +712,13 @@ def convert_osm_extract_to_duckdb(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_pbf_to_duckdb(
         pbf_path=downloaded_osm_extract,
         result_file_path=result_file_path,
@@ -705,6 +743,7 @@ def convert_pbf_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -715,6 +754,8 @@ def convert_pbf_to_parquet(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Path:
     """
     Convert PBF file to GeoParquet file.
@@ -753,9 +794,11 @@ def convert_pbf_to_parquet(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -783,6 +826,10 @@ def convert_pbf_to_parquet(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -932,10 +979,13 @@ def convert_pbf_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_pbf_to_parquet(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -960,6 +1010,7 @@ def convert_geometry_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -972,6 +1023,8 @@ def convert_geometry_to_parquet(
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Path:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -1013,9 +1066,11 @@ def convert_geometry_to_parquet(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1051,6 +1106,10 @@ def convert_geometry_to_parquet(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -1154,6 +1213,7 @@ def convert_geometry_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         osm_extract_source=osm_extract_source,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
@@ -1161,6 +1221,8 @@ def convert_geometry_to_parquet(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_geometry_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -1185,6 +1247,7 @@ def convert_osm_extract_to_parquet(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1195,6 +1258,8 @@ def convert_osm_extract_to_parquet(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Path:
     """
     Get a single OpenStreetMap extract from a given source and transform it to a GeoParquet file.
@@ -1236,9 +1301,11 @@ def convert_osm_extract_to_parquet(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1266,6 +1333,10 @@ def convert_osm_extract_to_parquet(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -1335,10 +1406,13 @@ def convert_osm_extract_to_parquet(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_pbf_to_parquet(
         pbf_path=downloaded_osm_extract,
         result_file_path=result_file_path,
@@ -1352,7 +1426,7 @@ def convert_osm_extract_to_parquet(
     return Path(result_path)
 
 
-@deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")  # type: ignore
+@deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")
 def convert_pbf_to_geodataframe(
     pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
@@ -1363,6 +1437,7 @@ def convert_pbf_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1372,6 +1447,8 @@ def convert_pbf_to_geodataframe(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame from a PBF file or list of PBF files.
@@ -1410,9 +1487,11 @@ def convert_pbf_to_geodataframe(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1437,6 +1516,10 @@ def convert_pbf_to_geodataframe(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1563,10 +1646,13 @@ def convert_pbf_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_pbf_to_geodataframe(
         pbf_path=pbf_path,
         keep_all_tags=keep_all_tags,
@@ -1587,6 +1673,7 @@ def convert_geometry_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1598,6 +1685,8 @@ def convert_geometry_to_geodataframe(
     allow_uncovered_geometry: bool = False,
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame with OpenStreetMap features within given geometry.
@@ -1636,9 +1725,11 @@ def convert_geometry_to_geodataframe(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1671,6 +1762,10 @@ def convert_geometry_to_geodataframe(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1734,6 +1829,7 @@ def convert_geometry_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         osm_extract_source=osm_extract_source,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
@@ -1741,6 +1837,8 @@ def convert_geometry_to_geodataframe(
         allow_uncovered_geometry=allow_uncovered_geometry,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_geometry_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
@@ -1761,6 +1859,7 @@ def convert_osm_extract_to_geodataframe(
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
     ignore_metadata_tags: bool = True,
     ignore_cache: bool = False,
     filter_osm_ids: Optional[list[str]] = None,
@@ -1770,6 +1869,8 @@ def convert_osm_extract_to_geodataframe(
     verbosity_mode: VERBOSITY_MODE = "transient",
     debug_memory: bool = False,
     debug_times: bool = False,
+    cpu_limit: Optional[int] = None,
+    duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get a single OpenStreetMap extract from a given source and return it as a GeoDataFrame.
@@ -1808,9 +1909,11 @@ def convert_osm_extract_to_geodataframe(
             Defaults to "zstd".
         compression_level (int, optional): Compression level of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
-            Defaults to 3.
+            Supported only for zstd compression. Defaults to 3.
         row_group_size (int, optional): Approximate number of rows per row group in the final
             parquet file. Defaults to 100_000.
+        parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
+            save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
         ignore_metadata_tags (bool, optional): Remove metadata tags, based on the default GDAL
             config. Defaults to `True`.
         ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
@@ -1835,6 +1938,10 @@ def convert_osm_extract_to_geodataframe(
             for debugging. Defaults to `False`.
         debug_times (bool, optional): If turned on, will report timestamps at which second each
             step has been executed. Defaults to `False`.
+        cpu_limit (int, optional): Max number of threads available for processing.
+            If `None`, will use all available threads. Defaults to `None`.
+        duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
+            provision a duckdb connection. Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1897,10 +2004,13 @@ def convert_osm_extract_to_geodataframe(
         compression=compression,
         compression_level=compression_level,
         row_group_size=row_group_size,
+        parquet_version=parquet_version,
         ignore_metadata_tags=ignore_metadata_tags,
         verbosity_mode=verbosity_mode,
         debug_memory=debug_memory,
         debug_times=debug_times,
+        cpu_limit=cpu_limit,
+        duckdb_conn_kwargs=duckdb_conn_kwargs,
     ).convert_pbf_to_geodataframe(
         pbf_path=downloaded_osm_extract,
         keep_all_tags=keep_all_tags,
@@ -1912,29 +2022,29 @@ def convert_osm_extract_to_geodataframe(
 
 
 convert_pbf_to_gpq = deprecate(
-    "convert_pbf_to_gpq",
-    convert_pbf_to_parquet,
-    "0.8.1",
+    name="convert_pbf_to_gpq",
+    alternative=convert_pbf_to_parquet,
+    version="0.8.1",
     msg="Use `convert_pbf_to_parquet` instead. Deprecated since 0.8.1 version.",
 )
 
 convert_geometry_to_gpq = deprecate(
-    "convert_geometry_to_gpq",
-    convert_geometry_to_parquet,
-    "0.8.1",
+    name="convert_geometry_to_gpq",
+    alternative=convert_geometry_to_parquet,
+    version="0.8.1",
     msg="Use `convert_geometry_to_parquet` instead. Deprecated since 0.8.1 version.",
 )
 
 get_features_gdf = deprecate(
-    "get_features_gdf",
-    convert_pbf_to_geodataframe,
-    "0.8.1",
+    name="get_features_gdf",
+    alternative=convert_pbf_to_geodataframe,
+    version="0.8.1",
     msg="Use `convert_pbf_to_geodataframe` instead. Deprecated since 0.8.1 version.",
 )
 
 get_features_gdf_from_geometry = deprecate(
-    "get_features_gdf_from_geometry",
-    convert_geometry_to_geodataframe,
-    "0.8.1",
+    name="get_features_gdf_from_geometry",
+    alternative=convert_geometry_to_geodataframe,
+    version="0.8.1",
     msg="Use `convert_geometry_to_geodataframe` instead. Deprecated since 0.8.1 version.",
 )

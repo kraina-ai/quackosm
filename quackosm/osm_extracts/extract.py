@@ -5,10 +5,13 @@ from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Callable, Optional, cast, overload
 
 import platformdirs
 from dateutil.relativedelta import relativedelta
+from pooch import get_logger as get_pooch_logger
+from pooch import retrieve
+from requests import HTTPError
 
 from quackosm._constants import WGS84_CRS
 from quackosm._exceptions import MissingOsmCacheWarning, OldOsmCacheWarning
@@ -17,6 +20,10 @@ if TYPE_CHECKING:  # pragma: no cover
     from geopandas import GeoDataFrame
     from pandas import DataFrame
     from shapely.geometry.base import BaseGeometry
+
+LFS_DIRECTORY_URL = (
+    "https://raw.githubusercontent.com/kraina-ai/quackosm/main/precalculated_indexes"
+)
 
 
 @dataclass
@@ -50,7 +57,7 @@ class OsmExtractSource(str, Enum):
 
 def load_index_decorator(
     extract_source: OsmExtractSource,
-) -> Callable[[Callable[[], "GeoDataFrame"]], Callable[[], "GeoDataFrame"]]:
+) -> Callable[[Callable[..., "GeoDataFrame"]], Callable[..., "GeoDataFrame"]]:
     """
     Decorator for loading OSM extracts index.
 
@@ -59,19 +66,29 @@ def load_index_decorator(
             Used to save the index to cache.
     """
 
-    def inner(function: Callable[[], "GeoDataFrame"]) -> Callable[[], "GeoDataFrame"]:
-        def wrapper() -> "GeoDataFrame":
+    def inner(function: Callable[..., "GeoDataFrame"]) -> Callable[..., "GeoDataFrame"]:
+        def wrapper(**kwargs: Any) -> "GeoDataFrame":
             global_cache_file_path = _get_global_cache_file_path(extract_source)
             global_cache_file_path.parent.mkdir(exist_ok=True, parents=True)
             expected_columns = ["id", "name", "file_name", "parent", "geometry", "area", "url"]
 
+            force_recalculation = kwargs.get("force_recalculation", False)
+            if force_recalculation:
+                warnings.warn(
+                    f"Forcing recalculation of the index for the {extract_source} source",
+                    stacklevel=0,
+                )
+
             # Check if index exists in cache
-            if global_cache_file_path.exists():
+            if not force_recalculation and global_cache_file_path.exists():
                 import geopandas as gpd
 
                 index_gdf = gpd.read_file(global_cache_file_path)
             # Move locally downloaded cache to global directory
-            elif (local_cache_file_path := _get_local_cache_file_path(extract_source)).exists():
+            elif (
+                not force_recalculation
+                and (local_cache_file_path := _get_local_cache_file_path(extract_source)).exists()
+            ):
                 import shutil
 
                 import geopandas as gpd
@@ -79,6 +96,13 @@ def load_index_decorator(
                 shutil.copy(local_cache_file_path, global_cache_file_path)
                 index_gdf = gpd.read_file(global_cache_file_path)
             # Download index
+            elif not force_recalculation and _download_precalculated_index_from_github(
+                global_cache_file_path
+            ):
+                import geopandas as gpd
+
+                index_gdf = gpd.read_file(global_cache_file_path)
+            # Calculate index locally
             else:  # pragma: no cover
                 if extract_source != OsmExtractSource.geofabrik:
                     warnings.warn(
@@ -113,10 +137,10 @@ def load_index_decorator(
                 # Invalidate previous cached index
                 global_cache_file_path.replace(global_cache_file_path.with_suffix(".geojson.old"))
                 # Download index again
-                index_gdf = wrapper()
+                index_gdf = wrapper(force_recalculation=force_recalculation)
 
             # Save index to cache
-            if not global_cache_file_path.exists():
+            if force_recalculation or not global_cache_file_path.exists():
                 global_cache_file_path.parent.mkdir(parents=True, exist_ok=True)
                 index_gdf[expected_columns].to_file(global_cache_file_path, driver="GeoJSON")
 
@@ -183,6 +207,29 @@ def _get_global_cache_file_path(extract_source: OsmExtractSource) -> Path:
 
 def _get_local_cache_file_path(extract_source: OsmExtractSource) -> Path:
     return Path(f"cache/{extract_source.value.lower()}_index.geojson")
+
+
+def _download_precalculated_index_from_github(destination_path: Path) -> bool:
+    logger = get_pooch_logger()
+    logger.setLevel("WARNING")
+
+    try:
+        index_content_file_name = destination_path.name
+        index_content_file_url = f"{LFS_DIRECTORY_URL}/{index_content_file_name}"
+        retrieve(
+            index_content_file_url,
+            fname=index_content_file_name,
+            path=destination_path.parent,
+            progressbar=False,
+            known_hash=None,
+        )
+    except HTTPError as ex:
+        if ex.response.status_code == 404:
+            return False
+
+        raise
+
+    return True
 
 
 def _calculate_geodetic_area(geometry: "BaseGeometry") -> float:

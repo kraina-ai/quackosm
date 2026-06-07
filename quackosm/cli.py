@@ -9,11 +9,19 @@ import click
 import typer
 from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
+from quackosm._constants import (
+    PARQUET_COMPRESSION,
+    PARQUET_COMPRESSION_LEVEL,
+    PARQUET_ROW_GROUP_SIZE,
+    PARQUET_VERSION,
+)
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
 
 if TYPE_CHECKING:
+    from typing import Literal
+
     from quackosm._rich_progress import VERBOSITY_MODE
 
 app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, rich_markup_mode="rich")
@@ -566,6 +574,40 @@ def main(
             help="Table name which the data will be imported into in the DuckDB database.",
         ),
     ] = "quackosm",
+    compression: Annotated[
+        str,
+        typer.Option(
+            "--compression",
+            help="Compression of the final parquet file.",
+            show_default=True,
+        ),
+    ] = PARQUET_COMPRESSION,
+    compression_level: Annotated[
+        int,
+        typer.Option(
+            "--compression-level",
+            help=(
+                "Compression level of the final parquet file. Supported only for zstd compression."
+            ),
+            show_default=True,
+        ),
+    ] = PARQUET_COMPRESSION_LEVEL,
+    row_group_size: Annotated[
+        int,
+        typer.Option(
+            "--row-group-size",
+            help="Approximate number of rows per row group in the final parquet file.",
+            show_default=True,
+        ),
+    ] = PARQUET_ROW_GROUP_SIZE,
+    parquet_version: Annotated[
+        str,
+        typer.Option(
+            "--parquet-version",
+            help="Type of parquet version used to save final file. Supported options: v1 and v2.",
+            show_default=True,
+        ),
+    ] = PARQUET_VERSION,
     ignore_cache: Annotated[
         bool,
         typer.Option(
@@ -684,6 +726,17 @@ def main(
             show_default=False,
         ),
     ] = False,
+    cpu_limit: Annotated[
+        Optional[int],
+        typer.Option(
+            "--cpu-limit",
+            help=(
+                "Max number of threads available for processing."
+                " By default, will use all available threads."
+            ),
+            show_default=False,
+        ),
+    ] = None,
     show_extracts: Annotated[
         Optional[bool],
         typer.Option(
@@ -711,6 +764,12 @@ def main(
     Wraps convert_pbf_to_parquet, convert_geometry_to_parquet and convert_osm_extract_to_parquet
     functions and prints final path to the saved geoparquet file at the end.
     """
+    if parquet_version not in ("v1", "v2"):
+        raise typer.BadParameter(
+            f"Provided incompatible parquet_version ({parquet_version}). Valid options: v1 and v2."
+        )
+    parquet_version = cast('Literal["v1", "v2"]', parquet_version)
+
     number_of_geometries_provided = sum(
         geom is not None
         for geom in (
@@ -793,6 +852,10 @@ def main(
             ignore_cache=ignore_cache,
             working_directory=working_directory,
             result_file_path=result_file_path,
+            compression=compression,
+            compression_level=compression_level,
+            row_group_size=row_group_size,
+            parquet_version=parquet_version,
             osm_way_polygon_features_config=(
                 json.loads(Path(osm_way_polygon_features_config).read_text())
                 if osm_way_polygon_features_config
@@ -804,6 +867,7 @@ def main(
             sort_result=sort_result,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
+            cpu_limit=cpu_limit,
         )
     elif pbf_file_duckdb:
         from quackosm.functions import convert_pbf_to_duckdb
@@ -817,6 +881,10 @@ def main(
             ignore_cache=ignore_cache,
             working_directory=working_directory,
             result_file_path=result_file_path,
+            compression=compression,
+            compression_level=compression_level,
+            row_group_size=row_group_size,
+            parquet_version=parquet_version,
             osm_way_polygon_features_config=(
                 json.loads(Path(osm_way_polygon_features_config).read_text())
                 if osm_way_polygon_features_config
@@ -828,6 +896,7 @@ def main(
             sort_result=sort_result,
             duckdb_table_name=duckdb_table_name or "quackosm",
             verbosity_mode=verbosity_mode,
+            cpu_limit=cpu_limit,
         )
     elif osm_extract_parquet:
         from quackosm._exceptions import OsmExtractSearchError
@@ -844,6 +913,10 @@ def main(
                 ignore_cache=ignore_cache,
                 working_directory=working_directory,
                 result_file_path=result_file_path,
+                compression=compression,
+                compression_level=compression_level,
+                row_group_size=row_group_size,
+                parquet_version=parquet_version,
                 osm_way_polygon_features_config=(
                     json.loads(Path(osm_way_polygon_features_config).read_text())
                     if osm_way_polygon_features_config
@@ -855,6 +928,7 @@ def main(
                 sort_result=sort_result,
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
+                cpu_limit=cpu_limit,
             )
         except OsmExtractSearchError as ex:
             from rich.console import Console
@@ -877,6 +951,10 @@ def main(
                 ignore_cache=ignore_cache,
                 working_directory=working_directory,
                 result_file_path=result_file_path,
+                compression=compression,
+                compression_level=compression_level,
+                row_group_size=row_group_size,
+                parquet_version=parquet_version,
                 osm_way_polygon_features_config=(
                     json.loads(Path(osm_way_polygon_features_config).read_text())
                     if osm_way_polygon_features_config
@@ -887,8 +965,8 @@ def main(
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
                 duckdb_table_name=duckdb_table_name or "quackosm",
-                save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
+                cpu_limit=cpu_limit,
             )
         except OsmExtractSearchError as ex:
             from rich.console import Console
@@ -908,6 +986,10 @@ def main(
             ignore_cache=ignore_cache,
             working_directory=working_directory,
             result_file_path=result_file_path,
+            compression=compression,
+            compression_level=compression_level,
+            row_group_size=row_group_size,
+            parquet_version=parquet_version,
             osm_way_polygon_features_config=(
                 json.loads(Path(osm_way_polygon_features_config).read_text())
                 if osm_way_polygon_features_config
@@ -921,6 +1003,7 @@ def main(
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
+            cpu_limit=cpu_limit,
         )
     elif geometry_duckdb:
         from quackosm.functions import convert_geometry_to_duckdb
@@ -934,6 +1017,10 @@ def main(
             ignore_cache=ignore_cache,
             working_directory=working_directory,
             result_file_path=result_file_path,
+            compression=compression,
+            compression_level=compression_level,
+            row_group_size=row_group_size,
+            parquet_version=parquet_version,
             osm_way_polygon_features_config=(
                 json.loads(Path(osm_way_polygon_features_config).read_text())
                 if osm_way_polygon_features_config
@@ -948,6 +1035,7 @@ def main(
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
+            cpu_limit=cpu_limit,
         )
     else:
         raise RuntimeError("Unknown operation mode")
