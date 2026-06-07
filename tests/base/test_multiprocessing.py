@@ -58,6 +58,6 @@ def test_pool_exception_wrapping() -> None:
     """Test if multiprocessing pool exception raising works."""
     with (
         pytest.raises(MultiprocessingRuntimeError),
-        multiprocessing.get_context("spawn").Pool() as pool,
+        multiprocessing.get_context("spawn").Pool(processes=1) as pool,
     ):
         _run_in_multiprocessing_pool(pool, raise_error, (None,))

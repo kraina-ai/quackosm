@@ -1010,7 +1010,7 @@ class PbfFileReader:
         with self.task_progress_tracker.get_basic_spinner("Removing duplicates"):
             output_file_name = tmp_dir_path / "joined_features_without_duplicates.parquet"
 
-            with multiprocessing.get_context("spawn").Pool() as pool:
+            with multiprocessing.get_context("spawn").Pool(processes=1) as pool:
                 _run_in_multiprocessing_pool(
                     pool,
                     _drop_duplicates_in_pyarrow_table,
