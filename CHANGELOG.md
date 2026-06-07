@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Renamed temporal directories names
     - When filtering and/or intersecting added multiple steps operating on a much smaller dataset than previously
     - Bundled all filtering steps into a single major step in progress reporting
-- Reduced number of major steps in the progress bar form 33 to 16
+- Reduced number of major steps in the progress bar from to 16
 
 ### Added
 
