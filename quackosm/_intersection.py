@@ -31,7 +31,8 @@ def _intersect_nodes(
 
 
 def intersect_nodes_with_geometry(
-    tmp_dir_path: Path,
+    nodes_path: Path,
+    result_path: Path,
     geometry_filter: BaseGeometry,
     progress_bar: Optional[TaskProgressBar] = None,
 ) -> None:
@@ -39,17 +40,15 @@ def intersect_nodes_with_geometry(
     Intersects nodes points with geometry filter using spatial index with multiprocessing.
 
     Args:
-        tmp_dir_path (Path): Path of the working directory.
+        nodes_path (Path): Path where the nodes are saved.
+        result_path (Path): Path where to save intersecting nodes ids.
         geometry_filter (BaseGeometry): Geometry used for filtering.
         progress_bar (Optional[TaskProgressBar]): Progress bar to show task status.
             Defaults to `None`
     """
-    dataset_path = tmp_dir_path / "nodes_valid_with_tags"
-    destination_path = tmp_dir_path / "nodes_intersecting_ids"
-
     map_parquet_dataset(
-        dataset_path=dataset_path,
-        destination_path=destination_path,
+        dataset_path=nodes_path,
+        destination_path=result_path,
         progress_bar=progress_bar,
         function=partial(_intersect_nodes, geometry_filter=geometry_filter),
         columns=["id", "lat", "lon"],
