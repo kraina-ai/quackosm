@@ -22,3 +22,12 @@ keywords:
   - data-engineering
   - data-science
   - data-analysis
+preferred-citation:
+  type: software
+  authors:
+  - family-names: Raczycki
+    given-names: Kamil
+    orcid: 'https://orcid.org/0000-0002-3715-4869'
+  doi: 10.5281/zenodo.16122223
+  journal: Zenodo
+  title: "QuackOSM: an open-source Python and CLI tool for reading OpenStreetMap PBF files using DuckDB"
