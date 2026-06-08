@@ -15,7 +15,7 @@
     <a href="https://anaconda.org/conda-forge/quackosm" target="_blank"><img src="https://img.shields.io/conda/vn/conda-forge/quackosm?&logo=anaconda&logoColor=%23fff" alt="Package version"></a>
     <a href="https://pypi.org/project/quackosm" target="_blank"><img src="https://img.shields.io/pypi/pyversions/quackosm.svg?logo=python&logoColor=%23fff" alt="Supported Python versions"></a>
     <a href="https://pypi.org/project/quackosm" target="_blank"><img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dm/quackosm"></a>
-    <a href="https://doi.org/10.5281/zenodo.16122223" target="_blank"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.16122223.svg" alt="DOI"></a>
+    <a href="https://doi.org/10.5281/zenodo.16122223" target="_blank"><img src="https://img.shields.io/badge/DOI-10.5281/zenodo.16122223-blue" alt="DOI"></a>
 </p>
 
 # QuackOSM
