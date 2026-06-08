@@ -725,6 +725,7 @@ QuackOSM has been roughly tuned to different workloads. The `rows_per_group` var
 
 The algorithm depends on saving intermediate `.parquet` files between queries.
 As a rule of thumb, when parsing a full file without filtering, you should have at least 10x more free space on disk than the base file size (100MB pbf file -> 1GB free space to parse it).
+With filtering by tags or by geometry, the disk space usage drops significantly, because filtering happens during original PBF file scan.
 
 Below you can see the chart of resources usage during operation. Generated on a Github Actions Ubuntu virtual machine with 4 threads and 16 GB of memory.
 
