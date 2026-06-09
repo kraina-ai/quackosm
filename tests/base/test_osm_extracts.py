@@ -23,6 +23,7 @@ from quackosm._exceptions import (
     OldOsmCacheWarning,
     OsmExtractIndexOutdatedWarning,
     OsmExtractMultipleMatchesError,
+    OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
 from quackosm.geocode import geocode_to_geometry
@@ -30,6 +31,8 @@ from quackosm.osm_extracts import (
     OsmExtractSource,
     clear_osm_index_cache,
     display_available_extracts,
+    download_extracts_pbf_files,
+    find_and_download_extracts_pbf_files,
     find_smallest_containing_extracts,
     find_smallest_containing_extracts_total,
     get_extract_by_query,
@@ -236,6 +239,72 @@ def test_uncovered_geometry_extract(
             allow_uncovered_geometry=allow_uncovered_geometry,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
         )
+
+
+def test_excluded_extracts_ids() -> None:
+    """Test if excluded extracts are skipped and coverage is recalculated."""
+    geometry = geocode_to_geometry("Andorra")
+
+    extracts = find_smallest_containing_extracts(geometry, "geofabrik")
+    ut.assertListEqual([extract.file_name for extract in extracts], ["geofabrik_europe_andorra"])
+
+    excluded_extracts_ids = {extracts[0].id}
+    fallback_extracts = find_smallest_containing_extracts(
+        geometry, "geofabrik", excluded_extracts_ids=excluded_extracts_ids
+    )
+
+    fallback_extracts_ids = {extract.id for extract in fallback_extracts}
+    assert excluded_extracts_ids.isdisjoint(fallback_extracts_ids)
+    assert len(fallback_extracts) >= 1
+
+
+def test_find_and_download_excludes_unavailable_extracts(mocker: MockerFixture) -> None:
+    """Test if unavailable extracts are excluded and the coverage is recalculated."""
+    from requests.exceptions import HTTPError
+
+    geometry = geocode_to_geometry("Andorra")
+    matching_extracts = find_smallest_containing_extracts(geometry, "geofabrik")
+    failing_extract_id = matching_extracts[0].id
+
+    def fake_download(
+        extract: OpenStreetMapExtract, download_directory: Path, progressbar: bool = True
+    ) -> Path:
+        if extract.id == failing_extract_id:
+            raise HTTPError("Extract unavailable")
+        return Path(download_directory) / f"{extract.file_name}.osm.pbf"
+
+    mocker.patch("quackosm.osm_extracts._download_single_extract", side_effect=fake_download)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with pytest.warns(OsmExtractUnavailableWarning):
+            result = find_and_download_extracts_pbf_files(geometry, "geofabrik", tmp_dir)
+
+    result_extracts_ids = {extract.id for extract, _ in result}
+    assert failing_extract_id not in result_extracts_ids
+    assert len(result) >= 1
+    assert all(isinstance(pbf_path, Path) for _, pbf_path in result)
+
+
+def test_download_extracts_pbf_files_raises_on_unavailable(mocker: MockerFixture) -> None:
+    """Test if the public download function keeps raising on errors (back-compat)."""
+    from requests.exceptions import HTTPError
+
+    extract = OpenStreetMapExtract(
+        id="test_extract",
+        name="test_extract",
+        parent="",
+        url="http://example.com/test_extract.osm.pbf",
+        geometry=box(0, 0, 1, 1),
+        file_name="test_extract",
+    )
+    mocker.patch(
+        "quackosm.osm_extracts._download_single_extract",
+        side_effect=HTTPError("Extract unavailable"),
+    )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with pytest.raises(HTTPError):
+            download_extracts_pbf_files([extract], Path(tmp_dir))
 
 
 def test_proper_cache_saving() -> None:

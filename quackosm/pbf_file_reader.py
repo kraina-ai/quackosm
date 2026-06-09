@@ -84,8 +84,7 @@ from quackosm._rich_progress import (
 from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
     OsmExtractSource,
-    download_extracts_pbf_files,
-    find_smallest_containing_extracts,
+    find_and_download_extracts_pbf_files,
 )
 
 __all__ = [
@@ -703,15 +702,15 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
-        matching_extracts = find_smallest_containing_extracts(
+        matching_extracts_with_paths = find_and_download_extracts_pbf_files(
             self.geometry_filter,
             self.osm_extract_source,
+            self.working_directory,
             geometry_coverage_iou_threshold=self.geometry_coverage_iou_threshold,
             allow_uncovered_geometry=self.allow_uncovered_geometry,
+            progressbar=self.verbosity_mode != "silent",
         )
-        pbf_files = download_extracts_pbf_files(
-            matching_extracts, self.working_directory, progressbar=self.verbosity_mode != "silent"
-        )
+        pbf_files = [pbf_file_path for _, pbf_file_path in matching_extracts_with_paths]
         return self.convert_pbf_to_parquet(
             pbf_files,
             result_file_path=result_file_path,
@@ -722,7 +721,7 @@ class PbfFileReader:
             save_as_wkt=save_as_wkt,
             sort_result=sort_result,
             pbf_extract_geometry=[
-                matching_extract.geometry for matching_extract in matching_extracts
+                matching_extract.geometry for matching_extract, _ in matching_extracts_with_paths
             ],
         )
 
