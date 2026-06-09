@@ -39,7 +39,9 @@ from quackosm.osm_extracts.extract import (
     clear_osm_index_cache,
 )
 from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree
+from quackosm.osm_extracts.geo2day import _get_geo2day_index
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
+from quackosm.osm_extracts.movisda import _get_movisda_admin_index, _get_movisda_grid_index
 from quackosm.osm_extracts.osm_fr import _get_openstreetmap_fr_index
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -144,6 +146,9 @@ OSM_EXTRACT_SOURCE_INDEX_FUNCTION = {
     OsmExtractSource.bbbike: _get_bbbike_index,
     OsmExtractSource.geofabrik: _get_geofabrik_index,
     OsmExtractSource.osm_fr: _get_openstreetmap_fr_index,
+    OsmExtractSource.geo2day: _get_geo2day_index,
+    OsmExtractSource.movisda_admin: _get_movisda_admin_index,
+    OsmExtractSource.movisda_grid: _get_movisda_grid_index,
 }
 
 # A single source, or multiple sources passed as an iterable or a comma-separated string.

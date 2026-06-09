@@ -519,7 +519,8 @@ def main(
             "--pbf-download-source",
             help=(
                 "Source where to download the PBF file from."
-                " Can be Geofabrik, BBBike, OSMfr (OpenStreetMap.fr) or any."
+                " Can be Geofabrik, BBBike, OSMfr (OpenStreetMap.fr), GEO2Day,"
+                " Movisda-admin, Movisda-grid or any."
                 " Can be passed multiple times to combine sources"
                 " (e.g. --osm-extract-source BBBike --osm-extract-source OSMfr)."
             ),

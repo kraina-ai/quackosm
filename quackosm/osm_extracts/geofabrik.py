@@ -42,6 +42,19 @@ def _load_geofabrik_index(**kwargs: Any) -> gpd.GeoDataFrame:  # pragma: no cove
         headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
     )
     parsed_data = json.loads(result.text)
+    return _parse_geofabrik_index(parsed_data)
+
+
+def _parse_geofabrik_index(parsed_data: dict[str, Any]) -> gpd.GeoDataFrame:
+    """
+    Parse a Geofabrik `index-v1.json` payload into an extracts index.
+
+    Args:
+        parsed_data (dict[str, Any]): Parsed Geofabrik index JSON.
+
+    Returns:
+        gpd.GeoDataFrame: Extracts index with metadata.
+    """
     gdf = gpd.GeoDataFrame.from_features(parsed_data["features"])
 
     geofabrik_enum_value = OsmExtractSource.geofabrik.value
