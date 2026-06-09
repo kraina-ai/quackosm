@@ -84,6 +84,7 @@ from quackosm._rich_progress import (
 from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
     OsmExtractSource,
+    OsmExtractSourceLike,
     find_and_download_extracts_pbf_files,
 )
 
@@ -170,7 +171,7 @@ class PbfFileReader:
         compression_level: int = PARQUET_COMPRESSION_LEVEL,
         row_group_size: int = PARQUET_ROW_GROUP_SIZE,
         parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
-        osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+        osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
         verbosity_mode: VERBOSITY_MODE = "transient",
         geometry_coverage_iou_threshold: float = 0.01,
         allow_uncovered_geometry: bool = False,
@@ -216,9 +217,10 @@ class PbfFileReader:
                 parquet file. Defaults to 100_000.
             parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
                 save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
-            osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-                downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-                Defaults to `any`.
+            osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+                downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+                iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+                'bbbike,osmfr'). Defaults to `any`.
             verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.

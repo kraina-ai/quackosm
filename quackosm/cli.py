@@ -41,8 +41,13 @@ def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
 
         param_values = {p.name: p.default for p in ctx.command.params}
         param_values.update(ctx.params)
-        osm_source = cast("str", param_values.get("osm_extract_source"))
-        display_available_extracts(source=osm_source, use_full_names=True, use_pager=True)
+        selected_sources = param_values.get("osm_extract_source") or [OsmExtractSource.any]
+        # `--show-extracts` displays a single source tree; with multiple sources selected
+        # fall back to `any`. Displaying a subset of sources is out of scope for the tree.
+        display_source: Union[OsmExtractSource, str] = (
+            selected_sources[0] if len(selected_sources) == 1 else OsmExtractSource.any
+        )
+        display_available_extracts(source=display_source, use_full_names=True, use_pager=True)
         raise typer.Exit()
 
 
@@ -508,19 +513,21 @@ def main(
         ),
     ] = None,
     osm_extract_source: Annotated[
-        OsmExtractSource,
+        Optional[list[OsmExtractSource]],
         typer.Option(
             "--osm-extract-source",
             "--pbf-download-source",
             help=(
                 "Source where to download the PBF file from."
                 " Can be Geofabrik, BBBike, OSMfr (OpenStreetMap.fr) or any."
+                " Can be passed multiple times to combine sources"
+                " (e.g. --osm-extract-source BBBike --osm-extract-source OSMfr)."
             ),
             case_sensitive=False,
             show_default="any",
             is_eager=True,
         ),
-    ] = OsmExtractSource.any,
+    ] = None,
     explode_tags: Annotated[
         Optional[bool],
         typer.Option(
@@ -769,6 +776,8 @@ def main(
             f"Provided incompatible parquet_version ({parquet_version}). Valid options: v1 and v2."
         )
     parquet_version = cast('Literal["v1", "v2"]', parquet_version)
+
+    osm_extract_source = osm_extract_source or [OsmExtractSource.any]
 
     number_of_geometries_provided = sum(
         geom is not None

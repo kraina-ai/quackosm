@@ -29,6 +29,8 @@ from quackosm._exceptions import (
 from quackosm.geocode import geocode_to_geometry
 from quackosm.osm_extracts import (
     OsmExtractSource,
+    _get_index_for_sources,
+    _resolve_extract_sources,
     clear_osm_index_cache,
     display_available_extracts,
     download_extracts_pbf_files,
@@ -305,6 +307,73 @@ def test_download_extracts_pbf_files_raises_on_unavailable(mocker: MockerFixture
     with tempfile.TemporaryDirectory() as tmp_dir:
         with pytest.raises(HTTPError):
             download_extracts_pbf_files([extract], Path(tmp_dir))
+
+
+@pytest.mark.parametrize(
+    "source,expected_sources",
+    [
+        ("geofabrik", [OsmExtractSource.geofabrik]),
+        (OsmExtractSource.bbbike, [OsmExtractSource.bbbike]),
+        (
+            "any",
+            [OsmExtractSource.bbbike, OsmExtractSource.geofabrik, OsmExtractSource.osm_fr],
+        ),
+        (["bbbike", "osmfr"], [OsmExtractSource.bbbike, OsmExtractSource.osm_fr]),
+        (
+            [OsmExtractSource.bbbike, OsmExtractSource.osm_fr],
+            [OsmExtractSource.bbbike, OsmExtractSource.osm_fr],
+        ),
+        ("bbbike,osmfr", [OsmExtractSource.bbbike, OsmExtractSource.osm_fr]),
+        ("bbbike, osmfr, bbbike", [OsmExtractSource.bbbike, OsmExtractSource.osm_fr]),
+        (
+            ["geofabrik", "any"],
+            [OsmExtractSource.geofabrik, OsmExtractSource.bbbike, OsmExtractSource.osm_fr],
+        ),
+        ("BBBike", [OsmExtractSource.bbbike]),
+    ],
+)  # type: ignore
+def test_resolve_extract_sources(source: Any, expected_sources: list[OsmExtractSource]) -> None:
+    """Test if source specifications are normalized into concrete sources."""
+    resolved_sources = _resolve_extract_sources(source)
+    # Order is not significant (the combined index is sorted by area downstream),
+    # but the result must be deduplicated.
+    assert len(resolved_sources) == len(set(resolved_sources))
+    assert set(resolved_sources) == set(expected_sources)
+
+
+@pytest.mark.parametrize("source", ["", "nonexistent_source"])  # type: ignore
+def test_resolve_extract_sources_raises_on_invalid(source: str) -> None:
+    """Test if invalid or empty source specifications raise ValueError."""
+    with pytest.raises(ValueError):
+        _resolve_extract_sources(source)
+
+
+def test_get_index_for_multiple_sources(mocker: MockerFixture) -> None:
+    """Test if indexes for multiple sources are concatenated."""
+    import geopandas as gpd
+
+    def fake_index(source_name: str) -> gpd.GeoDataFrame:
+        return gpd.GeoDataFrame(
+            {"id": [source_name], "area": [1.0]},
+            geometry=[box(0, 0, 1, 1)],
+            crs="EPSG:4326",
+        )
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {
+            OsmExtractSource.bbbike: lambda: fake_index("bbbike"),
+            OsmExtractSource.geofabrik: lambda: fake_index("geofabrik"),
+            OsmExtractSource.osm_fr: lambda: fake_index("osmfr"),
+        },
+        clear=True,
+    )
+
+    single_index = _get_index_for_sources("bbbike")
+    assert list(single_index["id"]) == ["bbbike"]
+
+    combined_index = _get_index_for_sources(["bbbike", "osmfr"])
+    assert set(combined_index["id"]) == {"bbbike", "osmfr"}
 
 
 def test_proper_cache_saving() -> None:
