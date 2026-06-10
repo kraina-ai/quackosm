@@ -13,6 +13,7 @@ import geopandas as gpd
 import requests
 from tqdm import tqdm
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm._rich_progress import FORCE_TERMINAL
 from quackosm.osm_extracts._geojson_parser import parse_geojson_file
 from quackosm.osm_extracts.extract import (
@@ -130,7 +131,11 @@ def _gather_all_geo2day_urls(
     pbar.set_description_str(id_prefix)
     region_objects = []
 
-    result = requests.get(page_url, headers={"User-Agent": _USER_AGENT})
+    result = requests.get(
+        page_url,
+        headers={"User-Agent": _USER_AGENT},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
+    )
     result.raise_for_status()
     soup = BeautifulSoup(result.text, "html.parser")
 

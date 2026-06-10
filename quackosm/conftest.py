@@ -8,9 +8,10 @@ from pathlib import Path
 import duckdb
 import pandas
 import pytest
+from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
-from pooch import retrieve
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
 
@@ -56,6 +57,7 @@ def download_osm_extracts_indexes():  # type: ignore
             path=download_directory,
             progressbar=False,
             known_hash=None,
+            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
         )
 
 
@@ -79,6 +81,7 @@ def add_pbf_files(doctest_namespace, download_osm_extracts_indexes):  # type: ig
             path=download_directory,
             progressbar=False,
             known_hash=None,
+            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
         )
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
         shutil.copy(pbf_file_path, geofabrik_pbf_file_path)

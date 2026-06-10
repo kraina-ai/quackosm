@@ -9,11 +9,11 @@ from typing import TYPE_CHECKING, Any, Callable, Optional, cast, overload
 
 import platformdirs
 from dateutil.relativedelta import relativedelta
+from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
-from pooch import retrieve
 from requests import HTTPError
 
-from quackosm._constants import WGS84_CRS
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS, WGS84_CRS
 from quackosm._exceptions import MissingOsmCacheWarning, OldOsmCacheWarning
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -289,6 +289,7 @@ def _download_precalculated_index_from_github(destination_path: Path) -> bool:
             path=destination_path.parent,
             progressbar=False,
             known_hash=None,
+            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
         )
     except HTTPError as ex:
         if ex.response.status_code == 404:

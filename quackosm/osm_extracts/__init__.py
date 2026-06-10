@@ -15,19 +15,23 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union, overload
 
 import geopandas as gpd
+from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
-from pooch import retrieve
+from requests.exceptions import RequestException
 from rich import get_console
 from rich import print as rprint
 from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 from tqdm.contrib.concurrent import process_map
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm._deprecate import deprecate
 from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
     OsmExtractMultipleMatchesError,
+    OsmExtractsIndexesUnavailableError,
+    OsmExtractSourceUnavailableWarning,
     OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
@@ -92,6 +96,7 @@ def _download_single_extract(
         path=download_directory,
         progressbar=progressbar and not FORCE_TERMINAL,
         known_hash=None,
+        downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
     )
     return Path(file_path)
 
@@ -118,8 +123,6 @@ def _download_extracts_pbf_files(
             A tuple with a list of (extract, downloaded path) pairs and a list
             of extracts that couldn't be downloaded.
     """
-    from requests.exceptions import RequestException
-
     logger = get_pooch_logger()
     logger.setLevel("WARNING")
 
@@ -203,18 +206,44 @@ def _resolve_extract_sources(source: OsmExtractSourceLike) -> list[OsmExtractSou
 
 
 def _get_index_for_sources(source: OsmExtractSourceLike) -> gpd.GeoDataFrame:
-    """Load and combine extract indexes for one or multiple sources."""
+    """
+    Load and combine extract indexes for one or multiple sources.
+
+    For a single source, loading errors propagate - the request can't be fulfilled otherwise.
+    For multiple sources (including ``any``), sources whose index can't be loaded (e.g. when
+    offline and not cached locally) are skipped with a warning, as long as at least one source
+    loads successfully. If none can be loaded, an error is raised.
+    """
     resolved_sources = _resolve_extract_sources(source)
 
     if len(resolved_sources) == 1:
         return OSM_EXTRACT_SOURCE_INDEX_FUNCTION[resolved_sources[0]]()
 
-    combined_index = gpd.pd.concat(
-        [
-            OSM_EXTRACT_SOURCE_INDEX_FUNCTION[resolved_source]()
-            for resolved_source in resolved_sources
-        ]
-    )
+    loaded_indexes = []
+    unavailable_sources = []
+    for resolved_source in resolved_sources:
+        try:
+            loaded_indexes.append(OSM_EXTRACT_SOURCE_INDEX_FUNCTION[resolved_source]())
+        except RequestException:
+            unavailable_sources.append(resolved_source)
+
+    if unavailable_sources:
+        warnings.warn(
+            "Couldn't load indexes for some OSM extract sources (offline or unreachable?):"
+            f" {[unavailable_source.value for unavailable_source in unavailable_sources]}."
+            " Continuing with the available sources.",
+            OsmExtractSourceUnavailableWarning,
+            stacklevel=0,
+        )
+
+    if not loaded_indexes:
+        raise OsmExtractsIndexesUnavailableError(
+            "Couldn't load any OSM extracts index for the requested sources:"
+            f" {[resolved_source.value for resolved_source in resolved_sources]}."
+            " Check your internet connection or the local cache."
+        )
+
+    combined_index = gpd.pd.concat(loaded_indexes)
     combined_index.sort_values(by=["area", "id"], ignore_index=True, inplace=True)
     return combined_index
 

@@ -12,6 +12,7 @@ import geopandas as gpd
 import pandas as pd
 import requests
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm.osm_extracts.extract import OsmExtractSource, load_index_decorator
 
 GEOFABRIK_INDEX_URL = "https://download.geofabrik.de/index-v1.json"
@@ -40,6 +41,7 @@ def _load_geofabrik_index(**kwargs: Any) -> gpd.GeoDataFrame:  # pragma: no cove
     result = requests.get(
         GEOFABRIK_INDEX_URL,
         headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     )
     parsed_data = json.loads(result.text)
     return _parse_geofabrik_index(parsed_data)

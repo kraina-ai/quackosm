@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import requests
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
+
 if TYPE_CHECKING:  # pragma: no cover
     from shapely.geometry.base import BaseGeometry
 
@@ -23,7 +25,11 @@ def parse_geojson_file(geojson_url: str) -> Optional["BaseGeometry"]:  # pragma:
         Optional[BaseGeometry]: Parsed geometry, or `None` if the request returns 404 not found
             or the file contains no geometry.
     """
-    result = requests.get(geojson_url, headers={"User-Agent": _USER_AGENT})
+    result = requests.get(
+        geojson_url,
+        headers={"User-Agent": _USER_AGENT},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
+    )
     if result.status_code == 404:
         return None
     result.raise_for_status()

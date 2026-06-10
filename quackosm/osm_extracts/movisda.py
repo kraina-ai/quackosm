@@ -13,6 +13,7 @@ from typing import Any, Optional
 import geopandas as gpd
 import requests
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,
     OsmExtractSource,
@@ -100,7 +101,11 @@ def _iterate_movisda_geojson(
     Returns:
         list[OpenStreetMapExtract]: List of parsed extracts.
     """
-    result = requests.get(geojson_url, headers={"User-Agent": _USER_AGENT})
+    result = requests.get(
+        geojson_url,
+        headers={"User-Agent": _USER_AGENT},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
+    )
     result.raise_for_status()
 
     source_enum_value = source_enum.value

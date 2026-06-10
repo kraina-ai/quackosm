@@ -11,6 +11,7 @@ import geopandas as gpd
 import requests
 from tqdm import tqdm
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm._rich_progress import FORCE_TERMINAL
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import (
@@ -83,6 +84,7 @@ def _gather_all_openstreetmap_fr_urls(
     result = requests.get(
         f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}{directory_url}",
         headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     )
     soup = BeautifulSoup(result.text, "html.parser")
 

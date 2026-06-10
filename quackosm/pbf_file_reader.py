@@ -30,8 +30,8 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
+from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
-from pooch import retrieve
 from pooch.utils import parse_url
 from rq_geo_toolkit.duckdb import (
     DUCKDB_ABOVE_130,
@@ -52,6 +52,7 @@ from quackosm._constants import (
     FEATURES_INDEX,
     GEOMETRY_COLUMN,
     METADATA_TAGS_TO_IGNORE,
+    OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
@@ -1125,6 +1126,7 @@ class PbfFileReader:
                 path=self.working_directory,
                 progressbar=self.verbosity_mode != "silent" and not FORCE_TERMINAL,
                 known_hash=None,
+                downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
             )
 
         if result_file_path.exists() and not ignore_cache:

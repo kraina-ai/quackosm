@@ -25,6 +25,8 @@ from quackosm._exceptions import (
     OldOsmCacheWarning,
     OsmExtractIndexOutdatedWarning,
     OsmExtractMultipleMatchesError,
+    OsmExtractsIndexesUnavailableError,
+    OsmExtractSourceUnavailableWarning,
     OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
@@ -413,6 +415,101 @@ def test_get_index_for_multiple_sources(mocker: MockerFixture) -> None:
     assert set(combined_index["id"]) == {"bbbike", "osmfr"}
 
 
+def test_get_index_for_sources_skips_unavailable(mocker: MockerFixture) -> None:
+    """Test if unavailable sources (offline) are skipped with a warning for multi-source."""
+    import geopandas as gpd
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    def available(source_name: str) -> Any:
+        return lambda: gpd.GeoDataFrame(
+            {"id": [source_name], "area": [1.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326"
+        )
+
+    def unavailable() -> gpd.GeoDataFrame:
+        raise RequestsConnectionError("offline")
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {
+            OsmExtractSource.geofabrik: available("geofabrik"),
+            OsmExtractSource.bbbike: available("bbbike"),
+            OsmExtractSource.movisda_grid: unavailable,
+        },
+        clear=True,
+    )
+
+    # Multi-source: the unavailable source is skipped, the rest is returned with a warning.
+    with pytest.warns(OsmExtractSourceUnavailableWarning):
+        combined_index = _get_index_for_sources(
+            [OsmExtractSource.geofabrik, OsmExtractSource.bbbike, OsmExtractSource.movisda_grid]
+        )
+    assert set(combined_index["id"]) == {"geofabrik", "bbbike"}
+
+
+def test_get_index_for_sources_raises_when_all_unavailable(mocker: MockerFixture) -> None:
+    """Test if an error is raised when no requested source can be loaded."""
+    import geopandas as gpd
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    def unavailable() -> gpd.GeoDataFrame:
+        raise RequestsConnectionError("offline")
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {OsmExtractSource.geofabrik: unavailable, OsmExtractSource.bbbike: unavailable},
+        clear=True,
+    )
+
+    with (
+        pytest.warns(OsmExtractSourceUnavailableWarning),
+        pytest.raises(OsmExtractsIndexesUnavailableError),
+    ):
+        _get_index_for_sources([OsmExtractSource.geofabrik, OsmExtractSource.bbbike])
+
+
+def test_get_index_for_single_source_propagates_error(mocker: MockerFixture) -> None:
+    """Test if a single requested source that can't load raises (no silent degradation)."""
+    import geopandas as gpd
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    def unavailable() -> gpd.GeoDataFrame:
+        raise RequestsConnectionError("offline")
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {OsmExtractSource.geofabrik: unavailable},
+        clear=True,
+    )
+
+    with pytest.raises(RequestsConnectionError):
+        _get_index_for_sources(OsmExtractSource.geofabrik)
+
+
+def test_request_timeout_is_passed(mocker: MockerFixture) -> None:
+    """Test if HTTP requests are issued with a timeout."""
+    import quackosm.osm_extracts._geojson_parser as geojson_parser_module
+    from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
+
+    captured_kwargs: dict[str, Any] = {}
+
+    def fake_get(url: str, **kwargs: Any) -> Any:
+        captured_kwargs.update(kwargs)
+        response = mocker.Mock()
+        response.status_code = 200
+        response.raise_for_status = lambda: None
+        response.json = lambda: {
+            "type": "Feature",
+            "geometry": mapping(box(0, 0, 1, 1)),
+            "properties": {},
+        }
+        return response
+
+    mocker.patch("quackosm.osm_extracts._geojson_parser.requests.get", side_effect=fake_get)
+    geojson_parser_module.parse_geojson_file("http://example.com/extent.geojson")
+
+    assert captured_kwargs.get("timeout") == OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
+
+
 def test_proper_cache_saving() -> None:
     """Test if file is saved in cache properly."""
     save_path = _get_global_cache_file_path(OsmExtractSource.geofabrik)
@@ -518,7 +615,7 @@ def test_geo2day_two_phase_gather_and_parse(mocker: MockerFixture) -> None:
         ),
     }
 
-    def fake_get(url: str, headers: Any = None) -> Any:
+    def fake_get(url: str, headers: Any = None, timeout: Any = None) -> Any:
         response = mocker.Mock()
         response.status_code = 200
         response.raise_for_status = lambda: None
@@ -617,7 +714,7 @@ def test_bbbike_iterate_index(mocker: MockerFixture) -> None:
     )
     csv_text = "Berlin:0:1:2:3:4:13.0 52.3 13.8 52.7:rest\n"
 
-    def fake_get(url: str, headers: Any = None) -> Any:
+    def fake_get(url: str, headers: Any = None, timeout: Any = None) -> Any:
         response = mocker.Mock()
         response.status_code = 200
         response.raise_for_status = lambda: None
@@ -658,7 +755,7 @@ def test_osm_fr_gather_and_parse(mocker: MockerFixture) -> None:
         '<table><tr><td><a href="monaco-latest.osm.pbf">monaco-latest.osm.pbf</a></td></tr></table>'
     )
 
-    def fake_get(url: str, headers: Any = None) -> Any:
+    def fake_get(url: str, headers: Any = None, timeout: Any = None) -> Any:
         response = mocker.Mock()
         response.status_code = 200
         response.raise_for_status = lambda: None
@@ -805,8 +902,8 @@ def test_proper_full_name() -> None:
     "",
     [
         "bbbike_portland",
-        "osmfr_europe_poland",
         "geo2day_europe_poland",
+        "osmfr_europe_poland",
         "geofabrik_europe_poland",
     ],
 )  # type: ignore
