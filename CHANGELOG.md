@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Internal testing of resources usage for filtered and intersected scenarios
+- Explicit `click` to the dependencies, since `typer` removed it from its own dependencies
+- CITATION.cff file with Zenodo DOI
+- New OpenStreetMap extract sources: [`GEO2Day`](https://geo2day.com/), [`Movisda-admin`](https://osm.download.movisda.io/select/admin/) and [`Movisda-grid`](https://osm.download.movisda.io/select/grid/)
+
 ### Changed
 
 - Refactored whole PbfFileReader prefiltering implementation to reduce memory and disk usage
@@ -17,12 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Bundled all filtering steps into a single major step in progress reporting
 - Reduced number of major steps in the progress bar from 33 to 16
 - Automatic unavailable OSM extracts detection and retrying without available ones
-
-### Added
-
-- Internal testing of resources usage for filtered and intersected scenarios
-- Explicit `click` to the dependencies, since `typer` removed it from its own dependencies
-- CITATION.cff file with Zenodo DOI
+- Migrated OSM index file format from GeoJSON to Parquet to reduce disk size
 
 ## [0.17.1] - 2026-04-17
 
