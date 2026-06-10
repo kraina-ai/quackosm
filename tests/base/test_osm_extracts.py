@@ -275,7 +275,7 @@ def test_excluded_extracts_ids() -> None:
 
     fallback_extracts_ids = {extract.id for extract in fallback_extracts}
     assert excluded_extracts_ids.isdisjoint(fallback_extracts_ids)
-    assert len(fallback_extracts)
+    assert fallback_extracts
 
 
 def test_find_and_download_excludes_unavailable_extracts(mocker: MockerFixture) -> None:
@@ -295,13 +295,12 @@ def test_find_and_download_excludes_unavailable_extracts(mocker: MockerFixture) 
 
     mocker.patch("quackosm.osm_extracts._download_single_extract", side_effect=fake_download)
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        with pytest.warns(OsmExtractUnavailableWarning):
-            result = find_and_download_extracts_pbf_files(geometry, "geofabrik", tmp_dir)
+    with tempfile.TemporaryDirectory() as tmp_dir, pytest.warns(OsmExtractUnavailableWarning):
+        result = find_and_download_extracts_pbf_files(geometry, "geofabrik", tmp_dir)
 
     result_extracts_ids = {extract.id for extract, _ in result}
     assert failing_extract_id not in result_extracts_ids
-    assert len(result)
+    assert result
     assert all(isinstance(pbf_path, Path) for _, pbf_path in result)
 
 
