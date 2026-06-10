@@ -47,7 +47,7 @@ def download_osm_extracts_indexes():  # type: ignore
         if osm_extract == OsmExtractSource.any:
             continue
 
-        file_name = f"{osm_extract.value.lower()}_index.geojson"
+        file_name = f"{osm_extract.value.lower()}_index.parquet"
         file_download_url = LFS_DIRECTORY_URL + file_name
 
         retrieve(

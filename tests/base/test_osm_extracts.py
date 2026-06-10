@@ -49,10 +49,13 @@ from quackosm.osm_extracts.bbbike import (
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,
     _download_precalculated_index_from_github,
+    _ensure_valid_geometries,
     _get_full_file_name_function,
     _get_global_cache_file_path,
     _get_local_cache_file_path,
+    _migrate_legacy_geojson_cache,
 )
+from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree
 from quackosm.osm_extracts.geo2day import _find_subregion_links
 from quackosm.osm_extracts.geofabrik import _load_geofabrik_index, _parse_geofabrik_index
 from quackosm.osm_extracts.movisda import (
@@ -105,7 +108,7 @@ def test_wrong_osm_extract_source():  # type: ignore
         " 12.455878610023916 41.901790362263796, 12.455878610023916 41.904910802544634,"
         " 12.450637854252449 41.904910802544634))"
     ),
-    "osmfr_europe_vatican_city",
+    "GEO2Day_europe_vatican_city",
 )  # type: ignore
 @P.case(
     "Vatican - Geofabrik",
@@ -170,8 +173,8 @@ def test_single_smallest_extract(
     "source", "geometry", "geometry_coverage_iou_threshold", "expected_extract_file_names"
 )  # type: ignore
 @P.case(
-    "Andorra bbox, any, iou default",
-    "any",
+    "Andorra bbox, osmfr, iou default",
+    "osmfr",
     from_wkt(
         "POLYGON ((1.382599544073372 42.67676873293743, 1.382599544073372 42.40065303248514,"
         " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
@@ -182,7 +185,7 @@ def test_single_smallest_extract(
         "osmfr_europe_spain_catalunya_lleida",
         "osmfr_europe_france_midi_pyrenees_ariege",
         "osmfr_europe_france_languedoc_roussillon_pyrenees_orientales",
-        "geofabrik_europe_andorra",
+        "osmfr_europe_andorra",
     ],
 )  # type: ignore
 @P.case(
@@ -195,11 +198,7 @@ def test_single_smallest_extract(
     ),
     0,
     [
-        "osmfr_europe_spain_catalunya_lleida",
-        "osmfr_europe_spain_catalunya_girona",
-        "osmfr_europe_france_midi_pyrenees_ariege",
-        "osmfr_europe_france_languedoc_roussillon_pyrenees_orientales",
-        "geofabrik_europe_andorra",
+        "movisda-grid_n42w001",
     ],
 )  # type: ignore
 @P.case(
@@ -214,7 +213,14 @@ def test_single_smallest_extract(
     "osmfr",
     geocode_to_geometry("Andorra"),
     0,
-    ["osmfr_europe"],
+    ["osmfr_europe_andorra"],
+)  # type: ignore
+@P.case(
+    "CZ/PL/DE bbox, any, iou 0",
+    "any",
+    box(14.456635, 50.686018, 15.247650, 51.140586),
+    0,
+    ["movisda-grid_n51w015", "bbbike_goerlitz", "geo2day_europe_czech_republic_liberecky"],
 )  # type: ignore
 def test_multiple_smallest_extracts(
     source: str,
@@ -352,7 +358,14 @@ def test_download_extracts_pbf_files_raises_on_unavailable(mocker: MockerFixture
         ("bbbike, osmfr, bbbike", [OsmExtractSource.bbbike, OsmExtractSource.osm_fr]),
         (
             ["geofabrik", "any"],
-            [OsmExtractSource.geofabrik, OsmExtractSource.bbbike, OsmExtractSource.osm_fr],
+            [
+                OsmExtractSource.geofabrik,
+                OsmExtractSource.bbbike,
+                OsmExtractSource.osm_fr,
+                OsmExtractSource.geo2day,
+                OsmExtractSource.movisda_admin,
+                OsmExtractSource.movisda_grid,
+            ],
         ),
         ("BBBike", [OsmExtractSource.bbbike]),
     ],
@@ -689,7 +702,9 @@ def test_wrong_cached_index() -> None:
     first_index = _load_geofabrik_index()
 
     # remove the column and replace the file
-    first_index.drop(columns=[column_to_remove]).to_file(save_path, driver="GeoJSON")
+    first_index.drop(columns=[column_to_remove]).to_parquet(
+        save_path, compression="zstd", compression_level=3
+    )
 
     with pytest.warns(OsmExtractIndexOutdatedWarning):
         # load index again
@@ -753,6 +768,7 @@ def test_proper_full_name() -> None:
     pytest.raises(OsmExtractMultipleMatchesError),
     "",
     [
+        "geo2day_south_america_brazil_northeast",
         "osmfr_north-america_us-midwest_illinois_northeast",
         "osmfr_north-america_us-south_florida_northeast",
         "osmfr_north-america_us-south_georgia_northeast",
@@ -767,7 +783,7 @@ def test_proper_full_name() -> None:
     "any",
     pytest.raises(OsmExtractMultipleMatchesError),
     "",
-    ["geofabrik_asia", "osmfr_asia"],
+    ["geo2day_asia", "geofabrik_asia", "osmfr_asia"],
 )  # type: ignore
 @P.case(
     "Wrong query zero matches with suggestions - north",
@@ -778,6 +794,7 @@ def test_proper_full_name() -> None:
     [
         "osmfr_north-america_us-midwest_illinois_north",
         "osmfr_north-america_us-south_texas_north",
+        "geo2day_south_america_brazil_north",
         "osmfr_south-america_brazil_north",
     ],
 )  # type: ignore
@@ -790,6 +807,7 @@ def test_proper_full_name() -> None:
     [
         "bbbike_portland",
         "osmfr_europe_poland",
+        "geo2day_europe_poland",
         "geofabrik_europe_poland",
     ],
 )  # type: ignore
@@ -812,6 +830,8 @@ def test_extracts_finding(
 
     # if threw exception - check resulting arrays
     if exception_info is not None:
+        print(exception_info.value.matching_full_names)
+        print(exception_values)
         ut.assertListEqual(exception_info.value.matching_full_names, exception_values)
 
 
@@ -853,6 +873,102 @@ def test_extracts_tree_printing(
     assert error_output == ""
 
 
+def _count_tree_nodes(tree: Any) -> int:
+    """Count all descendant nodes of a Rich tree."""
+    return len(tree.children) + sum(_count_tree_nodes(child) for child in tree.children)
+
+
+def _render_rich_tree(tree: Any) -> str:
+    """Render a Rich tree to plain text."""
+    console = Console(width=999)
+    with console.capture() as capture:
+        console.print(tree)
+    return str(capture.get())
+
+
+def test_extracts_tree_structure_and_loose_parents() -> None:
+    """Test if the tree nests children under parents and attaches loose parents."""
+    import geopandas as gpd
+
+    index = gpd.GeoDataFrame(
+        [
+            {
+                "id": "BBBike_a",
+                "name": "a",
+                "file_name": "bbbike_a",
+                "parent": "BBBike",
+                "area": 2.0,
+                "url": "http://x/a",
+            },
+            {
+                "id": "BBBike_a_x",
+                "name": "x",
+                "file_name": "bbbike_a_x",
+                "parent": "BBBike_a",
+                "area": 1.0,
+                "url": "http://x/x",
+            },
+            {
+                "id": "BBBike_b",
+                "name": "b",
+                "file_name": "bbbike_b",
+                "parent": "BBBike",
+                "area": 3.0,
+                "url": "http://x/b",
+            },
+            {
+                "id": "BBBike_orphan",
+                "name": "orphan",
+                "file_name": "bbbike_orphan",
+                "parent": "BBBike_missing",
+                "area": 1.0,
+                "url": "http://x/o",
+            },
+        ],
+        geometry=[box(0, 0, 1, 1)] * 4,
+        crs="EPSG:4326",
+    )
+
+    tree = get_available_extracts_as_rich_tree(
+        OsmExtractSource.bbbike, {OsmExtractSource.bbbike: lambda: index}, use_full_names=True
+    )
+    rendered = _render_rich_tree(tree)
+
+    for token in ("bbbike_a", "bbbike_a_x", "bbbike_b", "bbbike_orphan", "BBBike_missing"):
+        assert token in rendered, token
+    # Children sorted by name: a before b.
+    assert rendered.index("bbbike_a") < rendered.index("bbbike_b")
+    # Nodes: a, x (under a), b, BBBike_missing (loose), orphan (under loose) -> 5.
+    assert _count_tree_nodes(tree) == 5
+
+
+def test_extracts_tree_builds_for_large_flat_index() -> None:
+    """Test if a large flat index builds quickly (guards against O(N^2) tree building)."""
+    import geopandas as gpd
+
+    number_of_tiles = 10000
+    index = gpd.GeoDataFrame(
+        [
+            {
+                "id": f"Movisda-grid_{i}",
+                "name": f"N{i:05d}",
+                "file_name": f"movisda-grid_n{i}",
+                "parent": "Movisda-grid",
+                "area": float(i % 1000 + 1),
+                "url": f"http://x/{i}",
+            }
+            for i in range(number_of_tiles)
+        ],
+        geometry=[box(0, 0, 1, 1)] * number_of_tiles,
+        crs="EPSG:4326",
+    )
+
+    tree = get_available_extracts_as_rich_tree(
+        OsmExtractSource.movisda_grid, {OsmExtractSource.movisda_grid: lambda: index}
+    )
+    assert _count_tree_nodes(tree) == number_of_tiles
+
+
 def test_generate_index_warning(mocker: MockerFixture) -> None:
     """Test if index generation results in warning."""
     extract_source = OsmExtractSource.bbbike
@@ -863,11 +979,11 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
     move_local_path = local_path.exists()
 
     if move_global_path:
-        global_moved_path = global_path.with_name("bbbike_index_moved.geojson")
+        global_moved_path = global_path.with_name("bbbike_index_moved.parquet")
         global_path.rename(global_moved_path)
 
     if move_local_path:
-        local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
+        local_moved_path = local_path.with_name("bbbike_index_moved.parquet")
         local_path.rename(local_moved_path)
 
     try:
@@ -935,11 +1051,11 @@ def test_cache_clearing() -> None:
     move_local_path = local_path.exists()
 
     if move_global_path:
-        global_moved_path = global_path.with_name("bbbike_index_moved.geojson")
+        global_moved_path = global_path.with_name("bbbike_index_moved.parquet")
         global_path.rename(global_moved_path)
 
     if move_local_path:
-        local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
+        local_moved_path = local_path.with_name("bbbike_index_moved.parquet")
         local_path.rename(local_moved_path)
 
     clear_osm_index_cache(extract_source)
@@ -967,6 +1083,84 @@ def test_index_download() -> None:
         assert not global_bbbike_cache_file_path.exists()
         _load_bbbike_index(force_recalculation=False)
 
-        assert tmp_file_path.read_text() == global_bbbike_cache_file_path.read_text(), (
+        assert tmp_file_path.read_bytes() == global_bbbike_cache_file_path.read_bytes(), (
             "Mismatch between downloaded and local index files."
         )
+
+
+def test_ensure_valid_geometries() -> None:
+    """Test if invalid index geometries are repaired and overlay ops no longer raise."""
+    import geopandas as gpd
+
+    # A self-intersecting "bowtie" polygon is topologically invalid.
+    bowtie = from_wkt("POLYGON ((0 0, 1 1, 1 0, 0 1, 0 0))")
+    index = gpd.GeoDataFrame(
+        {"id": ["bowtie", "valid"]},
+        geometry=[bowtie, box(2, 2, 3, 3)],
+        crs="EPSG:4326",
+    )
+    assert not index.geometry.is_valid.all()
+
+    fixed_index = _ensure_valid_geometries(index)
+
+    assert fixed_index.geometry.is_valid.all()
+    # Intersection would raise a GEOSException on the invalid input - must work now.
+    fixed_index.geometry.intersection(box(0, 0, 3, 3))
+
+
+def test_migrate_legacy_geojson_cache(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test if a legacy GeoJSON cache is converted to parquet and the legacy file removed."""
+    import geopandas as gpd
+
+    global_parquet_path = tmp_path / "bbbike_index.parquet"
+    local_parquet_path = tmp_path / "local" / "bbbike_index.parquet"
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_global_cache_file_path",
+        return_value=global_parquet_path,
+    )
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_local_cache_file_path",
+        return_value=local_parquet_path,
+    )
+
+    legacy_path = global_parquet_path.with_suffix(".geojson")
+    legacy_gdf = gpd.GeoDataFrame(
+        {"id": ["x"], "area": [1.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326"
+    )
+    legacy_gdf.to_file(legacy_path, driver="GeoJSON")
+
+    _migrate_legacy_geojson_cache(OsmExtractSource.bbbike)
+
+    assert global_parquet_path.exists()
+    assert not legacy_path.exists()
+    migrated_gdf = gpd.read_parquet(global_parquet_path)
+    assert set(migrated_gdf.columns) == {"id", "area", "geometry"}
+    assert migrated_gdf.geometry.iloc[0].equals(box(0, 0, 1, 1))
+
+
+def test_clear_removes_legacy_geojson_cache(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test if clearing the cache also removes a legacy GeoJSON file."""
+    import geopandas as gpd
+
+    global_parquet_path = tmp_path / "bbbike_index.parquet"
+    local_parquet_path = tmp_path / "local" / "bbbike_index.parquet"
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_global_cache_file_path",
+        return_value=global_parquet_path,
+    )
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_local_cache_file_path",
+        return_value=local_parquet_path,
+    )
+
+    legacy_path = global_parquet_path.with_suffix(".geojson")
+    gdf = gpd.GeoDataFrame(
+        {"id": ["x"], "area": [1.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326"
+    )
+    gdf.to_file(legacy_path, driver="GeoJSON")
+    gdf.to_parquet(global_parquet_path, compression="zstd", compression_level=3)
+
+    clear_osm_index_cache(OsmExtractSource.bbbike)
+
+    assert not global_parquet_path.exists()
+    assert not legacy_path.exists()

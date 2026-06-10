@@ -215,7 +215,7 @@ def _get_index_for_sources(source: OsmExtractSourceLike) -> gpd.GeoDataFrame:
             for resolved_source in resolved_sources
         ]
     )
-    combined_index.sort_values(by="area", ignore_index=True, inplace=True)
+    combined_index.sort_values(by=["area", "id"], ignore_index=True, inplace=True)
     return combined_index
 
 
@@ -942,7 +942,7 @@ def _filter_extracts(
 
     sorted_extracts_gdf = polygons_index_gdf.loc[
         polygons_index_gdf["id"].isin(extracts_ids)
-    ].sort_values(by="area", ignore_index=True, ascending=False)
+    ].sort_values(by=["area", "id"], ignore_index=True, ascending=False)
 
     filtered_extracts: list[OpenStreetMapExtract] = []
     filtered_extracts_ids: set[str] = set()
