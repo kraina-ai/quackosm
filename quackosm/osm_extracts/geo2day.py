@@ -62,9 +62,7 @@ def _load_geo2day_index(**kwargs: Any) -> gpd.GeoDataFrame:  # pragma: no cover
 
 def _region_path_segments(url: str) -> list[str]:
     """Return the region path segments for a GEO2day page URL (without the `.html` suffix)."""
-    path = urlparse(url).path.strip("/")
-    if path.endswith(".html"):
-        path = path[: -len(".html")]
+    path = urlparse(url).path.strip("/").removesuffix(".html")
     return [segment for segment in path.split("/") if segment]
 
 

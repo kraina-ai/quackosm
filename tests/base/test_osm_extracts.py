@@ -275,7 +275,7 @@ def test_excluded_extracts_ids() -> None:
 
     fallback_extracts_ids = {extract.id for extract in fallback_extracts}
     assert excluded_extracts_ids.isdisjoint(fallback_extracts_ids)
-    assert len(fallback_extracts) >= 1
+    assert len(fallback_extracts)
 
 
 def test_find_and_download_excludes_unavailable_extracts(mocker: MockerFixture) -> None:
@@ -301,7 +301,7 @@ def test_find_and_download_excludes_unavailable_extracts(mocker: MockerFixture) 
 
     result_extracts_ids = {extract.id for extract, _ in result}
     assert failing_extract_id not in result_extracts_ids
-    assert len(result) >= 1
+    assert len(result)
     assert all(isinstance(pbf_path, Path) for _, pbf_path in result)
 
 
