@@ -124,13 +124,14 @@ def _parse_movisda_features(
     features = geojson_data.get("features", [])
 
     for feature in features:
-        prefix = feature["properties"]["prefix"]
+        prefix = str(feature["properties"]["prefix"])
+        extract_id = prefix.rstrip("-")
         geometry = shape(feature["geometry"])
-        name = prefix.rstrip("-")
+        name = feature["properties"].get("name_en") or feature["properties"]["name"]
 
         extracts.append(
             OpenStreetMapExtract(
-                id=f"{source_enum_value}_{name}",
+                id=f"{source_enum_value}_{extract_id}",
                 name=name,
                 parent=source_enum_value,
                 url=f"{pbf_base_url}/{prefix}latest.osm.pbf",
