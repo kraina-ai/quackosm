@@ -14,7 +14,9 @@ from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
 from rich.console import Console
 from shapely import box, from_wkt
+from shapely.geometry import mapping
 from shapely.geometry.base import BaseGeometry
+from tqdm import tqdm
 
 from quackosm._exceptions import (
     GeometryNotCoveredError,
@@ -23,26 +25,47 @@ from quackosm._exceptions import (
     OldOsmCacheWarning,
     OsmExtractIndexOutdatedWarning,
     OsmExtractMultipleMatchesError,
+    OsmExtractsIndexesUnavailableError,
+    OsmExtractSourceUnavailableWarning,
+    OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
 from quackosm.geocode import geocode_to_geometry
 from quackosm.osm_extracts import (
     OsmExtractSource,
+    _get_index_for_sources,
+    _resolve_extract_sources,
     clear_osm_index_cache,
     display_available_extracts,
+    download_extracts_pbf_files,
+    find_and_download_extracts_pbf_files,
     find_smallest_containing_extracts,
     find_smallest_containing_extracts_total,
     get_extract_by_query,
 )
-from quackosm.osm_extracts.bbbike import _load_bbbike_index
+from quackosm.osm_extracts._geojson_parser import parse_geojson
+from quackosm.osm_extracts.bbbike import (
+    BBBIKE_EXTRACTS_INDEX_URL,
+    _load_bbbike_index,
+)
 from quackosm.osm_extracts.extract import (
     OpenStreetMapExtract,
     _download_precalculated_index_from_github,
+    _ensure_valid_geometries,
     _get_full_file_name_function,
     _get_global_cache_file_path,
     _get_local_cache_file_path,
+    _migrate_legacy_geojson_cache,
 )
-from quackosm.osm_extracts.geofabrik import _load_geofabrik_index
+from quackosm.osm_extracts.extracts_tree import get_available_extracts_as_rich_tree
+from quackosm.osm_extracts.geo2day import _find_subregion_links
+from quackosm.osm_extracts.geofabrik import _load_geofabrik_index, _parse_geofabrik_index
+from quackosm.osm_extracts.movisda import (
+    MOVISDA_ADMIN_PBF_BASE_URL,
+    MOVISDA_GRID_PBF_BASE_URL,
+    _parse_movisda_features,
+)
+from quackosm.osm_extracts.osm_fr import OPENSTREETMAP_FR_EXTRACTS_INDEX_URL
 
 ut = TestCase()
 
@@ -88,7 +111,7 @@ def test_wrong_osm_extract_source():  # type: ignore
         " 12.455878610023916 41.901790362263796, 12.455878610023916 41.904910802544634,"
         " 12.450637854252449 41.904910802544634))"
     ),
-    "osmfr_europe_vatican_city",
+    "GEO2Day_europe_vatican_city",
 )  # type: ignore
 @P.case(
     "Vatican - Geofabrik",
@@ -153,8 +176,8 @@ def test_single_smallest_extract(
     "source", "geometry", "geometry_coverage_iou_threshold", "expected_extract_file_names"
 )  # type: ignore
 @P.case(
-    "Andorra bbox, any, iou default",
-    "any",
+    "Andorra bbox, osmfr, iou default",
+    "osmfr",
     from_wkt(
         "POLYGON ((1.382599544073372 42.67676873293743, 1.382599544073372 42.40065303248514,"
         " 1.8092269635579328 42.40065303248514, 1.8092269635579328 42.67676873293743,"
@@ -165,7 +188,7 @@ def test_single_smallest_extract(
         "osmfr_europe_spain_catalunya_lleida",
         "osmfr_europe_france_midi_pyrenees_ariege",
         "osmfr_europe_france_languedoc_roussillon_pyrenees_orientales",
-        "geofabrik_europe_andorra",
+        "osmfr_europe_andorra",
     ],
 )  # type: ignore
 @P.case(
@@ -178,11 +201,7 @@ def test_single_smallest_extract(
     ),
     0,
     [
-        "osmfr_europe_spain_catalunya_lleida",
-        "osmfr_europe_spain_catalunya_girona",
-        "osmfr_europe_france_midi_pyrenees_ariege",
-        "osmfr_europe_france_languedoc_roussillon_pyrenees_orientales",
-        "geofabrik_europe_andorra",
+        "movisda-grid_n42w001",
     ],
 )  # type: ignore
 @P.case(
@@ -197,7 +216,14 @@ def test_single_smallest_extract(
     "osmfr",
     geocode_to_geometry("Andorra"),
     0,
-    ["osmfr_europe"],
+    ["osmfr_europe_andorra"],
+)  # type: ignore
+@P.case(
+    "CZ/PL/DE bbox, any, iou 0",
+    "any",
+    box(14.456635, 50.686018, 15.247650, 51.140586),
+    0,
+    ["movisda-grid_n51w015", "bbbike_goerlitz", "geo2day_europe_czech_republic_liberecky"],
 )  # type: ignore
 def test_multiple_smallest_extracts(
     source: str,
@@ -238,12 +264,594 @@ def test_uncovered_geometry_extract(
         )
 
 
+def test_excluded_extracts_ids() -> None:
+    """Test if excluded extracts are skipped and coverage is recalculated."""
+    geometry = geocode_to_geometry("Andorra")
+
+    extracts = find_smallest_containing_extracts(geometry, "geofabrik")
+    ut.assertListEqual([extract.file_name for extract in extracts], ["geofabrik_europe_andorra"])
+
+    excluded_extracts_ids = {extracts[0].id}
+    fallback_extracts = find_smallest_containing_extracts(
+        geometry, "geofabrik", excluded_extracts_ids=excluded_extracts_ids
+    )
+
+    fallback_extracts_ids = {extract.id for extract in fallback_extracts}
+    assert excluded_extracts_ids.isdisjoint(fallback_extracts_ids)
+    assert fallback_extracts
+
+
+def test_find_and_download_excludes_unavailable_extracts(mocker: MockerFixture) -> None:
+    """Test if unavailable extracts are excluded and the coverage is recalculated."""
+    from requests.exceptions import HTTPError
+
+    geometry = geocode_to_geometry("Andorra")
+    matching_extracts = find_smallest_containing_extracts(geometry, "geofabrik")
+    failing_extract_id = matching_extracts[0].id
+
+    def fake_download(
+        extract: OpenStreetMapExtract, download_directory: Path, progressbar: bool = True
+    ) -> Path:
+        if extract.id == failing_extract_id:
+            raise HTTPError("Extract unavailable")
+        return Path(download_directory) / f"{extract.file_name}.osm.pbf"
+
+    mocker.patch("quackosm.osm_extracts._download_single_extract", side_effect=fake_download)
+
+    with tempfile.TemporaryDirectory() as tmp_dir, pytest.warns(OsmExtractUnavailableWarning):
+        result = find_and_download_extracts_pbf_files(geometry, "geofabrik", tmp_dir)
+
+    result_extracts_ids = {extract.id for extract, _ in result}
+    assert failing_extract_id not in result_extracts_ids
+    assert result
+    assert all(isinstance(pbf_path, Path) for _, pbf_path in result)
+
+
+def test_download_extracts_pbf_files_raises_on_unavailable(mocker: MockerFixture) -> None:
+    """Test if the public download function keeps raising on errors (back-compat)."""
+    from requests.exceptions import HTTPError
+
+    extract = OpenStreetMapExtract(
+        id="test_extract",
+        name="test_extract",
+        parent="",
+        url="http://example.com/test_extract.osm.pbf",
+        geometry=box(0, 0, 1, 1),
+        file_name="test_extract",
+    )
+    mocker.patch(
+        "quackosm.osm_extracts._download_single_extract",
+        side_effect=HTTPError("Extract unavailable"),
+    )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with pytest.raises(HTTPError):
+            download_extracts_pbf_files([extract], Path(tmp_dir))
+
+
+@pytest.mark.parametrize(
+    "source,expected_sources",
+    [
+        ("geofabrik", [OsmExtractSource.geofabrik]),
+        (OsmExtractSource.bbbike, [OsmExtractSource.bbbike]),
+        ("GEO2Day", [OsmExtractSource.geo2day]),
+        ("movisda-admin", [OsmExtractSource.movisda_admin]),
+        (
+            "any",
+            [
+                OsmExtractSource.bbbike,
+                OsmExtractSource.geofabrik,
+                OsmExtractSource.osm_fr,
+                OsmExtractSource.geo2day,
+                OsmExtractSource.movisda_admin,
+                OsmExtractSource.movisda_grid,
+            ],
+        ),
+        (
+            "GEO2Day,Movisda-grid",
+            [OsmExtractSource.geo2day, OsmExtractSource.movisda_grid],
+        ),
+        (["bbbike", "osmfr"], [OsmExtractSource.bbbike, OsmExtractSource.osm_fr]),
+        (
+            [OsmExtractSource.bbbike, OsmExtractSource.osm_fr],
+            [OsmExtractSource.bbbike, OsmExtractSource.osm_fr],
+        ),
+        ("bbbike,osmfr", [OsmExtractSource.bbbike, OsmExtractSource.osm_fr]),
+        ("bbbike, osmfr, bbbike", [OsmExtractSource.bbbike, OsmExtractSource.osm_fr]),
+        (
+            ["geofabrik", "any"],
+            [
+                OsmExtractSource.geofabrik,
+                OsmExtractSource.bbbike,
+                OsmExtractSource.osm_fr,
+                OsmExtractSource.geo2day,
+                OsmExtractSource.movisda_admin,
+                OsmExtractSource.movisda_grid,
+            ],
+        ),
+        ("BBBike", [OsmExtractSource.bbbike]),
+    ],
+)  # type: ignore
+def test_resolve_extract_sources(source: Any, expected_sources: list[OsmExtractSource]) -> None:
+    """Test if source specifications are normalized into concrete sources."""
+    resolved_sources = _resolve_extract_sources(source)
+    # Order is not significant (the combined index is sorted by area downstream),
+    # but the result must be deduplicated.
+    assert len(resolved_sources) == len(set(resolved_sources))
+    assert set(resolved_sources) == set(expected_sources)
+
+
+@pytest.mark.parametrize("source", ["", "nonexistent_source"])  # type: ignore
+def test_resolve_extract_sources_raises_on_invalid(source: str) -> None:
+    """Test if invalid or empty source specifications raise ValueError."""
+    with pytest.raises(ValueError):
+        _resolve_extract_sources(source)
+
+
+def test_get_index_for_multiple_sources(mocker: MockerFixture) -> None:
+    """Test if indexes for multiple sources are concatenated."""
+    import geopandas as gpd
+
+    def fake_index(source_name: str) -> gpd.GeoDataFrame:
+        return gpd.GeoDataFrame(
+            {"id": [source_name], "area": [1.0]},
+            geometry=[box(0, 0, 1, 1)],
+            crs="EPSG:4326",
+        )
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {
+            OsmExtractSource.bbbike: lambda: fake_index("bbbike"),
+            OsmExtractSource.geofabrik: lambda: fake_index("geofabrik"),
+            OsmExtractSource.osm_fr: lambda: fake_index("osmfr"),
+        },
+        clear=True,
+    )
+
+    single_index = _get_index_for_sources("bbbike")
+    assert list(single_index["id"]) == ["bbbike"]
+
+    combined_index = _get_index_for_sources(["bbbike", "osmfr"])
+    assert set(combined_index["id"]) == {"bbbike", "osmfr"}
+
+
+def test_get_index_for_sources_skips_unavailable(mocker: MockerFixture) -> None:
+    """Test if unavailable sources (offline) are skipped with a warning for multi-source."""
+    import geopandas as gpd
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    def available(source_name: str) -> Any:
+        return lambda: gpd.GeoDataFrame(
+            {"id": [source_name], "area": [1.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326"
+        )
+
+    def unavailable() -> gpd.GeoDataFrame:
+        raise RequestsConnectionError("offline")
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {
+            OsmExtractSource.geofabrik: available("geofabrik"),
+            OsmExtractSource.bbbike: available("bbbike"),
+            OsmExtractSource.movisda_grid: unavailable,
+        },
+        clear=True,
+    )
+
+    # Multi-source: the unavailable source is skipped, the rest is returned with a warning.
+    with pytest.warns(OsmExtractSourceUnavailableWarning):
+        combined_index = _get_index_for_sources(
+            [OsmExtractSource.geofabrik, OsmExtractSource.bbbike, OsmExtractSource.movisda_grid]
+        )
+    assert set(combined_index["id"]) == {"geofabrik", "bbbike"}
+
+
+def test_get_index_for_sources_raises_when_all_unavailable(mocker: MockerFixture) -> None:
+    """Test if an error is raised when no requested source can be loaded."""
+    import geopandas as gpd
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    def unavailable() -> gpd.GeoDataFrame:
+        raise RequestsConnectionError("offline")
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {OsmExtractSource.geofabrik: unavailable, OsmExtractSource.bbbike: unavailable},
+        clear=True,
+    )
+
+    with (
+        pytest.warns(OsmExtractSourceUnavailableWarning),
+        pytest.raises(OsmExtractsIndexesUnavailableError),
+    ):
+        _get_index_for_sources([OsmExtractSource.geofabrik, OsmExtractSource.bbbike])
+
+
+def test_get_index_for_single_source_propagates_error(mocker: MockerFixture) -> None:
+    """Test if a single requested source that can't load raises (no silent degradation)."""
+    import geopandas as gpd
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    def unavailable() -> gpd.GeoDataFrame:
+        raise RequestsConnectionError("offline")
+
+    mocker.patch.dict(
+        "quackosm.osm_extracts.OSM_EXTRACT_SOURCE_INDEX_FUNCTION",
+        {OsmExtractSource.geofabrik: unavailable},
+        clear=True,
+    )
+
+    with pytest.raises(RequestsConnectionError):
+        _get_index_for_sources(OsmExtractSource.geofabrik)
+
+
+def test_request_timeout_is_passed(mocker: MockerFixture) -> None:
+    """Test if HTTP requests are issued with a timeout."""
+    import quackosm.osm_extracts._geojson_parser as geojson_parser_module
+    from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
+
+    captured_kwargs: dict[str, Any] = {}
+
+    def fake_get(url: str, **kwargs: Any) -> Any:
+        captured_kwargs.update(kwargs)
+        response = mocker.Mock()
+        response.status_code = 200
+        response.raise_for_status = lambda: None
+        response.json = lambda: {
+            "type": "Feature",
+            "geometry": mapping(box(0, 0, 1, 1)),
+            "properties": {},
+        }
+        return response
+
+    mocker.patch("quackosm.osm_extracts._geojson_parser.requests.get", side_effect=fake_get)
+    geojson_parser_module.parse_geojson_file("http://example.com/extent.geojson")
+
+    assert captured_kwargs.get("timeout") == OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
+
+
 def test_proper_cache_saving() -> None:
     """Test if file is saved in cache properly."""
     save_path = _get_global_cache_file_path(OsmExtractSource.geofabrik)
     loaded_index = _load_geofabrik_index()
     assert save_path.exists()
     assert len(loaded_index.columns) == 7
+
+
+@pytest.mark.parametrize(
+    "geojson_data,expected_geometry",
+    [
+        (
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {"type": "Feature", "geometry": mapping(box(0, 0, 1, 1)), "properties": {}}
+                ],
+            },
+            box(0, 0, 1, 1),
+        ),
+        (
+            {"type": "Feature", "geometry": mapping(box(2, 2, 3, 3)), "properties": {}},
+            box(2, 2, 3, 3),
+        ),
+        (mapping(box(4, 4, 5, 5)), box(4, 4, 5, 5)),
+    ],
+)  # type: ignore
+def test_parse_geojson(geojson_data: Any, expected_geometry: BaseGeometry) -> None:
+    """Test if GeoJSON Feature/FeatureCollection/geometry is parsed into a single geometry."""
+    parsed_geometry = parse_geojson(geojson_data)
+    assert parsed_geometry is not None
+    assert parsed_geometry.equals(expected_geometry)
+
+
+def test_parse_geojson_empty_feature_collection() -> None:
+    """Test if an empty FeatureCollection returns None."""
+    assert parse_geojson({"type": "FeatureCollection", "features": []}) is None
+
+
+def test_movisda_admin_parse_features_hierarchy() -> None:
+    """Test if Movisda admin extracts are nested via ISO codes with names from name_en/name."""
+    geojson_data = {
+        "type": "FeatureCollection",
+        "features": [
+            # Country: name_en preferred over name; parent is the source root.
+            {
+                "type": "Feature",
+                "properties": {"prefix": "RW-", "name": "Rwanda (local)", "name_en": "Rwanda"},
+                "geometry": mapping(box(0, 0, 4, 4)),
+            },
+            # Subdivision: nested under its country code (RW-02 -> RW).
+            {
+                "type": "Feature",
+                "properties": {"prefix": "RW-02-", "name": "Eastern Province"},
+                "geometry": mapping(box(1, 1, 2, 2)),
+            },
+            {
+                "type": "Feature",
+                "properties": {"prefix": "ZM-", "name_en": "Zambia"},
+                "geometry": mapping(box(5, 5, 9, 9)),
+            },
+            # Same subdivision name in another country -> different parent.
+            {
+                "type": "Feature",
+                "properties": {"prefix": "ZM-03-", "name": "Eastern Province"},
+                "geometry": mapping(box(6, 6, 7, 7)),
+            },
+        ],
+    }
+    extracts = _parse_movisda_features(
+        geojson_data,
+        MOVISDA_ADMIN_PBF_BASE_URL,
+        OsmExtractSource.movisda_admin.value,
+        build_hierarchy=True,
+    )
+    by_id = {extract.id: extract for extract in extracts}
+
+    # Country -> root, name from name_en.
+    assert by_id["Movisda-admin_RW"].parent == "Movisda-admin"
+    assert by_id["Movisda-admin_RW"].name == "Rwanda"
+    # Subdivision -> nested under its country.
+    assert by_id["Movisda-admin_RW-02"].parent == "Movisda-admin_RW"
+    assert by_id["Movisda-admin_RW-02"].name == "Eastern Province"
+    assert (
+        by_id["Movisda-admin_RW-02"].url
+        == "https://osm.download.movisda.io/admin/RW-02-latest.osm.pbf"
+    )
+    # Same subdivision name in another country resolves to a different parent.
+    assert by_id["Movisda-admin_ZM-03"].parent == "Movisda-admin_ZM"
+    assert by_id["Movisda-admin_ZM-03"].name == "Eastern Province"
+
+
+def test_movisda_grid_parse_features() -> None:
+    """Test if Movisda grid extracts use the tile code as name (resolution encoded in the code)."""
+    geojson_data = {
+        "type": "FeatureCollection",
+        "features": [
+            # 1 degree tile.
+            {
+                "type": "Feature",
+                "properties": {"prefix": "N42W001-", "name": "N42W001 (1°)"},
+                "geometry": mapping(box(0, 0, 1, 1)),
+            },
+            # 10 degree tile: resolution encoded in the code via the `-10` suffix.
+            {
+                "type": "Feature",
+                "properties": {"prefix": "N80E000-10-", "name": "N80E000 (10°)"},
+                "geometry": mapping(box(2, 2, 3, 3)),
+            },
+        ],
+    }
+    extracts = _parse_movisda_features(
+        geojson_data,
+        MOVISDA_GRID_PBF_BASE_URL,
+        OsmExtractSource.movisda_grid.value,
+        build_hierarchy=False,
+    )
+    by_id = {extract.id: extract for extract in extracts}
+
+    assert by_id["Movisda-grid_N42W001"].name == "N42W001"
+    assert by_id["Movisda-grid_N42W001"].parent == "Movisda-grid"
+    assert (
+        by_id["Movisda-grid_N42W001"].url
+        == "https://osm.download.movisda.io/grid/N42W001-latest.osm.pbf"
+    )
+    assert by_id["Movisda-grid_N80E000-10"].name == "N80E000-10"
+    assert (
+        by_id["Movisda-grid_N80E000-10"].url
+        == "https://osm.download.movisda.io/grid/N80E000-10-latest.osm.pbf"
+    )
+
+
+def test_geo2day_find_subregion_links() -> None:
+    """Test if only direct (one level deeper) sub-region links are detected."""
+    from bs4 import BeautifulSoup
+
+    home_html = (
+        '<a href="https://geo2day.com/europe.html">Europe</a>'
+        '<a href="#">self</a>'
+        '<a href="https://geo2day.com/">Home</a>'
+    )
+    assert _find_subregion_links(
+        "https://geo2day.com/", BeautifulSoup(home_html, "html.parser")
+    ) == [("https://geo2day.com/europe.html", "europe")]
+
+    germany_html = (
+        '<a href="https://geo2day.com/europe.html">Europe (breadcrumb)</a>'
+        '<a href="https://geo2day.com/europe/germany/bayern.html">Bavaria</a>'
+    )
+    assert _find_subregion_links(
+        "https://geo2day.com/europe/germany.html", BeautifulSoup(germany_html, "html.parser")
+    ) == [("https://geo2day.com/europe/germany/bayern.html", "bayern")]
+
+
+def test_geo2day_two_phase_gather_and_parse(mocker: MockerFixture) -> None:
+    """Test if regions are first enumerated (with total) and then parsed into extracts."""
+    import quackosm.osm_extracts.geo2day as geo2day_module
+
+    pages = {
+        "https://geo2day.com/": '<a href="https://geo2day.com/europe.html">Europe</a>',
+        "https://geo2day.com/europe.html": (
+            '<a href="https://geo2day.com/europe.html">self</a>'
+            '<a href="https://geo2day.com/europe/poland.html">Poland</a>'
+        ),
+        "https://geo2day.com/europe/poland.html": (
+            '<a href="https://geo2day.com/europe.html">parent</a>'
+        ),
+    }
+
+    def fake_get(url: str, headers: Any = None, timeout: Any = None) -> Any:
+        response = mocker.Mock()
+        response.status_code = 200
+        response.raise_for_status = lambda: None
+        response.text = pages.get(url, "")
+        return response
+
+    mocker.patch("quackosm.osm_extracts.geo2day.requests.get", side_effect=fake_get)
+    mocker.patch.object(geo2day_module, "parse_geojson_file", return_value=box(0, 0, 1, 1))
+
+    with tqdm(disable=True) as pbar:
+        # Phase 1: enumerate regions and set the progress bar total (no geometry downloaded yet).
+        region_objects = geo2day_module._gather_all_geo2day_urls(
+            "GEO2Day", "https://geo2day.com/", pbar
+        )
+        assert pbar.total == 2
+        assert {region[0] for region in region_objects} == {
+            "GEO2Day_europe",
+            "GEO2Day_europe_poland",
+        }
+
+        # Phase 2: download geometries and build extracts.
+        extracts = geo2day_module._parse_geo2day_urls(pbar=pbar, region_objects=region_objects)
+
+    by_id = {extract.id: extract for extract in extracts}
+    assert by_id["GEO2Day_europe"].parent == "GEO2Day"
+    assert by_id["GEO2Day_europe"].url == "https://geo2day.com/europe.pbf"
+    assert by_id["GEO2Day_europe_poland"].parent == "GEO2Day_europe"
+    assert by_id["GEO2Day_europe_poland"].url == "https://geo2day.com/europe/poland.pbf"
+
+
+def test_geofabrik_parse_index() -> None:
+    """Test if a Geofabrik index-v1.json payload is parsed into extracts with proper ids."""
+    parsed_data = {
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": mapping(box(1, 42, 2, 43)),
+                "properties": {
+                    "id": "andorra",
+                    "parent": "europe",
+                    "name": "Andorra",
+                    "urls": {"pbf": "https://download.geofabrik.de/europe/andorra-latest.osm.pbf"},
+                },
+            },
+            {
+                "type": "Feature",
+                "geometry": mapping(box(-10, 35, 40, 70)),
+                "properties": {
+                    "id": "europe",
+                    "name": "Europe",
+                    "urls": {"pbf": "https://download.geofabrik.de/europe-latest.osm.pbf"},
+                },
+            },
+            {
+                "type": "Feature",
+                "geometry": mapping(box(-125, 32, -114, 42)),
+                "properties": {
+                    "id": "us/california",
+                    "parent": "us",
+                    "name": "California",
+                    "urls": {
+                        "pbf": (
+                            "https://download.geofabrik.de/north-america/us/"
+                            "california-latest.osm.pbf"
+                        )
+                    },
+                },
+            },
+        ]
+    }
+
+    gdf = _parse_geofabrik_index(parsed_data).set_index("id")
+
+    assert gdf.loc["Geofabrik_andorra", "name"] == "andorra"
+    assert gdf.loc["Geofabrik_andorra", "parent"] == "Geofabrik_europe"
+    assert (
+        gdf.loc["Geofabrik_andorra", "url"]
+        == "https://download.geofabrik.de/europe/andorra-latest.osm.pbf"
+    )
+    # Missing parent resolves to the source root.
+    assert gdf.loc["Geofabrik_europe", "parent"] == "Geofabrik"
+    # US sub-extracts have their parent forced to the `us` node.
+    assert gdf.loc["Geofabrik_us/california", "parent"] == "Geofabrik_us"
+
+
+def test_bbbike_iterate_index(mocker: MockerFixture) -> None:
+    """Test if the BBBike directory listing and CSV fallback are parsed into extracts."""
+    import quackosm.osm_extracts.bbbike as bbbike_module
+
+    index_html = (
+        "<table>"
+        '<tr class="d"><td><a href="../">..</a></td></tr>'
+        '<tr class="d"><td><a href="Aachen/">Aachen</a></td></tr>'
+        '<tr class="d"><td><a href="Berlin/">Berlin</a></td></tr>'
+        "</table>"
+    )
+    csv_text = "Berlin:0:1:2:3:4:13.0 52.3 13.8 52.7:rest\n"
+
+    def fake_get(url: str, headers: Any = None, timeout: Any = None) -> Any:
+        response = mocker.Mock()
+        response.status_code = 200
+        response.raise_for_status = lambda: None
+        response.text = index_html if url == BBBIKE_EXTRACTS_INDEX_URL else csv_text
+        return response
+
+    def fake_poly(url: str) -> Any:
+        # Aachen has a poly file; Berlin falls back to the CSV bounding box.
+        return box(6.0, 50.7, 6.2, 50.9) if "Aachen" in url else None
+
+    mocker.patch("quackosm.osm_extracts.bbbike.requests.get", side_effect=fake_get)
+    mocker.patch.object(bbbike_module, "parse_polygon_file", side_effect=fake_poly)
+
+    extracts = bbbike_module._iterate_bbbike_index()
+    by_id = {extract.id: extract for extract in extracts}
+
+    assert set(by_id) == {"BBBike_Aachen", "BBBike_Berlin"}
+    assert by_id["BBBike_Aachen"].parent == "BBBike"
+    assert (
+        by_id["BBBike_Aachen"].url == "https://download.bbbike.org/osm/bbbike/Aachen/Aachen.osm.pbf"
+    )
+    assert by_id["BBBike_Aachen"].geometry.equals(box(6.0, 50.7, 6.2, 50.9))
+    # Berlin uses the CSV bounding box fallback.
+    assert by_id["BBBike_Berlin"].geometry.equals(box(13.0, 52.3, 13.8, 52.7))
+
+
+def test_osm_fr_gather_and_parse(mocker: MockerFixture) -> None:
+    """Test if OSM.fr directory pages are enumerated then parsed into extracts."""
+    import quackosm.osm_extracts.osm_fr as osm_fr_module
+
+    root_html = (
+        "<table>"
+        '<tr><td><img src="/icons/folder.gif"></td>'
+        '<td><a href="europe/">europe/</a></td></tr>'
+        "</table>"
+    )
+    europe_html = (
+        '<table><tr><td><a href="monaco-latest.osm.pbf">monaco-latest.osm.pbf</a></td></tr></table>'
+    )
+
+    def fake_get(url: str, headers: Any = None, timeout: Any = None) -> Any:
+        response = mocker.Mock()
+        response.status_code = 200
+        response.raise_for_status = lambda: None
+        if url == f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}/":
+            response.text = root_html
+        elif url == f"{OPENSTREETMAP_FR_EXTRACTS_INDEX_URL}/europe/":
+            response.text = europe_html
+        else:
+            response.text = ""
+        return response
+
+    mocker.patch("quackosm.osm_extracts.osm_fr.requests.get", side_effect=fake_get)
+    mocker.patch.object(osm_fr_module, "parse_polygon_file", return_value=box(7.4, 43.7, 7.5, 43.8))
+
+    with tqdm(disable=True) as pbar:
+        # Phase 1: enumerate directory pages (one PBF discovered) and set the total.
+        soup_objects = osm_fr_module._gather_all_openstreetmap_fr_urls("osmfr", "/", pbar)
+        assert pbar.total == 1
+
+        # Phase 2: download geometries and build extracts.
+        extracts = osm_fr_module._parse_openstreetmap_fr_urls(
+            pbar=pbar, extract_soup_objects=soup_objects
+        )
+
+    assert len(extracts) == 1
+    extract = extracts[0]
+    assert extract.id == "osmfr_europe_monaco"
+    assert extract.name == "monaco"
+    assert extract.parent == "osmfr_europe"
+    assert extract.url == "https://download.openstreetmap.fr/extracts/europe/monaco-latest.osm.pbf"
+    assert extract.geometry.equals(box(7.4, 43.7, 7.5, 43.8))
 
 
 def test_wrong_cached_index() -> None:
@@ -255,7 +863,9 @@ def test_wrong_cached_index() -> None:
     first_index = _load_geofabrik_index()
 
     # remove the column and replace the file
-    first_index.drop(columns=[column_to_remove]).to_file(save_path, driver="GeoJSON")
+    first_index.drop(columns=[column_to_remove]).to_parquet(
+        save_path, compression="zstd", compression_level=3
+    )
 
     with pytest.warns(OsmExtractIndexOutdatedWarning):
         # load index again
@@ -269,6 +879,19 @@ def test_proper_full_name() -> None:
     test_index = pd.DataFrame({"id": ["1", "2"], "name": ["one", "two"], "parent": ["x", "1"]})
     prepared_function = _get_full_file_name_function(test_index)
     assert prepared_function("2") == "x_one_two"
+
+    # Names with spaces are slugified so generated file names never contain spaces.
+    spaced_index = pd.DataFrame(
+        {
+            "id": ["RW", "RW-02"],
+            "name": ["Rwanda", "Eastern Province"],
+            "parent": ["root", "RW"],
+        }
+    )
+    spaced_function = _get_full_file_name_function(spaced_index)
+    full_name = spaced_function("RW-02")
+    assert full_name == "root_rwanda_eastern_province"
+    assert " " not in full_name
 
 
 @P.parameters("query", "source", "expectation", "matched_id", "exception_values")  # type: ignore
@@ -319,6 +942,7 @@ def test_proper_full_name() -> None:
     pytest.raises(OsmExtractMultipleMatchesError),
     "",
     [
+        "geo2day_south_america_brazil_northeast",
         "osmfr_north-america_us-midwest_illinois_northeast",
         "osmfr_north-america_us-south_florida_northeast",
         "osmfr_north-america_us-south_georgia_northeast",
@@ -333,7 +957,7 @@ def test_proper_full_name() -> None:
     "any",
     pytest.raises(OsmExtractMultipleMatchesError),
     "",
-    ["geofabrik_asia", "osmfr_asia"],
+    ["geo2day_asia", "geofabrik_asia", "osmfr_asia"],
 )  # type: ignore
 @P.case(
     "Wrong query zero matches with suggestions - north",
@@ -343,7 +967,11 @@ def test_proper_full_name() -> None:
     "",
     [
         "osmfr_north-america_us-midwest_illinois_north",
+        "movisda-admin_guinea-bissau_north",
+        "movisda-admin_burkina_faso_north",
+        "movisda-admin_cameroon_north",
         "osmfr_north-america_us-south_texas_north",
+        "geo2day_south_america_brazil_north",
         "osmfr_south-america_brazil_north",
     ],
 )  # type: ignore
@@ -354,7 +982,10 @@ def test_proper_full_name() -> None:
     pytest.raises(OsmExtractZeroMatchesError),
     "",
     [
+        "movisda-admin_jamaica_portland",
         "bbbike_portland",
+        "movisda-admin_poland",
+        "geo2day_europe_poland",
         "osmfr_europe_poland",
         "geofabrik_europe_poland",
     ],
@@ -419,6 +1050,102 @@ def test_extracts_tree_printing(
     assert error_output == ""
 
 
+def _count_tree_nodes(tree: Any) -> int:
+    """Count all descendant nodes of a Rich tree."""
+    return len(tree.children) + sum(_count_tree_nodes(child) for child in tree.children)
+
+
+def _render_rich_tree(tree: Any) -> str:
+    """Render a Rich tree to plain text."""
+    console = Console(width=999)
+    with console.capture() as capture:
+        console.print(tree)
+    return str(capture.get())
+
+
+def test_extracts_tree_structure_and_loose_parents() -> None:
+    """Test if the tree nests children under parents and attaches loose parents."""
+    import geopandas as gpd
+
+    index = gpd.GeoDataFrame(
+        [
+            {
+                "id": "BBBike_a",
+                "name": "a",
+                "file_name": "bbbike_a",
+                "parent": "BBBike",
+                "area": 2.0,
+                "url": "http://x/a",
+            },
+            {
+                "id": "BBBike_a_x",
+                "name": "x",
+                "file_name": "bbbike_a_x",
+                "parent": "BBBike_a",
+                "area": 1.0,
+                "url": "http://x/x",
+            },
+            {
+                "id": "BBBike_b",
+                "name": "b",
+                "file_name": "bbbike_b",
+                "parent": "BBBike",
+                "area": 3.0,
+                "url": "http://x/b",
+            },
+            {
+                "id": "BBBike_orphan",
+                "name": "orphan",
+                "file_name": "bbbike_orphan",
+                "parent": "BBBike_missing",
+                "area": 1.0,
+                "url": "http://x/o",
+            },
+        ],
+        geometry=[box(0, 0, 1, 1)] * 4,
+        crs="EPSG:4326",
+    )
+
+    tree = get_available_extracts_as_rich_tree(
+        OsmExtractSource.bbbike, {OsmExtractSource.bbbike: lambda: index}, use_full_names=True
+    )
+    rendered = _render_rich_tree(tree)
+
+    for token in ("bbbike_a", "bbbike_a_x", "bbbike_b", "bbbike_orphan", "BBBike_missing"):
+        assert token in rendered, token
+    # Children sorted by name: a before b.
+    assert rendered.index("bbbike_a") < rendered.index("bbbike_b")
+    # Nodes: a, x (under a), b, BBBike_missing (loose), orphan (under loose) -> 5.
+    assert _count_tree_nodes(tree) == 5
+
+
+def test_extracts_tree_builds_for_large_flat_index() -> None:
+    """Test if a large flat index builds quickly (guards against O(N^2) tree building)."""
+    import geopandas as gpd
+
+    number_of_tiles = 10000
+    index = gpd.GeoDataFrame(
+        [
+            {
+                "id": f"Movisda-grid_{i}",
+                "name": f"N{i:05d}",
+                "file_name": f"movisda-grid_n{i}",
+                "parent": "Movisda-grid",
+                "area": float(i % 1000 + 1),
+                "url": f"http://x/{i}",
+            }
+            for i in range(number_of_tiles)
+        ],
+        geometry=[box(0, 0, 1, 1)] * number_of_tiles,
+        crs="EPSG:4326",
+    )
+
+    tree = get_available_extracts_as_rich_tree(
+        OsmExtractSource.movisda_grid, {OsmExtractSource.movisda_grid: lambda: index}
+    )
+    assert _count_tree_nodes(tree) == number_of_tiles
+
+
 def test_generate_index_warning(mocker: MockerFixture) -> None:
     """Test if index generation results in warning."""
     extract_source = OsmExtractSource.bbbike
@@ -429,11 +1156,11 @@ def test_generate_index_warning(mocker: MockerFixture) -> None:
     move_local_path = local_path.exists()
 
     if move_global_path:
-        global_moved_path = global_path.with_name("bbbike_index_moved.geojson")
+        global_moved_path = global_path.with_name("bbbike_index_moved.parquet")
         global_path.rename(global_moved_path)
 
     if move_local_path:
-        local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
+        local_moved_path = local_path.with_name("bbbike_index_moved.parquet")
         local_path.rename(local_moved_path)
 
     try:
@@ -501,11 +1228,11 @@ def test_cache_clearing() -> None:
     move_local_path = local_path.exists()
 
     if move_global_path:
-        global_moved_path = global_path.with_name("bbbike_index_moved.geojson")
+        global_moved_path = global_path.with_name("bbbike_index_moved.parquet")
         global_path.rename(global_moved_path)
 
     if move_local_path:
-        local_moved_path = local_path.with_name("bbbike_index_moved.geojson")
+        local_moved_path = local_path.with_name("bbbike_index_moved.parquet")
         local_path.rename(local_moved_path)
 
     clear_osm_index_cache(extract_source)
@@ -533,6 +1260,84 @@ def test_index_download() -> None:
         assert not global_bbbike_cache_file_path.exists()
         _load_bbbike_index(force_recalculation=False)
 
-        assert tmp_file_path.read_text() == global_bbbike_cache_file_path.read_text(), (
+        assert tmp_file_path.read_bytes() == global_bbbike_cache_file_path.read_bytes(), (
             "Mismatch between downloaded and local index files."
         )
+
+
+def test_ensure_valid_geometries() -> None:
+    """Test if invalid index geometries are repaired and overlay ops no longer raise."""
+    import geopandas as gpd
+
+    # A self-intersecting "bowtie" polygon is topologically invalid.
+    bowtie = from_wkt("POLYGON ((0 0, 1 1, 1 0, 0 1, 0 0))")
+    index = gpd.GeoDataFrame(
+        {"id": ["bowtie", "valid"]},
+        geometry=[bowtie, box(2, 2, 3, 3)],
+        crs="EPSG:4326",
+    )
+    assert not index.geometry.is_valid.all()
+
+    fixed_index = _ensure_valid_geometries(index)
+
+    assert fixed_index.geometry.is_valid.all()
+    # Intersection would raise a GEOSException on the invalid input - must work now.
+    fixed_index.geometry.intersection(box(0, 0, 3, 3))
+
+
+def test_migrate_legacy_geojson_cache(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test if a legacy GeoJSON cache is converted to parquet and the legacy file removed."""
+    import geopandas as gpd
+
+    global_parquet_path = tmp_path / "bbbike_index.parquet"
+    local_parquet_path = tmp_path / "local" / "bbbike_index.parquet"
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_global_cache_file_path",
+        return_value=global_parquet_path,
+    )
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_local_cache_file_path",
+        return_value=local_parquet_path,
+    )
+
+    legacy_path = global_parquet_path.with_suffix(".geojson")
+    legacy_gdf = gpd.GeoDataFrame(
+        {"id": ["x"], "area": [1.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326"
+    )
+    legacy_gdf.to_file(legacy_path, driver="GeoJSON")
+
+    _migrate_legacy_geojson_cache(OsmExtractSource.bbbike)
+
+    assert global_parquet_path.exists()
+    assert not legacy_path.exists()
+    migrated_gdf = gpd.read_parquet(global_parquet_path)
+    assert set(migrated_gdf.columns) == {"id", "area", "geometry"}
+    assert migrated_gdf.geometry.iloc[0].equals(box(0, 0, 1, 1))
+
+
+def test_clear_removes_legacy_geojson_cache(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Test if clearing the cache also removes a legacy GeoJSON file."""
+    import geopandas as gpd
+
+    global_parquet_path = tmp_path / "bbbike_index.parquet"
+    local_parquet_path = tmp_path / "local" / "bbbike_index.parquet"
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_global_cache_file_path",
+        return_value=global_parquet_path,
+    )
+    mocker.patch(
+        "quackosm.osm_extracts.extract._get_local_cache_file_path",
+        return_value=local_parquet_path,
+    )
+
+    legacy_path = global_parquet_path.with_suffix(".geojson")
+    gdf = gpd.GeoDataFrame(
+        {"id": ["x"], "area": [1.0]}, geometry=[box(0, 0, 1, 1)], crs="EPSG:4326"
+    )
+    gdf.to_file(legacy_path, driver="GeoJSON")
+    gdf.to_parquet(global_parquet_path, compression="zstd", compression_level=3)
+
+    clear_osm_index_cache(OsmExtractSource.bbbike)
+
+    assert not global_parquet_path.exists()
+    assert not legacy_path.exists()

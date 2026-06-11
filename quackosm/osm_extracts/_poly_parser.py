@@ -5,6 +5,8 @@ from typing import Any, Optional
 import requests
 from shapely.geometry import MultiPolygon
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
+
 __all__ = ["parse_polygon_file"]
 
 
@@ -22,6 +24,7 @@ def parse_polygon_file(polygon_url: str) -> Optional[MultiPolygon]:  # pragma: n
     result = requests.get(
         polygon_url,
         headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     )
     if result.status_code == 404:
         return None

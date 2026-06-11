@@ -22,6 +22,15 @@ class OsmExtractSearchError(Exception):
         self.matching_full_names = matching_full_names
 
 
+class OsmExtractUnavailableWarning(Warning): ...
+
+
+class OsmExtractSourceUnavailableWarning(Warning): ...
+
+
+class OsmExtractsIndexesUnavailableError(Exception): ...
+
+
 class OsmExtractZeroMatchesError(OsmExtractSearchError): ...
 
 

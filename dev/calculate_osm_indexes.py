@@ -17,7 +17,7 @@ if __name__ == "__main__":
         destination_path = (
             Path(__file__).parent.parent
             / "precalculated_indexes"
-            / f"{extract_source.value.lower()}_index.geojson"
+            / f"{extract_source.value.lower()}_index.parquet"
         )
         print(f"Copying cache file {cache_path} to {destination_path}.")
         destination_path.write_bytes(cache_path.read_bytes())

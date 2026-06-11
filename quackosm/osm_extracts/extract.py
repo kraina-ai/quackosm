@@ -1,5 +1,6 @@
 """OpenStreetMap extract class."""
 
+import re
 import warnings
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -8,12 +9,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, cast, overload
 
 import platformdirs
+from anyascii import anyascii
 from dateutil.relativedelta import relativedelta
+from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
-from pooch import retrieve
 from requests import HTTPError
 
-from quackosm._constants import WGS84_CRS
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS, WGS84_CRS
 from quackosm._exceptions import MissingOsmCacheWarning, OldOsmCacheWarning
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -45,6 +47,9 @@ class OsmExtractSource(str, Enum):
     geofabrik = "Geofabrik"
     osm_fr = "osmfr"
     bbbike = "BBBike"
+    geo2day = "GEO2Day"
+    movisda_admin = "Movisda-admin"
+    movisda_grid = "Movisda-grid"
 
     @classmethod
     def _missing_(cls, value):  # type: ignore
@@ -79,11 +84,14 @@ def load_index_decorator(
                     stacklevel=0,
                 )
 
+            # Migrate a legacy GeoJSON cache (pre-parquet) into the parquet format if present.
+            _migrate_legacy_geojson_cache(extract_source, convert=not force_recalculation)
+
             # Check if index exists in cache
             if not force_recalculation and global_cache_file_path.exists():
                 import geopandas as gpd
 
-                index_gdf = gpd.read_file(global_cache_file_path)
+                index_gdf = gpd.read_parquet(global_cache_file_path)
             # Move locally downloaded cache to global directory
             elif (
                 not force_recalculation
@@ -94,14 +102,14 @@ def load_index_decorator(
                 import geopandas as gpd
 
                 shutil.copy(local_cache_file_path, global_cache_file_path)
-                index_gdf = gpd.read_file(global_cache_file_path)
+                index_gdf = gpd.read_parquet(global_cache_file_path)
             # Download index
             elif not force_recalculation and _download_precalculated_index_from_github(
                 global_cache_file_path
             ):
                 import geopandas as gpd
 
-                index_gdf = gpd.read_file(global_cache_file_path)
+                index_gdf = gpd.read_parquet(global_cache_file_path)
             # Calculate index locally
             else:  # pragma: no cover
                 if extract_source != OsmExtractSource.geofabrik:
@@ -115,9 +123,11 @@ def load_index_decorator(
                     )
 
                 index_gdf = function()
+                # fix invalid geometries before computing metrics and persisting the index
+                index_gdf = _ensure_valid_geometries(index_gdf)
                 # calculate extracts area
                 index_gdf["area"] = index_gdf.geometry.apply(_calculate_geodetic_area)
-                index_gdf.sort_values(by="area", ignore_index=True, inplace=True)
+                index_gdf.sort_values(by=["area", "id"], ignore_index=True, inplace=True)
 
                 # generate full file names
                 apply_function = _get_full_file_name_function(index_gdf)
@@ -135,14 +145,16 @@ def load_index_decorator(
                     stacklevel=0,
                 )
                 # Invalidate previous cached index
-                global_cache_file_path.replace(global_cache_file_path.with_suffix(".geojson.old"))
+                global_cache_file_path.replace(global_cache_file_path.with_suffix(".parquet.old"))
                 # Download index again
                 index_gdf = wrapper(force_recalculation=force_recalculation)
 
             # Save index to cache
             if force_recalculation or not global_cache_file_path.exists():
                 global_cache_file_path.parent.mkdir(parents=True, exist_ok=True)
-                index_gdf[expected_columns].to_file(global_cache_file_path, driver="GeoJSON")
+                index_gdf[expected_columns].to_parquet(
+                    global_cache_file_path, compression="zstd", compression_level=3
+                )
 
             global_cache_file_older_than_year = (
                 datetime.now() - relativedelta(years=1)
@@ -162,6 +174,23 @@ def load_index_decorator(
         return wrapper
 
     return inner
+
+
+def _ensure_valid_geometries(index_gdf: "GeoDataFrame") -> "GeoDataFrame":
+    """
+    Fix topologically invalid geometries in an extracts index.
+
+    Some sources contain invalid geometries (self-intersections, nested shells).
+    These would raise ``GEOSException: TopologyException`` during the coverage
+    search (intersection / difference / union).
+    """
+    invalid_geometries_mask = ~index_gdf.geometry.is_valid
+    if invalid_geometries_mask.any():
+        index_gdf = index_gdf.copy()
+        index_gdf.loc[invalid_geometries_mask, "geometry"] = index_gdf.geometry[
+            invalid_geometries_mask
+        ].make_valid()
+    return index_gdf
 
 
 def extracts_to_geodataframe(extracts: list[OpenStreetMapExtract]) -> "GeoDataFrame":
@@ -191,22 +220,62 @@ def clear_osm_index_cache(extract_source: Optional[OsmExtractSource] = None) -> 
         ]
 
     for _source in extract_sources:
-        for path in (
+        for parquet_path in (
             _get_local_cache_file_path(_source),
             _get_global_cache_file_path(_source),
         ):
-            path.unlink(missing_ok=True)
+            for path in (
+                parquet_path,
+                parquet_path.with_suffix(".parquet.old"),
+                parquet_path.with_suffix(".geojson"),  # legacy pre-parquet cache
+                parquet_path.with_suffix(".geojson.old"),  # legacy invalidated cache
+            ):
+                path.unlink(missing_ok=True)
 
 
 def _get_global_cache_file_path(extract_source: OsmExtractSource) -> Path:
     return (
         Path(platformdirs.user_cache_dir("QuackOSM"))
-        / f"{extract_source.value.lower()}_index.geojson"
+        / f"{extract_source.value.lower()}_index.parquet"
     )
 
 
 def _get_local_cache_file_path(extract_source: OsmExtractSource) -> Path:
-    return Path(f"cache/{extract_source.value.lower()}_index.geojson")
+    return Path(f"cache/{extract_source.value.lower()}_index.parquet")
+
+
+def _migrate_legacy_geojson_cache(extract_source: OsmExtractSource, convert: bool = True) -> None:
+    """
+    Convert a legacy GeoJSON index cache (pre-parquet) into the parquet format.
+
+    Older versions stored the index as GeoJSON. If such a file is found and its parquet
+    counterpart is missing, it is converted (zstd parquet) so the cache doesn't have to be
+    rebuilt or re-downloaded. The legacy file is removed once superseded by the parquet cache.
+
+    Args:
+        extract_source (OsmExtractSource): Source whose cache should be migrated.
+        convert (bool, optional): Whether to convert the legacy file before removing it.
+            Defaults to `True`.
+    """
+    for parquet_path in (
+        _get_global_cache_file_path(extract_source),
+        _get_local_cache_file_path(extract_source),
+    ):
+        legacy_path = parquet_path.with_suffix(".geojson")
+        if not legacy_path.exists():
+            continue
+
+        if convert and not parquet_path.exists():
+            import geopandas as gpd
+
+            parquet_path.parent.mkdir(parents=True, exist_ok=True)
+            gpd.read_file(legacy_path).to_parquet(
+                parquet_path, compression="zstd", compression_level=3
+            )
+
+        # Remove the legacy file once it has been superseded by the parquet cache.
+        if parquet_path.exists():
+            legacy_path.unlink(missing_ok=True)
 
 
 def _download_precalculated_index_from_github(destination_path: Path) -> bool:
@@ -222,6 +291,7 @@ def _download_precalculated_index_from_github(destination_path: Path) -> bool:
             path=destination_path.parent,
             progressbar=False,
             known_hash=None,
+            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
         )
     except HTTPError as ex:
         if ex.response.status_code == 404:
@@ -242,6 +312,16 @@ def _calculate_geodetic_area(geometry: "BaseGeometry") -> float:
     return cast("float", poly_area_km2)
 
 
+def _slugify_file_name_part(value: str) -> str:
+    """
+    Creates a slug part from file name.
+
+    Makes it lowercase, replaces whitespace with underscores and all diactric characters into ascii.
+    """
+    ascii_value = re.sub(r"\s+", "_", anyascii(value).strip().lower())
+    return re.sub(r"[^a-z0-9_-]+", "", ascii_value)
+
+
 def _get_full_file_name_function(index: "DataFrame") -> Callable[[str], str]:
     from pandas import Index
 
@@ -252,11 +332,11 @@ def _get_full_file_name_function(index: "DataFrame") -> Callable[[str], str]:
         parts = []
         while True:
             if current_id not in ids_index:
-                parts.append(current_id.lower())
+                parts.append(_slugify_file_name_part(current_id))
                 break
             else:
                 matching_row = index.iloc[ids_index.get_loc(current_id)]
-                parts.append(matching_row["name"].lower())
+                parts.append(_slugify_file_name_part(matching_row["name"]))
                 current_id = matching_row["parent"]
 
         return "_".join(parts[::-1])

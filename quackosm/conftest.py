@@ -8,11 +8,13 @@ from pathlib import Path
 import duckdb
 import pandas
 import pytest
+from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
-from pooch import retrieve
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
+from quackosm.osm_extracts.movisda import _get_movisda_admin_index
 
 IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
 
@@ -47,7 +49,7 @@ def download_osm_extracts_indexes():  # type: ignore
         if osm_extract == OsmExtractSource.any:
             continue
 
-        file_name = f"{osm_extract.value.lower()}_index.geojson"
+        file_name = f"{osm_extract.value.lower()}_index.parquet"
         file_download_url = LFS_DIRECTORY_URL + file_name
 
         retrieve(
@@ -56,6 +58,7 @@ def download_osm_extracts_indexes():  # type: ignore
             path=download_directory,
             progressbar=False,
             known_hash=None,
+            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
         )
 
 
@@ -66,22 +69,27 @@ def add_pbf_files(doctest_namespace, download_osm_extracts_indexes):  # type: ig
     download_directory.mkdir(parents=True, exist_ok=True)
 
     geofabrik_index = _get_geofabrik_index()
+    movisda_admin_index = _get_movisda_admin_index()
     for extract_name in EXTRACTS_NAMES:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
         pbf_file_path = download_directory / f"{extract_name}.osm.pbf"
-        geofabrik_download_path = geofabrik_index[geofabrik_index["name"] == extract_name].iloc[0][
-            "file_name"
-        ]
-        geofabrik_pbf_file_path = download_directory / f"{geofabrik_download_path}.osm.pbf"
         retrieve(
             pbf_file_download_url,
             fname=f"{extract_name}.osm.pbf",
             path=download_directory,
             progressbar=False,
             known_hash=None,
+            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
         )
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
-        shutil.copy(pbf_file_path, geofabrik_pbf_file_path)
+
+        for index in (geofabrik_index, movisda_admin_index):
+            index_download_path = index[index["name"].str.lower() == extract_name].iloc[0][
+                "file_name"
+            ]
+            index_pbf_file_path = download_directory / f"{index_download_path}.osm.pbf"
+
+            shutil.copy(pbf_file_path, index_pbf_file_path)
 
 
 @pytest.fixture(autouse=True, scope="session")

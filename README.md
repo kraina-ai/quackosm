@@ -96,6 +96,8 @@ Required:
 
 - `geopy (>=2.0.0)`: For geocoding of strings
 
+- `anyascii (>=0.3.3)`: For replacing special characters into ascii when generating OSM extract indexes
+
 Optional:
 
 - `typer (>=0.9.0)` (click, colorama, rich, shellingham): Required in CLI

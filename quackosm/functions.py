@@ -22,7 +22,11 @@ from quackosm._deprecate import deprecate, deprecate_kwarg
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
 from quackosm._rich_progress import VERBOSITY_MODE
-from quackosm.osm_extracts import OsmExtractSource, download_extract_by_query
+from quackosm.osm_extracts import (
+    OsmExtractSource,
+    OsmExtractSourceLike,
+    download_extract_by_query,
+)
 from quackosm.pbf_file_reader import PbfFileReader
 
 __all__ = [
@@ -307,7 +311,7 @@ def convert_pbf_to_duckdb(
 
 def convert_geometry_to_duckdb(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
@@ -340,9 +344,10 @@ def convert_geometry_to_duckdb(
 
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
-        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `any`.
+        osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+            iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+            'bbbike,osmfr'). Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -544,7 +549,7 @@ def convert_geometry_to_duckdb(
 
 def convert_osm_extract_to_duckdb(
     osm_extract_query: str,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -574,9 +579,10 @@ def convert_osm_extract_to_duckdb(
     Args:
         osm_extract_query (str):
             Query to find an OpenStreetMap extract from available sources.
-        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `any`.
+        osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+            iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+            'bbbike,osmfr'). Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -1001,7 +1007,7 @@ def convert_pbf_to_parquet(
 
 def convert_geometry_to_parquet(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     result_file_path: Optional[Union[str, Path]] = None,
     keep_all_tags: bool = False,
@@ -1034,9 +1040,10 @@ def convert_geometry_to_parquet(
 
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
-        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `any`.
+        osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+            iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+            'bbbike,osmfr'). Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -1237,7 +1244,7 @@ def convert_geometry_to_parquet(
 
 def convert_osm_extract_to_parquet(
     osm_extract_query: str,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -1267,9 +1274,10 @@ def convert_osm_extract_to_parquet(
     Args:
         osm_extract_query (str):
             Query to find an OpenStreetMap extract from available sources.
-        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `any`.
+        osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+            iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+            'bbbike,osmfr'). Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -1665,7 +1673,7 @@ def convert_pbf_to_geodataframe(
 
 def convert_geometry_to_geodataframe(
     geometry_filter: BaseGeometry = None,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
@@ -1696,9 +1704,10 @@ def convert_geometry_to_geodataframe(
 
     Args:
         geometry_filter (BaseGeometry): Geometry filter used to download matching OSM extracts.
-        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `any`.
+        osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+            iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+            'bbbike,osmfr'). Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -1850,7 +1859,7 @@ def convert_geometry_to_geodataframe(
 
 def convert_osm_extract_to_geodataframe(
     osm_extract_query: str,
-    osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+    osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     keep_all_tags: bool = False,
@@ -1878,9 +1887,10 @@ def convert_osm_extract_to_geodataframe(
     Args:
         osm_extract_query (str):
             Query to find an OpenStreetMap extract from available sources.
-        osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-            Defaults to `any`.
+        osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+            downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+            iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+            'bbbike,osmfr'). Defaults to `any`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).

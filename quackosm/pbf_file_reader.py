@@ -30,8 +30,8 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
+from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
-from pooch import retrieve
 from pooch.utils import parse_url
 from rq_geo_toolkit.duckdb import (
     DUCKDB_ABOVE_130,
@@ -52,6 +52,7 @@ from quackosm._constants import (
     FEATURES_INDEX,
     GEOMETRY_COLUMN,
     METADATA_TAGS_TO_IGNORE,
+    OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
@@ -84,8 +85,8 @@ from quackosm._rich_progress import (
 from quackosm._typing import is_expected_type
 from quackosm.osm_extracts import (
     OsmExtractSource,
-    download_extracts_pbf_files,
-    find_smallest_containing_extracts,
+    OsmExtractSourceLike,
+    find_and_download_extracts_pbf_files,
 )
 
 __all__ = [
@@ -171,7 +172,7 @@ class PbfFileReader:
         compression_level: int = PARQUET_COMPRESSION_LEVEL,
         row_group_size: int = PARQUET_ROW_GROUP_SIZE,
         parquet_version: Literal["v1", "v2"] = PARQUET_VERSION,
-        osm_extract_source: Union[OsmExtractSource, str] = OsmExtractSource.any,
+        osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
         verbosity_mode: VERBOSITY_MODE = "transient",
         geometry_coverage_iou_threshold: float = 0.01,
         allow_uncovered_geometry: bool = False,
@@ -217,9 +218,10 @@ class PbfFileReader:
                 parquet file. Defaults to 100_000.
             parquet_version (Literal["v1", "v2"], optional): What type of parquet version use to
                 save final file. Available only in DuckDB version >= 1.3.0. Defaults to "v2".
-            osm_extract_source (Union[OsmExtractSource, str], optional): A source for automatic
-                downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any.
-                Defaults to `any`.
+            osm_extract_source (OsmExtractSourceLike, optional): A source for automatic
+                downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
+                iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
+                'bbbike,osmfr'). Defaults to `any`.
             verbosity_mode (Literal["silent", "transient", "verbose"], optional): Set progress
                 verbosity mode. Can be one of: silent, transient and verbose. Silent disables
                 output completely. Transient tracks progress, but removes output after finished.
@@ -703,15 +705,15 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
-        matching_extracts = find_smallest_containing_extracts(
+        matching_extracts_with_paths = find_and_download_extracts_pbf_files(
             self.geometry_filter,
             self.osm_extract_source,
+            self.working_directory,
             geometry_coverage_iou_threshold=self.geometry_coverage_iou_threshold,
             allow_uncovered_geometry=self.allow_uncovered_geometry,
+            progressbar=self.verbosity_mode != "silent",
         )
-        pbf_files = download_extracts_pbf_files(
-            matching_extracts, self.working_directory, progressbar=self.verbosity_mode != "silent"
-        )
+        pbf_files = [pbf_file_path for _, pbf_file_path in matching_extracts_with_paths]
         return self.convert_pbf_to_parquet(
             pbf_files,
             result_file_path=result_file_path,
@@ -722,7 +724,7 @@ class PbfFileReader:
             save_as_wkt=save_as_wkt,
             sort_result=sort_result,
             pbf_extract_geometry=[
-                matching_extract.geometry for matching_extract in matching_extracts
+                matching_extract.geometry for matching_extract, _ in matching_extracts_with_paths
             ],
         )
 
@@ -1124,6 +1126,7 @@ class PbfFileReader:
                 path=self.working_directory,
                 progressbar=self.verbosity_mode != "silent" and not FORCE_TERMINAL,
                 known_hash=None,
+                downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
             )
 
         if result_file_path.exists() and not ignore_cache:

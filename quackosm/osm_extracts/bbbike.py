@@ -11,6 +11,7 @@ import requests
 from shapely import box
 from tqdm import tqdm
 
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
 from quackosm._rich_progress import FORCE_TERMINAL
 from quackosm.osm_extracts._poly_parser import parse_polygon_file
 from quackosm.osm_extracts.extract import (
@@ -67,6 +68,7 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
     result = requests.get(
         BBBIKE_EXTRACTS_INDEX_URL,
         headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     )
     soup = BeautifulSoup(result.text, "html.parser")
     extract_names = [
@@ -78,6 +80,7 @@ def _iterate_bbbike_index() -> list[OpenStreetMapExtract]:  # pragma: no cover
     csv_regions_result = requests.get(
         BBBIKE_EXTRACTS_CSV_LIST_URL,
         headers={"User-Agent": "QuackOSM Python package (https://github.com/kraina-ai/quackosm)"},
+        timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     )
     rows = csv_regions_result.text.splitlines()
 
