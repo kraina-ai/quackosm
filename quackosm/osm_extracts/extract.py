@@ -318,7 +318,7 @@ def _slugify_file_name_part(value: str) -> str:
 
     Makes it lowercase, replaces whitespace with underscores and all diactric characters into ascii.
     """
-    ascii_value = re.sub(r"\s+", "_", anyascii(str(value)).strip().lower())
+    ascii_value = re.sub(r"\s+", "_", anyascii(value).strip().lower())
     return re.sub(r"[^a-z0-9_-]+", "", ascii_value)
 
 
