@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Explicit `click` to the dependencies, since `typer` removed it from its own dependencies
 - CITATION.cff file with Zenodo DOI
 - New OpenStreetMap extract sources: [`GEO2Day`](https://geo2day.com/), [`Movisda-admin`](https://osm.download.movisda.io/select/admin/) and [`Movisda-grid`](https://osm.download.movisda.io/select/grid/)
+- `anyascii` to dependencies
 
 ### Changed
 

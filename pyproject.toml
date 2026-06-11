@@ -19,6 +19,7 @@ dependencies = [
     "geopy>=2.0.0",
     "numpy>=1.26.0",
     "rq_geo_toolkit>=2026.2.1",
+    "anyascii>=0.3.3",
 ]
 requires-python = ">=3.10"
 readme = "README.md"

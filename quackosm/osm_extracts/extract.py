@@ -1,5 +1,6 @@
 """OpenStreetMap extract class."""
 
+import re
 import warnings
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -8,6 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, cast, overload
 
 import platformdirs
+from anyascii import anyascii
 from dateutil.relativedelta import relativedelta
 from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
@@ -310,6 +312,16 @@ def _calculate_geodetic_area(geometry: "BaseGeometry") -> float:
     return cast("float", poly_area_km2)
 
 
+def _slugify_file_name_part(value: str) -> str:
+    """
+    Creates a slug part from file name.
+
+    Makes it lowercase, replaces whitespace with underscores and all diactric characters into ascii.
+    """
+    ascii_value = re.sub(r"\s+", "_", anyascii(str(value)).strip().lower())
+    return re.sub(r"[^a-z0-9_-]+", "", ascii_value)
+
+
 def _get_full_file_name_function(index: "DataFrame") -> Callable[[str], str]:
     from pandas import Index
 
@@ -320,11 +332,11 @@ def _get_full_file_name_function(index: "DataFrame") -> Callable[[str], str]:
         parts = []
         while True:
             if current_id not in ids_index:
-                parts.append(current_id.lower())
+                parts.append(_slugify_file_name_part(current_id))
                 break
             else:
                 matching_row = index.iloc[ids_index.get_loc(current_id)]
-                parts.append(matching_row["name"].lower())
+                parts.append(_slugify_file_name_part(matching_row["name"]))
                 current_id = matching_row["parent"]
 
         return "_".join(parts[::-1])

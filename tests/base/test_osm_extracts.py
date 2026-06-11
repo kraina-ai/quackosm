@@ -880,6 +880,19 @@ def test_proper_full_name() -> None:
     prepared_function = _get_full_file_name_function(test_index)
     assert prepared_function("2") == "x_one_two"
 
+    # Names with spaces are slugified so generated file names never contain spaces.
+    spaced_index = pd.DataFrame(
+        {
+            "id": ["RW", "RW-02"],
+            "name": ["Rwanda", "Eastern Province"],
+            "parent": ["root", "RW"],
+        }
+    )
+    spaced_function = _get_full_file_name_function(spaced_index)
+    full_name = spaced_function("RW-02")
+    assert full_name == "root_rwanda_eastern_province"
+    assert " " not in full_name
+
 
 @P.parameters("query", "source", "expectation", "matched_id", "exception_values")  # type: ignore
 @P.case(
@@ -954,6 +967,9 @@ def test_proper_full_name() -> None:
     "",
     [
         "osmfr_north-america_us-midwest_illinois_north",
+        "movisda-admin_guinea-bissau_north",
+        "movisda-admin_burkina_faso_north",
+        "movisda-admin_cameroon_north",
         "osmfr_north-america_us-south_texas_north",
         "geo2day_south_america_brazil_north",
         "osmfr_south-america_brazil_north",
@@ -966,7 +982,9 @@ def test_proper_full_name() -> None:
     pytest.raises(OsmExtractZeroMatchesError),
     "",
     [
+        "movisda-admin_jamaica_portland",
         "bbbike_portland",
+        "movisda-admin_poland",
         "geo2day_europe_poland",
         "osmfr_europe_poland",
         "geofabrik_europe_poland",
@@ -991,8 +1009,6 @@ def test_extracts_finding(
 
     # if threw exception - check resulting arrays
     if exception_info is not None:
-        print(exception_info.value.matching_full_names)
-        print(exception_values)
         ut.assertListEqual(exception_info.value.matching_full_names, exception_values)
 
 
