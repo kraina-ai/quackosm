@@ -108,32 +108,76 @@ def _iterate_movisda_geojson(
     )
     result.raise_for_status()
 
-    source_enum_value = source_enum.value
-    extracts = _parse_movisda_features(result.json(), pbf_base_url, source_enum_value)
+    extracts = _parse_movisda_features(
+        result.json(),
+        pbf_base_url,
+        source_enum.value,
+        build_hierarchy=source_enum == OsmExtractSource.movisda_admin,
+    )
 
     return extracts
 
 
 def _parse_movisda_features(
-    geojson_data: dict[str, Any], pbf_base_url: str, source_enum_value: str
+    geojson_data: dict[str, Any],
+    pbf_base_url: str,
+    source_enum_value: str,
+    build_hierarchy: bool,
 ) -> list[OpenStreetMapExtract]:
-    """Build extracts from a parsed Movisda GeoJSON FeatureCollection."""
+    """
+    Build extracts from a parsed Movisda GeoJSON FeatureCollection.
+
+    The download URL and id are built from the `prefix` property (already containing the trailing
+    dash, e.g. `AD-`), by appending `latest.osm.pbf` / stripping the dash.
+
+    For admin boundaries (``build_hierarchy=True``) the extracts are geographically nested, so the
+    parent is derived from the ISO-style code structure - e.g. `RW-02` is nested under `RW`, which
+    is nested under the source root. This keeps full names unique even when subdivisions share a
+    name across countries (e.g. multiple "Eastern Province").
+
+    For the grid (``build_hierarchy=False``) the tile code already encodes the resolution (10°
+    tiles carry a `-10` suffix), so the code is used directly as the name and the extracts stay
+    flat under the source root.
+
+    Args:
+        geojson_data (dict[str, Any]): Parsed GeoJSON content.
+        pbf_base_url (str): Base URL for the PBF files.
+        source_enum_value (str): Source enum value used for ids and parents.
+        build_hierarchy (bool): Whether to derive a parent hierarchy from the code structure.
+
+    Returns:
+        list[OpenStreetMapExtract]: List of parsed extracts.
+    """
     from shapely.geometry import shape
 
-    extracts = []
     features = geojson_data.get("features", [])
+    available_codes = {str(feature["properties"]["prefix"]).rstrip("-") for feature in features}
 
+    extracts = []
     for feature in features:
-        prefix = str(feature["properties"]["prefix"])
-        extract_id = prefix.rstrip("-")
+        properties = feature["properties"]
+        prefix = str(properties["prefix"])
+        code = prefix.rstrip("-")
         geometry = shape(feature["geometry"])
-        name = feature["properties"].get("name_en") or feature["properties"]["name"]
+
+        if build_hierarchy:
+            name = properties.get("name_en") or properties["name"]
+            # Take the immediate (smallest) parent from the ISO-style code, e.g. `RW-02` -> `RW`.
+            parent_code = code.rsplit("-", 1)[0] if "-" in code else None
+            parent = (
+                f"{source_enum_value}_{parent_code}"
+                if parent_code and parent_code in available_codes
+                else source_enum_value
+            )
+        else:
+            name = code
+            parent = source_enum_value
 
         extracts.append(
             OpenStreetMapExtract(
-                id=f"{source_enum_value}_{extract_id}",
+                id=f"{source_enum_value}_{code}",
                 name=name,
-                parent=source_enum_value,
+                parent=parent,
                 url=f"{pbf_base_url}/{prefix}latest.osm.pbf",
                 geometry=geometry,
             )

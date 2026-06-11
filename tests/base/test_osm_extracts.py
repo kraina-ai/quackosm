@@ -62,6 +62,7 @@ from quackosm.osm_extracts.geo2day import _find_subregion_links
 from quackosm.osm_extracts.geofabrik import _load_geofabrik_index, _parse_geofabrik_index
 from quackosm.osm_extracts.movisda import (
     MOVISDA_ADMIN_PBF_BASE_URL,
+    MOVISDA_GRID_PBF_BASE_URL,
     _parse_movisda_features,
 )
 from quackosm.osm_extracts.osm_fr import OPENSTREETMAP_FR_EXTRACTS_INDEX_URL
@@ -549,33 +550,97 @@ def test_parse_geojson_empty_feature_collection() -> None:
     assert parse_geojson({"type": "FeatureCollection", "features": []}) is None
 
 
-def test_movisda_parse_features() -> None:
-    """Test if Movisda features are parsed into extracts with correct download URLs."""
+def test_movisda_admin_parse_features_hierarchy() -> None:
+    """Test if Movisda admin extracts are nested via ISO codes with names from name_en/name."""
     geojson_data = {
         "type": "FeatureCollection",
         "features": [
+            # Country: name_en preferred over name; parent is the source root.
             {
                 "type": "Feature",
-                "properties": {"prefix": "AD-"},
+                "properties": {"prefix": "RW-", "name": "Rwanda (local)", "name_en": "Rwanda"},
+                "geometry": mapping(box(0, 0, 4, 4)),
+            },
+            # Subdivision: nested under its country code (RW-02 -> RW).
+            {
+                "type": "Feature",
+                "properties": {"prefix": "RW-02-", "name": "Eastern Province"},
                 "geometry": mapping(box(1, 1, 2, 2)),
             },
             {
                 "type": "Feature",
-                "properties": {"prefix": "N52W016-"},
-                "geometry": mapping(box(3, 3, 4, 4)),
+                "properties": {"prefix": "ZM-", "name_en": "Zambia"},
+                "geometry": mapping(box(5, 5, 9, 9)),
+            },
+            # Same subdivision name in another country -> different parent.
+            {
+                "type": "Feature",
+                "properties": {"prefix": "ZM-03-", "name": "Eastern Province"},
+                "geometry": mapping(box(6, 6, 7, 7)),
             },
         ],
     }
     extracts = _parse_movisda_features(
-        geojson_data, MOVISDA_ADMIN_PBF_BASE_URL, OsmExtractSource.movisda_admin.value
+        geojson_data,
+        MOVISDA_ADMIN_PBF_BASE_URL,
+        OsmExtractSource.movisda_admin.value,
+        build_hierarchy=True,
     )
+    by_id = {extract.id: extract for extract in extracts}
 
-    assert extracts[0].id == "Movisda-admin_AD"
-    assert extracts[0].name == "AD"
-    assert extracts[0].parent == "Movisda-admin"
-    assert extracts[0].url == "https://osm.download.movisda.io/admin/AD-latest.osm.pbf"
-    assert extracts[0].geometry.equals(box(1, 1, 2, 2))
-    assert extracts[1].url == "https://osm.download.movisda.io/admin/N52W016-latest.osm.pbf"
+    # Country -> root, name from name_en.
+    assert by_id["Movisda-admin_RW"].parent == "Movisda-admin"
+    assert by_id["Movisda-admin_RW"].name == "Rwanda"
+    # Subdivision -> nested under its country.
+    assert by_id["Movisda-admin_RW-02"].parent == "Movisda-admin_RW"
+    assert by_id["Movisda-admin_RW-02"].name == "Eastern Province"
+    assert (
+        by_id["Movisda-admin_RW-02"].url
+        == "https://osm.download.movisda.io/admin/RW-02-latest.osm.pbf"
+    )
+    # Same subdivision name in another country resolves to a different parent.
+    assert by_id["Movisda-admin_ZM-03"].parent == "Movisda-admin_ZM"
+    assert by_id["Movisda-admin_ZM-03"].name == "Eastern Province"
+
+
+def test_movisda_grid_parse_features() -> None:
+    """Test if Movisda grid extracts use the tile code as name (resolution encoded in the code)."""
+    geojson_data = {
+        "type": "FeatureCollection",
+        "features": [
+            # 1 degree tile.
+            {
+                "type": "Feature",
+                "properties": {"prefix": "N42W001-", "name": "N42W001 (1°)"},
+                "geometry": mapping(box(0, 0, 1, 1)),
+            },
+            # 10 degree tile: resolution encoded in the code via the `-10` suffix.
+            {
+                "type": "Feature",
+                "properties": {"prefix": "N80E000-10-", "name": "N80E000 (10°)"},
+                "geometry": mapping(box(2, 2, 3, 3)),
+            },
+        ],
+    }
+    extracts = _parse_movisda_features(
+        geojson_data,
+        MOVISDA_GRID_PBF_BASE_URL,
+        OsmExtractSource.movisda_grid.value,
+        build_hierarchy=False,
+    )
+    by_id = {extract.id: extract for extract in extracts}
+
+    assert by_id["Movisda-grid_N42W001"].name == "N42W001"
+    assert by_id["Movisda-grid_N42W001"].parent == "Movisda-grid"
+    assert (
+        by_id["Movisda-grid_N42W001"].url
+        == "https://osm.download.movisda.io/grid/N42W001-latest.osm.pbf"
+    )
+    assert by_id["Movisda-grid_N80E000-10"].name == "N80E000-10"
+    assert (
+        by_id["Movisda-grid_N80E000-10"].url
+        == "https://osm.download.movisda.io/grid/N80E000-10-latest.osm.pbf"
+    )
 
 
 def test_geo2day_find_subregion_links() -> None:
