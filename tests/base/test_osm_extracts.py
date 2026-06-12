@@ -2,6 +2,7 @@
 
 import datetime
 import tempfile
+import warnings
 from contextlib import nullcontext as does_not_raise
 from pathlib import Path
 from typing import Any
@@ -25,8 +26,10 @@ from quackosm._exceptions import (
     OldOsmCacheWarning,
     OsmExtractIndexOutdatedWarning,
     OsmExtractMultipleMatchesError,
+    OsmExtractMultipleMatchesWarning,
     OsmExtractsIndexesUnavailableError,
     OsmExtractSourceUnavailableWarning,
+    OsmExtractsUnavailableError,
     OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
@@ -37,6 +40,7 @@ from quackosm.osm_extracts import (
     _resolve_extract_sources,
     clear_osm_index_cache,
     display_available_extracts,
+    download_extract_by_query,
     download_extracts_pbf_files,
     find_and_download_extracts_pbf_files,
     find_smallest_containing_extracts,
@@ -1003,13 +1007,121 @@ def test_extracts_finding(
 ) -> None:
     """Test if extracts finding by name works."""
     with expectation as exception_info:
-        extract = get_extract_by_query(query, source)
+        # select_first_match=False so multiple matches still raise.
+        extract = get_extract_by_query(query, source, select_first_match=False)
         # if properly found - check id
         assert extract.id == matched_id
 
     # if threw exception - check resulting arrays
     if exception_info is not None:
         ut.assertListEqual(exception_info.value.matching_full_names, exception_values)
+
+
+def test_select_first_match(mocker: MockerFixture) -> None:
+    """Test if select_first_match picks the smallest-area match with a warning."""
+    import geopandas as gpd
+
+    index = gpd.GeoDataFrame(
+        {
+            "id": ["geo2day_x_vatican_city", "osmfr_x_vatican_city", "Geofabrik_enfield"],
+            "name": ["Vatican City", "Vatican City", "enfield"],
+            "file_name": ["geo2day_x_vatican_city", "osmfr_x_vatican_city", "geofabrik_enfield"],
+            "parent": ["a", "b", "c"],
+            "area": [0.5, 0.4, 82.0],
+            "url": ["u1", "u2", "u3"],
+        },
+        geometry=[box(0, 0, 1, 1)] * 3,
+        crs="EPSG:4326",
+    )
+    mocker.patch("quackosm.osm_extracts._get_index_for_sources", return_value=index)
+
+    # Default (True): selects the smallest-area match (osmfr, area 0.4) and warns.
+    with pytest.warns(OsmExtractMultipleMatchesWarning):
+        extract = get_extract_by_query("Vatican City")
+    assert extract.id == "osmfr_x_vatican_city"
+
+    # False: raises as before.
+    with pytest.raises(OsmExtractMultipleMatchesError):
+        get_extract_by_query("Vatican City", select_first_match=False)
+
+    # Single match: no warning regardless.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", OsmExtractMultipleMatchesWarning)
+        assert get_extract_by_query("enfield").id == "Geofabrik_enfield"
+
+
+def _two_vatican_city_index() -> "Any":
+    import geopandas as gpd
+
+    return gpd.GeoDataFrame(
+        {
+            "id": ["geo2day_vc", "osmfr_vc"],
+            "name": ["Vatican City", "Vatican City"],
+            "file_name": ["geo2day_vatican_city", "osmfr_vatican_city"],
+            "parent": ["a", "b"],
+            "area": [0.5, 0.4],
+            "url": ["http://x/geo2day.pbf", "http://x/osmfr.pbf"],
+        },
+        geometry=[box(0, 0, 1, 1)] * 2,
+        crs="EPSG:4326",
+    )
+
+
+def test_download_extract_by_query_redundancy(mocker: MockerFixture) -> None:
+    """Test if a failed download falls back to the next matching extract."""
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    index = _two_vatican_city_index()
+    mocker.patch("quackosm.osm_extracts._get_index_for_sources", return_value=index)
+
+    def fake_download(
+        extract: OpenStreetMapExtract, download_directory: Path, progressbar: bool = True
+    ) -> Path:
+        # The smallest-area match (osmfr, 0.4) is selected first and must fail.
+        if extract.id == "osmfr_vc":
+            raise RequestsConnectionError("offline")
+        return Path(download_directory) / f"{extract.file_name}.osm.pbf"
+
+    mocker.patch("quackosm.osm_extracts._download_single_extract", side_effect=fake_download)
+
+    with tempfile.TemporaryDirectory() as tmp_dir, pytest.warns(OsmExtractUnavailableWarning):
+        path = download_extract_by_query("Vatican City", download_directory=tmp_dir)
+    # Fell back to the second match.
+    assert path.name == "geo2day_vatican_city.osm.pbf"
+
+
+def test_download_extract_by_query_all_unavailable(mocker: MockerFixture) -> None:
+    """Test if exhausting all matches (all unavailable) raises an availability error."""
+    from requests.exceptions import ConnectionError as RequestsConnectionError
+
+    index = _two_vatican_city_index()
+    mocker.patch("quackosm.osm_extracts._get_index_for_sources", return_value=index)
+    mocker.patch(
+        "quackosm.osm_extracts._download_single_extract",
+        side_effect=RequestsConnectionError("offline"),
+    )
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # All matches fail to download -> availability error (not a zero-match query).
+        with (
+            pytest.warns(OsmExtractUnavailableWarning),
+            pytest.raises(OsmExtractsUnavailableError) as exc_info,
+        ):
+            download_extract_by_query("Vatican City", download_directory=tmp_dir)
+    assert set(exc_info.value.matching_full_names) == {
+        "geo2day_vatican_city",
+        "osmfr_vatican_city",
+    }
+
+
+def test_download_extract_by_query_zero_match(mocker: MockerFixture) -> None:
+    """Test if a genuinely unmatched query still raises a zero-match error (not availability)."""
+    index = _two_vatican_city_index()
+    mocker.patch("quackosm.osm_extracts._get_index_for_sources", return_value=index)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with pytest.raises(OsmExtractZeroMatchesError):
+            download_extract_by_query("totally_nonexistent_extract", download_directory=tmp_dir)
 
 
 @pytest.mark.parametrize(

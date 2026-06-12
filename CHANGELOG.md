@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CITATION.cff file with Zenodo DOI
 - New OpenStreetMap extract sources: [`GEO2Day`](https://geo2day.com/), [`Movisda-admin`](https://osm.download.movisda.io/select/admin/) and [`Movisda-grid`](https://osm.download.movisda.io/select/grid/)
 - `anyascii` to dependencies
+- BREAKING: Flag `select_first_match` parameter to `convert_osm_extract_to_*` functions and `--select-first-match/--no-select-first-match` CLI flag for querying OSM extracts by name with the default value being `True`
 
 ### Changed
 

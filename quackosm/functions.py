@@ -556,6 +556,7 @@ def convert_osm_extract_to_duckdb(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    select_first_match: bool = True,
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -608,6 +609,9 @@ def convert_osm_extract_to_duckdb(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        select_first_match (bool, optional): When multiple extracts match the query by name,
+            select the first one (sorted by area ascending, then id) with a warning instead of
+            raising an error. Defaults to `True`.
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -707,7 +711,10 @@ def convert_osm_extract_to_duckdb(
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
+        query=osm_extract_query,
+        source=osm_extract_source,
+        progressbar=verbosity_mode != "silent",
+        select_first_match=select_first_match,
     )
     result_path = PbfFileReader(
         tags_filter=tags_filter,
@@ -1251,6 +1258,7 @@ def convert_osm_extract_to_parquet(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    select_first_match: bool = True,
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -1303,6 +1311,9 @@ def convert_osm_extract_to_parquet(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        select_first_match (bool, optional): When multiple extracts match the query by name,
+            select the first one (sorted by area ascending, then id) with a warning instead of
+            raising an error. Defaults to `True`.
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -1403,7 +1414,10 @@ def convert_osm_extract_to_parquet(
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
+        query=osm_extract_query,
+        source=osm_extract_source,
+        progressbar=verbosity_mode != "silent",
+        select_first_match=select_first_match,
     )
     result_path = PbfFileReader(
         tags_filter=tags_filter,
@@ -1865,6 +1879,7 @@ def convert_osm_extract_to_geodataframe(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    select_first_match: bool = True,
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -1913,6 +1928,9 @@ def convert_osm_extract_to_geodataframe(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        select_first_match (bool, optional): When multiple extracts match the query by name,
+            select the first one (sorted by area ascending, then id) with a warning instead of
+            raising an error. Defaults to `True`.
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -2003,7 +2021,10 @@ def convert_osm_extract_to_geodataframe(
         [7906 rows x 2 columns]
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
+        query=osm_extract_query,
+        source=osm_extract_source,
+        progressbar=verbosity_mode != "silent",
+        select_first_match=select_first_match,
     )
     return PbfFileReader(
         tags_filter=tags_filter,

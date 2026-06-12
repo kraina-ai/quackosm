@@ -747,7 +747,10 @@ def test_proper_args_with_pbf_url() -> None:
     [monaco_pbf_file_path(), "--osm-way-polygon-config", "nonexistent_json_file.json"],
 )  # type: ignore
 @P.case("Silent and transient", [monaco_pbf_file_path(), "--silent", "--transient"])  # type: ignore
-@P.case("OSM extracts with multiple matches", ["--osm-extract-query", "Monaco"])  # type: ignore
+@P.case(
+    "OSM extracts with multiple matches",
+    ["--osm-extract-query", "Monaco", "--no-select-first-match"],
+)  # type: ignore
 @P.case("OSM extracts with zero matches - some close matches", ["--osm-extract-query", "Prlnd"])  # type: ignore
 @P.case(
     "OSM extracts with zero matches - without close matches",

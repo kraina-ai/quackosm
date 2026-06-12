@@ -30,8 +30,10 @@ from quackosm._exceptions import (
     GeometryNotCoveredError,
     GeometryNotCoveredWarning,
     OsmExtractMultipleMatchesError,
+    OsmExtractMultipleMatchesWarning,
     OsmExtractsIndexesUnavailableError,
     OsmExtractSourceUnavailableWarning,
+    OsmExtractsUnavailableError,
     OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
@@ -260,7 +262,30 @@ def get_extract_by_query(query: str) -> OpenStreetMapExtract: ...
 def get_extract_by_query(query: str, source: OsmExtractSourceLike) -> OpenStreetMapExtract: ...
 
 
-def get_extract_by_query(query: str, source: OsmExtractSourceLike = "any") -> OpenStreetMapExtract:
+@overload
+def get_extract_by_query(
+    query: str,
+    *,
+    select_first_match: bool = ...,
+    excluded_extracts_ids: Optional[set[str]] = ...,
+) -> OpenStreetMapExtract: ...
+
+
+@overload
+def get_extract_by_query(
+    query: str,
+    source: OsmExtractSourceLike,
+    select_first_match: bool = ...,
+    excluded_extracts_ids: Optional[set[str]] = ...,
+) -> OpenStreetMapExtract: ...
+
+
+def get_extract_by_query(
+    query: str,
+    source: OsmExtractSourceLike = "any",
+    select_first_match: bool = True,
+    excluded_extracts_ids: Optional[set[str]] = None,
+) -> OpenStreetMapExtract:
     """
     Find an OSM extract by name.
 
@@ -269,12 +294,21 @@ def get_extract_by_query(query: str, source: OsmExtractSourceLike = "any") -> Op
         source (OsmExtractSourceLike): OSM source name. Can be one of: 'any', 'Geofabrik',
             'BBBike', 'OSM_fr', or an iterable / comma-separated string of those
             (e.g. ['BBBike', 'OSM_fr'] or 'bbbike,osmfr'). Defaults to 'any'.
+        select_first_match (bool): When multiple extracts match the query by name, select the
+            first one (sorted by area ascending, then id) and emit a warning instead of raising
+            an error. Set to `False` to raise `OsmExtractMultipleMatchesError` instead.
+            Defaults to `True`.
+        excluded_extracts_ids (Optional[set[str]]): Set of extract ids to exclude from the search.
+            Useful for skipping extracts that are unavailable for download. Defaults to `None`.
 
     Returns:
         OpenStreetMapExtract: Found extract.
     """
     try:
         index = _get_index_for_sources(source)
+
+        if excluded_extracts_ids:
+            index = index[~index["id"].isin(excluded_extracts_ids)]
 
         matching_index_row: pd.Series = None
 
@@ -299,10 +333,22 @@ def get_extract_by_query(query: str, source: OsmExtractSourceLike = "any") -> Op
             matching_full_names = sorted(matching_rows["file_name"])
             full_names = ", ".join(f'"{full_name}"' for full_name in matching_full_names)
 
-            raise OsmExtractMultipleMatchesError(
-                f'Multiple extracts matched by query "{query.strip()}".\n'
-                f"Matching extracts full names: {full_names}.",
-                matching_full_names=matching_full_names,
+            if not select_first_match:
+                raise OsmExtractMultipleMatchesError(
+                    f'Multiple extracts matched by query "{query.strip()}".\n'
+                    f"Matching extracts full names: {full_names}.",
+                    matching_full_names=matching_full_names,
+                )
+
+            matching_index_row = matching_rows.sort_values(by=["area", "id"]).iloc[0]
+            warnings.warn(
+                f'Multiple extracts matched by query "{query.strip()}"'
+                f" (matching full names: {full_names})."
+                f' Selected "{matching_index_row["file_name"]}".'
+                " Use the full name as a query or set `select_first_match=False`"
+                " to control this behaviour.",
+                OsmExtractMultipleMatchesWarning,
+                stacklevel=0,
             )
         # zero names matched
         elif not extract_name_matched_rows.any():
@@ -347,7 +393,11 @@ def get_extract_by_query(query: str, source: OsmExtractSourceLike = "any") -> Op
 
 @overload
 def download_extract_by_query(
-    query: str, *, download_directory: Union[str, Path] = "files", progressbar: bool = True
+    query: str,
+    *,
+    download_directory: Union[str, Path] = "files",
+    progressbar: bool = True,
+    select_first_match: bool = True,
 ) -> Path: ...
 
 
@@ -358,6 +408,7 @@ def download_extract_by_query(
     *,
     download_directory: Union[str, Path] = "files",
     progressbar: bool = True,
+    select_first_match: bool = True,
 ) -> Path: ...
 
 
@@ -366,6 +417,7 @@ def download_extract_by_query(
     source: OsmExtractSourceLike = "any",
     download_directory: Union[str, Path] = "files",
     progressbar: bool = True,
+    select_first_match: bool = True,
 ) -> Path:
     """
     Download an OSM extract by name.
@@ -378,12 +430,56 @@ def download_extract_by_query(
         download_directory (Union[str, Path], optional): Directory where the file should be
             downloaded. Defaults to "files".
         progressbar (bool, optional): Show progress bar. Defaults to True.
+        select_first_match (bool, optional): When multiple extracts match the query by name,
+            select the first one (sorted by area ascending, then id) with a warning instead of
+            raising an error. Defaults to `True`.
 
     Returns:
         Path: Path to the downloaded OSM extract.
     """
-    matching_extract = get_extract_by_query(query, source)
-    return download_extracts_pbf_files([matching_extract], Path(download_directory), progressbar)[0]
+    download_directory = Path(download_directory)
+    excluded_extracts_ids: set[str] = set()
+    unavailable_file_names: list[str] = []
+
+    while True:
+        try:
+            matching_extract = get_extract_by_query(
+                query,
+                source,
+                select_first_match=select_first_match,
+                excluded_extracts_ids=excluded_extracts_ids,
+            )
+        except OsmExtractZeroMatchesError:
+            # If nothing has been excluded yet, the query genuinely matched no extract.
+            if not unavailable_file_names:
+                raise
+            # Otherwise every matching extract was excluded because it failed to download -
+            # that's an availability problem, not a zero-match query.
+            raise OsmExtractsUnavailableError(
+                f'All extracts matching query "{query.strip()}" are unavailable for download'
+                f" ({', '.join(unavailable_file_names)})."
+                " Check your internet connection or try a different source.",
+                matching_full_names=sorted(unavailable_file_names),
+            ) from None
+
+        downloaded, unavailable = _download_extracts_pbf_files(
+            [matching_extract],
+            download_directory,
+            progressbar=progressbar,
+            ignore_unavailable=True,
+        )
+
+        if not unavailable:
+            return downloaded[0][1]
+
+        warnings.warn(
+            f'Matched extract "{matching_extract.file_name}" is unavailable.'
+            " Excluding it and trying the next matching extract.",
+            OsmExtractUnavailableWarning,
+            stacklevel=0,
+        )
+        excluded_extracts_ids.add(matching_extract.id)
+        unavailable_file_names.append(matching_extract.file_name)
 
 
 def find_and_download_extracts_pbf_files(
