@@ -529,6 +529,17 @@ def main(
             is_eager=True,
         ),
     ] = None,
+    select_first_match: Annotated[
+        bool,
+        typer.Option(
+            "--select-first-match/--no-select-first-match",
+            help=(
+                "When the OSM extract query matches multiple extracts by name, select the first"
+                " one (sorted by area ascending, then id) with a warning instead of raising an"
+                " error."
+            ),
+        ),
+    ] = True,
     explode_tags: Annotated[
         Optional[bool],
         typer.Option(
@@ -916,6 +927,7 @@ def main(
             result_path = convert_osm_extract_to_parquet(
                 osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
+                select_first_match=select_first_match,
                 tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
                 keep_all_tags=keep_all_tags,
                 geometry_filter=geometry_filter_value,
@@ -954,6 +966,7 @@ def main(
             result_path = convert_osm_extract_to_duckdb(
                 osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
+                select_first_match=select_first_match,
                 tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
                 keep_all_tags=keep_all_tags,
                 geometry_filter=geometry_filter_value,

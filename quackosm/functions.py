@@ -550,6 +550,7 @@ def convert_geometry_to_duckdb(
 def convert_osm_extract_to_duckdb(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
+    select_first_match: bool = True,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -583,6 +584,9 @@ def convert_osm_extract_to_duckdb(
             downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
             iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
             'bbbike,osmfr'). Defaults to `any`.
+        select_first_match (bool, optional): When multiple extracts match the query by name,
+            select the first one (sorted by area ascending, then id) with a warning instead of
+            raising an error. Defaults to `True`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -707,7 +711,10 @@ def convert_osm_extract_to_duckdb(
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
+        query=osm_extract_query,
+        source=osm_extract_source,
+        progressbar=verbosity_mode != "silent",
+        select_first_match=select_first_match,
     )
     result_path = PbfFileReader(
         tags_filter=tags_filter,
@@ -1245,6 +1252,7 @@ def convert_geometry_to_parquet(
 def convert_osm_extract_to_parquet(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
+    select_first_match: bool = True,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     result_file_path: Optional[Union[str, Path]] = None,
@@ -1278,6 +1286,9 @@ def convert_osm_extract_to_parquet(
             downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
             iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
             'bbbike,osmfr'). Defaults to `any`.
+        select_first_match (bool, optional): When multiple extracts match the query by name,
+            select the first one (sorted by area ascending, then id) with a warning instead of
+            raising an error. Defaults to `True`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -1403,7 +1414,10 @@ def convert_osm_extract_to_parquet(
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
+        query=osm_extract_query,
+        source=osm_extract_source,
+        progressbar=verbosity_mode != "silent",
+        select_first_match=select_first_match,
     )
     result_path = PbfFileReader(
         tags_filter=tags_filter,
@@ -1860,6 +1874,7 @@ def convert_geometry_to_geodataframe(
 def convert_osm_extract_to_geodataframe(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
+    select_first_match: bool = True,
     tags_filter: Optional[Union[OsmTagsFilter, GroupedOsmTagsFilter]] = None,
     geometry_filter: Optional[BaseGeometry] = None,
     keep_all_tags: bool = False,
@@ -1891,6 +1906,9 @@ def convert_osm_extract_to_geodataframe(
             downloading of OSM extracts. Can be Geofabrik, BBBike, OSMfr or any, or an
             iterable / comma-separated string of those (e.g. ['BBBike', 'OSM_fr'] or
             'bbbike,osmfr'). Defaults to `any`.
+        select_first_match (bool, optional): When multiple extracts match the query by name,
+            select the first one (sorted by area ascending, then id) with a warning instead of
+            raising an error. Defaults to `True`.
         tags_filter (Union[OsmTagsFilter, GroupedOsmTagsFilter], optional): A dictionary
             specifying which tags to download.
             The keys should be OSM tags (e.g. `building`, `amenity`).
@@ -2003,7 +2021,10 @@ def convert_osm_extract_to_geodataframe(
         [7906 rows x 2 columns]
     """
     downloaded_osm_extract = download_extract_by_query(
-        query=osm_extract_query, source=osm_extract_source, progressbar=verbosity_mode != "silent"
+        query=osm_extract_query,
+        source=osm_extract_source,
+        progressbar=verbosity_mode != "silent",
+        select_first_match=select_first_match,
     )
     return PbfFileReader(
         tags_filter=tags_filter,

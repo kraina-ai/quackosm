@@ -12,7 +12,7 @@ import geopandas as gpd
 import pandas as pd
 import requests
 
-from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
+from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS, WGS84_CRS
 from quackosm.osm_extracts.extract import OsmExtractSource, load_index_decorator
 
 GEOFABRIK_INDEX_URL = "https://download.geofabrik.de/index-v1.json"
@@ -57,7 +57,7 @@ def _parse_geofabrik_index(parsed_data: dict[str, Any]) -> gpd.GeoDataFrame:
     Returns:
         gpd.GeoDataFrame: Extracts index with metadata.
     """
-    gdf = gpd.GeoDataFrame.from_features(parsed_data["features"])
+    gdf = gpd.GeoDataFrame.from_features(parsed_data["features"], crs=WGS84_CRS)
 
     geofabrik_enum_value = OsmExtractSource.geofabrik.value
 
