@@ -33,6 +33,7 @@ from quackosm._exceptions import (
     OsmExtractMultipleMatchesWarning,
     OsmExtractsIndexesUnavailableError,
     OsmExtractSourceUnavailableWarning,
+    OsmExtractsUnavailableError,
     OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
@@ -438,14 +439,28 @@ def download_extract_by_query(
     """
     download_directory = Path(download_directory)
     excluded_extracts_ids: set[str] = set()
+    unavailable_file_names: list[str] = []
 
     while True:
-        matching_extract = get_extract_by_query(
-            query,
-            source,
-            select_first_match=select_first_match,
-            excluded_extracts_ids=excluded_extracts_ids,
-        )
+        try:
+            matching_extract = get_extract_by_query(
+                query,
+                source,
+                select_first_match=select_first_match,
+                excluded_extracts_ids=excluded_extracts_ids,
+            )
+        except OsmExtractZeroMatchesError:
+            # If nothing has been excluded yet, the query genuinely matched no extract.
+            if not unavailable_file_names:
+                raise
+            # Otherwise every matching extract was excluded because it failed to download -
+            # that's an availability problem, not a zero-match query.
+            raise OsmExtractsUnavailableError(
+                f'All extracts matching query "{query.strip()}" are unavailable for download'
+                f" ({', '.join(unavailable_file_names)})."
+                " Check your internet connection or try a different source.",
+                matching_full_names=sorted(unavailable_file_names),
+            ) from None
 
         downloaded, unavailable = _download_extracts_pbf_files(
             [matching_extract],
@@ -464,6 +479,7 @@ def download_extract_by_query(
             stacklevel=0,
         )
         excluded_extracts_ids.add(matching_extract.id)
+        unavailable_file_names.append(matching_extract.file_name)
 
 
 def find_and_download_extracts_pbf_files(

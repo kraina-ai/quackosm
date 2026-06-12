@@ -29,6 +29,7 @@ from quackosm._exceptions import (
     OsmExtractMultipleMatchesWarning,
     OsmExtractsIndexesUnavailableError,
     OsmExtractSourceUnavailableWarning,
+    OsmExtractsUnavailableError,
     OsmExtractUnavailableWarning,
     OsmExtractZeroMatchesError,
 )
@@ -1090,7 +1091,7 @@ def test_download_extract_by_query_redundancy(mocker: MockerFixture) -> None:
 
 
 def test_download_extract_by_query_all_unavailable(mocker: MockerFixture) -> None:
-    """Test if exhausting all matches (all unavailable) raises after exclusions."""
+    """Test if exhausting all matches (all unavailable) raises an availability error."""
     from requests.exceptions import ConnectionError as RequestsConnectionError
 
     index = _two_vatican_city_index()
@@ -1101,8 +1102,26 @@ def test_download_extract_by_query_all_unavailable(mocker: MockerFixture) -> Non
     )
 
     with tempfile.TemporaryDirectory() as tmp_dir:
-        with pytest.warns(OsmExtractUnavailableWarning), pytest.raises(OsmExtractZeroMatchesError):
+        # All matches fail to download -> availability error (not a zero-match query).
+        with (
+            pytest.warns(OsmExtractUnavailableWarning),
+            pytest.raises(OsmExtractsUnavailableError) as exc_info,
+        ):
             download_extract_by_query("Vatican City", download_directory=tmp_dir)
+    assert set(exc_info.value.matching_full_names) == {
+        "geo2day_vatican_city",
+        "osmfr_vatican_city",
+    }
+
+
+def test_download_extract_by_query_zero_match(mocker: MockerFixture) -> None:
+    """Test if a genuinely unmatched query still raises a zero-match error (not availability)."""
+    index = _two_vatican_city_index()
+    mocker.patch("quackosm.osm_extracts._get_index_for_sources", return_value=index)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        with pytest.raises(OsmExtractZeroMatchesError):
+            download_extract_by_query("totally_nonexistent_extract", download_directory=tmp_dir)
 
 
 @pytest.mark.parametrize(
