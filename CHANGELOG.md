@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-06-15
+
 ### Added
 
 - Internal testing of resources usage for filtered and intersected scenarios
@@ -608,7 +610,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.17.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.18.0...HEAD
+
+[0.18.0]: https://github.com/kraina-ai/quackosm/compare/0.17.1...0.18.0
 
 [0.17.1]: https://github.com/kraina-ai/quackosm/compare/0.17.0...0.17.1
 
