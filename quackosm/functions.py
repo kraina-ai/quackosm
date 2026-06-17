@@ -50,6 +50,7 @@ def convert_pbf_to_duckdb(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -98,6 +99,10 @@ def convert_pbf_to_duckdb(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -302,6 +307,7 @@ def convert_pbf_to_duckdb(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -317,6 +323,7 @@ def convert_geometry_to_duckdb(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -371,6 +378,10 @@ def convert_geometry_to_duckdb(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -540,6 +551,7 @@ def convert_geometry_to_duckdb(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -556,6 +568,7 @@ def convert_osm_extract_to_duckdb(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     select_first_match: bool = True,
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
@@ -609,6 +622,10 @@ def convert_osm_extract_to_duckdb(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         select_first_match (bool, optional): When multiple extracts match the query by name,
             select the first one (sorted by area ascending, then id) with a warning instead of
             raising an error. Defaults to `True`.
@@ -738,6 +755,7 @@ def convert_osm_extract_to_duckdb(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         duckdb_table_name=duckdb_table_name,
@@ -753,6 +771,7 @@ def convert_pbf_to_parquet(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -801,6 +820,10 @@ def convert_pbf_to_parquet(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -1005,6 +1028,7 @@ def convert_pbf_to_parquet(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -1020,6 +1044,7 @@ def convert_geometry_to_parquet(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -1074,6 +1099,10 @@ def convert_geometry_to_parquet(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -1242,6 +1271,7 @@ def convert_geometry_to_parquet(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -1258,6 +1288,7 @@ def convert_osm_extract_to_parquet(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     select_first_match: bool = True,
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
@@ -1311,6 +1342,10 @@ def convert_osm_extract_to_parquet(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         select_first_match (bool, optional): When multiple extracts match the query by name,
             select the first one (sorted by area ascending, then id) with a warning instead of
             raising an error. Defaults to `True`.
@@ -1441,6 +1476,7 @@ def convert_osm_extract_to_parquet(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
         save_as_wkt=save_as_wkt,
@@ -1456,6 +1492,7 @@ def convert_pbf_to_geodataframe(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -1503,6 +1540,10 @@ def convert_pbf_to_geodataframe(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -1680,6 +1721,7 @@ def convert_pbf_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
@@ -1692,6 +1734,7 @@ def convert_geometry_to_geodataframe(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
     row_group_size: int = PARQUET_ROW_GROUP_SIZE,
@@ -1742,6 +1785,10 @@ def convert_geometry_to_geodataframe(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         compression (str, optional): Compression of the final parquet file.
             Check https://duckdb.org/docs/sql/statements/copy#parquet-options for more info.
             Remember to change compression level together with this parameter.
@@ -1866,6 +1913,7 @@ def convert_geometry_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )
@@ -1879,6 +1927,7 @@ def convert_osm_extract_to_geodataframe(
     keep_all_tags: bool = False,
     explode_tags: Optional[bool] = None,
     sort_result: bool = True,
+    sort_algorithm: Literal["str", "hilbert"] = "str",
     select_first_match: bool = True,
     compression: str = PARQUET_COMPRESSION,
     compression_level: int = PARQUET_COMPRESSION_LEVEL,
@@ -1928,6 +1977,10 @@ def convert_osm_extract_to_geodataframe(
             be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
         sort_result (bool, optional): Whether to sort the result by geometry or not.
             Defaults to True.
+        sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+            the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+            "hilbert" orders geometries along a Hilbert space-filling curve.
+            Defaults to "str".
         select_first_match (bool, optional): When multiple extracts match the query by name,
             select the first one (sorted by area ascending, then id) with a warning instead of
             raising an error. Defaults to `True`.
@@ -2047,6 +2100,7 @@ def convert_osm_extract_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
         sort_result=sort_result,
+        sort_algorithm=sort_algorithm,
         ignore_cache=ignore_cache,
         filter_osm_ids=filter_osm_ids,
     )

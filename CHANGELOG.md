@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `sort_algorithm` parameter (`"str"` by default, or `"hilbert"`) to all `convert_*` functions and `PbfFileReader` methods, plus a `--sort-algorithm` CLI flag, for choosing the geometry sorting algorithm
 - Internal testing of resources usage for filtered and intersected scenarios
 - Explicit `click` to the dependencies, since `typer` removed it from its own dependencies
 - CITATION.cff file with Zenodo DOI
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- BREAKING: Default geometry sorting algorithm is now `"str"` (Sort-Tile-Recursive) instead of the Hilbert curve
 - Refactored whole PbfFileReader prefiltering implementation to reduce memory and disk usage
   - Changed raw OSM tags manipulation query to reduce DuckDB operations
   - Created dedicated paths for reading all features from the PBF file vs intersecting and/or filtering

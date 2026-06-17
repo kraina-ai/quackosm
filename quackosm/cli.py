@@ -684,6 +684,17 @@ def main(
             show_default=True,
         ),
     ] = True,
+    sort_algorithm: Annotated[
+        str,
+        typer.Option(
+            "--sort-algorithm",
+            help=(
+                "Algorithm used to sort the final geoparquet file by geometry."
+                " Supported options: str (Sort-Tile-Recursive) and hilbert (Hilbert curve)."
+            ),
+            show_default=True,
+        ),
+    ] = "str",
     ignore_metadata_tags: Annotated[
         bool,
         typer.Option(
@@ -789,6 +800,13 @@ def main(
         )
     parquet_version = cast('Literal["v1", "v2"]', parquet_version)
 
+    if sort_algorithm not in ("str", "hilbert"):
+        raise typer.BadParameter(
+            f"Provided incompatible sort_algorithm ({sort_algorithm})."
+            " Valid options: str and hilbert."
+        )
+    sort_algorithm = cast('Literal["str", "hilbert"]', sort_algorithm)
+
     osm_extract_source = osm_extract_source or [OsmExtractSource.any]
 
     number_of_geometries_provided = sum(
@@ -886,6 +904,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             cpu_limit=cpu_limit,
@@ -915,6 +934,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
             duckdb_table_name=duckdb_table_name or "quackosm",
             verbosity_mode=verbosity_mode,
             cpu_limit=cpu_limit,
@@ -948,6 +968,7 @@ def main(
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
+                sort_algorithm=sort_algorithm,
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
                 cpu_limit=cpu_limit,
@@ -987,6 +1008,7 @@ def main(
                 filter_osm_ids=filter_osm_ids,  # type: ignore
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
+                sort_algorithm=sort_algorithm,
                 duckdb_table_name=duckdb_table_name or "quackosm",
                 verbosity_mode=verbosity_mode,
                 cpu_limit=cpu_limit,
@@ -1022,6 +1044,7 @@ def main(
             filter_osm_ids=filter_osm_ids,  # type: ignore
             custom_sql_filter=custom_sql_filter,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
@@ -1054,6 +1077,7 @@ def main(
             custom_sql_filter=custom_sql_filter,
             duckdb_table_name=duckdb_table_name or "quackosm",
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
