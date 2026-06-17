@@ -345,6 +345,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
         save_as_wkt: bool = False,
@@ -369,6 +370,10 @@ class PbfFileReader:
                 be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
             sort_result (bool, optional): Whether to sort the result by geometry or not.
                 Defaults to True.
+            sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+                the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+                "hilbert" orders geometries along a Hilbert space-filling curve.
+                Defaults to "str".
             ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -430,6 +435,7 @@ class PbfFileReader:
                 keep_all_tags=keep_all_tags,
                 explode_tags=explode_tags,
                 sort_result=sort_result,
+                sort_algorithm=sort_algorithm,
                 ignore_cache=ignore_cache,
                 filter_osm_ids=filter_osm_ids,
                 save_as_wkt=save_as_wkt,
@@ -478,6 +484,7 @@ class PbfFileReader:
                     keep_all_tags=keep_all_tags,
                     explode_tags=explode_tags,
                     sort_result=False,
+                    sort_algorithm=sort_algorithm,
                     ignore_cache=ignore_cache,
                     filter_osm_ids=filter_osm_ids,
                     save_as_wkt=save_as_wkt,
@@ -522,6 +529,7 @@ class PbfFileReader:
                         save_as_wkt=save_as_wkt,
                         tmp_dir_path=tmp_dir_path,
                         sort_result=sort_result,
+                        sort_algorithm=sort_algorithm,
                         explode_tags=explode_tags,
                     )
             else:
@@ -558,6 +566,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
         save_as_wkt: bool = False,
@@ -612,6 +621,7 @@ class PbfFileReader:
                     ignore_cache=ignore_cache,
                     save_as_wkt=save_as_wkt,
                     sort_result=sort_result,
+                    sort_algorithm=sort_algorithm,
                 )
 
                 self.geometry_filter = original_geometry_filter
@@ -628,6 +638,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
         save_as_wkt: bool = False,
@@ -652,6 +663,10 @@ class PbfFileReader:
                 be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
             sort_result (bool, optional): Whether to sort the result by geometry or not.
                 Defaults to True.
+            sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+                the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+                "hilbert" orders geometries along a Hilbert space-filling curve.
+                Defaults to "str".
             ignore_cache (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -723,6 +738,7 @@ class PbfFileReader:
             filter_osm_ids=filter_osm_ids,
             save_as_wkt=save_as_wkt,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
             pbf_extract_geometry=[
                 matching_extract.geometry for matching_extract, _ in matching_extracts_with_paths
             ],
@@ -735,6 +751,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
     ) -> gpd.GeoDataFrame:
@@ -757,6 +774,10 @@ class PbfFileReader:
                 be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
             sort_result (bool, optional): Whether to sort the result by geometry or not.
                 Defaults to True.
+            sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+                the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+                "hilbert" orders geometries along a Hilbert space-filling curve.
+                Defaults to "str".
             ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -776,6 +797,7 @@ class PbfFileReader:
             ignore_cache=ignore_cache,
             filter_osm_ids=filter_osm_ids,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
         )
         joined_parquet_table = io.read_geoparquet_table(parsed_geoparquet_file)
         gdf_parquet = gpd.GeoDataFrame(
@@ -790,6 +812,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
     ) -> gpd.GeoDataFrame:
@@ -810,6 +833,10 @@ class PbfFileReader:
                 be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
             sort_result (bool, optional): Whether to sort the result by geometry or not.
                 Defaults to True.
+            sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+                the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+                "hilbert" orders geometries along a Hilbert space-filling curve.
+                Defaults to "str".
             ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -825,6 +852,7 @@ class PbfFileReader:
             ignore_cache=ignore_cache,
             filter_osm_ids=filter_osm_ids,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
         )
         joined_parquet_table = io.read_geoparquet_table(parsed_geoparquet_file)
         gdf_parquet = gpd.GeoDataFrame(
@@ -841,6 +869,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
         duckdb_table_name: Optional[str] = "quackosm",
@@ -867,6 +896,10 @@ class PbfFileReader:
                 be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
             sort_result (bool, optional): Whether to sort the result by geometry or not.
                 Defaults to True.
+            sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+                the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+                "hilbert" orders geometries along a Hilbert space-filling curve.
+                Defaults to "str".
             ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -888,6 +921,7 @@ class PbfFileReader:
             ignore_cache=ignore_cache,
             filter_osm_ids=filter_osm_ids,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
         )
 
         if filter_osm_ids is None:
@@ -930,6 +964,7 @@ class PbfFileReader:
         keep_all_tags: bool = False,
         explode_tags: Optional[bool] = None,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
         ignore_cache: bool = False,
         filter_osm_ids: Optional[list[str]] = None,
         duckdb_table_name: str = "quackosm",
@@ -954,6 +989,10 @@ class PbfFileReader:
                 be set to `True`. Otherwise it will be set to `False`. Defaults to `None`.
             sort_result (bool, optional): Whether to sort the result by geometry or not.
                 Defaults to True.
+            sort_algorithm (Literal["str", "hilbert"], optional): Algorithm used to sort
+                the result by geometry. "str" uses Sort-Tile-Recursive packing (default),
+                "hilbert" orders geometries along a Hilbert space-filling curve.
+                Defaults to "str".
             ignore_cache: (bool, optional): Whether to ignore precalculated geoparquet files or not.
                 Defaults to False.
             filter_osm_ids: (list[str], optional): List of OSM features ids to read from the file.
@@ -971,6 +1010,7 @@ class PbfFileReader:
             ignore_cache=ignore_cache,
             filter_osm_ids=filter_osm_ids,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
         )
 
         if filter_osm_ids is None:
@@ -1115,6 +1155,7 @@ class PbfFileReader:
         ignore_cache: bool = False,
         save_as_wkt: bool = False,
         sort_result: bool = True,
+        sort_algorithm: Literal["str", "hilbert"] = "str",
     ) -> Path:
         if _is_url_path(pbf_path):
             logger = get_pooch_logger()
@@ -1245,6 +1286,7 @@ class PbfFileReader:
             explode_tags=explode_tags,
             save_as_wkt=save_as_wkt,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
         )
 
         return result_file_path
@@ -3609,6 +3651,7 @@ class PbfFileReader:
         explode_tags: bool,
         save_as_wkt: bool,
         sort_result: bool,
+        sort_algorithm: Literal["str", "hilbert"],
     ) -> None:
         select_clauses = [
             FEATURES_INDEX,
@@ -3649,6 +3692,7 @@ class PbfFileReader:
             result_file_path=save_file_path,
             save_as_wkt=save_as_wkt,
             sort_result=sort_result,
+            sort_algorithm=sort_algorithm,
             explode_tags=explode_tags,
         )
 
@@ -3907,6 +3951,7 @@ class PbfFileReader:
         result_file_path: Path,
         save_as_wkt: bool,
         sort_result: bool,
+        sort_algorithm: Literal["str", "hilbert"],
         explode_tags: bool,
     ) -> None:
         features_table = self.connection.read_parquet(str(input_file / "*.parquet"))
@@ -3980,6 +4025,7 @@ class PbfFileReader:
                         explode_tags=explode_tags,
                         save_as_wkt=save_as_wkt,
                         output_file_path=result_file_path,
+                        sort_algorithm=sort_algorithm,
                         sort_extent=(
                             self.geometry_filter.bounds
                             if self.geometry_filter is not None
@@ -4015,6 +4061,7 @@ class PbfFileReader:
         save_as_wkt: bool,
         tmp_dir_path: Path,
         sort_result: bool,
+        sort_algorithm: Literal["str", "hilbert"],
         explode_tags: bool,
     ) -> None:
         with self.task_progress_tracker.get_basic_spinner("Combining results"):
@@ -4038,6 +4085,7 @@ class PbfFileReader:
                     explode_tags=explode_tags,
                     save_as_wkt=save_as_wkt,
                     output_file_path=result_file_path,
+                    sort_algorithm=sort_algorithm,
                     sort_extent=(
                         self.geometry_filter.bounds if self.geometry_filter is not None else None
                     ),
@@ -4317,6 +4365,7 @@ def _sort_geoparquet_file_by_geometry(
     explode_tags: bool,
     save_as_wkt: bool,
     output_file_path: Optional[Path],
+    sort_algorithm: Literal["str", "hilbert"],
     sort_extent: Optional[tuple[float, float, float, float]],
     compression: str,
     compression_level: int,
@@ -4367,6 +4416,7 @@ def _sort_geoparquet_file_by_geometry(
             compression_level=3,
             row_group_size=row_group_size,
             working_directory=working_directory,
+            sort_algorithm=sort_algorithm,
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
@@ -4397,6 +4447,7 @@ def _sort_geoparquet_file_by_geometry(
             row_group_size=row_group_size,
             parquet_version=parquet_version,
             working_directory=working_directory,
+            sort_algorithm=sort_algorithm,
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
