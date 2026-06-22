@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-06-17
+
 ### Added
 
 - `sort_algorithm` parameter (`"str"` by default, or `"hilbert"`) to all `convert_*` functions and `PbfFileReader` methods, plus a `--sort-algorithm` CLI flag, for choosing the geometry sorting algorithm
@@ -610,7 +612,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.17.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.18.0...HEAD
+
+[0.18.0]: https://github.com/kraina-ai/quackosm/compare/0.17.1...0.18.0
 
 [0.17.1]: https://github.com/kraina-ai/quackosm/compare/0.17.0...0.17.1
 
