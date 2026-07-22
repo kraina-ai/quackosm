@@ -350,6 +350,87 @@ def test_combining_files_different_techniques(
         raise ValueError("Wrong operation_mode value.")
 
 
+def test_ways_grouping_retry_another_grouping_method_removes_stale_files(
+    mocker: MockerFixture,
+) -> None:
+    """Test if retrying with another grouping method removes stale tmp files before the retry."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    original_save_parquet_file = PbfFileReader._save_parquet_file
+    state: dict[str, Any] = {"crashed": False, "stale_path": None}
+
+    def flaky_save_parquet_file(
+        self: PbfFileReader, relation: Any, file_path: Path, *args: Any, **kwargs: Any
+    ) -> Any:
+        if file_path.name == "ids_with_points" and not state["crashed"]:
+            state["crashed"] = True
+            file_path.mkdir(parents=True, exist_ok=True)
+            state["stale_path"] = file_path / "data_0.parquet"
+            state["stale_path"].write_bytes(b"not actually a parquet file")
+            raise MemoryError()
+        return original_save_parquet_file(self, relation, file_path, *args, **kwargs)
+
+    mocker.patch.object(PbfFileReader, "_save_parquet_file", flaky_save_parquet_file)
+
+    result_gdf = convert_pbf_to_geodataframe(pbf_path=monaco_file_path, ignore_cache=True)
+
+    assert state["crashed"], "The injected MemoryError never fired - test setup is stale."
+    assert not (
+        state["stale_path"].exists()
+        and state["stale_path"].read_bytes() == b"not actually a parquet file"
+    ), "Stale file from the crashed attempt leaked into the retry."
+    assert result_gdf.index.is_unique
+
+
+def test_ways_grouping_retry_lower_rows_per_group_removes_stale_files(
+    mocker: MockerFixture,
+) -> None:
+    """Test if retrying with a lower rows-per-group value removes stale files before the retry."""
+    monaco_file_path = Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"
+    # Force a memory tier above the minimum, otherwise the except block hits
+    # `else: raise` instead of retrying, regardless of the runner's actual RAM.
+    mocker.patch(
+        "quackosm.pbf_file_reader.psutil.virtual_memory",
+        return_value=mocker.Mock(total=64 * 1024**3, percent=10.0),
+    )
+    original_construct_ways_linestrings = PbfFileReader._construct_ways_linestrings
+    state: dict[str, Any] = {"crashed": False, "stale_path": None}
+
+    def flaky_construct_ways_linestrings(
+        self: PbfFileReader,
+        bar: Any,
+        groups: int,
+        destination_dir_path: Path,
+        grouped_ways_path: Path,
+    ) -> Any:
+        if not state["crashed"]:
+            state["crashed"] = True
+            group_dir = destination_dir_path / "group=0"
+            group_dir.mkdir(parents=True, exist_ok=True)
+            state["stale_path"] = group_dir / "data_0.parquet"
+            state["stale_path"].write_bytes(b"not actually a parquet file")
+            raise MemoryError()
+        return original_construct_ways_linestrings(
+            self,
+            bar=bar,
+            groups=groups,
+            destination_dir_path=destination_dir_path,
+            grouped_ways_path=grouped_ways_path,
+        )
+
+    mocker.patch.object(
+        PbfFileReader, "_construct_ways_linestrings", flaky_construct_ways_linestrings
+    )
+
+    result_gdf = convert_pbf_to_geodataframe(pbf_path=monaco_file_path, ignore_cache=True)
+
+    assert state["crashed"]
+    assert not (
+        state["stale_path"].exists()
+        and state["stale_path"].read_bytes() == b"not actually a parquet file"
+    )
+    assert result_gdf.index.is_unique
+
+
 def test_schema_unification_real_example() -> None:
     """
     Test if function returns results with unified schema without errors.
