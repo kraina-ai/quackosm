@@ -2974,6 +2974,9 @@ class PbfFileReader:
                 if not grouped_ways:
                     self.encountered_query_exception = True
                 self.task_progress_tracker.major_step_number -= reset_steps
+                self._delete_directories(
+                    [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
+                )
                 if not lower_number_of_rows:
                     if not self.verbosity_mode == "silent":
                         log_message(
@@ -2981,9 +2984,6 @@ class PbfFileReader:
                             " Retrying with another grouping method."
                         )
                 elif self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
-                    self._delete_directories(
-                        [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
-                    )
                     smaller_rows_per_group = 0
                     for rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.values():
                         if rows_per_group < self.internal_rows_per_group:
