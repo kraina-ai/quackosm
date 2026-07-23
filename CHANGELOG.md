@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Added directories cleaning after every error in ways grouping operation
+
 ## [0.18.0] - 2026-06-17
 
 ### Added
