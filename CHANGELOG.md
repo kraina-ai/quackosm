@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-07-23
+
 ### Fixed
 
 - Added directories cleaning after every error in ways grouping operation
@@ -616,7 +618,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.18.0...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.18.1...HEAD
+
+[0.18.1]: https://github.com/kraina-ai/quackosm/compare/0.18.0...0.18.1
 
 [0.18.0]: https://github.com/kraina-ai/quackosm/compare/0.17.1...0.18.0
 
