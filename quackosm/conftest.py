@@ -8,13 +8,8 @@ from pathlib import Path
 import duckdb
 import pandas
 import pytest
+from osmfinder.finder import _get_index_for_sources
 from pooch import HTTPDownloader, retrieve
-from pooch import get_logger as get_pooch_logger
-
-from quackosm._constants import OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS
-from quackosm.osm_extracts.extract import OsmExtractSource
-from quackosm.osm_extracts.geofabrik import _get_geofabrik_index
-from quackosm.osm_extracts.movisda import _get_movisda_admin_index
 
 IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
 
@@ -37,39 +32,14 @@ EXTRACTS_NAMES = ["monaco", "kiribati", "maldives"]
 
 
 @pytest.fixture(autouse=True, scope="session")
-def download_osm_extracts_indexes():  # type: ignore
-    """Download OSM extract indexes files to cache."""
-    download_directory = Path("cache")
-    download_directory.mkdir(parents=True, exist_ok=True)
-
-    logger = get_pooch_logger()
-    logger.setLevel("WARNING")
-
-    for osm_extract in OsmExtractSource:
-        if osm_extract == OsmExtractSource.any:
-            continue
-
-        file_name = f"{osm_extract.value.lower()}_index.parquet"
-        file_download_url = LFS_DIRECTORY_URL + file_name
-
-        retrieve(
-            file_download_url,
-            fname=file_name,
-            path=download_directory,
-            progressbar=False,
-            known_hash=None,
-            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
-        )
-
-
-@pytest.fixture(autouse=True, scope="session")
 def add_pbf_files(doctest_namespace, download_osm_extracts_indexes):  # type: ignore
     """Download PBF files used in doctests."""
     download_directory = Path("files")
     download_directory.mkdir(parents=True, exist_ok=True)
 
-    geofabrik_index = _get_geofabrik_index()
-    movisda_admin_index = _get_movisda_admin_index()
+    geofabrik_index = _get_index_for_sources("geofabrik").to_geodataframe()
+    movisda_admin_index = _get_index_for_sources("movisda_admin").to_geodataframe()
+
     for extract_name in EXTRACTS_NAMES:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
         pbf_file_path = download_directory / f"{extract_name}.osm.pbf"
@@ -79,7 +49,7 @@ def add_pbf_files(doctest_namespace, download_osm_extracts_indexes):  # type: ig
             path=download_directory,
             progressbar=False,
             known_hash=None,
-            downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
+            downloader=HTTPDownloader(timeout=30),
         )
         doctest_namespace[f"{extract_name}_pbf_path"] = pbf_file_path
 

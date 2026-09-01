@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Optional, Union, cast
 
 import click
 import typer
+from osmfinder import OsmExtractSource
 from rq_geo_toolkit._geopandas_api_version import GEOPANDAS_NEW_API
 
 from quackosm._constants import (
@@ -16,7 +17,6 @@ from quackosm._constants import (
     PARQUET_VERSION,
 )
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
-from quackosm.osm_extracts.extract import OsmExtractSource
 from quackosm.pbf_file_reader import _is_url_path
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ def _version_callback(value: bool) -> None:
 
 def _display_osm_extracts_callback(ctx: typer.Context, value: bool) -> None:
     if value:
-        from quackosm.osm_extracts import display_available_extracts
+        from osmfinder import display_available_extracts
 
         param_values = {p.name: p.default for p in ctx.command.params}
         param_values.update(ctx.params)

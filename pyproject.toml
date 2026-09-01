@@ -20,6 +20,7 @@ dependencies = [
     "numpy>=1.26.0",
     "rq_geo_toolkit>=2026.6.0",
     "anyascii>=0.3.3",
+    "osmfinder @ git+https://github.com/RaczeQ/osmfinder.git@add-features-for-quackosm-integration",
 ]
 requires-python = ">=3.10"
 readme = "README.md"

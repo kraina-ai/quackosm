@@ -6,6 +6,7 @@ from typing import Optional
 
 import pytest
 from click.exceptions import MissingParameter
+from osmfinder import OsmExtractSource
 from packaging import version
 from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
@@ -13,7 +14,6 @@ from typer import __version__ as typer_version
 from typer.testing import CliRunner
 
 from quackosm import __app_name__, __version__, cli
-from quackosm.osm_extracts.extract import OsmExtractSource
 from tests.base.conftest import geometry_boundary_file_path, geometry_geojson, geometry_wkt
 
 runner = CliRunner()
