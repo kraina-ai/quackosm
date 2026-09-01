@@ -6,8 +6,10 @@ from shapely import to_geojson, to_wkt
 from shapely.geometry import Polygon, box
 
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
+from quackosm.conftest import download_osm_extracts_indexes
 
 __all__ = [
+    "download_osm_extracts_indexes",
     "geometry_box",
     "geometry_wkt",
     "geometry_geojson",

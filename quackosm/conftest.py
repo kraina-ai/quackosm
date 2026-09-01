@@ -8,8 +8,11 @@ from pathlib import Path
 import duckdb
 import pandas
 import pytest
+from osmfinder import OsmExtractSource
+from osmfinder.extract import _download_precalculated_index_from_github, _get_global_cache_file_path
 from osmfinder.finder import _get_index_for_sources
 from pooch import HTTPDownloader, retrieve
+from pooch import get_logger as get_pooch_logger
 
 IGNORE_RESULT = doctest.register_optionflag("IGNORE_RESULT")
 
@@ -29,6 +32,23 @@ doctest.OutputChecker = CustomOutputChecker  # type: ignore
 LFS_DIRECTORY_URL = "https://github.com/kraina-ai/srai-test-files/raw/main/files/"
 
 EXTRACTS_NAMES = ["monaco", "kiribati", "maldives"]
+
+
+@pytest.fixture(autouse=True, scope="session")
+def download_osm_extracts_indexes():  # type: ignore
+    """Download OSM extract indexes files to cache."""
+    logger = get_pooch_logger()
+    logger.setLevel("WARNING")
+
+    for osm_extract_source in OsmExtractSource:
+        if osm_extract_source == OsmExtractSource.any:
+            continue
+
+        osmfinder_global_cache_path = _get_global_cache_file_path(osm_extract_source)
+        osmfinder_global_cache_path.unlink(missing_ok=True)
+        assert _download_precalculated_index_from_github(
+            osmfinder_global_cache_path, use_test_indexes=True
+        )
 
 
 @pytest.fixture(autouse=True, scope="session")
