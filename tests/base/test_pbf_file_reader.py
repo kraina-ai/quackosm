@@ -16,6 +16,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+from osmfinder import OsmExtractSource
 from parametrization import Parametrization as P
 from pooch import retrieve
 from pytest_mock import MockerFixture
@@ -54,7 +55,6 @@ from quackosm.cli import (
     H3GeometryParser,
     S2GeometryParser,
 )
-from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
 from tests.base.conftest import GEOFABRIK_LAYERS, HEX2VEC_FILTER, geometry_box
 

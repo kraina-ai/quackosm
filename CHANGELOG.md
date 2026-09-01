@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Refactored `osm_extracts` module into a separate library [`osmfinder`](https://github.com/RaczeQ/osmfinder) and added it to dependencies
+
 ## [0.18.1] - 2026-07-23
 
 ### Fixed

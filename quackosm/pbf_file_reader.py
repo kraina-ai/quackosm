@@ -30,6 +30,13 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import shapely.wkt as wktlib
 from geoarrow.pyarrow import io
+from osmfinder import (
+    OsmExtractSource,
+    OsmExtractSourceLike,
+)
+from osmfinder import (
+    download as osmfinder_find_and_download_extracts,
+)
 from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
 from pooch.utils import parse_url
@@ -52,7 +59,6 @@ from quackosm._constants import (
     FEATURES_INDEX,
     GEOMETRY_COLUMN,
     METADATA_TAGS_TO_IGNORE,
-    OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS,
     PARQUET_COMPRESSION,
     PARQUET_COMPRESSION_LEVEL,
     PARQUET_ROW_GROUP_SIZE,
@@ -83,11 +89,6 @@ from quackosm._rich_progress import (
     log_message,
 )
 from quackosm._typing import is_expected_type
-from quackosm.osm_extracts import (
-    OsmExtractSource,
-    OsmExtractSourceLike,
-    find_and_download_extracts_pbf_files,
-)
 
 __all__ = [
     "PbfFileReader",
@@ -720,17 +721,22 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
-        matching_extracts_with_paths = find_and_download_extracts_pbf_files(
-            self.geometry_filter,
-            self.osm_extract_source,
-            self.working_directory,
+        matching_extracts_with_paths = osmfinder_find_and_download_extracts(
+            query=self.geometry_filter,
+            source=self.osm_extract_source,
+            download_directory=self.working_directory,
             geometry_coverage_iou_threshold=self.geometry_coverage_iou_threshold,
             allow_uncovered_geometry=self.allow_uncovered_geometry,
             progressbar=self.verbosity_mode != "silent",
         )
-        pbf_files = [pbf_file_path for _, pbf_file_path in matching_extracts_with_paths]
+
+        downloaded_extract_geometries = [
+            extract.geometry for extract in matching_extracts_with_paths.extracts
+        ]
+        downloaded_extract_paths = matching_extracts_with_paths.download_paths
+
         return self.convert_pbf_to_parquet(
-            pbf_files,
+            downloaded_extract_paths,
             result_file_path=result_file_path,
             keep_all_tags=keep_all_tags,
             explode_tags=explode_tags,
@@ -739,9 +745,7 @@ class PbfFileReader:
             save_as_wkt=save_as_wkt,
             sort_result=sort_result,
             sort_algorithm=sort_algorithm,
-            pbf_extract_geometry=[
-                matching_extract.geometry for matching_extract, _ in matching_extracts_with_paths
-            ],
+            pbf_extract_geometry=downloaded_extract_geometries,
         )
 
     @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")
@@ -1167,7 +1171,7 @@ class PbfFileReader:
                 path=self.working_directory,
                 progressbar=self.verbosity_mode != "silent" and not FORCE_TERMINAL,
                 known_hash=None,
-                downloader=HTTPDownloader(timeout=OSM_EXTRACTS_REQUEST_TIMEOUT_SECONDS),
+                downloader=HTTPDownloader(timeout=30),
             )
 
         if result_file_path.exists() and not ignore_cache:

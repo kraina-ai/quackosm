@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
 import geopandas as gpd
+from osmfinder import OsmExtractSource, OsmExtractSourceLike, download
 from rq_geo_toolkit.duckdb import DuckDBConnKwargs
 from shapely.geometry.base import BaseGeometry
 
@@ -22,11 +23,6 @@ from quackosm._deprecate import deprecate, deprecate_kwarg
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig
 from quackosm._rich_progress import VERBOSITY_MODE
-from quackosm.osm_extracts import (
-    OsmExtractSource,
-    OsmExtractSourceLike,
-    download_extract_by_query,
-)
 from quackosm.pbf_file_reader import PbfFileReader
 
 __all__ = [
@@ -727,12 +723,13 @@ def convert_osm_extract_to_duckdb(
         >>> ddb_path.as_posix()
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
     """
-    downloaded_osm_extract = download_extract_by_query(
+    downloaded_osm_extract = download(
         query=osm_extract_query,
         source=osm_extract_source,
+        download_directory=working_directory,
         progressbar=verbosity_mode != "silent",
         select_first_match=select_first_match,
-    )
+    ).download_paths[0]
     result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
@@ -1448,12 +1445,13 @@ def convert_osm_extract_to_parquet(
         >>> gpq_path.as_posix()
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
     """
-    downloaded_osm_extract = download_extract_by_query(
+    downloaded_osm_extract = download(
         query=osm_extract_query,
         source=osm_extract_source,
+        download_directory=working_directory,
         progressbar=verbosity_mode != "silent",
         select_first_match=select_first_match,
-    )
+    ).download_paths[0]
     result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
@@ -2073,12 +2071,13 @@ def convert_osm_extract_to_geodataframe(
         <BLANKLINE>
         [7906 rows x 2 columns]
     """
-    downloaded_osm_extract = download_extract_by_query(
+    downloaded_osm_extract = download(
         query=osm_extract_query,
         source=osm_extract_source,
+        download_directory=working_directory,
         progressbar=verbosity_mode != "silent",
         select_first_match=select_first_match,
-    )
+    ).download_paths[0]
     return PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
