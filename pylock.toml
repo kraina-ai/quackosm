@@ -20,7 +20,7 @@ marker = "\"default\" in dependency_groups"
 type = "git"
 url = "https://github.com/RaczeQ/osmfinder.git"
 requested-revision = "add-features-for-quackosm-integration"
-commit-id = "a8c4c87d7fbbdc8a5ec9163dec7b8dda9733719b"
+commit-id = "5866baee887149793806627a8ddb37f95130c955"
 
 [[packages]]
 name = "licensecheck"
