@@ -58,7 +58,7 @@ def add_pbf_files(doctest_namespace, download_osm_extracts_indexes):  # type: ig
     download_directory.mkdir(parents=True, exist_ok=True)
 
     geofabrik_index = _get_index_for_sources("geofabrik").to_geodataframe()
-    movisda_admin_index = _get_index_for_sources("movisda_admin").to_geodataframe()
+    movisda_admin_index = _get_index_for_sources("movisda-admin").to_geodataframe()
 
     for extract_name in EXTRACTS_NAMES:
         pbf_file_download_url = LFS_DIRECTORY_URL + f"{extract_name}-latest.osm.pbf"
