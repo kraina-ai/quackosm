@@ -4242,18 +4242,16 @@ def _set_up_duckdb_connection(
         preserve_insertion_order=preserve_insertion_order,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
     )
-
-    connection.sql(
+              .sql(
         """
-        CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS
-        ST_RemoveRepeatedPoints(
+        CREATE OR REPLACE MACRO linestring_to_linestring_geometry(ls) AS ST_RemoveRepeatedPoints(
+
             ls::struct(x DECIMAL(10, 7), y DECIMAL(10, 7))[]::LINESTRING_2D
         )::GEOMETRY;
         """
     )
     connection.sql(
-        """
-        CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
+        """CREATE OR REPLACE MACRO linestring_to_polygon_geometry(ls) AS
         ST_MakePolygon(linestring_to_linestring_geometry(ls));
         """
     )
