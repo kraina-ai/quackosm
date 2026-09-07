@@ -180,9 +180,9 @@ def _ensure_valid_geometries(index_gdf: "GeoDataFrame") -> "GeoDataFrame":
     """
     Fix topologically invalid geometries in an extracts index.
 
-    Some sources contain invalid geometries (self-intersections, nested shells).
-    These would raise ``GEOSException: TopologyException`` during the coverage
-    search (intersection / difference / union).
+    Some sources contain invalid geometries (self-intersections, nested shells). These would raise
+    ``GEOSException: TopologyException`` during the coverage search (intersection / difference /
+    union).
     """
     invalid_geometries_mask = ~index_gdf.geometry.is_valid
     if invalid_geometries_mask.any():

@@ -65,7 +65,7 @@ def _parse_geofabrik_index(parsed_data: dict[str, Any]) -> gpd.GeoDataFrame:
     gdf["name"] = gdf["id"].str.replace("/", "_")
     gdf["id"] = f"{geofabrik_enum_value}_" + gdf["id"].astype(str)
     gdf["parent"] = gdf["parent"].apply(
-        lambda x: (f"{geofabrik_enum_value}_{x}" if not pd.isna(x) else geofabrik_enum_value)
+        lambda x: f"{geofabrik_enum_value}_{x}" if not pd.isna(x) else geofabrik_enum_value
     )
 
     # fix US extracts parent tree
