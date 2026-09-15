@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped minimal `rq_geo_toolkit` version to `2026.9.0`, which fixes cgroup-aware memory detection (resolves [#319](https://github.com/kraina-ai/quackosm/issues/319))
+
+### Added
+
+- `memory_limit` parameter to `PbfFileReader` constructor and all `convert_*` functions and `--memory-limit` CLI flag, allowing manual override of memory limit when auto-detection is wrong (e.g. unusual container runtimes)
+
 ## [0.18.1] - 2026-07-23
 
 ### Fixed

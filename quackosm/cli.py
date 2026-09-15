@@ -767,6 +767,20 @@ def main(
             show_default=False,
         ),
     ] = None,
+    memory_limit: Annotated[
+        Optional[int],
+        typer.Option(
+            "--memory-limit",
+            help=(
+                "Manual override for the total memory limit in bytes."
+                " If automatic detection is wrong on your platform,"
+                " e.g. an unusual container runtime,"
+                " you can set this value to override the auto-detected limit."
+            ),
+            show_default=False,
+            min=1,
+        ),
+    ] = None,
     show_extracts: Annotated[
         Optional[bool],
         typer.Option(
@@ -908,6 +922,7 @@ def main(
             save_as_wkt=wkt_result,
             verbosity_mode=verbosity_mode,
             cpu_limit=cpu_limit,
+            memory_limit=memory_limit,
         )
     elif pbf_file_duckdb:
         from quackosm.functions import convert_pbf_to_duckdb
@@ -938,6 +953,7 @@ def main(
             duckdb_table_name=duckdb_table_name or "quackosm",
             verbosity_mode=verbosity_mode,
             cpu_limit=cpu_limit,
+            memory_limit=memory_limit,
         )
     elif osm_extract_parquet:
         from quackosm._exceptions import OsmExtractSearchError
@@ -972,6 +988,7 @@ def main(
                 save_as_wkt=wkt_result,
                 verbosity_mode=verbosity_mode,
                 cpu_limit=cpu_limit,
+                memory_limit=memory_limit,
             )
         except OsmExtractSearchError as ex:
             from rich.console import Console
@@ -1012,6 +1029,7 @@ def main(
                 duckdb_table_name=duckdb_table_name or "quackosm",
                 verbosity_mode=verbosity_mode,
                 cpu_limit=cpu_limit,
+                memory_limit=memory_limit,
             )
         except OsmExtractSearchError as ex:
             from rich.console import Console
@@ -1050,6 +1068,7 @@ def main(
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
             cpu_limit=cpu_limit,
+            memory_limit=memory_limit,
         )
     elif geometry_duckdb:
         from quackosm.functions import convert_geometry_to_duckdb
@@ -1083,6 +1102,7 @@ def main(
             geometry_coverage_iou_threshold=geometry_coverage_iou_threshold,
             allow_uncovered_geometry=allow_uncovered_geometry,
             cpu_limit=cpu_limit,
+            memory_limit=memory_limit,
         )
     else:
         raise RuntimeError("Unknown operation mode")

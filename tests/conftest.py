@@ -29,10 +29,8 @@ def pytest_runtest_setup(item: Item) -> None:
 def remove_monaco_db_file():  # type: ignore
     """Remove old DuckDB file with tests results."""
     file_to_find = Path("files/monaco_nofilter_noclip_compact_sorted.duckdb")
-    print(file_to_find, file_to_find.exists())
     if file_to_find.exists():
         file_to_find.unlink()
-    print(file_to_find, file_to_find.exists())
 
 
 copy_geocode_cache()

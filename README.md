@@ -617,6 +617,7 @@ monaco_osm.duckdb
 │ --allow-uncovered-geometry                                                                                Suppresses an error if some geometry parts aren't covered by any OSM extract. Works only when             │
 │                                                                                                           PbfFileReader is asked to download OSM extracts automatically.                                            │
 │ --cpu-limit                                                                 INTEGER                       Max number of threads available for processing. By default, will use all available threads.               │
+│ --memory-limit                                                                          INTEGER                       Manual override for the total memory limit in bytes. Useful if automatic detection is wrong on your platform. │
 │ --show-extracts,--show-osm-extracts                                                                       Show available OSM extracts and exit.                                                                     │
 │ --version                                   -v                                                            Show the application's version and exit.                                                                  │
 │ --install-completion                                                                                      Install completion for the current shell.                                                                 │
@@ -723,6 +724,28 @@ QuackOSM has been roughly tuned to different workloads. The `rows_per_group` var
 |  8 - 16 GB |      4 000 000 |
 | 16 - 32 GB |     16 000 000 |
 |    > 32 GB |     48 000 000 |
+
+#### Memory limit detection
+
+Memory limits are auto-detected from the container's cgroup limits when running in a container (Docker, Kubernetes, Databricks, etc.), falling back to host memory otherwise. This ensures correct behavior on containerized platforms where host-wide memory stats would otherwise lead to false-positive `MemoryError`s.
+
+#### Memory limit override
+
+If automatic detection is wrong on your platform (e.g. an unusual container runtime), you can manually override the memory limit:
+
+- **Python API**: Pass `memory_limit` (in bytes) to `PbfFileReader` or any `convert_*` function.
+- **CLI**: Use the `--memory-limit` flag.
+
+For example:
+
+```python
+from quackosm import PbfFileReader
+PbfFileReader(memory_limit=8 * 1024**3).convert_pbf_to_parquet(...)
+```
+
+```bash
+quackosm --memory-limit 8589934592 ...
+```
 
 ### Resources usage
 

@@ -305,6 +305,16 @@ def test_transient_mode(monaco_pbf_file_path_fixture: str) -> None:
 )  # type: ignore
 @P.case("WKT", ["--wkt-result"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
 @P.case("WKT short", ["--wkt"], "files/monaco_nofilter_noclip_compact_wkt.parquet")  # type: ignore
+@P.case(
+    "CPU limit",
+    ["--cpu-limit", "1", "--ignore-cache"],
+    "files/monaco_nofilter_noclip_compact_sorted.parquet",
+)  # type: ignore
+@P.case(
+    "Memory limit",
+    ["--memory-limit", "4000000", "--ignore-cache"],
+    "files/monaco_nofilter_noclip_compact_sorted.parquet",
+)  # type: ignore
 def test_proper_args_with_pbf(
     monaco_pbf_file_path_fixture: str, args: list[str], expected_result: str
 ) -> None:
