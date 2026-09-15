@@ -1444,3 +1444,39 @@ def _remove_interiors(geometry: Union[Polygon, MultiPolygon]) -> Polygon:
     if geometry.interiors:
         return Polygon(list(geometry.exterior.coords))
     return geometry
+
+
+def test_pbf_file_reader_run_query_uses_cgroup_aware_memory(
+    mocker: MockerFixture,
+) -> None:
+    """Test that _run_query_in_separate_process uses get_memory_status with override."""
+    mock_get_memory = mocker.patch(
+        "quackosm.pbf_file_reader.get_memory_status",
+        return_value=mocker.Mock(
+            total_bytes=4 * 1024**3,
+            used_bytes=1 * 1024**3,
+            available_bytes=3 * 1024**3,
+            percent_used=25.0,
+            source="psutil",
+        ),
+    )
+    mock_process = mocker.MagicMock()
+    mock_process.is_alive.side_effect = [True, False]
+    mock_process.exception = None
+    mock_process.exitcode = 0
+    mocker.patch(
+        "quackosm.pbf_file_reader.WorkerProcess",
+        return_value=mock_process,
+    )
+    mocker.patch("quackosm.pbf_file_reader.sleep")
+
+    reader = PbfFileReader(memory_limit=2 * 1024**3)
+    reader.tmp_dir_path = Path("/tmp")
+    reader.cpu_limit = 1
+    reader._run_query_in_separate_process(
+        sql_queries=["SELECT 1"],
+    )
+
+    mock_get_memory.assert_called()
+    for call in mock_get_memory.call_args_list:
+        assert call.kwargs.get("total_bytes_override") == 2 * 1024**3
