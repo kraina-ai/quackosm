@@ -67,6 +67,7 @@ def convert_pbf_to_duckdb(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> Path:
     """
     Convert PBF file to DuckDB file.
@@ -143,6 +144,12 @@ def convert_pbf_to_duckdb(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -301,6 +308,7 @@ def convert_pbf_to_duckdb(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_pbf_to_duckdb(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -342,6 +350,7 @@ def convert_geometry_to_duckdb(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a DuckDB file with OpenStreetMap features within given geometry.
@@ -430,6 +439,12 @@ def convert_geometry_to_duckdb(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -546,6 +561,7 @@ def convert_geometry_to_duckdb(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_geometry_to_duckdb(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -586,6 +602,7 @@ def convert_osm_extract_to_duckdb(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a single OpenStreetMap extract from a given source and transform it to a DuckDB file.
@@ -669,6 +686,12 @@ def convert_osm_extract_to_duckdb(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         Path: Path to the generated DuckDB file.
@@ -749,6 +772,7 @@ def convert_osm_extract_to_duckdb(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_pbf_to_duckdb(
         pbf_path=downloaded_osm_extract,
         result_file_path=result_file_path,
@@ -788,6 +812,7 @@ def convert_pbf_to_parquet(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> Path:
     """
     Convert PBF file to GeoParquet file.
@@ -866,6 +891,12 @@ def convert_pbf_to_parquet(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -1022,6 +1053,7 @@ def convert_pbf_to_parquet(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_pbf_to_parquet(
         pbf_path=pbf_path,
         result_file_path=result_file_path,
@@ -1063,6 +1095,7 @@ def convert_geometry_to_parquet(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a GeoParquet file with OpenStreetMap features within given geometry.
@@ -1153,6 +1186,12 @@ def convert_geometry_to_parquet(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -1266,6 +1305,7 @@ def convert_geometry_to_parquet(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_geometry_to_parquet(
         result_file_path=result_file_path,
         keep_all_tags=keep_all_tags,
@@ -1306,6 +1346,7 @@ def convert_osm_extract_to_parquet(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> Path:
     """
     Get a single OpenStreetMap extract from a given source and transform it to a GeoParquet file.
@@ -1391,6 +1432,12 @@ def convert_osm_extract_to_parquet(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         Path: Path to the generated GeoParquet file.
@@ -1470,6 +1517,7 @@ def convert_osm_extract_to_parquet(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_pbf_to_parquet(
         pbf_path=downloaded_osm_extract,
         result_file_path=result_file_path,
@@ -1508,6 +1556,7 @@ def convert_pbf_to_geodataframe(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame from a PBF file or list of PBF files.
@@ -1583,6 +1632,12 @@ def convert_pbf_to_geodataframe(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1716,6 +1771,7 @@ def convert_pbf_to_geodataframe(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_pbf_to_geodataframe(
         pbf_path=pbf_path,
         keep_all_tags=keep_all_tags,
@@ -1752,6 +1808,7 @@ def convert_geometry_to_geodataframe(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get features GeoDataFrame with OpenStreetMap features within given geometry.
@@ -1836,6 +1893,12 @@ def convert_geometry_to_geodataframe(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -1909,6 +1972,7 @@ def convert_geometry_to_geodataframe(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_geometry_to_geodataframe(
         keep_all_tags=keep_all_tags,
         explode_tags=explode_tags,
@@ -1944,6 +2008,7 @@ def convert_osm_extract_to_geodataframe(
     debug_times: bool = False,
     cpu_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+    memory_limit: Optional[int] = None,
 ) -> gpd.GeoDataFrame:
     """
     Get a single OpenStreetMap extract from a given source and return it as a GeoDataFrame.
@@ -2023,6 +2088,12 @@ def convert_osm_extract_to_geodataframe(
             If `None`, will use all available threads. Defaults to `None`.
         duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
             provision a duckdb connection. Defaults to None.
+        memory_limit (int, optional): Manual override for the total memory limit in bytes,
+            in addition to the auto-detected one. If set, the value will be used as the total
+            memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+            used calculation will still be read from the best available source. Useful if
+            automatic detection is wrong on your platform, e.g. an unusual container runtime.
+            Defaults to None.
 
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with OSM features.
@@ -2095,6 +2166,7 @@ def convert_osm_extract_to_geodataframe(
         debug_times=debug_times,
         cpu_limit=cpu_limit,
         duckdb_conn_kwargs=duckdb_conn_kwargs,
+        memory_limit=memory_limit,
     ).convert_pbf_to_geodataframe(
         pbf_path=downloaded_osm_extract,
         keep_all_tags=keep_all_tags,

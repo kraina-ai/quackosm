@@ -33,6 +33,7 @@ from geoarrow.pyarrow import io
 from pooch import HTTPDownloader, retrieve
 from pooch import get_logger as get_pooch_logger
 from pooch.utils import parse_url
+from rq_geo_toolkit._system_memory import get_memory_status
 from rq_geo_toolkit.duckdb import (
     DUCKDB_ABOVE_130,
     DuckDBConnKwargs,
@@ -181,6 +182,7 @@ class PbfFileReader:
         debug_times: bool = False,
         cpu_limit: Optional[int] = None,
         duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
+        memory_limit: Optional[int] = None,
     ) -> None:
         """
         Initialize PbfFileReader.
@@ -243,6 +245,12 @@ class PbfFileReader:
                 If `None`, will use all available threads. Defaults to `None`.
             duckdb_conn_kwargs (Optional[DuckDBConnKwargs], optional): Additional kwargs used to
                 provision a duckdb connection. Defaults to None.
+            memory_limit (int, optional): Manual override for the total memory limit in bytes,
+                in addition to the auto-detected one. If set, the value will be used as the total
+                memory limit instead of auto-detecting it from cgroup/psutil. The percentage
+                used calculation will still be read from the best available source. Useful if
+                automatic detection is wrong on your platform, e.g. an unusual container runtime.
+                Defaults to None.
 
         Raises:
             InvalidGeometryFilter: When provided geometry filter has parts without area.
@@ -287,6 +295,7 @@ class PbfFileReader:
         )
 
         self.duckdb_conn_kwargs = duckdb_conn_kwargs
+        self.memory_limit = memory_limit
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
@@ -1188,10 +1197,10 @@ class PbfFileReader:
 
         self.encountered_query_exception = False
         self.internal_rows_per_group = PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]
-        actual_memory = psutil.virtual_memory()
+        actual_memory = get_memory_status(total_bytes_override=self.memory_limit)
         # If more than 8 / 16 / 24 GB total memory, increase the number of rows per group
         for memory_gb, rows_per_group in PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG.items():
-            if actual_memory.total >= (memory_gb * MEMORY_1GB):
+            if actual_memory.total_bytes >= (memory_gb * MEMORY_1GB):
                 self.internal_rows_per_group = rows_per_group
             else:
                 break
@@ -2744,25 +2753,26 @@ class PbfFileReader:
         process.start()
 
         start_time = time.time()
-        actual_memory = psutil.virtual_memory()
+        actual_memory = get_memory_status(total_bytes_override=self.memory_limit)
         percentage_threshold = 95
-        if (actual_memory.total * 0.05) > MEMORY_1GB:
-            percentage_threshold = 100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+        if (actual_memory.total_bytes * 0.05) > MEMORY_1GB:
+            percentage_threshold = (
+                100 * (actual_memory.total_bytes - MEMORY_1GB) / actual_memory.total_bytes
+            )
 
         mixed_percentage_physical_threshold = 80
         mixed_percentage_swap_threshold = 90
 
         while process.is_alive():
-            actual_memory = psutil.virtual_memory()
+            actual_memory = get_memory_status(total_bytes_override=self.memory_limit)
             swap_memory = psutil.swap_memory()
-            current_time = time.time()
-            elapsed_seconds = current_time - start_time
+            elapsed_seconds = time.time() - start_time
 
-            if actual_memory.percent > percentage_threshold or (
+            if actual_memory.percent_used > percentage_threshold or (
                 # after 30 seconds of running the query, check if swap is highly utilized
                 # using swap with DuckDB slows query very much
                 elapsed_seconds > 30
-                and actual_memory.percent > mixed_percentage_physical_threshold
+                and actual_memory.percent_used > mixed_percentage_physical_threshold
                 and swap_memory.percent > mixed_percentage_swap_threshold
             ):
                 process.terminate()
@@ -4294,13 +4304,15 @@ def _run_in_multiprocessing_pool(
             func=function,
             args=args,
         )
-        actual_memory = psutil.virtual_memory()
+        actual_memory = get_memory_status()
         percentage_threshold = 95
-        if (actual_memory.total * 0.05) > MEMORY_1GB:
-            percentage_threshold = 100 * (actual_memory.total - MEMORY_1GB) / actual_memory.total
+        if (actual_memory.total_bytes * 0.05) > MEMORY_1GB:
+            percentage_threshold = (
+                100 * (actual_memory.total_bytes - MEMORY_1GB) / actual_memory.total_bytes
+            )
         while not r.ready():
-            actual_memory = psutil.virtual_memory()
-            if actual_memory.percent > percentage_threshold:
+            actual_memory = get_memory_status()
+            if actual_memory.percent_used > percentage_threshold:
                 raise MemoryError()
 
             sleep(0.5)

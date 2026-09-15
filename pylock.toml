@@ -677,11 +677,11 @@ dependencies = [
 
 [[packages]]
 name = "rq-geo-toolkit"
-version = "2026.6.0"
+version = "2026.9.0"
 requires-python = ">=3.10"
-sdist = {name = "rq_geo_toolkit-2026.6.0.tar.gz", url = "https://files.pythonhosted.org/packages/12/ca/de012fe377f745f245d0bc5ce015c0adfe86e1ad4bb5d7de09aa4ad3a73f/rq_geo_toolkit-2026.6.0.tar.gz", hashes = {sha256 = "1577b71321e6fd5c1bd4083436cc92ed89f548a33846002b292679045b8e1d8c"}}
+sdist = {name = "rq_geo_toolkit-2026.9.0.tar.gz", url = "https://files.pythonhosted.org/packages/98/9a/8665882f2e5f30f033a1acb231596796d092ba8f56879775e5b3795def43/rq_geo_toolkit-2026.9.0.tar.gz", hashes = {sha256 = "fc944061e979eba1b2619a1e9a8ad0a28dd67c1335cfade73ecff787355d4329"}}
 wheels = [
-    {name = "rq_geo_toolkit-2026.6.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/54/ee/44f5d8db53f15221d2e7ed991f1f2b9b3f23d639ab112dd40390a087ff7c/rq_geo_toolkit-2026.6.0-py3-none-any.whl",hashes = {sha256 = "85389462d220e217b7eed65c3dc363bc83d6bec718da4f8df92e872c638f4c70"}},
+    {name = "rq_geo_toolkit-2026.9.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/31/89/f63b9efe9d91929629c8172fef1b063af33d540b788168582b950ff09410/rq_geo_toolkit-2026.9.0-py3-none-any.whl",hashes = {sha256 = "8a208b4f13ac316db2da59f79ec3ce9ca837bb8f00aeed590ed431146a43f1b2"}},
 ]
 marker = "\"default\" in dependency_groups"
 
@@ -1247,11 +1247,11 @@ dependencies = [
 
 [[packages]]
 name = "mkdocs-material"
-version = "9.7.6"
+version = "9.7.7"
 requires-python = ">=3.8"
-sdist = {name = "mkdocs_material-9.7.6.tar.gz", url = "https://files.pythonhosted.org/packages/45/29/6d2bcf41ae40802c4beda2432396fff97b8456fb496371d1bc7aad6512ec/mkdocs_material-9.7.6.tar.gz", hashes = {sha256 = "00bdde50574f776d328b1862fe65daeaf581ec309bd150f7bff345a098c64a69"}}
+sdist = {name = "mkdocs_material-9.7.7.tar.gz", url = "https://files.pythonhosted.org/packages/f1/cd/c05d3a530ba7934f144fb45f7203cd236adc25c7bdcc34673d202f4b0278/mkdocs_material-9.7.7.tar.gz", hashes = {sha256 = "c0649c065b1b0512d60aad8c10f947f8e455284475239b364b610f2deb4d0855"}}
 wheels = [
-    {name = "mkdocs_material-9.7.6-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/2c/01/bc663630c510822c95c47a66af9fa7a443c295b47d5f041e5e6ae62ef659/mkdocs_material-9.7.6-py3-none-any.whl",hashes = {sha256 = "71b84353921b8ea1ba84fe11c50912cc512da8fe0881038fcc9a0761c0e635ba"}},
+    {name = "mkdocs_material-9.7.7-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/ad/21/17c1bc9e6f47c972ad66fb2ac2568f99f90f1207eeb6fc3b34d094dba7b5/mkdocs_material-9.7.7-py3-none-any.whl",hashes = {sha256 = "8ea9bb1737a5b524a5f9dcf2e1b4ebda8274ae3008aa7845720a97083bef708f"}},
 ]
 marker = "\"docs\" in dependency_groups"
 
@@ -1287,11 +1287,11 @@ dependencies = [
 
 [[packages]]
 name = "mkdocstrings"
-version = "1.0.4"
+version = "1.0.6"
 requires-python = ">=3.10"
-sdist = {name = "mkdocstrings-1.0.4.tar.gz", url = "https://files.pythonhosted.org/packages/1d/5d/f888d4d3eb31359b327bc9b17a212d6ef03fe0b0682fbb3fc2cb849fb12b/mkdocstrings-1.0.4.tar.gz", hashes = {sha256 = "3969a6515b77db65fd097b53c1b7aa4ae840bd71a2ee62a6a3e89503446d7172"}}
+sdist = {name = "mkdocstrings-1.0.6.tar.gz", url = "https://files.pythonhosted.org/packages/53/71/f85bdf13355073ae15a7375f09879375a830553552e58c1c4b7e0bbc5c8b/mkdocstrings-1.0.6.tar.gz", hashes = {sha256 = "a0b8c2bdd29a6416c80d717aa369bbf7831946bd9f23c2a66db1b1dbe7693dbd"}}
 wheels = [
-    {name = "mkdocstrings-1.0.4-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/6e/94/be70f8ee9c45f2f62b39a1f0e9303bc20e138a8f3b8e50ffd89498e177e1/mkdocstrings-1.0.4-py3-none-any.whl",hashes = {sha256 = "63464b4b29053514f32a1dbbf604e52876d5e638111b0c295ab7ed3cac73ca9b"}},
+    {name = "mkdocstrings-1.0.6-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/5d/5b/4c1902e8bdd5c4db63284e9d101dece4038d4025d6d88850ffe0a1578980/mkdocstrings-1.0.6-py3-none-any.whl",hashes = {sha256 = "2703708697487d1b6d6d7b412e176fa436edf120c1bf81dc9e126b12d00893c7"}},
 ]
 marker = "\"docs\" in dependency_groups"
 
@@ -4845,7 +4845,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "61654e7642121a48ec3d924e364051df1df9344d980a4d5601c8f5914b14987a"}
+hashes = {sha256 = "9ccee3f9d1323ce8998c3b122dc9ac811829b17d1aa8ad707ff259449c6b719a"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
