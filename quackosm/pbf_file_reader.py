@@ -296,6 +296,10 @@ class PbfFileReader:
 
         self.duckdb_conn_kwargs = duckdb_conn_kwargs
         self.memory_limit = memory_limit
+        if memory_limit is not None and memory_limit <= 0:
+            raise ValueError(
+                "memory_limit must be a positive integer (in bytes), or None for auto-detection."
+            )
 
         if osm_way_polygon_features_config is None:
             # Config based on two sources + manual OSM wiki check
@@ -1066,6 +1070,7 @@ class PbfFileReader:
                     pool,
                     _drop_duplicates_in_pyarrow_table,
                     (parsed_geoparquet_files, output_file_name),
+                    memory_limit=self.memory_limit,
                 )
 
             return [output_file_name]
@@ -4297,21 +4302,24 @@ def _run_query(
 
 
 def _run_in_multiprocessing_pool(
-    pool: "multiprocessing.pool.Pool", function: Callable[..., None], args: Any
+    pool: "multiprocessing.pool.Pool",
+    function: Callable[..., None],
+    args: Any,
+    memory_limit: Optional[int] = None,
 ) -> None:
     try:
         r = pool.apply_async(
             func=function,
             args=args,
         )
-        actual_memory = get_memory_status()
+        actual_memory = get_memory_status(total_bytes_override=memory_limit)
         percentage_threshold = 95
         if (actual_memory.total_bytes * 0.05) > MEMORY_1GB:
             percentage_threshold = (
                 100 * (actual_memory.total_bytes - MEMORY_1GB) / actual_memory.total_bytes
             )
         while not r.ready():
-            actual_memory = get_memory_status()
+            actual_memory = get_memory_status(total_bytes_override=memory_limit)
             if actual_memory.percent_used > percentage_threshold:
                 raise MemoryError()
 

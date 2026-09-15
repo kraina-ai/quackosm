@@ -1480,3 +1480,50 @@ def test_pbf_file_reader_run_query_uses_cgroup_aware_memory(
     mock_get_memory.assert_called()
     for call in mock_get_memory.call_args_list:
         assert call.kwargs.get("total_bytes_override") == 2 * 1024**3
+
+
+def test_pbf_file_reader_memory_limit_rejects_non_positive() -> None:
+    """Test that memory_limit <= 0 raises ValueError in PbfFileReader."""
+    with pytest.raises(ValueError, match="memory_limit"):
+        PbfFileReader(memory_limit=0)
+    with pytest.raises(ValueError, match="memory_limit"):
+        PbfFileReader(memory_limit=-1)
+    # Valid positive values and None should not raise
+    PbfFileReader(memory_limit=1)
+    PbfFileReader(memory_limit=None)
+
+
+def test_pbf_file_reader_drop_duplicates_uses_memory_limit(mocker: MockerFixture) -> None:
+    """Test that _drop_duplicated_features_in_pyarrow_table passes memory_limit through."""
+    reader = PbfFileReader(memory_limit=2 * 1024**3)
+    reader.tmp_dir_path = Path("/tmp")
+    reader._task_progress_tracker = mocker.MagicMock()
+
+    mock_run = mocker.patch(
+        "quackosm.pbf_file_reader._run_in_multiprocessing_pool",
+    )
+    mock_pool = mocker.MagicMock()
+    mock_pool.__enter__ = mocker.MagicMock(return_value=mock_pool)
+    mock_pool.__exit__ = mocker.MagicMock(return_value=False)
+    mocker.patch(
+        "quackosm.pbf_file_reader.multiprocessing.get_context",
+        return_value=mocker.MagicMock(Pool=mocker.MagicMock(return_value=mock_pool)),
+    )
+    spinner_mock = mocker.MagicMock(
+        __enter__=mocker.MagicMock(return_value=None),
+        __exit__=mocker.MagicMock(return_value=False),
+    )
+    mocker.patch.object(
+        reader._task_progress_tracker,
+        "get_basic_spinner",
+        return_value=spinner_mock,
+    )
+
+    reader._drop_duplicated_features_in_pyarrow_table(
+        parsed_geoparquet_files=[Path("/tmp/file1.parquet"), Path("/tmp/file2.parquet")],
+        tmp_dir_path=Path("/tmp"),
+    )
+
+    mock_run.assert_called_once()
+    call_kwargs = mock_run.call_args.kwargs
+    assert call_kwargs.get("memory_limit") == 2 * 1024**3

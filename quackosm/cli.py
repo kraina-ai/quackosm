@@ -778,6 +778,7 @@ def main(
                 " you can set this value to override the auto-detected limit."
             ),
             show_default=False,
+            min=1,
         ),
     ] = None,
     show_extracts: Annotated[
