@@ -739,6 +739,7 @@ If automatic detection is wrong on your platform (e.g. an unusual container runt
 For example:
 
 ```python
+from quackosm import PbfFileReader
 PbfFileReader(memory_limit=8 * 1024**3).convert_pbf_to_parquet(...)
 ```
 
