@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-09-18
+
 ### Changed
 
 - Bumped minimal `rq_geo_toolkit` version to `2026.9.0`, which fixes cgroup-aware memory detection (resolves [#319](https://github.com/kraina-ai/quackosm/issues/319))
@@ -626,7 +628,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.18.1...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.18.2...HEAD
+
+[0.18.2]: https://github.com/kraina-ai/quackosm/compare/0.18.1...0.18.2
 
 [0.18.1]: https://github.com/kraina-ai/quackosm/compare/0.18.0...0.18.1
 
