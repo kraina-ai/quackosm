@@ -722,11 +722,11 @@ dependencies = [
 
 [[packages]]
 name = "rq-geo-toolkit"
-version = "2026.6.0"
+version = "2026.9.0"
 requires-python = ">=3.10"
-sdist = {name = "rq_geo_toolkit-2026.6.0.tar.gz", url = "https://files.pythonhosted.org/packages/12/ca/de012fe377f745f245d0bc5ce015c0adfe86e1ad4bb5d7de09aa4ad3a73f/rq_geo_toolkit-2026.6.0.tar.gz", hashes = {sha256 = "1577b71321e6fd5c1bd4083436cc92ed89f548a33846002b292679045b8e1d8c"}}
+sdist = {name = "rq_geo_toolkit-2026.9.0.tar.gz", url = "https://files.pythonhosted.org/packages/98/9a/8665882f2e5f30f033a1acb231596796d092ba8f56879775e5b3795def43/rq_geo_toolkit-2026.9.0.tar.gz", hashes = {sha256 = "fc944061e979eba1b2619a1e9a8ad0a28dd67c1335cfade73ecff787355d4329"}}
 wheels = [
-    {name = "rq_geo_toolkit-2026.6.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/54/ee/44f5d8db53f15221d2e7ed991f1f2b9b3f23d639ab112dd40390a087ff7c/rq_geo_toolkit-2026.6.0-py3-none-any.whl",hashes = {sha256 = "85389462d220e217b7eed65c3dc363bc83d6bec718da4f8df92e872c638f4c70"}},
+    {name = "rq_geo_toolkit-2026.9.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/31/89/f63b9efe9d91929629c8172fef1b063af33d540b788168582b950ff09410/rq_geo_toolkit-2026.9.0-py3-none-any.whl",hashes = {sha256 = "8a208b4f13ac316db2da59f79ec3ce9ca837bb8f00aeed590ed431146a43f1b2"}},
 ]
 marker = "\"default\" in dependency_groups"
 

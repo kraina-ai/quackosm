@@ -1,6 +1,6 @@
 [project]
 name = "QuackOSM"
-version = "0.18.1"
+version = "0.18.2"
 description = "An open-source tool for reading OpenStreetMap PBF files using DuckDB"
 authors = [{ name = "Kamil Raczycki", email = "kraczycki@kraina.ai" }]
 dependencies = [
@@ -18,7 +18,7 @@ dependencies = [
     "rich>=12.0.0",
     "geopy>=2.0.0",
     "numpy>=1.26.0",
-    "rq_geo_toolkit>=2026.6.0",
+    "rq_geo_toolkit>=2026.9.0",
     "anyascii>=0.3.3",
     "osmfinder @ git+https://github.com/RaczeQ/osmfinder.git@add-features-for-quackosm-integration",
 ]
@@ -176,7 +176,7 @@ close-quotes-on-newline = true
 wrap-one-line = true
 
 [tool.bumpver]
-current_version = "0.18.1"
+current_version = "0.18.2"
 version_pattern = "MAJOR.MINOR.PATCH[PYTAGNUM]"
 commit_message = "chore(CI/CD): bump version {old_version} -> {new_version}"
 commit = true
