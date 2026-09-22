@@ -20,7 +20,7 @@ marker = "\"default\" in dependency_groups"
 type = "git"
 url = "https://github.com/RaczeQ/osmfinder.git"
 requested-revision = "add-features-for-quackosm-integration"
-commit-id = "5866baee887149793806627a8ddb37f95130c955"
+commit-id = "3fb2cab16e1b34586a4aa9c0ab354ffea691f146"
 
 [[packages]]
 name = "licensecheck"
@@ -5017,7 +5017,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "5fa93ad8fdc7b44534f0ed20d1e1ee12047b4bed3de24591f6e3bf9356d2ad35"}
+hashes = {sha256 = "5c7be709575341f89d4b1e74791c35131e4dec1ecb93c50de75ac76148bb3718"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
