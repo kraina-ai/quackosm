@@ -20,6 +20,7 @@ dependencies = [
     "numpy>=1.26.0",
     "rq_geo_toolkit>=2026.9.0",
     "anyascii>=0.3.3",
+    "osmfinder>=1.2.0",
 ]
 requires-python = ">=3.10"
 readme = "README.md"

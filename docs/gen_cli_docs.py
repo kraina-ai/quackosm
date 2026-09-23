@@ -9,8 +9,6 @@ from rich.console import Console
 from typer.rich_utils import (
     COLOR_SYSTEM,
     FORCE_TERMINAL,
-    STYLE_METAVAR,
-    STYLE_METAVAR_SEPARATOR,
     STYLE_NEGATIVE_OPTION,
     STYLE_NEGATIVE_SWITCH,
     STYLE_OPTION,
@@ -20,6 +18,21 @@ from typer.rich_utils import (
     highlighter,
     rich_format_help,
 )
+
+# typer >= 0.27 renamed STYLE_METAVAR -> STYLE_TYPES and
+# STYLE_METAVAR_SEPARATOR -> STYLE_TYPES_SEPARATOR (PR #1863).
+# Support both old and new typer versions.
+try:
+    from typer.rich_utils import STYLE_TYPES as STYLE_METAVAR
+    from typer.rich_utils import STYLE_TYPES_SEPARATOR as STYLE_METAVAR_SEPARATOR
+
+    _THEME_METAVAR_KEY = "types"
+    _THEME_METAVAR_SEPARATOR_KEY = "types_sep"
+except ImportError:  # typer < 0.27
+    from typer.rich_utils import STYLE_METAVAR, STYLE_METAVAR_SEPARATOR
+
+    _THEME_METAVAR_KEY = "metavar"
+    _THEME_METAVAR_SEPARATOR_KEY = "metavar_sep"
 
 from quackosm.cli import app
 
@@ -37,8 +50,8 @@ def _get_rich_console_new(stderr: bool = False) -> Console:
                 "switch": STYLE_SWITCH,
                 "negative_option": STYLE_NEGATIVE_OPTION,
                 "negative_switch": STYLE_NEGATIVE_SWITCH,
-                "metavar": STYLE_METAVAR,
-                "metavar_sep": STYLE_METAVAR_SEPARATOR,
+                _THEME_METAVAR_KEY: STYLE_METAVAR,
+                _THEME_METAVAR_SEPARATOR_KEY: STYLE_METAVAR_SEPARATOR,
                 "usage": STYLE_USAGE,
             },
         ),

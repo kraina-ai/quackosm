@@ -16,6 +16,8 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+from osmfinder import OsmExtractSource
+from osmfinder.exceptions import GeometryNotCoveredError, GeometryNotCoveredWarning
 from parametrization import Parametrization as P
 from pooch import retrieve
 from pytest_mock import MockerFixture
@@ -41,11 +43,7 @@ from quackosm import (
     functions,
 )
 from quackosm._constants import FEATURES_INDEX, GEOMETRY_COLUMN, METADATA_TAGS_TO_IGNORE
-from quackosm._exceptions import (
-    GeometryNotCoveredError,
-    GeometryNotCoveredWarning,
-    InvalidGeometryFilter,
-)
+from quackosm._exceptions import InvalidGeometryFilter
 from quackosm._osm_tags_filters import GroupedOsmTagsFilter, OsmTagsFilter
 from quackosm._rich_progress import VERBOSITY_MODE
 from quackosm.cli import (
@@ -54,7 +52,6 @@ from quackosm.cli import (
     H3GeometryParser,
     S2GeometryParser,
 )
-from quackosm.osm_extracts import OsmExtractSource
 from quackosm.pbf_file_reader import PbfFileReader
 from tests.base.conftest import GEOFABRIK_LAYERS, HEX2VEC_FILTER, geometry_box
 

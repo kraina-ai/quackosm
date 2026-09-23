@@ -5,6 +5,8 @@ QuackOSM is a Python library used for reading pbf (ProtoBuffer) files with OpenS
 DuckDB spatial extension without GDAL.
 """
 
+from osmfinder import display_available_extracts
+
 from quackosm.functions import (
     convert_geometry_to_duckdb,
     convert_geometry_to_geodataframe,
@@ -17,7 +19,6 @@ from quackosm.functions import (
     convert_pbf_to_parquet,
 )
 from quackosm.geocode import geocode_to_geometry
-from quackosm.osm_extracts import display_available_extracts
 from quackosm.pbf_file_reader import PbfFileReader
 
 __app_name__ = "QuackOSM"
