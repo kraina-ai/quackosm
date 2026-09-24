@@ -5031,7 +5031,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "8ef87c07c060c7b848795e3a9c46a395731edba2dc4a8925a1a9782e4b128630"}
+hashes = {sha256 = "44b89170fe0d58fe07434be711ba4599c5d8431190d2bfb38f32cd8b4e6f6cbc"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
