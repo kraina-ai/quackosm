@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-09-23
+
 ### Changed
 
 - Refactored `osm_extracts` module into a separate library [`osmfinder`](https://github.com/RaczeQ/osmfinder) and added it to dependencies
@@ -632,7 +634,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Created QuackOSM repository
 - Implemented PbfFileReader
 
-[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.18.2...HEAD
+[Unreleased]: https://github.com/kraina-ai/quackosm/compare/0.19.0...HEAD
+
+[0.19.0]: https://github.com/kraina-ai/quackosm/compare/0.18.2...0.19.0
 
 [0.18.2]: https://github.com/kraina-ai/quackosm/compare/0.18.1...0.18.2
 

@@ -175,6 +175,19 @@ dependencies = [
 ]
 
 [[packages]]
+name = "setuptools"
+version = "80.9.0"
+requires-python = ">=3.9"
+sdist = {name = "setuptools-80.9.0.tar.gz", url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hashes = {sha256 = "f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c"}}
+wheels = [
+    {name = "setuptools-80.9.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl",hashes = {sha256 = "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922"}},
+]
+marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
 name = "anyascii"
 version = "0.3.3"
 requires-python = ">=3.3"
@@ -817,19 +830,6 @@ dependencies = [
 ]
 
 [[packages]]
-name = "setuptools"
-version = "80.9.0"
-requires-python = ">=3.9"
-sdist = {name = "setuptools-80.9.0.tar.gz", url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hashes = {sha256 = "f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c"}}
-wheels = [
-    {name = "setuptools-80.9.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl",hashes = {sha256 = "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922"}},
-]
-marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
 name = "tox-pdm"
 version = "0.7.2"
 requires-python = ">=3.7"
@@ -867,6 +867,7 @@ version = "1.3.0"
 sdist = {name = "adjusttext-1.3.0.tar.gz", url = "https://files.pythonhosted.org/packages/4c/d4/6585f3b6fdb75648bca294664af4becc8aa2fb3fb08f4e4e9fd27e10d773/adjusttext-1.3.0.tar.gz", hashes = {sha256 = "4ab75cd4453af4828876ac3e964f2c49be642ea834f0c1f7449558d5f12cbca1"}}
 wheels = [
     {name = "adjustText-1.3.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/53/1c/8feedd607cc14c5df9aef74fe3af9a99bf660743b842a9b5b1865326b4aa/adjustText-1.3.0-py3-none-any.whl",hashes = {sha256 = "da23d7b24b6db5ffa039bb136bfa556207365e32f48ac74b07ad26dd485bc691"}},
+    {name = "adjusttext-1.3.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/2d/80/7ad35ee5321a86b842f9e8516c8ae4c86f58db7b40e82ce9759f94517a50/adjusttext-1.3.0-py3-none-any.whl",hashes = {sha256 = "bc6c118cd9d7caf6ae37f9355e51d840a2d7f64b4fb2956b8401de27c5af803b"}},
 ]
 marker = "\"docs\" in dependency_groups"
 
@@ -5031,7 +5032,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "8ef87c07c060c7b848795e3a9c46a395731edba2dc4a8925a1a9782e4b128630"}
+hashes = {sha256 = "37cedab266ab04533efb5175678064ce0fbdf618bb16b6dd94f4273da6dfcf25"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]

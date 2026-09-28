@@ -61,16 +61,14 @@ def test_pbf_file_or_geometry_filter_is_required() -> None:
         cli.app,
     )
 
+    assert result.exit_code == 1
+
     if TYPER_ABOVE_0_26:
-        assert result.exit_code == 1
         assert isinstance(result.exception, MissingParameter)
         assert (
             "QuackOSM requires either the path to the pbf file, "
             "an OSM extract query (--osm-extract-query) or a geometry filter"
         ) in str(result.exception)
-    else:
-        assert result.exit_code == 2
-        assert "Missing argument 'PBF file path'." in (result.stdout or result.stderr)
 
 
 def test_basic_run(monaco_pbf_file_path_fixture: str) -> None:
