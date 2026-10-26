@@ -39,7 +39,7 @@ def display_resources() -> None:
     """Show available resources."""
     print(
         "CPU count (duckdb):",
-        duckdb.sql("SELECT current_setting('threads') AS threads").fetchone()[0],
+        duckdb.sql("SELECT current_setting('threads') AS threads").limit(1).fetchall()[0][0],
     )
     print("CPU count (multiprocessing):", multiprocessing.cpu_count())
     print("CPU count (psutil):", psutil.cpu_count())
@@ -47,13 +47,13 @@ def display_resources() -> None:
 
     print(
         "Memory (duckdb):",
-        duckdb.sql("SELECT current_setting('memory_limit') AS memlimit").fetchone()[0],
+        duckdb.sql("SELECT current_setting('memory_limit') AS memlimit").limit(1).fetchall()[0][0],
     )
     print("Memory (psutil):", bytes2human(psutil.virtual_memory().total))
     print("Memory (psutil, all):", psutil.virtual_memory())
 
     with suppress(Exception):
-        print("CPU affinity (os):", os.sched_getaffinity(0))
+        print("CPU affinity (os):", os.sched_getaffinity(0))  # type: ignore[attr-defined]
         print("CPU affinity (psutil):", psutil.Process().cpu_affinity())
         print("Memory limit (cgroup):", bytes2human(int(open("/sys/fs/cgroup/memory.max").read())))
 

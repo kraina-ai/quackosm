@@ -207,13 +207,19 @@ class H3GeometryParser(click.ParamType):  # type: ignore
         geometries = []  # noqa: FURB138
         for h3_index in value.split(","):
             stripped_h3_index = h3_index.strip()
-            if not duckdb.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')").fetchone()[0]:
+            if (
+                not duckdb.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')")
+                .limit(1)
+                .fetchall()[0][0]
+            ):
                 raise typer.BadParameter(
                     f"Cannot parse provided H3 value: {stripped_h3_index}"
                 ) from None
 
             parsed_geometry = from_wkt(
-                duckdb.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')").fetchone()[0]
+                duckdb.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')")
+                .limit(1)
+                .fetchall()[0][0]
             )
 
             geometries.append(parsed_geometry)

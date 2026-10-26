@@ -783,7 +783,9 @@ def check_if_relation_in_osm_is_valid_based_on_tags(pbf_file: str, relation_id: 
             "WHERE kind = 'relation' AND len(refs) > 0 AND list_contains(map_keys(tags), 'type') "
             "AND list_has_any(map_extract(tags, 'type'), ['boundary', 'multipolygon']) "
             f"AND id = {relation_id}"
-        ).fetchone()[0],
+        )
+        .limit(1)
+        .fetchall()[0][0],
     )
 
 
@@ -907,7 +909,9 @@ def check_if_relation_in_osm_is_valid_based_on_geometry(pbf_file: str, relation_
             SELECT COUNT(*) > 0 AS 'any_valid_outer_geometry'
             FROM valid_relations
             """
-        ).fetchone()[0],
+        )
+        .limit(1)
+        .fetchall()[0][0],
     )
 
 
@@ -915,9 +919,13 @@ def get_tags_from_osm_element(pbf_file: str, feature_id: str) -> dict[str, str]:
     """Check if given relation in OSM is valid."""
     duckdb.load_extension("spatial")
     kind, osm_id = feature_id.split("/", 2)
-    raw_tags = duckdb.sql(
-        f"SELECT tags FROM ST_READOSM('{pbf_file}') WHERE kind = '{kind}' AND id = {osm_id}"
-    ).fetchone()[0]
+    raw_tags = (
+        duckdb.sql(
+            f"SELECT tags FROM ST_READOSM('{pbf_file}') WHERE kind = '{kind}' AND id = {osm_id}"
+        )
+        .limit(1)
+        .fetchall()[0][0]
+    )
     return cast("dict[str, str]", raw_tags)
 
 
