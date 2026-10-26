@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Changed Python API calls to DuckDB relations after [v2.0 release](https://duckdb.org/docs/2.0/clients/python/migration)
+
 ## [0.19.0] - 2026-09-23
 
 ### Changed
