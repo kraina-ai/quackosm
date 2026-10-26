@@ -292,7 +292,8 @@ class PbfFileReader:
         self.internal_parquet_compression = "zstd"
 
         self.cpu_limit = (
-            cpu_limit or duckdb.sql("SELECT current_setting('threads') AS threads").fetchone()[0]
+            cpu_limit
+            or duckdb.sql("SELECT current_setting('threads') AS threads").limit(1).fetchall()[0][0]
         )
 
         self.duckdb_conn_kwargs = duckdb_conn_kwargs
@@ -2612,42 +2613,6 @@ class PbfFileReader:
             END as tags
         """
 
-    # def _generate_filtered_tags_clause(self) -> str:
-    #     """Prepare filtered tags clause by removing tags commonly ignored by OGR."""
-    #     escaped_tags_to_ignore = [f"'{tag}'" for tag in METADATA_TAGS_TO_IGNORE]
-
-    #     if not DUCKDB_ABOVE_130:
-    #         return f"""
-    #         map_from_entries(
-    #             list_filter(
-    #                 map_entries(tags),
-    #                 tag_entry -> not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
-    #                 and not starts_with(tag_entry.key, 'openGeoDB:')
-    #             )
-    #         ) as tags
-    #         """
-
-    #     return f"""
-    #         map_from_entries(
-    #             list_filter(
-    #                 map_entries(tags),
-    #                 lambda tag_entry: not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
-    #                 and not starts_with(tag_entry.key, 'openGeoDB:')
-    #             )
-    #         ) as tags
-    #         """
-
-    #     # return f"""
-    #     # map_from_entries(
-    #     #     [
-    #     #         tag_entry
-    #     #         for tag_entry in map_entries(tags)
-    #     #         if not tag_entry.key in ({",".join(escaped_tags_to_ignore)})
-    #     #         and not starts_with(tag_entry.key, 'openGeoDB:')
-    #     #     ]
-    #     # ) as tags
-    #     # """
-
     def _generate_elements_filter(
         self, filter_osm_ids: list[str], element_type: Literal["node", "way", "relation"]
     ) -> str:
@@ -3034,7 +2999,7 @@ class PbfFileReader:
         mode: Literal["filtered", "required"],
         group_all_at_once: bool = True,
     ) -> int:
-        total_required_ways = ways_ids.count("id").fetchone()[0]
+        total_required_ways = ways_ids.count("id").limit(1).fetchall()[0][0]
 
         destination_dir_path.mkdir(parents=True, exist_ok=True)
         grouped_ways_tmp_path.mkdir(parents=True, exist_ok=True)
@@ -3334,7 +3299,9 @@ class PbfFileReader:
             file_path=self.tmp_dir_path / "relation_inner_parts",
             step_name="Saving relations inner parts",
         )
-        any_relation_inner_parts = relation_inner_parts_parquet.count("id").fetchone()[0] != 0
+        any_relation_inner_parts = (
+            relation_inner_parts_parquet.count("id").limit(1).fetchall()[0][0] != 0
+        )
         relation_outer_parts = self.connection.sql(
             f"""
             SELECT id, geometry_id, ST_MakePolygon(ST_RemoveRepeatedPoints(geometry)) geometry
@@ -3646,7 +3613,7 @@ class PbfFileReader:
 
         saved_relation = self.connection.sql(f"FROM read_parquet('{file_path}/**/*.parquet')")
 
-        is_empty = saved_relation.count("*").fetchone()[0] == 0
+        is_empty = saved_relation.count("*").limit(1).fetchall()[0][0] == 0
 
         if not DUCKDB_ABOVE_130 or is_empty:
             return self.connection.sql(
@@ -3974,7 +3941,7 @@ class PbfFileReader:
         explode_tags: bool,
     ) -> None:
         features_table = self.connection.read_parquet(str(input_file / "*.parquet"))
-        is_empty = features_table.count(FEATURES_INDEX).fetchone()[0] == 0
+        is_empty = features_table.count(FEATURES_INDEX).limit(1).fetchall()[0][0] == 0
 
         if is_empty:
             with self.task_progress_tracker.get_spinner("Saving final geoparquet file"):
@@ -4160,8 +4127,9 @@ def _merge_parquet_dataset(
         union_by_name=True,
     )
 
-    geometry_bounds = connection.sql(
-        f"""
+    geometry_bounds = (
+        connection.sql(
+            f"""
         WITH extent AS (
             SELECT ST_Extent_Agg(geometry) g
             FROM ({parquet_relation.sql_query()})
@@ -4173,7 +4141,10 @@ def _merge_parquet_dataset(
             ST_YMax(g) y_max
         FROM extent
         """
-    ).fetchone()
+        )
+        .limit(1)
+        .fetchall()[0]
+    )
 
     geo_types = sorted(
         _t[0]
@@ -4278,7 +4249,7 @@ def _set_up_duckdb_connection(
     )
 
     if not is_main_connection:
-        db_file_name = connection.sql("SHOW DATABASES;").fetchone()[0]
+        db_file_name = connection.sql("SHOW DATABASES;").limit(1).fetchall()[0][0]
         local_db_path = tmp_dir_path / f"{db_file_name}.duckdb"
         return connection, local_db_path
 
