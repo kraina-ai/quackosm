@@ -274,7 +274,7 @@ def test_antwerpen_and_brussels_invalid_linear_ring() -> None:
     )
 
     result_gdf = PbfFileReader(
-        geometry_filter=antwerpen_and_brussels_geometry, osm_extract_source=OsmExtractSource.bbbike
+        geometry_filter=antwerpen_and_brussels_geometry, osm_extract_source=OsmExtractSource.osm_fr
     ).convert_geometry_to_geodataframe(ignore_cache=True)
 
     assert result_gdf.index.is_unique
@@ -325,7 +325,7 @@ def test_combining_files_different_techniques(
                 " 4.331278527313799 50.89211829585622, 4.413826045759777 50.89211829585622,"
                 " 4.413826045759777 51.173447782908625, 4.331278527313799 51.173447782908625))"
             ),
-            osm_extract_source="BBBike",
+            osm_extract_source="osmfr",
             ignore_cache=True,
             debug_memory=True,
             debug_times=True,
