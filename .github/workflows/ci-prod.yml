@@ -92,7 +92,7 @@ jobs:
       - name: Install pdm
         run: pip install pdm uv
       - name: Install dependencies
-        run: uv pip install -r pyproject.toml --all-extras --group docs --group cli-dev --system
+        run: uv pip install "duckdb<2.0" -r pyproject.toml --all-extras --group docs --group cli-dev --system
       - name: Install quackosm
         run: |
           pdm build -v -d dist

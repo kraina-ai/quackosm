@@ -48,7 +48,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: "3.12"
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
@@ -58,7 +58,7 @@ jobs:
       - name: Install pdm
         run: pip install pdm uv
       - name: Install dependencies
-        run: uv pip install -r pyproject.toml --all-extras --group docs --group cli-dev --system
+        run: uv pip install "duckdb<2.0" -r pyproject.toml --all-extras --group docs --group cli-dev --system
       - name: Install quackosm
         run: |
           pdm build -v -d dist
