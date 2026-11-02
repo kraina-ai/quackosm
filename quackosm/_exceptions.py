@@ -1,11 +1,10 @@
 """
 Exceptions and warnings for QuackOSM.
 
-The OSM-extracts-related exception and warning classes are re-exported from
-``osmfinder.exceptions`` so that they are the exact same classes raised by the
-underlying library.  This keeps backward compatibility for users who catch
-``quackosm._exceptions.<SomeError>`` while ensuring that exceptions originating
-from ``osmfinder`` are caught correctly.
+The OSM-extracts-related exception and warning classes are re-exported from ``osmfinder.exceptions``
+so that they are the exact same classes raised by the underlying library.  This keeps backward
+compatibility for users who catch ``quackosm._exceptions.<SomeError>`` while ensuring that
+exceptions originating from ``osmfinder`` are caught correctly.
 """
 
 from osmfinder.exceptions import (
