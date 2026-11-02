@@ -69,6 +69,8 @@ lint = ["pre-commit>=4", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 test = [
     "pytest>=7.0.0",
     "tox-pdm>=0.7.2",
+    # tox 4.67.5 passes `capture` to execute(), unsupported by tox-pdm 0.7.2
+    "tox>=4,<4.67.5",
     "pytest-mock>=3.3.0",
     "requests-mock>=1.12.1",
     "pytest-check>=2.3.1",
