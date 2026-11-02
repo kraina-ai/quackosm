@@ -188,6 +188,31 @@ marker = "\"dev\" in dependency_groups or \"docs\" in dependency_groups or \"tes
 dependencies = []
 
 [[packages]]
+name = "tox"
+version = "4.27.0"
+requires-python = ">=3.9"
+sdist = {name = "tox-4.27.0.tar.gz", url = "https://files.pythonhosted.org/packages/a5/b7/19c01717747076f63c54d871ada081cd711a7c9a7572f2225675c3858b94/tox-4.27.0.tar.gz", hashes = {sha256 = "b97d5ecc0c0d5755bcc5348387fef793e1bfa68eb33746412f4c60881d7f5f57"}}
+wheels = [
+    {name = "tox-4.27.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/c1/3a/30889167f41ecaffb957ec4409e1cbc1d5d558a5bbbdfb734a5b9911930f/tox-4.27.0-py3-none-any.whl",hashes = {sha256 = "2b8a7fb986b82aa2c830c0615082a490d134e0626dbc9189986da46a313c4f20"}},
+]
+marker = "\"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "cachetools>=5.5.1",
+    "chardet>=5.2",
+    "colorama>=0.4.6",
+    "filelock>=3.16.1",
+    "packaging>=24.2",
+    "platformdirs>=4.3.6",
+    "pluggy>=1.5",
+    "pyproject-api>=1.8",
+    "tomli>=2.2.1; python_version < \"3.11\"",
+    "typing-extensions>=4.12.2; python_version < \"3.11\"",
+    "virtualenv>=20.31",
+]
+
+[[packages]]
 name = "anyascii"
 version = "0.3.3"
 requires-python = ">=3.3"
@@ -1365,34 +1390,6 @@ marker = "\"default\" in dependency_groups or \"cli\" in extras or \"cli-dev\" i
 dependencies = []
 
 [[packages]]
-name = "jinja2"
-version = "3.1.6"
-requires-python = ">=3.7"
-sdist = {name = "jinja2-3.1.6.tar.gz", url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hashes = {sha256 = "0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"}}
-wheels = [
-    {name = "jinja2-3.1.6-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl",hashes = {sha256 = "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"}},
-]
-marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "MarkupSafe>=2.0",
-]
-
-[[packages]]
-name = "pygments"
-version = "2.19.2"
-requires-python = ">=3.8"
-sdist = {name = "pygments-2.19.2.tar.gz", url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hashes = {sha256 = "636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"}}
-wheels = [
-    {name = "pygments-2.19.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl",hashes = {sha256 = "86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"}},
-]
-marker = "\"default\" in dependency_groups or \"cli\" in extras or \"cli-dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
 name = "tomli"
 version = "2.2.1"
 requires-python = ">=3.8"
@@ -1431,6 +1428,47 @@ wheels = [
     {name = "tomli-2.2.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/6e/c2/61d3e0f47e2b74ef40a68b9e6ad5984f6241a942f7cd3bbfbdbd03861ea9/tomli-2.2.1-py3-none-any.whl",hashes = {sha256 = "cb55c73c5f4408779d0cf3eef9f762b9c9f147a77de7b258bef0a5628adc85cc"}},
 ]
 marker = "\"docs\" in dependency_groups or \"license\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
+name = "jinja2"
+version = "3.1.6"
+requires-python = ">=3.7"
+sdist = {name = "jinja2-3.1.6.tar.gz", url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hashes = {sha256 = "0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"}}
+wheels = [
+    {name = "jinja2-3.1.6-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl",hashes = {sha256 = "85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"}},
+]
+marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "MarkupSafe>=2.0",
+]
+
+[[packages]]
+name = "pygments"
+version = "2.19.2"
+requires-python = ">=3.8"
+sdist = {name = "pygments-2.19.2.tar.gz", url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hashes = {sha256 = "636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887"}}
+wheels = [
+    {name = "pygments-2.19.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl",hashes = {sha256 = "86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b"}},
+]
+marker = "\"default\" in dependency_groups or \"cli\" in extras or \"cli-dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
+name = "colorama"
+version = "0.4.6"
+requires-python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
+sdist = {name = "colorama-0.4.6.tar.gz", url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hashes = {sha256 = "08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"}}
+wheels = [
+    {name = "colorama-0.4.6-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl",hashes = {sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"}},
+]
+marker = "\"default\" in dependency_groups or \"cli\" in extras or \"cli-dev\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -1506,6 +1544,19 @@ dependencies = [
 ]
 
 [[packages]]
+name = "platformdirs"
+version = "4.3.8"
+requires-python = ">=3.9"
+sdist = {name = "platformdirs-4.3.8.tar.gz", url = "https://files.pythonhosted.org/packages/fe/8b/3c73abc9c759ecd3f1f7ceff6685840859e8070c4d947c93fae71f6a0bf2/platformdirs-4.3.8.tar.gz", hashes = {sha256 = "3d512d96e16bcb959a814c9f348431070822a6496326a4be0911c40b5a74c2bc"}}
+wheels = [
+    {name = "platformdirs-4.3.8-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/fe/39/979e8e21520d4e47a0bbe349e2713c0aac6f3d853d0e5b34d76206c439aa/platformdirs-4.3.8-py3-none-any.whl",hashes = {sha256 = "ff7059bb7eb1179e2685604f4aaf157cfd9535242bd23742eadc3c13542139b4"}},
+]
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
 name = "traitlets"
 version = "5.14.3"
 requires-python = ">=3.8"
@@ -1579,19 +1630,6 @@ wheels = [
     {name = "charset_normalizer-3.4.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/20/94/c5790835a017658cbfabd07f3bfb549140c3ac458cfc196323996b10095a/charset_normalizer-3.4.2-py3-none-any.whl",hashes = {sha256 = "7f56930ab0abd1c45cd15be65cc741c28b1c9a34876ce8c17a2fa107810c0af0"}},
 ]
 marker = "\"default\" in dependency_groups or \"cli-dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
-name = "colorama"
-version = "0.4.6"
-requires-python = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,!=3.6.*,>=2.7"
-sdist = {name = "colorama-0.4.6.tar.gz", url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hashes = {sha256 = "08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44"}}
-wheels = [
-    {name = "colorama-0.4.6-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl",hashes = {sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"}},
-]
-marker = "\"default\" in dependency_groups or \"cli\" in extras or \"cli-dev\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -1674,19 +1712,6 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [[packages]]
-name = "platformdirs"
-version = "4.3.8"
-requires-python = ">=3.9"
-sdist = {name = "platformdirs-4.3.8.tar.gz", url = "https://files.pythonhosted.org/packages/fe/8b/3c73abc9c759ecd3f1f7ceff6685840859e8070c4d947c93fae71f6a0bf2/platformdirs-4.3.8.tar.gz", hashes = {sha256 = "3d512d96e16bcb959a814c9f348431070822a6496326a4be0911c40b5a74c2bc"}}
-wheels = [
-    {name = "platformdirs-4.3.8-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/fe/39/979e8e21520d4e47a0bbe349e2713c0aac6f3d853d0e5b34d76206c439aa/platformdirs-4.3.8-py3-none-any.whl",hashes = {sha256 = "ff7059bb7eb1179e2685604f4aaf157cfd9535242bd23742eadc3c13542139b4"}},
-]
-marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"lint\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
 name = "pathspec"
 version = "0.12.1"
 requires-python = ">=3.8"
@@ -1695,6 +1720,19 @@ wheels = [
     {name = "pathspec-0.12.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/cc/20/ff623b09d963f88bfde16306a54e12ee5ea43e9b597108672ff3a408aad6/pathspec-0.12.1-py3-none-any.whl",hashes = {sha256 = "a0d503e138a4c123b27490a4f7beda6a01c6f288df0e4a8b79c7eb0dc7b4cc08"}},
 ]
 marker = "\"docs\" in dependency_groups or \"lint\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
+name = "pluggy"
+version = "1.6.0"
+requires-python = ">=3.9"
+sdist = {name = "pluggy-1.6.0.tar.gz", url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hashes = {sha256 = "7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3"}}
+wheels = [
+    {name = "pluggy-1.6.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl",hashes = {sha256 = "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"}},
+]
+marker = "\"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -2235,19 +2273,6 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [[packages]]
-name = "pluggy"
-version = "1.6.0"
-requires-python = ">=3.9"
-sdist = {name = "pluggy-1.6.0.tar.gz", url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hashes = {sha256 = "7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3"}}
-wheels = [
-    {name = "pluggy-1.6.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl",hashes = {sha256 = "e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746"}},
-]
-marker = "\"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
 name = "prompt-toolkit"
 version = "3.0.51"
 requires-python = ">=3.8"
@@ -2271,6 +2296,49 @@ wheels = [
     {name = "pyparsing-3.2.3-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl",hashes = {sha256 = "a749938e02d6fd0b59b356ca504a24982314bb090c383e3cf201c95ef7e2bfcf"}},
 ]
 marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
+name = "virtualenv"
+version = "20.31.2"
+requires-python = ">=3.8"
+sdist = {name = "virtualenv-20.31.2.tar.gz", url = "https://files.pythonhosted.org/packages/56/2c/444f465fb2c65f40c3a104fd0c495184c4f2336d65baf398e3c75d72ea94/virtualenv-20.31.2.tar.gz", hashes = {sha256 = "e10c0a9d02835e592521be48b332b6caee6887f332c111aa79a09b9e79efc2af"}}
+wheels = [
+    {name = "virtualenv-20.31.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/f3/40/b1c265d4b2b62b58576588510fc4d1fe60a86319c8de99fd8e9fec617d2c/virtualenv-20.31.2-py3-none-any.whl",hashes = {sha256 = "36efd0d9650ee985f0cad72065001e66d49a6f24eb44d98980f630686243cf11"}},
+]
+marker = "\"lint\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "distlib<1,>=0.3.7",
+    "filelock<4,>=3.12.2",
+    "importlib-metadata>=6.6; python_version < \"3.8\"",
+    "platformdirs<5,>=3.9.1",
+]
+
+[[packages]]
+name = "filelock"
+version = "3.18.0"
+requires-python = ">=3.9"
+sdist = {name = "filelock-3.18.0.tar.gz", url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc5353e0b15fc1c563352101f30e24bf500207a54df9a/filelock-3.18.0.tar.gz", hashes = {sha256 = "adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2"}}
+wheels = [
+    {name = "filelock-3.18.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl",hashes = {sha256 = "c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de"}},
+]
+marker = "\"lint\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
+name = "distlib"
+version = "0.4.0"
+sdist = {name = "distlib-0.4.0.tar.gz", url = "https://files.pythonhosted.org/packages/96/8e/709914eb2b5749865801041647dc7f4e6d00b549cfe88b65ca192995f07c/distlib-0.4.0.tar.gz", hashes = {sha256 = "feec40075be03a04501a973d81f633735b4b69f98b05450592310c0f401a4e0d"}}
+wheels = [
+    {name = "distlib-0.4.0-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/33/6b/e0547afaf41bf2c42e52430072fa5658766e3d65bd4b03a563d1b6336f57/distlib-0.4.0-py2.py3-none-any.whl",hashes = {sha256 = "9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16"}},
+]
+marker = "\"lint\" in dependency_groups or \"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -2586,6 +2654,19 @@ dependencies = [
 ]
 
 [[packages]]
+name = "cachetools"
+version = "6.1.0"
+requires-python = ">=3.9"
+sdist = {name = "cachetools-6.1.0.tar.gz", url = "https://files.pythonhosted.org/packages/8a/89/817ad5d0411f136c484d535952aef74af9b25e0d99e90cdffbe121e6d628/cachetools-6.1.0.tar.gz", hashes = {sha256 = "b4c4f404392848db3ce7aac34950d17be4d864da4b8b66911008e430bc544587"}}
+wheels = [
+    {name = "cachetools-6.1.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/00/f0/2ef431fe4141f5e334759d73e81120492b23b2824336883a91ac04ba710b/cachetools-6.1.0-py3-none-any.whl",hashes = {sha256 = "1c7bb3cf9193deaf3508b7c5f2a79986c13ea38965c5adcff1f84519cf39163e"}},
+]
+marker = "\"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
 name = "cairosvg"
 version = "2.8.2"
 requires-python = ">=3.9"
@@ -2626,6 +2707,19 @@ wheels = [
     {name = "cfgv-3.4.0-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/c5/55/51844dd50c4fc7a33b653bfaba4c2456f06955289ca770a5dbd5fd267374/cfgv-3.4.0-py2.py3-none-any.whl",hashes = {sha256 = "b7265b1f29fd3316bfcd2b330d63d024f2bfd8bcb8b0272f8e19a504856c48f9"}},
 ]
 marker = "\"lint\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
+name = "chardet"
+version = "5.2.0"
+requires-python = ">=3.7"
+sdist = {name = "chardet-5.2.0.tar.gz", url = "https://files.pythonhosted.org/packages/f3/0d/f7b6ab21ec75897ed80c17d79b15951a719226b9fababf1e40ea74d69079/chardet-5.2.0.tar.gz", hashes = {sha256 = "1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7"}}
+wheels = [
+    {name = "chardet-5.2.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/38/6f/f5fbc992a329ee4e0f288c1fe0e2ad9485ed064cac731ed2fe47dcc38cbf/chardet-5.2.0-py3-none-any.whl",hashes = {sha256 = "e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970"}},
+]
+marker = "\"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -3825,6 +3919,22 @@ dependencies = [
 ]
 
 [[packages]]
+name = "pyproject-api"
+version = "1.9.1"
+requires-python = ">=3.9"
+sdist = {name = "pyproject_api-1.9.1.tar.gz", url = "https://files.pythonhosted.org/packages/19/fd/437901c891f58a7b9096511750247535e891d2d5a5a6eefbc9386a2b41d5/pyproject_api-1.9.1.tar.gz", hashes = {sha256 = "43c9918f49daab37e302038fc1aed54a8c7a91a9fa935d00b9a485f37e0f5335"}}
+wheels = [
+    {name = "pyproject_api-1.9.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/ef/e6/c293c06695d4a3ab0260ef124a74ebadba5f4c511ce3a4259e976902c00b/pyproject_api-1.9.1-py3-none-any.whl",hashes = {sha256 = "7d6238d92f8962773dd75b5f0c4a6a27cce092a14b623b811dba656f3b628948"}},
+]
+marker = "\"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "packaging>=25",
+    "tomli>=2.2.1; python_version < \"3.11\"",
+]
+
+[[packages]]
 name = "python-json-logger"
 version = "3.3.0"
 requires-python = ">=3.8"
@@ -4176,116 +4286,6 @@ marker = "\"docs\" in dependency_groups"
 [packages.tool.pdm]
 dependencies = [
     "webencodings>=0.4",
-]
-
-[[packages]]
-name = "tox"
-version = "4.27.0"
-requires-python = ">=3.9"
-sdist = {name = "tox-4.27.0.tar.gz", url = "https://files.pythonhosted.org/packages/a5/b7/19c01717747076f63c54d871ada081cd711a7c9a7572f2225675c3858b94/tox-4.27.0.tar.gz", hashes = {sha256 = "b97d5ecc0c0d5755bcc5348387fef793e1bfa68eb33746412f4c60881d7f5f57"}}
-wheels = [
-    {name = "tox-4.27.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/c1/3a/30889167f41ecaffb957ec4409e1cbc1d5d558a5bbbdfb734a5b9911930f/tox-4.27.0-py3-none-any.whl",hashes = {sha256 = "2b8a7fb986b82aa2c830c0615082a490d134e0626dbc9189986da46a313c4f20"}},
-]
-marker = "\"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "cachetools>=5.5.1",
-    "chardet>=5.2",
-    "colorama>=0.4.6",
-    "filelock>=3.16.1",
-    "packaging>=24.2",
-    "platformdirs>=4.3.6",
-    "pluggy>=1.5",
-    "pyproject-api>=1.8",
-    "tomli>=2.2.1; python_version < \"3.11\"",
-    "typing-extensions>=4.12.2; python_version < \"3.11\"",
-    "virtualenv>=20.31",
-]
-
-[[packages]]
-name = "virtualenv"
-version = "20.31.2"
-requires-python = ">=3.8"
-sdist = {name = "virtualenv-20.31.2.tar.gz", url = "https://files.pythonhosted.org/packages/56/2c/444f465fb2c65f40c3a104fd0c495184c4f2336d65baf398e3c75d72ea94/virtualenv-20.31.2.tar.gz", hashes = {sha256 = "e10c0a9d02835e592521be48b332b6caee6887f332c111aa79a09b9e79efc2af"}}
-wheels = [
-    {name = "virtualenv-20.31.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/f3/40/b1c265d4b2b62b58576588510fc4d1fe60a86319c8de99fd8e9fec617d2c/virtualenv-20.31.2-py3-none-any.whl",hashes = {sha256 = "36efd0d9650ee985f0cad72065001e66d49a6f24eb44d98980f630686243cf11"}},
-]
-marker = "\"lint\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "distlib<1,>=0.3.7",
-    "filelock<4,>=3.12.2",
-    "importlib-metadata>=6.6; python_version < \"3.8\"",
-    "platformdirs<5,>=3.9.1",
-]
-
-[[packages]]
-name = "filelock"
-version = "3.18.0"
-requires-python = ">=3.9"
-sdist = {name = "filelock-3.18.0.tar.gz", url = "https://files.pythonhosted.org/packages/0a/10/c23352565a6544bdc5353e0b15fc1c563352101f30e24bf500207a54df9a/filelock-3.18.0.tar.gz", hashes = {sha256 = "adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2"}}
-wheels = [
-    {name = "filelock-3.18.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/4d/36/2a115987e2d8c300a974597416d9de88f2444426de9571f4b59b2cca3acc/filelock-3.18.0-py3-none-any.whl",hashes = {sha256 = "c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de"}},
-]
-marker = "\"lint\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
-name = "distlib"
-version = "0.4.0"
-sdist = {name = "distlib-0.4.0.tar.gz", url = "https://files.pythonhosted.org/packages/96/8e/709914eb2b5749865801041647dc7f4e6d00b549cfe88b65ca192995f07c/distlib-0.4.0.tar.gz", hashes = {sha256 = "feec40075be03a04501a973d81f633735b4b69f98b05450592310c0f401a4e0d"}}
-wheels = [
-    {name = "distlib-0.4.0-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/33/6b/e0547afaf41bf2c42e52430072fa5658766e3d65bd4b03a563d1b6336f57/distlib-0.4.0-py2.py3-none-any.whl",hashes = {sha256 = "9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16"}},
-]
-marker = "\"lint\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
-name = "cachetools"
-version = "6.1.0"
-requires-python = ">=3.9"
-sdist = {name = "cachetools-6.1.0.tar.gz", url = "https://files.pythonhosted.org/packages/8a/89/817ad5d0411f136c484d535952aef74af9b25e0d99e90cdffbe121e6d628/cachetools-6.1.0.tar.gz", hashes = {sha256 = "b4c4f404392848db3ce7aac34950d17be4d864da4b8b66911008e430bc544587"}}
-wheels = [
-    {name = "cachetools-6.1.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/00/f0/2ef431fe4141f5e334759d73e81120492b23b2824336883a91ac04ba710b/cachetools-6.1.0-py3-none-any.whl",hashes = {sha256 = "1c7bb3cf9193deaf3508b7c5f2a79986c13ea38965c5adcff1f84519cf39163e"}},
-]
-marker = "\"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
-name = "chardet"
-version = "5.2.0"
-requires-python = ">=3.7"
-sdist = {name = "chardet-5.2.0.tar.gz", url = "https://files.pythonhosted.org/packages/f3/0d/f7b6ab21ec75897ed80c17d79b15951a719226b9fababf1e40ea74d69079/chardet-5.2.0.tar.gz", hashes = {sha256 = "1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7"}}
-wheels = [
-    {name = "chardet-5.2.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/38/6f/f5fbc992a329ee4e0f288c1fe0e2ad9485ed064cac731ed2fe47dcc38cbf/chardet-5.2.0-py3-none-any.whl",hashes = {sha256 = "e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970"}},
-]
-marker = "\"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
-name = "pyproject-api"
-version = "1.9.1"
-requires-python = ">=3.9"
-sdist = {name = "pyproject_api-1.9.1.tar.gz", url = "https://files.pythonhosted.org/packages/19/fd/437901c891f58a7b9096511750247535e891d2d5a5a6eefbc9386a2b41d5/pyproject_api-1.9.1.tar.gz", hashes = {sha256 = "43c9918f49daab37e302038fc1aed54a8c7a91a9fa935d00b9a485f37e0f5335"}}
-wheels = [
-    {name = "pyproject_api-1.9.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/ef/e6/c293c06695d4a3ab0260ef124a74ebadba5f4c511ce3a4259e976902c00b/pyproject_api-1.9.1-py3-none-any.whl",hashes = {sha256 = "7d6238d92f8962773dd75b5f0c4a6a27cce092a14b623b811dba656f3b628948"}},
-]
-marker = "\"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "packaging>=25",
-    "tomli>=2.2.1; python_version < \"3.11\"",
 ]
 
 [[packages]]
@@ -5065,7 +5065,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "6c03a5e84f97b78cddb428d734e19d9ab7d13794e51a48608019f9c583283dc0"}
+hashes = {sha256 = "9de7957f7363c63918ca1ba984a02dee3515ac5f07cd9f562e04b98306a488a7"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
