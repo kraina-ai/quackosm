@@ -46,7 +46,9 @@ from rq_geo_toolkit.duckdb import (
     DuckDBConnKwargs,
     set_up_duckdb_connection,
     sql_escape,
+    temporary_duckdb_connection,
 )
+from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import (
     compress_parquet_with_duckdb,
     compress_query_with_duckdb,
@@ -291,10 +293,14 @@ class PbfFileReader:
         self.internal_rows_per_group: int = 0
         self.internal_parquet_compression = "zstd"
 
-        self.cpu_limit = (
-            cpu_limit
-            or duckdb.sql("SELECT current_setting('threads') AS threads").limit(1).fetchall()[0][0]
-        )
+        if not cpu_limit:
+            with temporary_duckdb_connection(self.working_directory) as connection:
+                cpu_limit = (
+                    connection.sql("SELECT current_setting('threads') AS threads")
+                    .limit(1)
+                    .fetchall()[0][0]
+                )
+        self.cpu_limit = cpu_limit
 
         self.duckdb_conn_kwargs = duckdb_conn_kwargs
         self.memory_limit = memory_limit
@@ -561,14 +567,15 @@ class PbfFileReader:
                     [pa.array([], type=pa.string()), geometry_column],
                     names=[FEATURES_INDEX, GEOMETRY_COLUMN],
                 )
-                if save_as_wkt:
-                    pq.write_table(joined_parquet_table, result_file_path)
-                else:
-                    io.write_geoparquet_table(
-                        joined_parquet_table,
-                        result_file_path,
-                        primary_geometry_column=GEOMETRY_COLUMN,
-                    )
+                with atomic_output_path(result_file_path) as tmp_result_file_path:
+                    if save_as_wkt:
+                        pq.write_table(joined_parquet_table, tmp_result_file_path)
+                    else:
+                        io.write_geoparquet_table(
+                            joined_parquet_table,
+                            tmp_result_file_path,
+                            primary_geometry_column=GEOMETRY_COLUMN,
+                        )
 
             self.task_progress_tracker.stop()
 
@@ -3962,14 +3969,15 @@ class PbfFileReader:
                     [FEATURES_INDEX, GEOMETRY_COLUMN]
                 )
 
-                if save_as_wkt:
-                    pq.write_table(features_parquet_table, result_file_path)
-                else:
-                    io.write_geoparquet_table(
-                        features_parquet_table,
-                        result_file_path,
-                        primary_geometry_column=GEOMETRY_COLUMN,
-                    )
+                with atomic_output_path(result_file_path) as tmp_result_file_path:
+                    if save_as_wkt:
+                        pq.write_table(features_parquet_table, tmp_result_file_path)
+                    else:
+                        io.write_geoparquet_table(
+                            features_parquet_table,
+                            tmp_result_file_path,
+                            primary_geometry_column=GEOMETRY_COLUMN,
+                        )
 
             with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
                 pass

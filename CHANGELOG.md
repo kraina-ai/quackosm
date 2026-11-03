@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Replaced the global DuckDB connection with a temporary one to support running multiple conversions from different threads
+- Writing result files atomically to support concurrent runs in the same working directory
+
 ## [0.20.0] - 2026-10-31
 
 ### Changed

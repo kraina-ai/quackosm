@@ -197,32 +197,33 @@ class H3GeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        import duckdb
         import geopandas as gpd
+        from rq_geo_toolkit.duckdb import temporary_duckdb_connection
         from shapely import from_wkt
 
-        duckdb.install_extension("h3", repository="community")
-        duckdb.load_extension("h3")
-
         geometries = []  # noqa: FURB138
-        for h3_index in value.split(","):
-            stripped_h3_index = h3_index.strip()
-            if (
-                not duckdb.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')")
-                .limit(1)
-                .fetchall()[0][0]
-            ):
-                raise typer.BadParameter(
-                    f"Cannot parse provided H3 value: {stripped_h3_index}"
-                ) from None
+        with temporary_duckdb_connection() as connection:
+            connection.install_extension("h3", repository="community")
+            connection.load_extension("h3")
 
-            parsed_geometry = from_wkt(
-                duckdb.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')")
-                .limit(1)
-                .fetchall()[0][0]
-            )
+            for h3_index in value.split(","):
+                stripped_h3_index = h3_index.strip()
+                if (
+                    not connection.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')")
+                    .limit(1)
+                    .fetchall()[0][0]
+                ):
+                    raise typer.BadParameter(
+                        f"Cannot parse provided H3 value: {stripped_h3_index}"
+                    ) from None
 
-            geometries.append(parsed_geometry)
+                parsed_geometry = from_wkt(
+                    connection.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')")
+                    .limit(1)
+                    .fetchall()[0][0]
+                )
+
+                geometries.append(parsed_geometry)
 
         if not GEOPANDAS_NEW_API:
             return gpd.GeoSeries(geometries).unary_union
