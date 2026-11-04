@@ -532,11 +532,11 @@ dependencies = [
 
 [[packages]]
 name = "osmfinder"
-version = "1.2.0"
+version = "1.2.2"
 requires-python = ">=3.10"
-sdist = {name = "osmfinder-1.2.0.tar.gz", url = "https://files.pythonhosted.org/packages/4c/57/d0cbcb17ec9a7578e70a7198e92454e53668a42d5376d0589fd60a402db4/osmfinder-1.2.0.tar.gz", hashes = {sha256 = "7989bbc756dd53a92c7b95ac22e642576dd9dc673d3f35116f8d4f7b527d870f"}}
+sdist = {name = "osmfinder-1.2.2.tar.gz", url = "https://files.pythonhosted.org/packages/d3/49/07166a5deec7ad2ac3dca91d067042b36295e402f31e76378dfff9af379f/osmfinder-1.2.2.tar.gz", hashes = {sha256 = "296d6ebf3983adb9c907c33ead700a8a0489389bd83c5d201b1c2f8898047871"}}
 wheels = [
-    {name = "osmfinder-1.2.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/87/4b/229a8ad5fd51bceb56c00994805042570615651c8e3c7fde95b7b4212523/osmfinder-1.2.0-py3-none-any.whl",hashes = {sha256 = "d5c8dbe4063408f01f674ea049dffcffdd8e6aa83807a04f51bf8741d5d07a72"}},
+    {name = "osmfinder-1.2.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/64/96/2deebe25b6892915318fc1bfeb8d87b2a64e905c78e9a284cd01962b1c62/osmfinder-1.2.2-py3-none-any.whl",hashes = {sha256 = "cb2f4f81426a1999793674a37de19517278df3100f4f68f55e3926b36ea07cfc"}},
 ]
 marker = "\"default\" in dependency_groups"
 
@@ -5065,7 +5065,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "c6e34312732e0c045ceaa666e73f9a28a6710401beb75b4e6ec1b227f5ec0f4f"}
+hashes = {sha256 = "2ed33fa3ff5d2bdf0a768e0e06de9debc4a130406d4024e996d66a98a9ca73af"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
