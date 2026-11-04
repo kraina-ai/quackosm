@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Steps are numbered with `StepCounter` from `rq_geo_toolkit`
+- Progress of the whole operation, including downloads, is shown in a single live display from `rq_geo_toolkit`, so Jupyter cells don't get empty gaps between steps and parallel conversions don't break each other's progress bars
+
 ### Fixed
 
+- Download progress bar of PBF files from URLs, which was hidden because `pooch` ignores the `progressbar` argument with a custom downloader
 - Replaced the global DuckDB connection with a temporary one to support running multiple conversions from different threads
 - Writing result files atomically to support concurrent runs in the same working directory
 

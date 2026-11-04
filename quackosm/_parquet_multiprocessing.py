@@ -109,7 +109,7 @@ def map_parquet_dataset(
 
     total = len(tuples_to_queue)
     if progress_bar:  # pragma: no cover
-        progress_bar.create_manual_bar(total=total)
+        progress_bar.update(total=total)
 
     queue: Queue[tuple[str, int]] = ctx.Manager().Queue()
     for queue_tuple in tuples_to_queue:
@@ -148,13 +148,13 @@ def _run_processes(
             break
 
         if progress_bar:  # pragma: no cover
-            progress_bar.update_manual_bar(current_progress=total - queue.qsize())
+            progress_bar.update(total - queue.qsize())
 
         sleep(sleep_time)
         sleep_time = min(1.0, sleep_time + 0.1)
 
     if progress_bar:  # pragma: no cover
-        progress_bar.update_manual_bar(current_progress=total)
+        progress_bar.update(total)
 
 
 def _report_exceptions(processes: list[WorkerSpawnProcess]) -> None:

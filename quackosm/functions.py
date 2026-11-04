@@ -11,6 +11,7 @@ from typing import Any, Literal, Optional, Union
 import geopandas as gpd
 from osmfinder import OsmExtractSource, OsmExtractSourceLike, download
 from rq_geo_toolkit.duckdb import DuckDBConnKwargs
+from rq_geo_toolkit.rich_utils import progress_display, with_progress_display
 from shapely.geometry.base import BaseGeometry
 
 from quackosm._constants import (
@@ -571,6 +572,7 @@ def convert_geometry_to_duckdb(
     return Path(result_path)
 
 
+@with_progress_display
 def convert_osm_extract_to_duckdb(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
@@ -746,13 +748,14 @@ def convert_osm_extract_to_duckdb(
         >>> ddb_path.as_posix()
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.duckdb'
     """
-    downloaded_osm_extract = download(
-        query=osm_extract_query,
-        source=osm_extract_source,
-        download_directory=working_directory,
-        progressbar=verbosity_mode != "silent",
-        select_first_match=select_first_match,
-    ).download_paths[0]
+    with progress_display(verbosity_mode) as display:
+        downloaded_osm_extract = download(
+            query=osm_extract_query,
+            source=osm_extract_source,
+            download_directory=working_directory,
+            progressbar=display.pooch_progressbar("Downloading OSM extract"),
+            select_first_match=select_first_match,
+        ).download_paths[0]
     result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
@@ -1316,6 +1319,7 @@ def convert_geometry_to_parquet(
     return Path(result_path)
 
 
+@with_progress_display
 def convert_osm_extract_to_parquet(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
@@ -1492,13 +1496,14 @@ def convert_osm_extract_to_parquet(
         >>> gpq_path.as_posix()
         'files/geofabrik_europe_monaco_nofilter_noclip_compact_sorted.parquet'
     """
-    downloaded_osm_extract = download(
-        query=osm_extract_query,
-        source=osm_extract_source,
-        download_directory=working_directory,
-        progressbar=verbosity_mode != "silent",
-        select_first_match=select_first_match,
-    ).download_paths[0]
+    with progress_display(verbosity_mode) as display:
+        downloaded_osm_extract = download(
+            query=osm_extract_query,
+            source=osm_extract_source,
+            download_directory=working_directory,
+            progressbar=display.pooch_progressbar("Downloading OSM extract"),
+            select_first_match=select_first_match,
+        ).download_paths[0]
     result_path = PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
@@ -1981,6 +1986,7 @@ def convert_geometry_to_geodataframe(
     )
 
 
+@with_progress_display
 def convert_osm_extract_to_geodataframe(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
@@ -2142,13 +2148,14 @@ def convert_osm_extract_to_geodataframe(
         <BLANKLINE>
         [7906 rows x 2 columns]
     """
-    downloaded_osm_extract = download(
-        query=osm_extract_query,
-        source=osm_extract_source,
-        download_directory=working_directory,
-        progressbar=verbosity_mode != "silent",
-        select_first_match=select_first_match,
-    ).download_paths[0]
+    with progress_display(verbosity_mode) as display:
+        downloaded_osm_extract = download(
+            query=osm_extract_query,
+            source=osm_extract_source,
+            download_directory=working_directory,
+            progressbar=display.pooch_progressbar("Downloading OSM extract"),
+            select_first_match=select_first_match,
+        ).download_paths[0]
     return PbfFileReader(
         tags_filter=tags_filter,
         geometry_filter=geometry_filter,
