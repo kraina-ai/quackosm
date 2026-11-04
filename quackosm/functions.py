@@ -572,7 +572,7 @@ def convert_geometry_to_duckdb(
     return Path(result_path)
 
 
-@with_progress_display
+@with_progress_display  # type: ignore[misc]
 def convert_osm_extract_to_duckdb(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
@@ -1319,7 +1319,7 @@ def convert_geometry_to_parquet(
     return Path(result_path)
 
 
-@with_progress_display
+@with_progress_display  # type: ignore[misc]
 def convert_osm_extract_to_parquet(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,
@@ -1986,7 +1986,7 @@ def convert_geometry_to_geodataframe(
     )
 
 
-@with_progress_display
+@with_progress_display  # type: ignore[misc]
 def convert_osm_extract_to_geodataframe(
     osm_extract_query: str,
     osm_extract_source: OsmExtractSourceLike = OsmExtractSource.any,

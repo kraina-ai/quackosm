@@ -971,7 +971,7 @@ def main(
                 osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 select_first_match=select_first_match,
-                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                tags_filter=osm_tags_filter or osm_tags_filter_file,
                 keep_all_tags=keep_all_tags,
                 geometry_filter=geometry_filter_value,
                 explode_tags=explode_tags,
@@ -988,7 +988,7 @@ def main(
                     else None
                 ),
                 ignore_metadata_tags=ignore_metadata_tags,
-                filter_osm_ids=filter_osm_ids,  # type: ignore
+                filter_osm_ids=filter_osm_ids,
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
                 sort_algorithm=sort_algorithm,
@@ -1012,7 +1012,7 @@ def main(
                 osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 select_first_match=select_first_match,
-                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                tags_filter=osm_tags_filter or osm_tags_filter_file,
                 keep_all_tags=keep_all_tags,
                 geometry_filter=geometry_filter_value,
                 explode_tags=explode_tags,
@@ -1029,7 +1029,7 @@ def main(
                     else None
                 ),
                 ignore_metadata_tags=ignore_metadata_tags,
-                filter_osm_ids=filter_osm_ids,  # type: ignore
+                filter_osm_ids=filter_osm_ids,
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
                 sort_algorithm=sort_algorithm,

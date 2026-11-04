@@ -279,7 +279,7 @@ class PbfFileReader:
         self.osm_extract_source = osm_extract_source
         self.working_directory = Path(working_directory)
         self.working_directory.mkdir(parents=True, exist_ok=True)
-        self.connection: duckdb.DuckDBPyConnection = None  # type: ignore[assignment]
+        self.connection: duckdb.DuckDBPyConnection = None
         self.encountered_query_exception = False
         self.verbosity_mode = verbosity_mode
         self.debug_memory = debug_memory
@@ -360,7 +360,7 @@ class PbfFileReader:
 
         return self._task_progress_tracker
 
-    @with_progress_display(total_steps=TOTAL_STEPS)
+    @with_progress_display(total_steps=TOTAL_STEPS)  # type: ignore[misc]
     def convert_pbf_to_parquet(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -654,9 +654,9 @@ class PbfFileReader:
             finally:
                 if self.connection is not None:
                     self.connection.close()
-                    self.connection = None  # type: ignore[assignment]
+                    self.connection = None
 
-    @with_progress_display
+    @with_progress_display  # type: ignore[misc]
     def convert_geometry_to_parquet(
         self,
         result_file_path: Optional[Union[str, Path]] = None,
@@ -760,7 +760,7 @@ class PbfFileReader:
         ]
         downloaded_extract_paths = matching_extracts_with_paths.download_paths
 
-        return self.convert_pbf_to_parquet(
+        return self.convert_pbf_to_parquet(  # type: ignore[no-any-return]
             downloaded_extract_paths,
             result_file_path=result_file_path,
             keep_all_tags=keep_all_tags,
@@ -774,7 +774,7 @@ class PbfFileReader:
         )
 
     @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")
-    @with_progress_display
+    @with_progress_display  # type: ignore[misc]
     def convert_pbf_to_geodataframe(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -837,7 +837,7 @@ class PbfFileReader:
 
         return gdf_parquet
 
-    @with_progress_display
+    @with_progress_display  # type: ignore[misc]
     def convert_geometry_to_geodataframe(
         self,
         keep_all_tags: bool = False,
@@ -893,7 +893,7 @@ class PbfFileReader:
 
         return gdf_parquet
 
-    @with_progress_display
+    @with_progress_display  # type: ignore[misc]
     def convert_pbf_to_duckdb(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -990,7 +990,7 @@ class PbfFileReader:
 
         return result_file_path
 
-    @with_progress_display
+    @with_progress_display  # type: ignore[misc]
     def convert_geometry_to_duckdb(
         self,
         result_file_path: Optional[Union[str, Path]] = None,
@@ -1559,7 +1559,7 @@ class PbfFileReader:
             value_with_star = value_with_star.replace("**", "*")
 
         value_with_percent = value_with_star.replace("*", "%")
-        return sql_escape(value_with_percent)
+        return cast("str", sql_escape(value_with_percent))
 
     def _prefilter_elements_ids(
         self, elements: "duckdb.DuckDBPyRelation", filter_osm_ids: list[str]

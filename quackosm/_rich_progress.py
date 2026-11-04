@@ -55,7 +55,7 @@ class TaskProgressTracker:
 
     @property
     def major_step_number(self) -> int:
-        return self.steps.major_step_number
+        return self.steps.major_step_number  # type: ignore[no-any-return]
 
     @major_step_number.setter
     def major_step_number(self, value: int) -> None:
