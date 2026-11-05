@@ -46,7 +46,6 @@ from rq_geo_toolkit.duckdb import (
     DuckDBConnKwargs,
     set_up_duckdb_connection,
     sql_escape,
-    temporary_duckdb_connection,
 )
 from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import (
@@ -295,7 +294,7 @@ class PbfFileReader:
         self.internal_parquet_compression = "zstd"
 
         if not cpu_limit:
-            with temporary_duckdb_connection(self.working_directory) as connection:
+            with duckdb.connect() as connection:
                 cpu_limit = (
                     connection.sql("SELECT current_setting('threads') AS threads")
                     .limit(1)
@@ -2893,9 +2892,9 @@ class PbfFileReader:
         grouped_ways_path: Path,
     ) -> "duckdb.DuckDBPyRelation":
         finished_operation = False
+        first_step_number = self.task_progress_tracker.major_step_number
 
         while not finished_operation:
-            reset_steps = 1
             grouped_ways = False
             try:
                 groups = self._group_ways(
@@ -2907,8 +2906,6 @@ class PbfFileReader:
                     grouped_ways_path=grouped_ways_path,
                     group_all_at_once=not self.encountered_query_exception,
                 )
-                reset_steps += 1
-
                 grouped_ways = True
 
                 self._delete_directories(grouped_ways_tmp_path)
@@ -2930,7 +2927,7 @@ class PbfFileReader:
                     lower_number_of_rows = False
                 if not grouped_ways:
                     self.encountered_query_exception = True
-                self.task_progress_tracker.major_step_number -= reset_steps
+                self.task_progress_tracker.major_step_number = first_step_number
                 self._delete_directories(
                     [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                 )
@@ -3240,6 +3237,7 @@ class PbfFileReader:
         required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
     ) -> Path:
         finished_operation = False
+        first_step_number = self.task_progress_tracker.major_step_number
 
         while not finished_operation:
             try:
@@ -3252,7 +3250,7 @@ class PbfFileReader:
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError):
                 if not self.encountered_query_exception:
                     self.encountered_query_exception = True
-                    self.task_progress_tracker.major_step_number -= 1
+                    self.task_progress_tracker.major_step_number = first_step_number
                 else:
                     raise
 

@@ -8,7 +8,6 @@ from typing import Literal, TypeAlias
 
 from rich import print as rprint
 from rq_geo_toolkit.rich_utils import (
-    FORCE_TERMINAL,
     VERBOSITY_MODE,
     ProgressTask,
     StepCounter,
@@ -16,7 +15,6 @@ from rq_geo_toolkit.rich_utils import (
 )
 
 __all__ = [
-    "FORCE_TERMINAL",
     "VERBOSITY_MODE",
     "TaskProgressBar",
     "TaskProgressTracker",
