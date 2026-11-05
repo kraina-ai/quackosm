@@ -77,6 +77,10 @@ class TaskProgressTracker:
         with progress_display(self.verbosity_mode) as display:
             display.step_group(step_name, total_minor_steps)
 
+    def skip_step(self, step_name: str) -> None:
+        with progress_display(self.verbosity_mode) as display:
+            display.skip_step(step_name)
+
     @contextmanager
     def get_spinner(
         self, step_name: str, next_step: Literal["major", "minor"] = "major"
