@@ -46,6 +46,7 @@ from rq_geo_toolkit.duckdb import (
     DuckDBConnKwargs,
     set_up_duckdb_connection,
     sql_escape,
+    temporary_duckdb_connection,
 )
 from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import (
@@ -294,7 +295,7 @@ class PbfFileReader:
         self.internal_parquet_compression = "zstd"
 
         if not cpu_limit:
-            with duckdb.connect() as connection:
+            with temporary_duckdb_connection(self.working_directory) as connection:
                 cpu_limit = (
                     connection.sql("SELECT current_setting('threads') AS threads")
                     .limit(1)
