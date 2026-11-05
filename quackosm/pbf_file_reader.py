@@ -4178,7 +4178,8 @@ def _set_up_duckdb_connection(
     threads_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Union["duckdb.DuckDBPyConnection", tuple["duckdb.DuckDBPyConnection", "Path"]]:
-    duckdb_conn_kwargs = duckdb_conn_kwargs or {}
+    # the reader passes the same dict to every connection
+    duckdb_conn_kwargs = cast("DuckDBConnKwargs", dict(duckdb_conn_kwargs or {}))
     duckdb_conn_kwargs["randomize_db_file_name"] = not is_main_connection
     provisioning_queries = [
         *duckdb_conn_kwargs.get("provisioning_queries", []),

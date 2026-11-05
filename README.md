@@ -305,27 +305,26 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 $ quackosm --geom-filter-geocode "Shibuya, Tokyo"
 100%|██████████████████████████████████████| 74.8M/74.8M [00:00<00:00, 321GB/s]
 ⠸ [ 1/16] Filtering OSM elements
-⠸  ├─ [1/6] Elements by tags • 0:00:00
-⠹  ├─ [2/6] Unnesting relations • 0:00:00
-⠋  ├─ [3/6] Ways required ids • 0:00:00
-⠦  ├─ [4/6] Unnesting ways • 0:00:00
-⠼  ├─ [5/6] Nodes required ids • 0:00:00
-⠸  └─ [6/6] Reading nodes points • 0:00:00
-  [ 1.7/16] Filtering: nodes by intersection 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6/6 • 0:00:01 < 0:00:00 •
-⠙ [ 1/16] Filtering OSM elements
-⠙  ├─ [ 1/13] Ways by intersection • 0:00:00
-⠋  ├─ [ 2/13] Relations by intersection • 0:00:00
-⠋  ├─ [ 3/13] Unnested intersected relations • 0:00:00
-⠋  ├─ [ 4/13] Ways required intersected ids • 0:00:00
-⠋  ├─ [ 5/13] Unnested intersected ways • 0:00:00
-⠼  ├─ [ 6/13] Nodes required intersected ids • 0:00:00
-⠦  ├─ [ 7/13] Ways valid ids • 0:00:00
-⠋  ├─ [ 8/13] Ways required and valid • 0:00:00
-⠦  ├─ [ 9/13] Relations valid ids • 0:00:00
-⠙  ├─ [10/13] Read elements tags • 0:00:00
-⠋  ├─ [11/13] Read nodes tags • 0:00:00
-⠋  ├─ [12/13] Read ways tags • 0:00:00
-⠋  └─ [13/13] Read relations tags • 0:00:00
+⠸  ├─ [ 1/20] Elements by tags • 0:00:00
+⠹  ├─ [ 2/20] Unnesting relations • 0:00:00
+⠋  ├─ [ 3/20] Ways required ids • 0:00:00
+⠦  ├─ [ 4/20] Unnesting ways • 0:00:00
+⠼  ├─ [ 5/20] Nodes required ids • 0:00:00
+⠸  ├─ [ 6/20] Reading nodes points • 0:00:00
+   ├─ [ 7/20] Nodes by intersection 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6/6 • 0:00:01 < 0:00:00 •
+⠙  ├─ [ 8/20] Ways by intersection • 0:00:00
+⠋  ├─ [ 9/20] Relations by intersection • 0:00:00
+⠋  ├─ [10/20] Unnested intersected relations • 0:00:00
+⠋  ├─ [11/20] Ways required intersected ids • 0:00:00
+⠋  ├─ [12/20] Unnested intersected ways • 0:00:00
+⠼  ├─ [13/20] Nodes required intersected ids • 0:00:00
+⠦  ├─ [14/20] Ways valid ids • 0:00:00
+⠋  ├─ [15/20] Ways required and valid • 0:00:00
+⠦  ├─ [16/20] Relations valid ids • 0:00:00
+⠙  ├─ [17/20] Read elements tags • 0:00:00
+⠋  ├─ [18/20] Read nodes tags • 0:00:00
+⠋  ├─ [19/20] Read ways tags • 0:00:00
+⠋  └─ [20/20] Read relations tags • 0:00:00
 ⠋ [ 2/16] Saving filtered nodes with geometries • 0:00:00
 ⠋ [ 3/16] Grouping filtered ways
 ⠋  ├─ [1/3] Assigning groups • 0:00:00
