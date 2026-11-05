@@ -2981,6 +2981,8 @@ class PbfFileReader:
             empty_file_path = str(destination_dir_path / "empty.parquet")
             self.connection.sql("CREATE OR REPLACE TABLE x(id STRING, linestring LINESTRING_2D);")
             self.connection.table("x").to_parquet(empty_file_path)
+            # there is no step group to take the step number
+            self.task_progress_tracker.major_step_number += 1
             return -1
 
         groups = int(floor(total_required_ways / self.internal_rows_per_group))
