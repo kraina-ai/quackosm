@@ -183,43 +183,43 @@ way/993121275      {'building': 'yes', 'name': ...  POLYGON ((7.43214 43.7481...
 
 ```console
 $ quackosm monaco.osm.pbf
-⠙ [ 1/16] Filtering OSM elements
-⠙  ├─ [ 1/14] Read nodes • 0:00:00
-⠋  ├─ [ 2/14] Read nodes points • 0:00:00
-⠋  ├─ [ 3/14] Read nodes tags • 0:00:00
-⠋  ├─ [ 4/14] Read elements refs • 0:00:00
-⠋  ├─ [ 5/14] Read ways refs • 0:00:00
-⠋  ├─ [ 6/14] Read relations refs • 0:00:00
-⠦  ├─ [ 7/14] Ways valid ids • 0:00:00
-⠦  ├─ [ 8/14] Relations valid ids • 0:00:00
-⠋  ├─ [ 9/14] Unnested relations • 0:00:00
-⠋  ├─ [10/14] Ways required and valid • 0:00:00
-⠋  ├─ [11/14] Unnested ways • 0:00:00
-⠋  ├─ [12/14] Read elements tags • 0:00:00
-⠋  ├─ [13/14] Read ways tags • 0:00:00
-⠋  └─ [14/14] Read relations tags • 0:00:00
-⠋ [ 2/16] Saving filtered nodes with geometries • 0:00:00
-⠋ [ 3/16] Grouping filtered ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠋ [ 5/16] Grouping required ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠋ [ 7/16] Saving filtered ways with geometries • 0:00:00
-⠋ [ 8/16] Saving valid relations parts • 0:00:00
-⠋ [ 9/16] Saving relations inner parts • 0:00:00
-⠋ [10/16] Saving relations outer parts • 0:00:00
-⠋ [11/16] Saving relations outer parts with holes • 0:00:00
-⠋ [12/16] Saving relations outer parts without holes • 0:00:00
-⠋ [13/16] Saving filtered relations with geometries • 0:00:00
-⠋ [14/16] Saving all features • 0:00:00
-⠹ [15/16] Saving final geoparquet file • 0:00:00
-  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7906/7906 • 0:00:00 < 0:00:00 •
-Finished operation in 0:00:06
+  [ 1/16] Filtering OSM elements
+   ├─ [ 1/14] Read nodes • 0:00:00
+   ├─ [ 2/14] Read nodes points • 0:00:00
+   ├─ [ 3/14] Read nodes tags • 0:00:00
+   ├─ [ 4/14] Read elements refs • 0:00:00
+   ├─ [ 5/14] Read ways refs • 0:00:00
+   ├─ [ 6/14] Read relations refs • 0:00:00
+   ├─ [ 7/14] Ways valid ids • 0:00:01
+   ├─ [ 8/14] Relations valid ids • 0:00:01
+   ├─ [ 9/14] Unnested relations • 0:00:00
+   ├─ [10/14] Ways required and valid • 0:00:00
+   ├─ [11/14] Unnested ways • 0:00:00
+   ├─ [12/14] Read elements tags • 0:00:00
+   ├─ [13/14] Read ways tags • 0:00:00
+   └─ [14/14] Read relations tags • 0:00:00
+  [ 2/16] Saving filtered nodes with geometries • 0:00:00
+  [ 3/16] Grouping filtered ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.01 s/it
+  [ 5/16] Grouping required ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.01 s/it
+  [ 7/16] Saving filtered ways with geometries • 0:00:00
+  [ 8/16] Saving valid relations parts • 0:00:00
+  [ 9/16] Saving relations inner parts • 0:00:00
+  [10/16] Saving relations outer parts • 0:00:00
+  [11/16] Saving relations outer parts with holes • 0:00:00
+  [12/16] Saving relations outer parts without holes • 0:00:00
+  [13/16] Saving filtered relations with geometries • 0:00:00
+  [14/16] Saving all features • 0:00:00
+  [15/16] Saving final geoparquet file • 0:00:00
+  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━ 10472/10472 • 0:00:01 < 0:00:00 • 9705.47 it/s
+Finished operation in 0:00:10
 files/monaco_nofilter_noclip_compact_sorted.parquet
 ```
 
@@ -302,52 +302,53 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 #### Use as CLI
 
 ```console
-$ quackosm --geom-filter-geocode "Shibuya, Tokyo"
-100%|██████████████████████████████████████| 74.8M/74.8M [00:00<00:00, 321GB/s]
-⠸ [ 1/16] Filtering OSM elements
-⠸  ├─ [ 1/20] Elements by tags • 0:00:00
-⠹  ├─ [ 2/20] Unnesting relations • 0:00:00
-⠋  ├─ [ 3/20] Ways required ids • 0:00:00
-⠦  ├─ [ 4/20] Unnesting ways • 0:00:00
-⠼  ├─ [ 5/20] Nodes required ids • 0:00:00
-⠸  ├─ [ 6/20] Reading nodes points • 0:00:00
-   ├─ [ 7/20] Nodes by intersection 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6/6 • 0:00:01 < 0:00:00 •
-⠙  ├─ [ 8/20] Ways by intersection • 0:00:00
-⠋  ├─ [ 9/20] Relations by intersection • 0:00:00
-⠋  ├─ [10/20] Unnested intersected relations • 0:00:00
-⠋  ├─ [11/20] Ways required intersected ids • 0:00:00
-⠋  ├─ [12/20] Unnested intersected ways • 0:00:00
-⠼  ├─ [13/20] Nodes required intersected ids • 0:00:00
-⠦  ├─ [14/20] Ways valid ids • 0:00:00
-⠋  ├─ [15/20] Ways required and valid • 0:00:00
-⠦  ├─ [16/20] Relations valid ids • 0:00:00
-⠙  ├─ [17/20] Read elements tags • 0:00:00
-⠋  ├─ [18/20] Read nodes tags • 0:00:00
-⠋  ├─ [19/20] Read ways tags • 0:00:00
-⠋  └─ [20/20] Read relations tags • 0:00:00
-⠋ [ 2/16] Saving filtered nodes with geometries • 0:00:00
-⠋ [ 3/16] Grouping filtered ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠋ [ 5/16] Grouping required ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠙ [ 7/16] Saving filtered ways with geometries • 0:00:00
-⠋ [ 8/16] Saving valid relations parts • 0:00:00
-⠋ [ 9/16] Saving relations inner parts • 0:00:00
-⠋ [10/16] Saving relations outer parts • 0:00:00
-⠋ [11/16] Saving relations outer parts with holes • 0:00:00
-⠋ [12/16] Saving relations outer parts without holes • 0:00:00
-⠋ [13/16] Saving filtered relations with geometries • 0:00:00
-⠋ [14/16] Saving all features • 0:00:00
-⠼ [15/16] Saving final geoparquet file • 0:00:00
-  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 53085/53085 • 0:00:00 < 0:00:00 •
-Finished operation in 0:00:11
-files/b0089852_nofilter_compact_sorted.parquet
+$ quackosm --geom-filter-geocode "Monaco"
+GeometryNotCoveredWarning: Discarded 19 extracts with IoU below the threshold of 0.01.
+  movisda-admin_monaco.osm.pbf 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 462.6/462.6 kB • 0:00:00 < 0:00:00 • 1.2 MB/s
+  [ 1/16] Filtering OSM elements
+   ├─ [ 1/20] Elements by tags • 0:00:00
+   ├─ [ 2/20] Unnesting relations • 0:00:00
+   ├─ [ 3/20] Ways required ids • 0:00:00
+   ├─ [ 4/20] Unnesting ways • 0:00:00
+   ├─ [ 5/20] Nodes required ids • 0:00:00
+   ├─ [ 6/20] Reading nodes points • 0:00:00
+   ├─ [ 7/20] Nodes by intersection 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.22 s/it
+   ├─ [ 8/20] Ways by intersection • 0:00:00
+   ├─ [ 9/20] Relations by intersection • 0:00:00
+   ├─ [10/20] Unnested intersected relations • 0:00:00
+   ├─ [11/20] Ways required intersected ids • 0:00:00
+   ├─ [12/20] Unnested intersected ways • 0:00:00
+   ├─ [13/20] Nodes required intersected ids • 0:00:00
+   ├─ [14/20] Ways valid ids • 0:00:01
+   ├─ [15/20] Ways required and valid • 0:00:00
+   ├─ [16/20] Relations valid ids • 0:00:01
+   ├─ [17/20] Read elements tags • 0:00:00
+   ├─ [18/20] Read nodes tags • 0:00:00
+   ├─ [19/20] Read ways tags • 0:00:00
+   └─ [20/20] Read relations tags • 0:00:00
+  [ 2/16] Saving filtered nodes with geometries • 0:00:00
+  [ 3/16] Grouping filtered ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.03 s/it
+  [ 5/16] Grouping required ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.02 s/it
+  [ 7/16] Saving filtered ways with geometries • 0:00:00
+  [ 8/16] Saving valid relations parts • 0:00:00
+  [ 9/16] Saving relations inner parts • 0:00:00
+  [10/16] Saving relations outer parts • 0:00:00
+  [11/16] Saving relations outer parts with holes • 0:00:00
+  [12/16] Saving relations outer parts without holes • 0:00:00
+  [13/16] Saving filtered relations with geometries • 0:00:00
+  [14/16] Saving all features • 0:00:00
+  [15/16] Saving final geoparquet file • 0:00:00
+  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━━━ 9359/9359 • 0:00:01 < 0:00:00 • 8687.18 it/s
+Finished operation in 0:00:13
+files/5b55b38e_nofilter_compact_sorted.parquet
 ```
 
 ### Let the QuackOSM automatically find the required OSM PBF file for you based on text query 🔎📄
@@ -425,45 +426,49 @@ relation/3256168   {'building': 'yes', 'type': ...  POLYGON ((12.46061 41.907...
 
 ```console
 $ quackosm --osm-extract-query "Gibraltar"
-100%|███████████████████████████████████████| 761k/761k [00:00<00:00, 2.67GB/s]
-⠋ [ 1/16] Filtering OSM elements
-⠋  ├─ [ 1/14] Read nodes • 0:00:00
-⠋  ├─ [ 2/14] Read nodes points • 0:00:00
-⠋  ├─ [ 3/14] Read nodes tags • 0:00:00
-⠋  ├─ [ 4/14] Read elements refs • 0:00:00
-⠋  ├─ [ 5/14] Read ways refs • 0:00:00
-⠋  ├─ [ 6/14] Read relations refs • 0:00:00
-⠦  ├─ [ 7/14] Ways valid ids • 0:00:00
-⠦  ├─ [ 8/14] Relations valid ids • 0:00:00
-⠋  ├─ [ 9/14] Unnested relations • 0:00:00
-⠋  ├─ [10/14] Ways required and valid • 0:00:00
-⠋  ├─ [11/14] Unnested ways • 0:00:00
-⠋  ├─ [12/14] Read elements tags • 0:00:00
-⠋  ├─ [13/14] Read ways tags • 0:00:00
-⠋  └─ [14/14] Read relations tags • 0:00:00
-⠋ [ 2/16] Saving filtered nodes with geometries • 0:00:00
-⠋ [ 3/16] Grouping filtered ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠋ [ 5/16] Grouping required ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠙ [ 7/16] Saving filtered ways with geometries • 0:00:00
-⠋ [ 8/16] Saving valid relations parts • 0:00:00
-⠋ [ 9/16] Saving relations inner parts • 0:00:00
-⠋ [10/16] Saving relations outer parts • 0:00:00
-⠋ [11/16] Saving relations outer parts with holes • 0:00:00
-⠋ [12/16] Saving relations outer parts without holes • 0:00:00
-⠋ [13/16] Saving filtered relations with geometries • 0:00:00
-⠋ [14/16] Saving all features • 0:00:00
-⠹ [15/16] Saving final geoparquet file • 0:00:00
-  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10547/10547 • 0:00:00 < 0:00:00 •
-Finished operation in 0:00:06
-files/osmfr_europe_gibraltar_nofilter_noclip_compact_sorted.parquet
+OsmExtractMultipleMatchesWarning: Multiple extracts matched by query "Gibraltar" (matching full names:
+"geo2day_europe_gibraltar", "movisda-admin_gibraltar", "osmfr_europe_gibraltar"). Selected
+"movisda-admin_gibraltar". Use the full name as a query or set `select_first_match=False` to control this
+behaviour.
+  movisda-admin_gibraltar.osm.pbf 100% ━━━━━━━━━━━━━━━━━━━━━━━ 464.0/464.0 kB • 0:00:00 < 0:00:00 • 614.8 kB/s
+  [ 1/16] Filtering OSM elements
+   ├─ [ 1/14] Read nodes • 0:00:00
+   ├─ [ 2/14] Read nodes points • 0:00:00
+   ├─ [ 3/14] Read nodes tags • 0:00:00
+   ├─ [ 4/14] Read elements refs • 0:00:00
+   ├─ [ 5/14] Read ways refs • 0:00:00
+   ├─ [ 6/14] Read relations refs • 0:00:00
+   ├─ [ 7/14] Ways valid ids • 0:00:01
+   ├─ [ 8/14] Relations valid ids • 0:00:01
+   ├─ [ 9/14] Unnested relations • 0:00:00
+   ├─ [10/14] Ways required and valid • 0:00:00
+   ├─ [11/14] Unnested ways • 0:00:00
+   ├─ [12/14] Read elements tags • 0:00:00
+   ├─ [13/14] Read ways tags • 0:00:00
+   └─ [14/14] Read relations tags • 0:00:00
+  [ 2/16] Saving filtered nodes with geometries • 0:00:00
+  [ 3/16] Grouping filtered ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.01 s/it
+  [ 5/16] Grouping required ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.02 s/it
+  [ 7/16] Saving filtered ways with geometries • 0:00:00
+  [ 8/16] Saving valid relations parts • 0:00:00
+  [ 9/16] Saving relations inner parts • 0:00:00
+  [10/16] Saving relations outer parts • 0:00:00
+  [11/16] Saving relations outer parts with holes • 0:00:00
+  [12/16] Saving relations outer parts without holes • 0:00:00
+  [13/16] Saving filtered relations with geometries • 0:00:00
+  [14/16] Saving all features • 0:00:00
+  [15/16] Saving final geoparquet file • 0:00:00
+  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━━━ 9240/9240 • 0:00:01 < 0:00:00 • 8468.70 it/s
+Finished operation in 0:00:12
+files/movisda-admin_gibraltar_nofilter_noclip_compact_sorted.parquet
 ```
 
 ### Let the QuackOSM export data directly to a DuckDB database 🦆
@@ -509,43 +514,43 @@ files/osmfr_europe_gibraltar_nofilter_noclip_compact_sorted.parquet
 #### Use as CLI
 ```console
 $ quackosm monaco.osm.pbf --output monaco_osm.duckdb --duckdb-table-name 'osm'
-⠋ [ 1/16] Filtering OSM elements
-⠋  ├─ [ 1/14] Read nodes • 0:00:00
-⠋  ├─ [ 2/14] Read nodes points • 0:00:00
-⠋  ├─ [ 3/14] Read nodes tags • 0:00:00
-⠋  ├─ [ 4/14] Read elements refs • 0:00:00
-⠋  ├─ [ 5/14] Read ways refs • 0:00:00
-⠋  ├─ [ 6/14] Read relations refs • 0:00:00
-⠦  ├─ [ 7/14] Ways valid ids • 0:00:00
-⠦  ├─ [ 8/14] Relations valid ids • 0:00:00
-⠋  ├─ [ 9/14] Unnested relations • 0:00:00
-⠋  ├─ [10/14] Ways required and valid • 0:00:00
-⠋  ├─ [11/14] Unnested ways • 0:00:00
-⠋  ├─ [12/14] Read elements tags • 0:00:00
-⠋  ├─ [13/14] Read ways tags • 0:00:00
-⠋  └─ [14/14] Read relations tags • 0:00:00
-⠋ [ 2/16] Saving filtered nodes with geometries • 0:00:00
-⠋ [ 3/16] Grouping filtered ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠋ [ 5/16] Grouping required ways
-⠋  ├─ [1/3] Assigning groups • 0:00:00
-⠦  ├─ [2/3] Joining with nodes • 0:00:00
-⠦  └─ [3/3] Partitioning by group • 0:00:00
-  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:00 < 0:00:00 •
-⠙ [ 7/16] Saving filtered ways with geometries • 0:00:00
-⠋ [ 8/16] Saving valid relations parts • 0:00:00
-⠋ [ 9/16] Saving relations inner parts • 0:00:00
-⠋ [10/16] Saving relations outer parts • 0:00:00
-⠋ [11/16] Saving relations outer parts with holes • 0:00:00
-⠋ [12/16] Saving relations outer parts without holes • 0:00:00
-⠋ [13/16] Saving filtered relations with geometries • 0:00:00
-⠋ [14/16] Saving all features • 0:00:00
-⠹ [15/16] Saving final geoparquet file • 0:00:00
-  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7906/7906 • 0:00:00 < 0:00:00 •
-Finished operation in 0:00:06
+  [ 1/16] Filtering OSM elements
+   ├─ [ 1/14] Read nodes • 0:00:00
+   ├─ [ 2/14] Read nodes points • 0:00:00
+   ├─ [ 3/14] Read nodes tags • 0:00:00
+   ├─ [ 4/14] Read elements refs • 0:00:00
+   ├─ [ 5/14] Read ways refs • 0:00:00
+   ├─ [ 6/14] Read relations refs • 0:00:00
+   ├─ [ 7/14] Ways valid ids • 0:00:01
+   ├─ [ 8/14] Relations valid ids • 0:00:01
+   ├─ [ 9/14] Unnested relations • 0:00:00
+   ├─ [10/14] Ways required and valid • 0:00:00
+   ├─ [11/14] Unnested ways • 0:00:00
+   ├─ [12/14] Read elements tags • 0:00:00
+   ├─ [13/14] Read ways tags • 0:00:00
+   └─ [14/14] Read relations tags • 0:00:00
+  [ 2/16] Saving filtered nodes with geometries • 0:00:00
+  [ 3/16] Grouping filtered ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.01 s/it
+  [ 5/16] Grouping required ways
+   ├─ [1/3] Assigning groups • 0:00:00
+   ├─ [2/3] Joining with nodes • 0:00:01
+   └─ [3/3] Partitioning by group • 0:00:01
+  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.01 s/it
+  [ 7/16] Saving filtered ways with geometries • 0:00:00
+  [ 8/16] Saving valid relations parts • 0:00:00
+  [ 9/16] Saving relations inner parts • 0:00:00
+  [10/16] Saving relations outer parts • 0:00:00
+  [11/16] Saving relations outer parts with holes • 0:00:00
+  [12/16] Saving relations outer parts without holes • 0:00:00
+  [13/16] Saving filtered relations with geometries • 0:00:00
+  [14/16] Saving all features • 0:00:00
+  [15/16] Saving final geoparquet file • 0:00:00
+  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━ 10472/10472 • 0:00:01 < 0:00:00 • 9652.69 it/s
+Finished operation in 0:00:11
 monaco_osm.duckdb
 ```
 
