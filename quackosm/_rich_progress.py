@@ -59,6 +59,11 @@ class TaskProgressTracker:
     def major_step_number(self, value: int) -> None:
         self.steps.major_step_number = value
 
+    @property
+    def major_step_label(self) -> str:
+        width = len(str(self.steps.total_steps))
+        return f"[{self.major_step_number: >{width}}/{self.steps.total_steps}]"
+
     def reset_steps(self, current_file_step: int) -> None:
         prefix = ""
         if self.total_files_steps > 1:

@@ -2758,7 +2758,8 @@ class PbfFileReader:
                     self.connection.sql(f"SET threads = {current_cpu_limit};")
                     if not self.verbosity_mode == "silent":
                         log_message(
-                            f"Encountered {ex.__class__.__name__} during operation."
+                            f"{self.task_progress_tracker.major_step_label}"
+                            f" Encountered {ex.__class__.__name__} during operation."
                             " Retrying with lower number of threads"
                             f" ({current_cpu_limit})."
                         )
@@ -2923,6 +2924,7 @@ class PbfFileReader:
 
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
+                failed_step_label = self.task_progress_tracker.major_step_label
                 lower_number_of_rows = True
                 if not grouped_ways and not self.encountered_query_exception:
                     lower_number_of_rows = False
@@ -2935,8 +2937,8 @@ class PbfFileReader:
                 if not lower_number_of_rows:
                     if not self.verbosity_mode == "silent":
                         log_message(
-                            f"Encountered {ex.__class__.__name__} during operation."
-                            " Retrying with another grouping method."
+                            f"{failed_step_label} Encountered {ex.__class__.__name__}"
+                            " during operation. Retrying with another grouping method."
                         )
                 elif self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     smaller_rows_per_group = 0
@@ -2948,8 +2950,8 @@ class PbfFileReader:
                     self.internal_rows_per_group = smaller_rows_per_group
                     if not self.verbosity_mode == "silent":
                         log_message(
-                            f"Encountered {ex.__class__.__name__} during operation."
-                            " Retrying with lower number of rows per group"
+                            f"{failed_step_label} Encountered {ex.__class__.__name__}"
+                            " during operation. Retrying with lower number of rows per group"
                             f" ({self.internal_rows_per_group})."
                         )
                 else:
