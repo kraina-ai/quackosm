@@ -216,6 +216,17 @@ def test_verbosity_mode(verbosity_mode: VERBOSITY_MODE) -> None:
     )
 
 
+@pytest.mark.parametrize("tags_filter", [None, {"building": True}, {"name:*": "*Grand Prix*"}])  # type: ignore
+@pytest.mark.parametrize("geometry_filter", [None, geometry_box()])  # type: ignore
+def test_step_counts(
+    tags_filter: Optional[OsmTagsFilter], geometry_filter: Optional[BaseGeometry]
+) -> None:
+    """Test all branches of numbered steps, checked by the `check_step_counts` fixture."""
+    PbfFileReader(tags_filter=tags_filter, geometry_filter=geometry_filter).convert_pbf_to_parquet(
+        Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf", ignore_cache=True
+    )
+
+
 def test_multipart_geometry_hash_calculation() -> None:
     """Test if geometry hash is orientation-agnostic."""
     geom_1 = geometry_box()

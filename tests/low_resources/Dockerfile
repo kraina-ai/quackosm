@@ -4,7 +4,7 @@ FROM python:3.12-slim-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential git \
  && pip install --no-cache-dir \
-    pdm \
+    "pdm[locked]" \
  && apt-get purge -y --auto-remove \
     build-essential \
  && apt-get clean \

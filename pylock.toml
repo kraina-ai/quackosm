@@ -532,11 +532,11 @@ dependencies = [
 
 [[packages]]
 name = "osmfinder"
-version = "1.2.0"
+version = "1.2.2"
 requires-python = ">=3.10"
-sdist = {name = "osmfinder-1.2.0.tar.gz", url = "https://files.pythonhosted.org/packages/4c/57/d0cbcb17ec9a7578e70a7198e92454e53668a42d5376d0589fd60a402db4/osmfinder-1.2.0.tar.gz", hashes = {sha256 = "7989bbc756dd53a92c7b95ac22e642576dd9dc673d3f35116f8d4f7b527d870f"}}
+sdist = {name = "osmfinder-1.2.2.tar.gz", url = "https://files.pythonhosted.org/packages/d3/49/07166a5deec7ad2ac3dca91d067042b36295e402f31e76378dfff9af379f/osmfinder-1.2.2.tar.gz", hashes = {sha256 = "296d6ebf3983adb9c907c33ead700a8a0489389bd83c5d201b1c2f8898047871"}}
 wheels = [
-    {name = "osmfinder-1.2.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/87/4b/229a8ad5fd51bceb56c00994805042570615651c8e3c7fde95b7b4212523/osmfinder-1.2.0-py3-none-any.whl",hashes = {sha256 = "d5c8dbe4063408f01f674ea049dffcffdd8e6aa83807a04f51bf8741d5d07a72"}},
+    {name = "osmfinder-1.2.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/64/96/2deebe25b6892915318fc1bfeb8d87b2a64e905c78e9a284cd01962b1c62/osmfinder-1.2.2-py3-none-any.whl",hashes = {sha256 = "cb2f4f81426a1999793674a37de19517278df3100f4f68f55e3926b36ea07cfc"}},
 ]
 marker = "\"default\" in dependency_groups"
 
@@ -780,11 +780,11 @@ dependencies = [
 
 [[packages]]
 name = "rq-geo-toolkit"
-version = "2026.10.1"
+version = "2026.11.1"
 requires-python = ">=3.10"
-sdist = {name = "rq_geo_toolkit-2026.10.1.tar.gz", url = "https://files.pythonhosted.org/packages/e7/90/03bb4a4a52161cdbea3df53e0ab524b78d86042d47ec7c06ee2e3e49e4c1/rq_geo_toolkit-2026.10.1.tar.gz", hashes = {sha256 = "781a8a2ffac31dbaa4f32745edc0c8b33ba8244f1d8d46f5d4c2543749c9c2c0"}}
+sdist = {name = "rq_geo_toolkit-2026.11.1.tar.gz", url = "https://files.pythonhosted.org/packages/c3/cb/850232649a70aca90d3fc6eba90eb17fda4f2addc3189982fd8d390ccbc8/rq_geo_toolkit-2026.11.1.tar.gz", hashes = {sha256 = "2ab3632e41124c9e5c27e45dcef57998bd44b2e89e25311fe2b9c9c42697c309"}}
 wheels = [
-    {name = "rq_geo_toolkit-2026.10.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/c9/d3/fd2f1b68b4c3c458ef6ca422a5522021e6fd0173015fbc91cea0bdf04412/rq_geo_toolkit-2026.10.1-py3-none-any.whl",hashes = {sha256 = "57bdf0d260e40ec76be9d2d491b884b4af2bc4d3247fe243a478f2098163b6e9"}},
+    {name = "rq_geo_toolkit-2026.11.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/1e/31/09914a85b44838911247bed1d360164dc05b7426993ee9f8518c621e2817/rq_geo_toolkit-2026.11.1-py3-none-any.whl",hashes = {sha256 = "8be3ccb44b2cc2a36ed9839aa92fe197932b2dd59fe3e6783dce2fbbf8fb7c5d"}},
 ]
 marker = "\"default\" in dependency_groups"
 
@@ -793,7 +793,7 @@ dependencies = [
     "geopandas>=1.0",
     "shapely>=2.0.6",
     "pyarrow>=16.0.0",
-    "rich>=12.0.0",
+    "rich>=12.3.0",
     "geopy>=2.0.0",
     "duckdb>=1.1.2",
     "psutil>=5.6.2",
@@ -5065,7 +5065,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "9de7957f7363c63918ca1ba984a02dee3515ac5f07cd9f562e04b98306a488a7"}
+hashes = {sha256 = "81357719d245ac24c0c97c6e0432424af6798c04080ea0207b1422c0f3d6a045"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]
