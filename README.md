@@ -302,9 +302,8 @@ way/998561139     {'barrier': 'bollard', 'bicyc...  LINESTRING (12.45828 41.9...
 #### Use as CLI
 
 ```console
-$ quackosm --geom-filter-geocode "Monaco"
-GeometryNotCoveredWarning: Discarded 19 extracts with IoU below the threshold of 0.01 (covered 99.76% area).
-  movisda-admin_monaco.osm.pbf 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 462.8/462.8 kB • 0:00:00 < 0:00:00 • 2.1 MB/s
+$ quackosm --geom-filter-geocode "Shibuya, Tokyo"
+  bbbike_tokyo.osm.pbf 100% ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 92.6/92.6 MB • 0:00:11 < 0:00:00 • 10.7 MB/s
   [ 1/16] Filtering OSM elements
    ├─ [ 1/20] Filtering elements by tags • 0:00:00
    ├─ [ 2/20] Unnesting relations • 0:00:00
@@ -312,7 +311,7 @@ GeometryNotCoveredWarning: Discarded 19 extracts with IoU below the threshold of
    ├─ [ 4/20] Unnesting ways • 0:00:00
    ├─ [ 5/20] Calculating nodes required ids • 0:00:00
    ├─ [ 6/20] Reading nodes points • 0:00:00
-   ├─ [ 7/20] Filtering nodes by intersection 100% ━━━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.64 s/it
+   ├─ [ 7/20] Filtering nodes by intersection 100% ━━━━━━━━━━━━━━━━━━━━━━━ 6/6 • 0:00:01 < 0:00:00 • 3.53 it/s
    ├─ [ 8/20] Filtering ways by intersection • 0:00:00
    ├─ [ 9/20] Filtering relations by intersection • 0:00:00
    ├─ [10/20] Unnesting intersecting relations • 0:00:00
@@ -322,7 +321,7 @@ GeometryNotCoveredWarning: Discarded 19 extracts with IoU below the threshold of
    ├─ [14/20] Calculating ways valid ids • 0:00:01
    ├─ [15/20] Calculating ways required and valid ids • 0:00:00
    ├─ [16/20] Calculating relations valid ids • 0:00:01
-   ├─ [17/20] Reading elements tags • 0:00:00
+   ├─ [17/20] Reading elements tags • 0:00:01
    ├─ [18/20] Reading nodes tags • 0:00:00
    ├─ [19/20] Reading ways tags • 0:00:00
    └─ [20/20] Reading relations tags • 0:00:00
@@ -331,12 +330,12 @@ GeometryNotCoveredWarning: Discarded 19 extracts with IoU below the threshold of
    ├─ [1/3] Assigning groups • 0:00:00
    ├─ [2/3] Joining with nodes • 0:00:01
    └─ [3/3] Partitioning by group • 0:00:01
-  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.01 s/it
+  [ 4/16] Saving filtered ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.02 s/it
   [ 5/16] Grouping required ways
    ├─ [1/3] Assigning groups • 0:00:00
    ├─ [2/3] Joining with nodes • 0:00:01
    └─ [3/3] Partitioning by group • 0:00:01
-  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.03 s/it
+  [ 6/16] Saving required ways with linestrings 100% ━━━━━━━━━━━━━━━━━━━━━ 1/1 • 0:00:01 < 0:00:00 • 1.01 s/it
   [ 7/16] Saving filtered ways with geometries • 0:00:00
   [ 8/16] Saving valid relations parts • 0:00:00
   [ 9/16] Saving relations inner parts • 0:00:00
@@ -346,9 +345,9 @@ GeometryNotCoveredWarning: Discarded 19 extracts with IoU below the threshold of
   [13/16] Saving filtered relations with geometries • 0:00:00
   [14/16] Saving all features • 0:00:00
   [15/16] Saving final geoparquet file • 0:00:00
-  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━━━━ 9360/9360 • 0:00:01 < 0:00:00 • 8643.49 it/s
-Finished operation in 0:00:13
-files/5b55b38e_nofilter_compact_sorted.parquet
+  [16/16] Sorting result file by geometry 100% ━━━━━━━━━━━━━━━ 62825/62825 • 0:00:01 < 0:00:00 • 56729.20 it/s
+Finished operation in 0:00:29
+files/b0089852_nofilter_compact_sorted.parquet
 ```
 
 ### Let the QuackOSM automatically find the required OSM PBF file for you based on text query 🔎📄
