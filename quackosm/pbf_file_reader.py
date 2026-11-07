@@ -46,13 +46,16 @@ from rq_geo_toolkit.duckdb import (
     DuckDBConnKwargs,
     set_up_duckdb_connection,
     sql_escape,
+    temporary_duckdb_connection,
 )
+from rq_geo_toolkit.file_utils import atomic_output_path
 from rq_geo_toolkit.geoparquet_compression import (
     compress_parquet_with_duckdb,
     compress_query_with_duckdb,
 )
 from rq_geo_toolkit.geoparquet_sorting import sort_geoparquet_file_by_geometry
-from rq_geo_toolkit.multiprocessing_utils import WorkerProcess
+from rq_geo_toolkit.multiprocessing_utils import WorkerProcess, raise_for_exit_code
+from rq_geo_toolkit.rich_utils import progress_display, with_progress_display
 from shapely.geometry import LinearRing, Polygon
 from shapely.geometry.base import BaseGeometry, BaseMultipartGeometry
 
@@ -83,7 +86,7 @@ from quackosm._osm_tags_filters import (
 )
 from quackosm._osm_way_polygon_features import OsmWayPolygonConfig, parse_dict_to_config_object
 from quackosm._rich_progress import (
-    FORCE_TERMINAL,
+    TOTAL_STEPS,
     VERBOSITY_MODE,
     TaskProgressBar,
     TaskProgressTracker,
@@ -291,10 +294,14 @@ class PbfFileReader:
         self.internal_rows_per_group: int = 0
         self.internal_parquet_compression = "zstd"
 
-        self.cpu_limit = (
-            cpu_limit
-            or duckdb.sql("SELECT current_setting('threads') AS threads").limit(1).fetchall()[0][0]
-        )
+        if not cpu_limit:
+            with temporary_duckdb_connection(self.working_directory) as connection:
+                cpu_limit = (
+                    connection.sql("SELECT current_setting('threads') AS threads")
+                    .limit(1)
+                    .fetchall()[0][0]
+                )
+        self.cpu_limit = cpu_limit
 
         self.duckdb_conn_kwargs = duckdb_conn_kwargs
         self.memory_limit = memory_limit
@@ -353,6 +360,7 @@ class PbfFileReader:
 
         return self._task_progress_tracker
 
+    @with_progress_display(total_steps=TOTAL_STEPS)  # type: ignore[misc]
     def convert_pbf_to_parquet(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -561,14 +569,15 @@ class PbfFileReader:
                     [pa.array([], type=pa.string()), geometry_column],
                     names=[FEATURES_INDEX, GEOMETRY_COLUMN],
                 )
-                if save_as_wkt:
-                    pq.write_table(joined_parquet_table, result_file_path)
-                else:
-                    io.write_geoparquet_table(
-                        joined_parquet_table,
-                        result_file_path,
-                        primary_geometry_column=GEOMETRY_COLUMN,
-                    )
+                with atomic_output_path(result_file_path) as tmp_result_file_path:
+                    if save_as_wkt:
+                        pq.write_table(joined_parquet_table, tmp_result_file_path)
+                    else:
+                        io.write_geoparquet_table(
+                            joined_parquet_table,
+                            tmp_result_file_path,
+                            primary_geometry_column=GEOMETRY_COLUMN,
+                        )
 
             self.task_progress_tracker.stop()
 
@@ -647,6 +656,7 @@ class PbfFileReader:
                     self.connection.close()
                     self.connection = None
 
+    @with_progress_display  # type: ignore[misc]
     def convert_geometry_to_parquet(
         self,
         result_file_path: Optional[Union[str, Path]] = None,
@@ -735,21 +745,22 @@ class PbfFileReader:
             )
             return result_file_path.with_suffix(".geoparquet")
 
-        matching_extracts_with_paths = osmfinder_find_and_download_extracts(
-            query=self.geometry_filter,
-            source=self.osm_extract_source,
-            download_directory=self.working_directory,
-            geometry_coverage_iou_threshold=self.geometry_coverage_iou_threshold,
-            allow_uncovered_geometry=self.allow_uncovered_geometry,
-            progressbar=self.verbosity_mode != "silent",
-        )
+        with progress_display(self.verbosity_mode) as display:
+            matching_extracts_with_paths = osmfinder_find_and_download_extracts(
+                query=self.geometry_filter,
+                source=self.osm_extract_source,
+                download_directory=self.working_directory,
+                geometry_coverage_iou_threshold=self.geometry_coverage_iou_threshold,
+                allow_uncovered_geometry=self.allow_uncovered_geometry,
+                progressbar=display.pooch_progressbar("Downloading OSM extract"),
+            )
 
         downloaded_extract_geometries = [
             extract.geometry for extract in matching_extracts_with_paths.extracts
         ]
         downloaded_extract_paths = matching_extracts_with_paths.download_paths
 
-        return self.convert_pbf_to_parquet(
+        return self.convert_pbf_to_parquet(  # type: ignore[no-any-return]
             downloaded_extract_paths,
             result_file_path=result_file_path,
             keep_all_tags=keep_all_tags,
@@ -763,6 +774,7 @@ class PbfFileReader:
         )
 
     @deprecate_kwarg(old_arg_name="file_paths", new_arg_name="pbf_path")
+    @with_progress_display  # type: ignore[misc]
     def convert_pbf_to_geodataframe(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -825,6 +837,7 @@ class PbfFileReader:
 
         return gdf_parquet
 
+    @with_progress_display  # type: ignore[misc]
     def convert_geometry_to_geodataframe(
         self,
         keep_all_tags: bool = False,
@@ -880,6 +893,7 @@ class PbfFileReader:
 
         return gdf_parquet
 
+    @with_progress_display  # type: ignore[misc]
     def convert_pbf_to_duckdb(
         self,
         pbf_path: Union[str, Path, Iterable[Union[str, Path]]],
@@ -976,6 +990,7 @@ class PbfFileReader:
 
         return result_file_path
 
+    @with_progress_display  # type: ignore[misc]
     def convert_geometry_to_duckdb(
         self,
         result_file_path: Optional[Union[str, Path]] = None,
@@ -1137,7 +1152,7 @@ class PbfFileReader:
         result_parquet_files = [sorted_parsed_geoparquet_files[0]]
         with self.task_progress_tracker.get_basic_bar("Removing duplicates") as bar:
             for idx, parsed_geoparquet_file in bar.track(
-                enumerate(sorted_parsed_geoparquet_files[1:])
+                list(enumerate(sorted_parsed_geoparquet_files[1:]))
             ):
                 current_parquet_file_relation = connection.read_parquet(str(parsed_geoparquet_file))
                 filtered_result_parquet_file = tmp_dir_path / f"sub_file_{idx}"
@@ -1180,14 +1195,17 @@ class PbfFileReader:
             logger = get_pooch_logger()
             logger.setLevel("WARNING")
 
-            pbf_path = retrieve(
-                pbf_path,
-                fname=Path(pbf_path).name,
-                path=self.working_directory,
-                progressbar=self.verbosity_mode != "silent" and not FORCE_TERMINAL,
-                known_hash=None,
-                downloader=HTTPDownloader(timeout=30),
-            )
+            with progress_display(self.verbosity_mode) as display:
+                pbf_path = retrieve(
+                    pbf_path,
+                    fname=Path(pbf_path).name,
+                    path=self.working_directory,
+                    known_hash=None,
+                    # pooch ignores `progressbar` of `retrieve` with a custom downloader
+                    downloader=HTTPDownloader(
+                        timeout=30, progressbar=display.pooch_progressbar(Path(pbf_path).name)
+                    ),
+                )
 
         if result_file_path.exists() and not ignore_cache:
             return result_file_path
@@ -1598,8 +1616,9 @@ class PbfFileReader:
         # Filter all elements by tags / custom SQL / explicit OSM IDs.
         # Save only kind+id (no tags yet) and split into per-kind ID files
         # (nodes_filtered_ids, ways_filtered_ids, relations_filtered_ids).
+        self.task_progress_tracker.start_step_group("Filtering OSM elements", 20)
         with self.task_progress_tracker.get_spinner(
-            "Filtering: elements by tags", with_minor_step=True
+            "Filtering elements by tags", next_step="minor"
         ):
             if self.custom_sql_filter:
                 elements_filtered_ids = self._sql_to_parquet_file(
@@ -1673,9 +1692,7 @@ class PbfFileReader:
 
         # Expand filtered relation refs into individual rows, keeping only way-type members.
         # Output: (id, ref, ref_role, ref_idx) for each way referenced by a filtered relation.
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: unnesting relations", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Unnesting relations", next_step="minor"):
             relations_filtered_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
                 WITH unnested_relation_refs AS (
@@ -1699,7 +1716,7 @@ class PbfFileReader:
         # then merge with directly filtered ways into a single combined set
         # (ways_filtered_required_ids).
         with self.task_progress_tracker.get_spinner(
-            "Filtering: ways required ids", next_step="minor"
+            "Calculating ways required ids", next_step="minor"
         ):
             ways_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1725,7 +1742,7 @@ class PbfFileReader:
 
         # Expand all filtered+required way refs into individual rows.
         # Output: (id, ref, ref_idx) for each node referenced by a filtered or required way.
-        with self.task_progress_tracker.get_spinner("Filtering: unnesting ways", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Unnesting ways", next_step="minor"):
             ways_filtered_required_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT
@@ -1742,7 +1759,7 @@ class PbfFileReader:
         # then merge with directly filtered nodes into a single combined set
         # (nodes_filtered_required_ids).
         with self.task_progress_tracker.get_spinner(
-            "Filtering: nodes required ids", next_step="minor"
+            "Calculating nodes required ids", next_step="minor"
         ):
             nodes_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1769,9 +1786,7 @@ class PbfFileReader:
         # Read lat/lon for all filtered+required nodes.
         # When a geometry filter is set, pre-filter by its bounding box to reduce data volume
         # before the precise intersection check that follows.
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: reading nodes points", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading nodes points", next_step="minor"):
             bbox_intersecting_clause = ""
             if is_intersecting:
                 x_min, y_min, x_max, y_max = cast("BaseGeometry", self.geometry_filter).bounds
@@ -1800,7 +1815,7 @@ class PbfFileReader:
         # nodes_filtered_intersected_ids (matched by filter) vs. the broader intersected set
         # (also includes nodes required by ways). When not intersecting: pass all points through.
         with self.task_progress_tracker.get_bar(
-            "Filtering: nodes by intersection", next_step="minor"
+            "Filtering nodes by intersection", next_step="minor"
         ) as bar:
             if is_intersecting:
                 tmp_intersected_nodes_ids_path = (
@@ -1853,7 +1868,7 @@ class PbfFileReader:
         # split into ways_filtered_intersected_ids and the broader required set.
         # When not intersecting: pass all ways through.
         with self.task_progress_tracker.get_spinner(
-            "Filtering: ways by intersection", next_step="minor"
+            "Filtering ways by intersection", next_step="minor"
         ):
             if is_intersecting:
                 self._sql_to_parquet_file(
@@ -1893,7 +1908,7 @@ class PbfFileReader:
         # Keep only relations that reference at least one intersecting way.
         # When not intersecting: all filtered relations pass through unchanged.
         with self.task_progress_tracker.get_spinner(
-            "Filtering: relations by intersection", next_step="minor"
+            "Filtering relations by intersection", next_step="minor"
         ):
             if is_intersecting:
                 self._sql_to_parquet_file(
@@ -1922,7 +1937,7 @@ class PbfFileReader:
         # Trim the unnested relation refs to only those relations that passed geometry intersection.
         # Output: (id, ref, ref_role, ref_idx) restricted to the intersected relation IDs.
         with self.task_progress_tracker.get_spinner(
-            "Filtering: unnested intersected relations", next_step="minor"
+            "Unnesting intersecting relations", next_step="minor"
         ):
             relations_filtered_intersected_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1944,7 +1959,7 @@ class PbfFileReader:
         # Re-derive required way IDs from the now-intersected relations,
         # then merge with directly intersected filtered ways into the final combined set.
         with self.task_progress_tracker.get_spinner(
-            "Filtering: ways required intersected ids", next_step="minor"
+            "Calculating ways required and intersecting ids", next_step="minor"
         ):
             ways_required_intersected_ids = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1969,7 +1984,7 @@ class PbfFileReader:
         # Trim the unnested way refs to only the ways that passed geometry intersection.
         # Output: (id, ref, ref_idx) restricted to the intersected+required way IDs.
         with self.task_progress_tracker.get_spinner(
-            "Filtering: unnested intersected ways", next_step="minor"
+            "Unnesting intersecting ways", next_step="minor"
         ):
             ways_filtered_required_intersected_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1992,7 +2007,7 @@ class PbfFileReader:
         # plus all nodes referenced by the valid intersected ways.
         # Load their coordinates from the nodes view for downstream geometry assembly.
         with self.task_progress_tracker.get_spinner(
-            "Filtering: nodes required intersected ids", next_step="minor"
+            "Calculating nodes required and intersecting ids", next_step="minor"
         ):
             nodes_filtered_required_intersected_valid_points = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -2013,7 +2028,9 @@ class PbfFileReader:
 
         # Validate ways: keep only those whose every referenced node is present
         # in the valid node set (i.e. no dangling refs).
-        with self.task_progress_tracker.get_spinner("Filtering: ways valid ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating ways valid ids", next_step="minor"
+        ):
             ways_filtered_required_intersected_valid_ids = (
                 self._calculate_element_valid_ids_based_on_refs(
                     refs_unnested=self.tmp_dir_path / "ways_filtered_required_intersected_unnested",
@@ -2028,7 +2045,7 @@ class PbfFileReader:
         #   matched by filter
         # - ways_filtered_intersected_valid_ids: directly matched by tag/id filter
         with self.task_progress_tracker.get_spinner(
-            "Filtering: ways required and valid", next_step="minor"
+            "Calculating ways required and valid ids", next_step="minor"
         ):
             ways_required_intersected_valid_ids = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -2060,7 +2077,7 @@ class PbfFileReader:
         # in the valid way set. Also trim the unnested refs to match, producing
         # the final (id, ref, ref_role, ref_idx) table ready for geometry assembly.
         with self.task_progress_tracker.get_spinner(
-            "Filtering: relations valid ids", next_step="minor"
+            "Calculating relations valid ids", next_step="minor"
         ):
             relations_filtered_intersected_valid_ids = (
                 self._calculate_element_valid_ids_based_on_refs(
@@ -2086,9 +2103,7 @@ class PbfFileReader:
         # Read full tags for all valid filtered elements (nodes, ways, relations).
         # For ways, also keep raw_tags (before metadata stripping) needed for polygon
         # feature detection.
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read elements tags", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading elements tags", next_step="minor"):
             filtered_elements = self.connection.sql(
                 f"""
                 WITH filtered_elements AS (
@@ -2142,25 +2157,21 @@ class PbfFileReader:
         )
 
         # Split combined filtered elements into per-kind parquet file: nodes (id, tags).
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read nodes tags", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading nodes tags", next_step="minor"):
             nodes_filtered_intersected_valid_tags = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'node'").select("id, tags"),
                 nodes_filtered_intersected_valid_tags_path,
             )
 
         # Split combined filtered elements into per-kind parquet file: ways (id, tags, raw_tags).
-        with self.task_progress_tracker.get_spinner("Filtering: read ways tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading ways tags", next_step="minor"):
             ways_filtered_intersected_valid_tags = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'way'").select("id, tags, raw_tags"),
                 ways_filtered_intersected_valid_tags_path,
             )
 
         # Split combined filtered elements into per-kind parquet file: relations (id, tags).
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read relations tags", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading relations tags", next_step="minor"):
             relations_filtered_intersected_valid_tags = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'relation'").select("id, tags"),
                 relations_filtered_intersected_valid_tags_path,
@@ -2211,7 +2222,8 @@ class PbfFileReader:
             """
         ).to_view("nodes", replace=True)
 
-        with self.task_progress_tracker.get_spinner("Filtering: read nodes", with_minor_step=True):
+        self.task_progress_tracker.start_step_group("Filtering OSM elements", 14)
+        with self.task_progress_tracker.get_spinner("Reading nodes", next_step="minor"):
             nodes_tags_and_points_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT
@@ -2226,9 +2238,7 @@ class PbfFileReader:
                 file_path=nodes_tags_and_points_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read nodes points", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading nodes points", next_step="minor"):
             nodes_points_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, lat, lon
@@ -2237,9 +2247,7 @@ class PbfFileReader:
                 file_path=nodes_points_required_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read nodes tags", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading nodes tags", next_step="minor"):
             nodes_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, tags
@@ -2251,9 +2259,7 @@ class PbfFileReader:
 
         self._delete_directories([nodes_tags_and_points_valid_path])
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read elements refs", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading elements refs", next_step="minor"):
             unnested_elements = self.connection.sql(
                 f"""
                 WITH unnested_elements AS (
@@ -2294,15 +2300,13 @@ class PbfFileReader:
                 unnested_elements, unnested_elements_path
             )
 
-        with self.task_progress_tracker.get_spinner("Filtering: read ways refs", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading ways refs", next_step="minor"):
             ways_unnested = self._save_parquet_file(
                 all_unnested_elements.filter("kind = 'way'").select("id, ref, ref_idx"),
                 ways_unnested_path,
             )
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read relations refs", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading relations refs", next_step="minor"):
             relations_unnested = self._save_parquet_file(
                 all_unnested_elements.filter("kind = 'relation'").select(
                     "id, ref, ref_role, ref_idx"
@@ -2315,7 +2319,9 @@ class PbfFileReader:
         ways_ids_valid_path = self.tmp_dir_path / "ways_ids_valid"
 
         # ways IDs (valid)
-        with self.task_progress_tracker.get_spinner("Filtering: ways valid ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating ways valid ids", next_step="minor"
+        ):
             ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
                 refs_unnested=ways_unnested_path,
                 sub_element_ids_valid=nodes_points_required_valid_path,
@@ -2324,7 +2330,7 @@ class PbfFileReader:
 
         # relations IDs (valid)
         with self.task_progress_tracker.get_spinner(
-            "Filtering: relations valid ids", next_step="minor"
+            "Calculating relations valid ids", next_step="minor"
         ):
             relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
                 refs_unnested=relations_unnested_path,
@@ -2333,9 +2339,7 @@ class PbfFileReader:
             )
 
         # relations unnested (filtered, valid)
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: unnested relations", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Unnesting relations", next_step="minor"):
             relations_unnested_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, ref, ref_role, ref_idx
@@ -2351,7 +2355,7 @@ class PbfFileReader:
         # ways IDs (required)
         # - all needed to construct relations from relations filtered
         with self.task_progress_tracker.get_spinner(
-            "Filtering: ways required and valid", next_step="minor"
+            "Calculating ways required and valid ids", next_step="minor"
         ):
             ways_ids_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -2366,7 +2370,7 @@ class PbfFileReader:
             )
 
         # ways unnested (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Filtering: unnested ways", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Unnesting ways", next_step="minor"):
             ways_unnested_filtered_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, ref, ref_idx
@@ -2381,9 +2385,7 @@ class PbfFileReader:
         # filter valid tags
         filtered_elements_path = self.tmp_dir_path / "filtered_elements"
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read elements tags", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading elements tags", next_step="minor"):
             filtered_elements = self.connection.sql(
                 f"""
                 WITH filtered_elements AS (
@@ -2414,7 +2416,7 @@ class PbfFileReader:
                 filtered_elements, filtered_elements_path
             )
 
-        with self.task_progress_tracker.get_spinner("Filtering: read ways tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading ways tags", next_step="minor"):
             ways_tags_filtered_valid = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'way'")
                 .join(ways_ids_valid, condition="id", how="semi")
@@ -2422,9 +2424,7 @@ class PbfFileReader:
                 ways_tags_filtered_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner(
-            "Filtering: read relations tags", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Reading relations tags", next_step="minor"):
             relations_tags_filtered_valid = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'relation'")
                 .join(relations_ids_filtered_valid, condition="id", how="semi")
@@ -2728,7 +2728,7 @@ class PbfFileReader:
 
         start_time = time.time()
         actual_memory = get_memory_status(total_bytes_override=self.memory_limit)
-        percentage_threshold = 95
+        percentage_threshold: float = 95
         if (actual_memory.total_bytes * 0.05) > MEMORY_1GB:
             percentage_threshold = (
                 100 * (actual_memory.total_bytes - MEMORY_1GB) / actual_memory.total_bytes
@@ -2765,8 +2765,7 @@ class PbfFileReader:
             msg = f"{error}\n\nOriginal {traceback}"
             raise type(error)(msg)
 
-        if process.exitcode != 0:
-            raise MemoryError()
+        raise_for_exit_code(process)
 
     def _run_query_in_same_process(self, sql_queries: list[str]) -> None:
         current_cpu_limit = self.cpu_limit
@@ -2785,7 +2784,8 @@ class PbfFileReader:
                     self.connection.sql(f"SET threads = {current_cpu_limit};")
                     if not self.verbosity_mode == "silent":
                         log_message(
-                            f"Encountered {ex.__class__.__name__} during operation."
+                            f"{self.task_progress_tracker.major_step_label}"
+                            f" Encountered {ex.__class__.__name__} during operation."
                             " Retrying with lower number of threads"
                             f" ({current_cpu_limit})."
                         )
@@ -2920,9 +2920,9 @@ class PbfFileReader:
         grouped_ways_path: Path,
     ) -> "duckdb.DuckDBPyRelation":
         finished_operation = False
+        first_step_number = self.task_progress_tracker.major_step_number
 
         while not finished_operation:
-            reset_steps = 1
             grouped_ways = False
             try:
                 groups = self._group_ways(
@@ -2934,8 +2934,6 @@ class PbfFileReader:
                     grouped_ways_path=grouped_ways_path,
                     group_all_at_once=not self.encountered_query_exception,
                 )
-                reset_steps += 1
-
                 grouped_ways = True
 
                 self._delete_directories(grouped_ways_tmp_path)
@@ -2952,20 +2950,21 @@ class PbfFileReader:
 
                 finished_operation = True
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError) as ex:
+                failed_step_label = self.task_progress_tracker.major_step_label
                 lower_number_of_rows = True
                 if not grouped_ways and not self.encountered_query_exception:
                     lower_number_of_rows = False
                 if not grouped_ways:
                     self.encountered_query_exception = True
-                self.task_progress_tracker.major_step_number -= reset_steps
+                self.task_progress_tracker.major_step_number = first_step_number
                 self._delete_directories(
                     [destination_dir_path, grouped_ways_tmp_path, grouped_ways_path]
                 )
                 if not lower_number_of_rows:
                     if not self.verbosity_mode == "silent":
                         log_message(
-                            f"Encountered {ex.__class__.__name__} during operation."
-                            " Retrying with another grouping method."
+                            f"{failed_step_label} Encountered {ex.__class__.__name__}"
+                            " during operation. Retrying with another grouping method."
                         )
                 elif self.internal_rows_per_group > PbfFileReader.ROWS_PER_GROUP_MEMORY_CONFIG[0]:
                     smaller_rows_per_group = 0
@@ -2977,8 +2976,8 @@ class PbfFileReader:
                     self.internal_rows_per_group = smaller_rows_per_group
                     if not self.verbosity_mode == "silent":
                         log_message(
-                            f"Encountered {ex.__class__.__name__} during operation."
-                            " Retrying with lower number of rows per group"
+                            f"{failed_step_label} Encountered {ex.__class__.__name__}"
+                            " during operation. Retrying with lower number of rows per group"
                             f" ({self.internal_rows_per_group})."
                         )
                 else:
@@ -3008,6 +3007,7 @@ class PbfFileReader:
             empty_file_path = str(destination_dir_path / "empty.parquet")
             self.connection.sql("CREATE OR REPLACE TABLE x(id STRING, linestring LINESTRING_2D);")
             self.connection.table("x").to_parquet(empty_file_path)
+            self.task_progress_tracker.skip_step(f"Grouping {mode} ways")
             return -1
 
         groups = int(floor(total_required_ways / self.internal_rows_per_group))
@@ -3015,9 +3015,8 @@ class PbfFileReader:
         grouped_ways_ids_with_group_path = grouped_ways_tmp_path / "ids_with_group"
         grouped_ways_ids_with_points_path = grouped_ways_tmp_path / "ids_with_points"
 
-        with self.task_progress_tracker.get_spinner(
-            f"Grouping {mode} ways - assigning groups", with_minor_step=True
-        ):
+        self.task_progress_tracker.start_step_group(f"Grouping {mode} ways", 3)
+        with self.task_progress_tracker.get_spinner("Assigning groups", next_step="minor"):
             ways_ids_grouped_relation = self.connection.sql(
                 f"""
                 SELECT id,
@@ -3032,9 +3031,7 @@ class PbfFileReader:
             )
 
         if group_all_at_once:
-            with self.task_progress_tracker.get_spinner(
-                f"Grouping {mode} ways - joining with nodes", next_step="minor"
-            ):
+            with self.task_progress_tracker.get_spinner("Joining with nodes", next_step="minor"):
                 ways_with_nodes_points_relation = self.connection.sql(
                     f"""
                     SELECT
@@ -3069,17 +3066,17 @@ class PbfFileReader:
                 for path in (self.tmp_dir_path / directory).glob("**/*.parquet")
             ]
 
-            with self.task_progress_tracker.get_bar(
-                f"Grouping {mode} ways - joining with nodes", next_step="minor"
-            ) as bar:
+            with self.task_progress_tracker.get_bar("Joining with nodes", next_step="minor") as bar:
                 for current_step, (
                     ways_ids_grouped_parquet_file,
                     ways_with_unnested_nodes_refs_parquet_file,
                 ) in bar.track(
-                    enumerate(
-                        itertools.product(
-                            ways_ids_grouped_files,
-                            ways_with_unnested_nodes_refs_files,
+                    list(
+                        enumerate(
+                            itertools.product(
+                                ways_ids_grouped_files,
+                                ways_with_unnested_nodes_refs_files,
+                            )
                         )
                     )
                 ):
@@ -3116,9 +3113,7 @@ class PbfFileReader:
                 f"SELECT * FROM read_parquet('{grouped_ways_ids_with_points_path}/**/*.parquet')"
             )
 
-        with self.task_progress_tracker.get_spinner(
-            f"Grouping {mode} ways - partitioning by group", next_step="minor"
-        ):
+        with self.task_progress_tracker.get_spinner("Partitioning by group", next_step="minor"):
             self._run_query(
                 f"""
                 COPY (
@@ -3185,7 +3180,7 @@ class PbfFileReader:
         self,
         osm_parquet_files: ConvertedOSMParquetFiles,
         filtered_ways_with_linestrings: "duckdb.DuckDBPyRelation",
-    ) -> "duckdb.DuckDBPyRelation":
+    ) -> Path:
         osm_way_polygon_features_filter_clauses = [
             "list_contains(map_keys(raw_tags), 'area') AND "
             "list_extract(map_extract(raw_tags, 'area'), 1) = 'yes'"
@@ -3271,6 +3266,7 @@ class PbfFileReader:
         required_ways_with_linestrings: "duckdb.DuckDBPyRelation",
     ) -> Path:
         finished_operation = False
+        first_step_number = self.task_progress_tracker.major_step_number
 
         while not finished_operation:
             try:
@@ -3283,7 +3279,7 @@ class PbfFileReader:
             except (duckdb.OutOfMemoryException, MemoryError, TimeoutError):
                 if not self.encountered_query_exception:
                     self.encountered_query_exception = True
-                    self.task_progress_tracker.major_step_number -= 1
+                    self.task_progress_tracker.major_step_number = first_step_number
                 else:
                     raise
 
@@ -3472,16 +3468,15 @@ class PbfFileReader:
                 ON w.id = r.ref
                 """
             )
+            self.task_progress_tracker.start_step_group("Saving valid relations parts", 5)
             unnested_relations_with_linestrings_parquet = self._save_parquet_file_with_geometry(
                 relation=unnested_relations_with_linestrings,
                 file_path=valid_relations_tmp_path / "unnested_relations",
-                step_name="Saving valid relations parts - unnested linestrings",
-                with_minor_step=True,
+                step_name="Unnesting linestrings",
+                next_step="minor",
             )
 
-            with self.task_progress_tracker.get_spinner(
-                "Saving valid relations parts - finding outer refs", next_step="minor"
-            ):
+            with self.task_progress_tracker.get_spinner("Finding outer refs", next_step="minor"):
                 any_outer_refs = self.connection.sql(
                     f"""
                     SELECT id, bool_or(ref_role == 'outer') any_outer_refs
@@ -3525,13 +3520,11 @@ class PbfFileReader:
             merged_linestrings_parquet = self._save_parquet_file_with_geometry(
                 relation=merged_linestrings,
                 file_path=valid_relations_tmp_path / "merged_linestrings",
-                step_name="Saving valid relations parts - merging linestrings",
+                step_name="Merging linestrings",
                 next_step="minor",
             )
 
-            with self.task_progress_tracker.get_spinner(
-                "Saving valid relations parts - checking validity", next_step="minor"
-            ):
+            with self.task_progress_tracker.get_spinner("Checking validity", next_step="minor"):
                 valid_relations = self.connection.sql(
                     f"""
                     SELECT id, is_valid
@@ -3569,7 +3562,7 @@ class PbfFileReader:
             valid_relation_parts_parquet = self._save_parquet_file_with_geometry(
                 relation=valid_relation_parts,
                 file_path=self.tmp_dir_path / "valid_relation_parts",
-                step_name="Saving valid relations parts - filtering valid",
+                step_name="Filtering valid parts",
                 next_step="minor",
             )
 
@@ -3581,11 +3574,8 @@ class PbfFileReader:
         file_path: Path,
         step_name: str,
         next_step: Literal["major", "minor"] = "major",
-        with_minor_step: bool = False,
     ) -> "duckdb.DuckDBPyRelation":
-        with self.task_progress_tracker.get_spinner(
-            step_name, next_step=next_step, with_minor_step=with_minor_step
-        ):
+        with self.task_progress_tracker.get_spinner(step_name, next_step=next_step):
             file_path.mkdir(exist_ok=True, parents=True)
             self._run_query(
                 f"""
@@ -3962,14 +3952,15 @@ class PbfFileReader:
                     [FEATURES_INDEX, GEOMETRY_COLUMN]
                 )
 
-                if save_as_wkt:
-                    pq.write_table(features_parquet_table, result_file_path)
-                else:
-                    io.write_geoparquet_table(
-                        features_parquet_table,
-                        result_file_path,
-                        primary_geometry_column=GEOMETRY_COLUMN,
-                    )
+                with atomic_output_path(result_file_path) as tmp_result_file_path:
+                    if save_as_wkt:
+                        pq.write_table(features_parquet_table, tmp_result_file_path)
+                    else:
+                        io.write_geoparquet_table(
+                            features_parquet_table,
+                            tmp_result_file_path,
+                            primary_geometry_column=GEOMETRY_COLUMN,
+                        )
 
             with self.task_progress_tracker.get_spinner("Sorting result file by geometry"):
                 pass
@@ -4214,15 +4205,17 @@ def _set_up_duckdb_connection(
     threads_limit: Optional[int] = None,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs] = None,
 ) -> Union["duckdb.DuckDBPyConnection", tuple["duckdb.DuckDBPyConnection", "Path"]]:
-    duckdb_conn_kwargs = duckdb_conn_kwargs or {}
+    # the reader passes the same dict to every connection
+    duckdb_conn_kwargs = cast("DuckDBConnKwargs", dict(duckdb_conn_kwargs or {}))
     duckdb_conn_kwargs["randomize_db_file_name"] = not is_main_connection
-    duckdb_conn_kwargs["provisioning_queries"] = [
+    provisioning_queries = [
         *duckdb_conn_kwargs.get("provisioning_queries", []),
         "SET enable_progress_bar = false;",
         "SET enable_progress_bar_print = false;",
     ]
     if threads_limit:
-        duckdb_conn_kwargs["provisioning_queries"].append(f"SET threads = {threads_limit};")
+        provisioning_queries.append(f"SET threads = {threads_limit};")
+    duckdb_conn_kwargs["provisioning_queries"] = provisioning_queries
 
     duckdb_conn_kwargs["official_extensions_to_load"] = list(
         set([*duckdb_conn_kwargs.get("official_extensions_to_load", []), "spatial"])
@@ -4288,7 +4281,7 @@ def _run_in_multiprocessing_pool(
             args=args,
         )
         actual_memory = get_memory_status(total_bytes_override=memory_limit)
-        percentage_threshold = 95
+        percentage_threshold: float = 95
         if (actual_memory.total_bytes * 0.05) > MEMORY_1GB:
             percentage_threshold = (
                 100 * (actual_memory.total_bytes - MEMORY_1GB) / actual_memory.total_bytes
@@ -4365,7 +4358,7 @@ def _sort_geoparquet_file_by_geometry(
     compression: str,
     compression_level: int,
     row_group_size: int,
-    parquet_version: str,
+    parquet_version: Literal["v1", "v2"],
     verbosity_mode: VERBOSITY_MODE,
     working_directory: Path,
     threads_limit: Optional[int],
@@ -4373,7 +4366,7 @@ def _sort_geoparquet_file_by_geometry(
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs],
 ) -> Path:
     total_rows = pq.read_metadata(input_file_path).num_rows
-    progress_bar.create_manual_bar(total_rows)
+    progress_bar.update(total=total_rows)
     if save_as_wkt:
         raise ValueError("Geometry sorting is not supported for the WKT format.")
 
@@ -4415,7 +4408,7 @@ def _sort_geoparquet_file_by_geometry(
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
-            progress_callback=progress_bar.update_manual_bar,
+            progress_callback=progress_bar.update,
             duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
@@ -4446,11 +4439,11 @@ def _sort_geoparquet_file_by_geometry(
             sort_extent=sort_extent,
             verbosity_mode=verbosity_mode,
             remove_input_file=True,
-            progress_callback=progress_bar.update_manual_bar,
+            progress_callback=progress_bar.update,
             duckdb_conn_kwargs=duckdb_conn_kwargs,
         )
 
-    progress_bar.update_manual_bar(total_rows)
+    progress_bar.update(total_rows)
 
     return output_file_path
 
@@ -4506,8 +4499,8 @@ def _decompress_value_columns(
     compression: str,
     compression_level: int,
     row_group_size: int,
-    parquet_version: str,
-    verbosity_mode: str,
+    parquet_version: Literal["v1", "v2"],
+    verbosity_mode: VERBOSITY_MODE,
     duckdb_conn_kwargs: Optional[DuckDBConnKwargs],
 ) -> None:
     select_clauses = ", ".join(

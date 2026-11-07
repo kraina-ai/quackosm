@@ -197,32 +197,33 @@ class H3GeometryParser(click.ParamType):  # type: ignore
         if not value:
             return None
 
-        import duckdb
         import geopandas as gpd
+        from rq_geo_toolkit.duckdb import temporary_duckdb_connection
         from shapely import from_wkt
 
-        duckdb.install_extension("h3", repository="community")
-        duckdb.load_extension("h3")
-
         geometries = []  # noqa: FURB138
-        for h3_index in value.split(","):
-            stripped_h3_index = h3_index.strip()
-            if (
-                not duckdb.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')")
-                .limit(1)
-                .fetchall()[0][0]
-            ):
-                raise typer.BadParameter(
-                    f"Cannot parse provided H3 value: {stripped_h3_index}"
-                ) from None
+        with temporary_duckdb_connection() as connection:
+            connection.install_extension("h3", repository="community")
+            connection.load_extension("h3")
 
-            parsed_geometry = from_wkt(
-                duckdb.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')")
-                .limit(1)
-                .fetchall()[0][0]
-            )
+            for h3_index in value.split(","):
+                stripped_h3_index = h3_index.strip()
+                if (
+                    not connection.sql(f"SELECT h3_is_valid_cell('{stripped_h3_index}')")
+                    .limit(1)
+                    .fetchall()[0][0]
+                ):
+                    raise typer.BadParameter(
+                        f"Cannot parse provided H3 value: {stripped_h3_index}"
+                    ) from None
 
-            geometries.append(parsed_geometry)
+                parsed_geometry = from_wkt(
+                    connection.sql(f"SELECT h3_cell_to_boundary_wkt('{stripped_h3_index}')")
+                    .limit(1)
+                    .fetchall()[0][0]
+                )
+
+                geometries.append(parsed_geometry)
 
         if not GEOPANDAS_NEW_API:
             return gpd.GeoSeries(geometries).unary_union
@@ -970,7 +971,7 @@ def main(
                 osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 select_first_match=select_first_match,
-                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                tags_filter=osm_tags_filter or osm_tags_filter_file,
                 keep_all_tags=keep_all_tags,
                 geometry_filter=geometry_filter_value,
                 explode_tags=explode_tags,
@@ -987,7 +988,7 @@ def main(
                     else None
                 ),
                 ignore_metadata_tags=ignore_metadata_tags,
-                filter_osm_ids=filter_osm_ids,  # type: ignore
+                filter_osm_ids=filter_osm_ids,
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
                 sort_algorithm=sort_algorithm,
@@ -1011,7 +1012,7 @@ def main(
                 osm_extract_query=cast("str", osm_extract_query),
                 osm_extract_source=osm_extract_source,
                 select_first_match=select_first_match,
-                tags_filter=osm_tags_filter or osm_tags_filter_file,  # type: ignore
+                tags_filter=osm_tags_filter or osm_tags_filter_file,
                 keep_all_tags=keep_all_tags,
                 geometry_filter=geometry_filter_value,
                 explode_tags=explode_tags,
@@ -1028,7 +1029,7 @@ def main(
                     else None
                 ),
                 ignore_metadata_tags=ignore_metadata_tags,
-                filter_osm_ids=filter_osm_ids,  # type: ignore
+                filter_osm_ids=filter_osm_ids,
                 custom_sql_filter=custom_sql_filter,
                 sort_result=sort_result,
                 sort_algorithm=sort_algorithm,
