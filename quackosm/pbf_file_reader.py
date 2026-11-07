@@ -1617,7 +1617,9 @@ class PbfFileReader:
         # Save only kind+id (no tags yet) and split into per-kind ID files
         # (nodes_filtered_ids, ways_filtered_ids, relations_filtered_ids).
         self.task_progress_tracker.start_step_group("Filtering OSM elements", 20)
-        with self.task_progress_tracker.get_spinner("Elements by tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering elements by tags", next_step="minor"
+        ):
             if self.custom_sql_filter:
                 elements_filtered_ids = self._sql_to_parquet_file(
                     sql_query=f"""
@@ -1713,7 +1715,9 @@ class PbfFileReader:
         # Collect IDs of ways referenced by filtered relations (ways_required_ids),
         # then merge with directly filtered ways into a single combined set
         # (ways_filtered_required_ids).
-        with self.task_progress_tracker.get_spinner("Ways required ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating ways required ids", next_step="minor"
+        ):
             ways_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT DISTINCT ref as id
@@ -1754,7 +1758,9 @@ class PbfFileReader:
         # Collect IDs of nodes referenced by all filtered+required ways (nodes_required_ids),
         # then merge with directly filtered nodes into a single combined set
         # (nodes_filtered_required_ids).
-        with self.task_progress_tracker.get_spinner("Nodes required ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating nodes required ids", next_step="minor"
+        ):
             nodes_required_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT DISTINCT ref as id
@@ -1808,7 +1814,9 @@ class PbfFileReader:
         # When intersecting: run the actual polygon test, deduplicate, then split into
         # nodes_filtered_intersected_ids (matched by filter) vs. the broader intersected set
         # (also includes nodes required by ways). When not intersecting: pass all points through.
-        with self.task_progress_tracker.get_bar("Nodes by intersection", next_step="minor") as bar:
+        with self.task_progress_tracker.get_bar(
+            "Filtering nodes by intersection", next_step="minor"
+        ) as bar:
             if is_intersecting:
                 tmp_intersected_nodes_ids_path = (
                     self.tmp_dir_path / "nodes_filtered_required_intersected_ids_tmp_non_distinct"
@@ -1859,7 +1867,9 @@ class PbfFileReader:
         # When intersecting: derive intersecting way IDs from the intersected node set, then
         # split into ways_filtered_intersected_ids and the broader required set.
         # When not intersecting: pass all ways through.
-        with self.task_progress_tracker.get_spinner("Ways by intersection", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering ways by intersection", next_step="minor"
+        ):
             if is_intersecting:
                 self._sql_to_parquet_file(
                     sql_query=f"""
@@ -1897,7 +1907,9 @@ class PbfFileReader:
 
         # Keep only relations that reference at least one intersecting way.
         # When not intersecting: all filtered relations pass through unchanged.
-        with self.task_progress_tracker.get_spinner("Relations by intersection", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Filtering relations by intersection", next_step="minor"
+        ):
             if is_intersecting:
                 self._sql_to_parquet_file(
                     sql_query=f"""
@@ -1925,7 +1937,7 @@ class PbfFileReader:
         # Trim the unnested relation refs to only those relations that passed geometry intersection.
         # Output: (id, ref, ref_role, ref_idx) restricted to the intersected relation IDs.
         with self.task_progress_tracker.get_spinner(
-            "Unnested intersected relations", next_step="minor"
+            "Unnesting intersecting relations", next_step="minor"
         ):
             relations_filtered_intersected_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1947,7 +1959,7 @@ class PbfFileReader:
         # Re-derive required way IDs from the now-intersected relations,
         # then merge with directly intersected filtered ways into the final combined set.
         with self.task_progress_tracker.get_spinner(
-            "Ways required intersected ids", next_step="minor"
+            "Calculating ways required and intersecting ids", next_step="minor"
         ):
             ways_required_intersected_ids = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -1971,7 +1983,9 @@ class PbfFileReader:
 
         # Trim the unnested way refs to only the ways that passed geometry intersection.
         # Output: (id, ref, ref_idx) restricted to the intersected+required way IDs.
-        with self.task_progress_tracker.get_spinner("Unnested intersected ways", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Unnesting intersecting ways", next_step="minor"
+        ):
             ways_filtered_required_intersected_unnested = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT *
@@ -1993,7 +2007,7 @@ class PbfFileReader:
         # plus all nodes referenced by the valid intersected ways.
         # Load their coordinates from the nodes view for downstream geometry assembly.
         with self.task_progress_tracker.get_spinner(
-            "Nodes required intersected ids", next_step="minor"
+            "Calculating nodes required and intersecting ids", next_step="minor"
         ):
             nodes_filtered_required_intersected_valid_points = self._sql_to_parquet_file(
                 sql_query=f"""
@@ -2014,7 +2028,9 @@ class PbfFileReader:
 
         # Validate ways: keep only those whose every referenced node is present
         # in the valid node set (i.e. no dangling refs).
-        with self.task_progress_tracker.get_spinner("Ways valid ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating ways valid ids", next_step="minor"
+        ):
             ways_filtered_required_intersected_valid_ids = (
                 self._calculate_element_valid_ids_based_on_refs(
                     refs_unnested=self.tmp_dir_path / "ways_filtered_required_intersected_unnested",
@@ -2028,7 +2044,9 @@ class PbfFileReader:
         # - ways_required_intersected_valid_ids: needed by relations but not directly
         #   matched by filter
         # - ways_filtered_intersected_valid_ids: directly matched by tag/id filter
-        with self.task_progress_tracker.get_spinner("Ways required and valid", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating ways required and valid ids", next_step="minor"
+        ):
             ways_required_intersected_valid_ids = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id
@@ -2058,7 +2076,9 @@ class PbfFileReader:
         # Validate relations: keep only those whose every referenced way is present
         # in the valid way set. Also trim the unnested refs to match, producing
         # the final (id, ref, ref_role, ref_idx) table ready for geometry assembly.
-        with self.task_progress_tracker.get_spinner("Relations valid ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating relations valid ids", next_step="minor"
+        ):
             relations_filtered_intersected_valid_ids = (
                 self._calculate_element_valid_ids_based_on_refs(
                     refs_unnested=self.tmp_dir_path / "relations_filtered_intersected_unnested",
@@ -2083,7 +2103,7 @@ class PbfFileReader:
         # Read full tags for all valid filtered elements (nodes, ways, relations).
         # For ways, also keep raw_tags (before metadata stripping) needed for polygon
         # feature detection.
-        with self.task_progress_tracker.get_spinner("Read elements tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading elements tags", next_step="minor"):
             filtered_elements = self.connection.sql(
                 f"""
                 WITH filtered_elements AS (
@@ -2137,21 +2157,21 @@ class PbfFileReader:
         )
 
         # Split combined filtered elements into per-kind parquet file: nodes (id, tags).
-        with self.task_progress_tracker.get_spinner("Read nodes tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading nodes tags", next_step="minor"):
             nodes_filtered_intersected_valid_tags = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'node'").select("id, tags"),
                 nodes_filtered_intersected_valid_tags_path,
             )
 
         # Split combined filtered elements into per-kind parquet file: ways (id, tags, raw_tags).
-        with self.task_progress_tracker.get_spinner("Read ways tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading ways tags", next_step="minor"):
             ways_filtered_intersected_valid_tags = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'way'").select("id, tags, raw_tags"),
                 ways_filtered_intersected_valid_tags_path,
             )
 
         # Split combined filtered elements into per-kind parquet file: relations (id, tags).
-        with self.task_progress_tracker.get_spinner("Read relations tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading relations tags", next_step="minor"):
             relations_filtered_intersected_valid_tags = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'relation'").select("id, tags"),
                 relations_filtered_intersected_valid_tags_path,
@@ -2203,7 +2223,7 @@ class PbfFileReader:
         ).to_view("nodes", replace=True)
 
         self.task_progress_tracker.start_step_group("Filtering OSM elements", 14)
-        with self.task_progress_tracker.get_spinner("Read nodes", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading nodes", next_step="minor"):
             nodes_tags_and_points_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT
@@ -2218,7 +2238,7 @@ class PbfFileReader:
                 file_path=nodes_tags_and_points_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Read nodes points", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading nodes points", next_step="minor"):
             nodes_points_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, lat, lon
@@ -2227,7 +2247,7 @@ class PbfFileReader:
                 file_path=nodes_points_required_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Read nodes tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading nodes tags", next_step="minor"):
             nodes_tags_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, tags
@@ -2239,7 +2259,7 @@ class PbfFileReader:
 
         self._delete_directories([nodes_tags_and_points_valid_path])
 
-        with self.task_progress_tracker.get_spinner("Read elements refs", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading elements refs", next_step="minor"):
             unnested_elements = self.connection.sql(
                 f"""
                 WITH unnested_elements AS (
@@ -2280,13 +2300,13 @@ class PbfFileReader:
                 unnested_elements, unnested_elements_path
             )
 
-        with self.task_progress_tracker.get_spinner("Read ways refs", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading ways refs", next_step="minor"):
             ways_unnested = self._save_parquet_file(
                 all_unnested_elements.filter("kind = 'way'").select("id, ref, ref_idx"),
                 ways_unnested_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Read relations refs", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading relations refs", next_step="minor"):
             relations_unnested = self._save_parquet_file(
                 all_unnested_elements.filter("kind = 'relation'").select(
                     "id, ref, ref_role, ref_idx"
@@ -2299,7 +2319,9 @@ class PbfFileReader:
         ways_ids_valid_path = self.tmp_dir_path / "ways_ids_valid"
 
         # ways IDs (valid)
-        with self.task_progress_tracker.get_spinner("Ways valid ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating ways valid ids", next_step="minor"
+        ):
             ways_ids_valid = self._calculate_element_valid_ids_based_on_refs(
                 refs_unnested=ways_unnested_path,
                 sub_element_ids_valid=nodes_points_required_valid_path,
@@ -2307,7 +2329,9 @@ class PbfFileReader:
             )
 
         # relations IDs (valid)
-        with self.task_progress_tracker.get_spinner("Relations valid ids", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating relations valid ids", next_step="minor"
+        ):
             relations_ids_filtered_valid = self._calculate_element_valid_ids_based_on_refs(
                 refs_unnested=relations_unnested_path,
                 sub_element_ids_valid=ways_ids_valid_path,
@@ -2315,7 +2339,7 @@ class PbfFileReader:
             )
 
         # relations unnested (filtered, valid)
-        with self.task_progress_tracker.get_spinner("Unnested relations", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Unnesting relations", next_step="minor"):
             relations_unnested_filtered_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, ref, ref_role, ref_idx
@@ -2330,7 +2354,9 @@ class PbfFileReader:
         # Ways second pass
         # ways IDs (required)
         # - all needed to construct relations from relations filtered
-        with self.task_progress_tracker.get_spinner("Ways required and valid", next_step="minor"):
+        with self.task_progress_tracker.get_spinner(
+            "Calculating ways required and valid ids", next_step="minor"
+        ):
             ways_ids_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT DISTINCT ref as id
@@ -2344,7 +2370,7 @@ class PbfFileReader:
             )
 
         # ways unnested (filtered, required, valid)
-        with self.task_progress_tracker.get_spinner("Unnested ways", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Unnesting ways", next_step="minor"):
             ways_unnested_filtered_required_valid = self._sql_to_parquet_file(
                 sql_query=f"""
                 SELECT id, ref, ref_idx
@@ -2359,7 +2385,7 @@ class PbfFileReader:
         # filter valid tags
         filtered_elements_path = self.tmp_dir_path / "filtered_elements"
 
-        with self.task_progress_tracker.get_spinner("Read elements tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading elements tags", next_step="minor"):
             filtered_elements = self.connection.sql(
                 f"""
                 WITH filtered_elements AS (
@@ -2390,7 +2416,7 @@ class PbfFileReader:
                 filtered_elements, filtered_elements_path
             )
 
-        with self.task_progress_tracker.get_spinner("Read ways tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading ways tags", next_step="minor"):
             ways_tags_filtered_valid = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'way'")
                 .join(ways_ids_valid, condition="id", how="semi")
@@ -2398,7 +2424,7 @@ class PbfFileReader:
                 ways_tags_filtered_valid_path,
             )
 
-        with self.task_progress_tracker.get_spinner("Read relations tags", next_step="minor"):
+        with self.task_progress_tracker.get_spinner("Reading relations tags", next_step="minor"):
             relations_tags_filtered_valid = self._save_parquet_file(
                 all_filtered_elements.filter("kind = 'relation'")
                 .join(relations_ids_filtered_valid, condition="id", how="semi")
@@ -3446,7 +3472,7 @@ class PbfFileReader:
             unnested_relations_with_linestrings_parquet = self._save_parquet_file_with_geometry(
                 relation=unnested_relations_with_linestrings,
                 file_path=valid_relations_tmp_path / "unnested_relations",
-                step_name="Unnested linestrings",
+                step_name="Unnesting linestrings",
                 next_step="minor",
             )
 
@@ -3536,7 +3562,7 @@ class PbfFileReader:
             valid_relation_parts_parquet = self._save_parquet_file_with_geometry(
                 relation=valid_relation_parts,
                 file_path=self.tmp_dir_path / "valid_relation_parts",
-                step_name="Filtering valid",
+                step_name="Filtering valid parts",
                 next_step="minor",
             )
 
