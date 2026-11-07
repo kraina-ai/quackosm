@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Steps are numbered with `StepCounter` from `rq_geo_toolkit`
 - Progress of the whole operation, including downloads, is shown in a single live display from `rq_geo_toolkit`, so Jupyter cells don't get empty gaps between steps and parallel conversions don't break each other's progress bars
 - Worker processes crashing with an exit code other than out of memory raise `RuntimeError` on Linux and macOS, instead of `MemoryError` that started a retry
+- Bumped minimal `rq_geo_toolkit` version to `2026.11.2`, which marks failed progress steps, and `osmfinder` version to `1.2.3`, which shows the covered area in uncovered geometry warnings
 
 ### Fixed
 
