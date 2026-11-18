@@ -866,10 +866,7 @@ def main(
     )
 
     if pbf_file is osm_extract_query is geometry_filter_value is None:
-        from click import Argument
-        from click.exceptions import MissingParameter
-
-        raise MissingParameter(
+        raise typer.BadParameter(
             message=(
                 "QuackOSM requires either the path to the pbf file,"
                 " an OSM extract query (--osm-extract-query) or a geometry filter"
@@ -878,7 +875,7 @@ def main(
                 " --geom-filter-index-h3, --geom-filter-index-s2, --geom-filter-wkt)"
                 " to download the file automatically. All three cannot be empty at once."
             ),
-            param=Argument(["pbf_file"], type=Path, metavar="PBF file path"),
+            param_hint="'PBF file path'",
         )
 
     if osm_tags_filter is not None and osm_tags_filter_file is not None:

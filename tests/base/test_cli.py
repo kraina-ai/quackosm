@@ -5,20 +5,15 @@ from pathlib import Path
 from typing import Optional
 
 import pytest
-from click.exceptions import MissingParameter
 from osmfinder import OsmExtractSource
-from packaging import version
 from parametrization import Parametrization as P
 from pytest_mock import MockerFixture
-from typer import __version__ as typer_version
 from typer.testing import CliRunner
 
 from quackosm import __app_name__, __version__, cli
 from tests.base.conftest import geometry_boundary_file_path, geometry_geojson, geometry_wkt
 
 runner = CliRunner()
-
-TYPER_ABOVE_0_26 = version.parse(typer_version) >= version.parse("0.26.0")
 
 
 def monaco_pbf_file_path() -> str:
@@ -61,14 +56,13 @@ def test_pbf_file_or_geometry_filter_is_required() -> None:
         cli.app,
     )
 
-    assert result.exit_code == 1
-
-    if TYPER_ABOVE_0_26:
-        assert isinstance(result.exception, MissingParameter)
-        assert (
-            "QuackOSM requires either the path to the pbf file, "
-            "an OSM extract query (--osm-extract-query) or a geometry filter"
-        ) in str(result.exception)
+    assert result.exit_code == 2
+    # Rich wraps the error in a box, so normalise whitespace before matching
+    output = " ".join(result.output.replace("│", " ").split())
+    assert (
+        "QuackOSM requires either the path to the pbf file, "
+        "an OSM extract query (--osm-extract-query) or a geometry filter"
+    ) in output
 
 
 def test_basic_run(monaco_pbf_file_path_fixture: str) -> None:
