@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped minimal `typer` version to `0.16.0`, since older versions crash on CLI usage errors with `click>=8.2.0`
+
 ### Fixed
 
 - CLI compatibility with `typer>=0.29.0`, which removed the `click_type` parameter - custom parsers are now passed with `parser` and `metavar`
