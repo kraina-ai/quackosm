@@ -1,5 +1,6 @@
 """Main CLI module."""
 
+
 def main() -> None:
     """Run provided CLI."""
     try:

@@ -15,10 +15,13 @@ repos:
         args: [--fix, --exit-non-zero-on-fix, --show-fixes]
       - id: ruff-format
         types_or: [python]
+  # v1.7.8 rewrites SQL strings as docstrings (https://github.com/PyCQA/docformatter/issues/289)
   - repo: https://github.com/PyCQA/docformatter
-    rev: v1.7.8
+    rev: v1.7.7
     hooks:
       - id: docformatter
+        # untokenize (docformatter dependency) does not build on Python 3.14
+        language_version: python3.12
         additional_dependencies: [tomli]
         args: [--in-place, --config, ./pyproject.toml]
   - repo: https://github.com/pre-commit/mirrors-mypy
