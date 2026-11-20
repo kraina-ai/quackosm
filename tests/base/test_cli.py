@@ -1,5 +1,6 @@
 """Tests for CLI."""
 
+import re
 import uuid
 from pathlib import Path
 from typing import Optional
@@ -57,8 +58,9 @@ def test_pbf_file_or_geometry_filter_is_required() -> None:
     )
 
     assert result.exit_code == 2
-    # Rich wraps the error in a box, so normalise whitespace before matching
-    output = " ".join(result.output.replace("│", " ").split())
+    # Rich colours and wraps the error in a box, so strip ANSI codes and normalise whitespace
+    output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    output = " ".join(output.replace("│", " ").split())
     assert (
         "QuackOSM requires either the path to the pbf file, "
         "an OSM extract query (--osm-extract-query) or a geometry filter"
