@@ -555,36 +555,36 @@ def test_pbf_reader_proper_tags_reading(
             {"name:*": "Monaco"},
             2,
             ["node/1790048269", "node/6684051501"],
-            46,
+            217,
             [
                 "geometry",
+                "name:ace",
                 "name:af",
+                "name:ak",
                 "name:als",
+                "name:am",
+                "name:an",
                 "name:ang",
-                "name:bar",
-                "name:bi",
-                "name:cy",
-                "name:da",
-                "name:de",
-                "name:dsb",
+                "name:ar",
+                "name:arc",
             ],
         ),
         (
             {"name:*": ["Monaco", "France"]},
             2,
             ["node/1790048269", "node/6684051501"],
-            46,
+            217,
             [
                 "geometry",
+                "name:ace",
                 "name:af",
+                "name:ak",
                 "name:als",
+                "name:am",
+                "name:an",
                 "name:ang",
-                "name:bar",
-                "name:bi",
-                "name:cy",
-                "name:da",
-                "name:de",
-                "name:dsb",
+                "name:ar",
+                "name:arc",
             ],
         ),
         (
@@ -656,8 +656,8 @@ def test_pbf_reader_proper_tags_reading(
                 "way/1024523795",
                 "way/1024523796",
             ],
-            2,
-            ["geometry", "maxspeed"],
+            3,
+            ["geometry", "maxspeed", "source:maxspeed"],
         ),
         (
             {"*speed": "*0", "railway": False, "waterway": False},
@@ -674,8 +674,8 @@ def test_pbf_reader_proper_tags_reading(
                 "way/1024523795",
                 "way/1024523796",
             ],
-            2,
-            ["geometry", "maxspeed"],
+            3,
+            ["geometry", "maxspeed", "source:maxspeed"],
         ),
         (
             {"*speed": ["*0", "90"]},
@@ -692,8 +692,8 @@ def test_pbf_reader_proper_tags_reading(
                 "way/1024523795",
                 "way/1024523796",
             ],
-            2,
-            ["geometry", "maxspeed"],
+            3,
+            ["geometry", "maxspeed", "source:maxspeed"],
         ),
         (
             {"*speed": "*0", "highway": "primary"},
@@ -710,8 +710,8 @@ def test_pbf_reader_proper_tags_reading(
                 "way/1019360050",
                 "way/1019646822",
             ],
-            3,
-            ["geometry", "highway", "maxspeed"],
+            4,
+            ["geometry", "highway", "maxspeed", "source:maxspeed"],
         ),
         (
             {"*speed": "*0", "highspeed": True},
@@ -728,8 +728,8 @@ def test_pbf_reader_proper_tags_reading(
                 "way/1024523795",
                 "way/1024523796",
             ],
-            2,
-            ["geometry", "maxspeed"],
+            3,
+            ["geometry", "maxspeed", "source:maxspeed"],
         ),
         (
             {"buildings": {"building": True}},
@@ -934,3 +934,18 @@ def test_incorrect_osm_tags_filters(
             ignore_cache=True,
             explode_tags=False,
         )
+
+
+@pytest.mark.parametrize("explode_tags", [True, False])  # type: ignore
+def test_wildcard_key_filter_keeps_values_of_expanded_keys(explode_tags: bool) -> None:
+    """Test if keys expanded from a wildcard key keep their values when only some match."""
+    features_gdf = PbfFileReader(tags_filter={"name*": "*Palace*"}).convert_pbf_to_geodataframe(
+        pbf_path=[Path(__file__).parent.parent / "test_files" / "monaco.osm.pbf"],
+        ignore_cache=True,
+        filter_osm_ids=["relation/393226"],
+        explode_tags=explode_tags,
+    )
+    assert len(features_gdf) == 1
+    row = features_gdf.iloc[0]
+    name = row["name"] if explode_tags else row["tags"].get("name")
+    assert name == "Palais princier de Monaco"

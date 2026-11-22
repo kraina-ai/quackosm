@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keys expanded from a wildcard key in the tags filter (e.g. `name*`) keep their original values instead of being set to `NULL` when the value pattern matches only some of them [#233](https://github.com/kraina-ai/quackosm/issues/233)
+
 ## [0.20.0] - 2026-10-31
 
 ### Changed
