@@ -267,6 +267,7 @@ class PbfFileReader:
         )
         self.expanded_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
         self.merged_tags_filter: Optional[Union[GroupedOsmTagsFilter, OsmTagsFilter]] = None
+        self._wildcard_expanded_tag_keys: set[str] = set()
 
         self.custom_sql_filter = custom_sql_filter
 
@@ -1221,6 +1222,7 @@ class PbfFileReader:
             self.expanded_tags_filter = None
             self.merged_tags_filter = None
         else:
+            self._wildcard_expanded_tag_keys = set()
             self.expanded_tags_filter = self._expand_osm_tags_filter(elements)
             self.merged_tags_filter = merge_osm_tags_filter(self.expanded_tags_filter)
 
@@ -1527,6 +1529,10 @@ class PbfFileReader:
                         WHERE tag LIKE '{sql_like_value}'
                         """
                     ).fetchnumpy()["tag"]
+                )
+                # Keys found by a wildcard keep their values in the select clause (see #233).
+                self._wildcard_expanded_tag_keys.update(
+                    tag for tag in new_tags_to_add if tag not in osm_tags_filter
                 )
 
             for new_tag_to_add in sorted(new_tags_to_add, key=str.casefold):
@@ -3715,7 +3721,9 @@ class PbfFileReader:
         elif self.merged_tags_filter and keep_tags_compact:
             filter_tag_clauses = []
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if filter_tag_value == True:  # noqa: E712
+                if (
+                    filter_tag_key in self._wildcard_expanded_tag_keys or filter_tag_value == True  # noqa: E712
+                ):
                     filter_tag_clauses.append(f"tag_entry.key = '{filter_tag_key}'")
                 elif isinstance(filter_tag_value, (str, list)):
                     filter_tag_values = filter_tag_value
@@ -3749,7 +3757,9 @@ class PbfFileReader:
             ]
         elif self.merged_tags_filter and explode_tags:
             for filter_tag_key, filter_tag_value in self.merged_tags_filter.items():
-                if filter_tag_value == True:  # noqa: E712
+                if (
+                    filter_tag_key in self._wildcard_expanded_tag_keys or filter_tag_value == True  # noqa: E712
+                ):
                     osm_tag_keys_select_clauses.append(
                         f"list_extract(map_extract(tags, '{filter_tag_key}'), 1) as"
                         f' "{filter_tag_key}"'
