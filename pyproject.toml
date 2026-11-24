@@ -99,15 +99,10 @@ docs = [
     "py-cpuinfo",
     "adjustText",
     "basemaplibre>=0.1.1; python_version >= '3.11'",
+    "rq_geo_toolkit[folium]>=2026.11.3",
 ]
 license = ["licensecheck==2025.1.0", "pipdeptree"]
-cli-dev = [
-    "ipywidgets",
-    "folium>=0.15.0",
-    "matplotlib>=3.2.0",
-    "mapclassify",
-    "rq_geo_toolkit>=2026.11.3",
-]
+cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]
 
 [project.scripts]
 quackosm = "quackosm.__main__:main"
