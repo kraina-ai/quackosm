@@ -468,21 +468,6 @@ dependencies = [
 ]
 
 [[packages]]
-name = "click"
-version = "8.2.1"
-requires-python = ">=3.10"
-sdist = {name = "click-8.2.1.tar.gz", url = "https://files.pythonhosted.org/packages/60/6c/8ca2efa64cf75a977a0d7fac081354553ebe483345c734fb6b6515d96bbc/click-8.2.1.tar.gz", hashes = {sha256 = "27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202"}}
-wheels = [
-    {name = "click-8.2.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/85/32/10bb5764d90a8eee674e9dc6f4db6a0ab47c8c4d0d83c27f7c39ac415a4d/click-8.2.1-py3-none-any.whl",hashes = {sha256 = "61a3265b914e850b85317d0b3109c7f8cd35a670f963866005d6ef1d5175a12b"}},
-]
-marker = "\"default\" in dependency_groups or \"cli\" in extras or \"dev\" in dependency_groups or \"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "colorama; platform_system == \"Windows\"",
-]
-
-[[packages]]
 name = "folium"
 version = "0.20.0"
 requires-python = ">=3.9"
@@ -1465,7 +1450,7 @@ sdist = {name = "colorama-0.4.6.tar.gz", url = "https://files.pythonhosted.org/p
 wheels = [
     {name = "colorama-0.4.6-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl",hashes = {sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6"}},
 ]
-marker = "\"default\" in dependency_groups or \"cli\" in extras or \"cli-dev\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
+marker = "\"default\" in dependency_groups or \"cli-dev\" in dependency_groups or \"dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -1704,6 +1689,19 @@ wheels = [
     {name = "MarkupSafe-3.0.2-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/44/06/e7175d06dd6e9172d4a69a72592cb3f7a996a9c396eee29082826449bbc3/MarkupSafe-3.0.2-cp310-cp310-win_amd64.whl",hashes = {sha256 = "6af100e168aa82a50e186c82875a5893c5597a0c1ccdb0d8b40240b1f28b969a"}},
 ]
 marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
+name = "click"
+version = "8.5.1"
+requires-python = ">=3.10"
+sdist = {name = "click-8.5.1.tar.gz", url = "https://files.pythonhosted.org/packages/45/37/edbf1b0707709013c0cf2e8317e03d97ed29bf4cac709fe328904ae92a38/click-8.5.1.tar.gz", hashes = {sha256 = "9bbfada76703fd1d784b83eea012e3e8c6a001a876543ef104fa56aaaeb072b4"}}
+wheels = [
+    {name = "click-8.5.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/31/7d/164b7ffc8624fe9efb4221bf9af485d5c1e41b9ae118045d2b6dc5457d8b/click-8.5.1-py3-none-any.whl",hashes = {sha256 = "8bb5376d2006950386f8c6427613334a2acadc5f559cb80e638d00b4df957e37"}},
+]
+marker = "\"default\" in dependency_groups or \"cli\" in extras or \"dev\" in dependency_groups or \"docs\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -2763,19 +2761,6 @@ dependencies = [
 ]
 
 [[packages]]
-name = "certifi"
-version = "2026.11.20"
-requires-python = ">=3.7"
-sdist = {name = "certifi-2026.11.20.tar.gz", url = "https://files.pythonhosted.org/packages/51/33/4cd27639502f010084bcef7a2036391dd637439901341ce1a530f36f6e51/certifi-2026.11.20.tar.gz", hashes = {sha256 = "af1cb240a8133f105aa52684a3a3258339d7f2fd0bd4e2812698ff5cf5588c4e"}}
-wheels = [
-    {name = "certifi-2026.11.20-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/6d/39/5eec3296860b94ac20bb8ed807725b88f6adfab3f343df592afd975f5f86/certifi-2026.11.20-py3-none-any.whl",hashes = {sha256 = "7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f"}},
-]
-marker = "\"default\" in dependency_groups or \"cli-dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
 name = "cfgv"
 version = "3.4.0"
 requires-python = ">=3.8"
@@ -3757,6 +3742,19 @@ dependencies = [
     "httpx<1,>=0.28.1",
     "certifi>=2026.10.19",
 ]
+
+[[packages]]
+name = "certifi"
+version = "2026.11.20"
+requires-python = ">=3.7"
+sdist = {name = "certifi-2026.11.20.tar.gz", url = "https://files.pythonhosted.org/packages/51/33/4cd27639502f010084bcef7a2036391dd637439901341ce1a530f36f6e51/certifi-2026.11.20.tar.gz", hashes = {sha256 = "af1cb240a8133f105aa52684a3a3258339d7f2fd0bd4e2812698ff5cf5588c4e"}}
+wheels = [
+    {name = "certifi-2026.11.20-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/6d/39/5eec3296860b94ac20bb8ed807725b88f6adfab3f343df592afd975f5f86/certifi-2026.11.20-py3-none-any.whl",hashes = {sha256 = "7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f"}},
+]
+marker = "\"default\" in dependency_groups or \"cli-dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
 
 [[packages]]
 name = "natsort"
@@ -4987,7 +4985,7 @@ marker = "\"cli-dev\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "6b3f0383afd0d36faebcde37e4dcf76122f1d1600a106f118dcf1f020a76d976"}
+hashes = {sha256 = "4e475b6ed9e818cf1565644cffa54ed0ee68f0478ec808c62bed1da20fd40df4"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]

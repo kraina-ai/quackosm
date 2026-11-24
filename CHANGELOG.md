@@ -13,8 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Bumped minimal `typer` version to `0.18.0`, since older versions mishandle CLI usage errors with `click>=8.2.0` (traceback instead of an error message, missing required arguments passed as `None`)
 - Replaced `contextily` with `basemaplibre` in the example notebooks
 - Replaced CARTO basemaps with OpenFreeMap styles in the interactive maps of the example notebooks
+
+### Fixed
+
+- CLI compatibility with `typer>=0.29.0`, which removed the `click_type` parameter - custom parsers are now passed with `parser` and `metavar`
+- Missing required CLI input now shows a usage error (exit code 2) instead of a traceback on `typer>=0.26.0`
+
+### Removed
+
+- `click` from the `cli` optional dependencies, since it's no longer imported directly
 
 ## [0.20.0] - 2026-10-31
 

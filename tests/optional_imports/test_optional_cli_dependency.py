@@ -14,7 +14,6 @@ def optional_packages() -> list[str]:
     """Get a list with optional packages."""
     return [
         "typer",
-        "click",
         "geohash",
     ]
 
