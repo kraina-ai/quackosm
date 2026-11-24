@@ -1,5 +1,11 @@
 name: tests
-on: workflow_call
+on:
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+      GOOGLE_SERVICE_ACCOUNT_CREDENTIALS:
+        required: false
 
 jobs:
   run-tests:
@@ -21,7 +27,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       COLUMNS: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Get Google access token
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == 'kraina-ai/quackosm' }}
         id: google-access-token
@@ -59,7 +65,7 @@ jobs:
                     each_file.rename(trg_path)
             Path('test_files.zip').unlink()
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - uses: pdm-project/setup-pdm@v3
@@ -74,14 +80,14 @@ jobs:
           pdm lock --python '==${{ matrix.python-version }}.*'
           pdm install --no-default -d -G test --skip=post_install
       - name: Cache OSM data
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: cache
           key: osm-cache-${{ matrix.os }}-${{ matrix.python-version }}
       - name: Cache tox runner
         # Cache only on the main branch
         if: github.ref == 'refs/heads/main'
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: .tox
           key: tox-cache-${{ matrix.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pylock.toml') }}
@@ -112,7 +118,7 @@ jobs:
       COLUMNS: 120
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       # - name: Setup Environment (PR)
       #   if: ${{ github.event_name == 'pull_request' }}
       #   shell: bash
