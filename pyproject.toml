@@ -66,6 +66,9 @@ dev = [
 lint = ["pre-commit>=4", "mypy>=1", "docformatter[tomli]", "ruff>=0.1.0"]
 # pdm add -dG test <library>
 test = [
+    # TODO: remove once the h3 extension is built for DuckDB 2.0.1 or DuckDB 2.0.2 is released
+    # https://community-extensions.duckdb.org/v2.0.1/linux_amd64/h3.duckdb_extension.gz
+    "duckdb!=2.0.1",
     "pytest>=7.0.0",
     "tox-pdm>=0.7.2",
     # tox 4.67.5 passes `capture` to execute(), unsupported by tox-pdm 0.7.2
@@ -98,7 +101,8 @@ docs = [
     "seaborn>=0.10.0",
     "py-cpuinfo",
     "adjustText",
-    "contextily",
+    "basemaplibre>=0.1.1; python_version >= '3.11'",
+    "rq_geo_toolkit[folium]>=2026.11.3",
 ]
 license = ["licensecheck==2025.1.0", "pipdeptree"]
 cli-dev = ["ipywidgets", "folium", "matplotlib>=3.2.0", "mapclassify"]

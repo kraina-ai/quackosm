@@ -37,6 +37,52 @@ dependencies = [
 ]
 
 [[packages]]
+name = "duckdb"
+version = "1.5.6"
+requires-python = ">=3.10.0"
+sdist = {name = "duckdb-1.5.6.tar.gz", url = "https://files.pythonhosted.org/packages/59/0b/d65ea3be00ea79aa276a8388bec588a9cbf409ce637c6d306e5316210d15/duckdb-1.5.6.tar.gz", hashes = {sha256 = "166a91dbfacfc0c9f08cc76c0243cb6d3d4296bfab5bad72a3cfb63140a5b7c8"}}
+wheels = [
+    {name = "duckdb-1.5.6-cp314-cp314-macosx_10_15_universal2.whl",url = "https://files.pythonhosted.org/packages/fb/62/a8a30a4c6b94c0861d348ed5633b963f6745a5525527530f02f3c1a7c931/duckdb-1.5.6-cp314-cp314-macosx_10_15_universal2.whl",hashes = {sha256 = "aa21d2ad803b2524326e8622d7d96b2bb1ff1d5b60368e1978ee805df9c21fb3"}},
+    {name = "duckdb-1.5.6-cp314-cp314-macosx_10_15_x86_64.whl",url = "https://files.pythonhosted.org/packages/71/b7/1dcca0005eb8c67adf9fc06bf0cbb1d2bf4ea1974cc89e7a7c2ad66aac28/duckdb-1.5.6-cp314-cp314-macosx_10_15_x86_64.whl",hashes = {sha256 = "8a1b2ad27d414068cbca06c55cfa802eece10f86ea4812ff082f8ab4cb25fc85"}},
+    {name = "duckdb-1.5.6-cp314-cp314-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/93/b0/e3ac175443550f3464f2d95731a8b0aae9b4dc3875c3a186c352262b43c2/duckdb-1.5.6-cp314-cp314-macosx_11_0_arm64.whl",hashes = {sha256 = "c79c6d222b1d015cde73b5139087186b00db65357fb4e2c94c2308fbbf465a72"}},
+    {name = "duckdb-1.5.6-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/9d/08/cc510a7952aba69d5cdca17f3ef61c95713d86143f2ee9aa3e097d38f50b/duckdb-1.5.6-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "1052b8050ef5696e2c0d8c836949c72f3dd11f0690466acbea739613e8e2750b"}},
+    {name = "duckdb-1.5.6-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/ef/a5/6f8099d9a5a02ddff89e5c85875df3465054845b0920fb0703fbdf8dd2ec/duckdb-1.5.6-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "19c5e485e59613b8878d1670bcaa7a010f53c5a4da5ae8e08863e5e529ca6182"}},
+    {name = "duckdb-1.5.6-cp314-cp314-win_amd64.whl",url = "https://files.pythonhosted.org/packages/9f/58/762f7159662d7859e201fa05ca29f306795daeabf84f3e087215a966b001/duckdb-1.5.6-cp314-cp314-win_amd64.whl",hashes = {sha256 = "ebcbd09cd8578ab1093393e9b16289cda0e8f1791ac595bf00eb5bad75c3cf00"}},
+    {name = "duckdb-1.5.6-cp314-cp314-win_arm64.whl",url = "https://files.pythonhosted.org/packages/46/69/64d165db322de13f5c3e75d377b6b9694df1821155ad1fa4b14b04601abc/duckdb-1.5.6-cp314-cp314-win_arm64.whl",hashes = {sha256 = "820a8384faef11cd86068ea48c5da57ce2d8f1c7b3d2bdb9be3398317a7c3728"}},
+    {name = "duckdb-1.5.6-cp313-cp313-macosx_10_13_universal2.whl",url = "https://files.pythonhosted.org/packages/b1/5e/a476197fcba557738a588ec844747a19bc0a24b0e6f1809e308f29d68c0e/duckdb-1.5.6-cp313-cp313-macosx_10_13_universal2.whl",hashes = {sha256 = "ae352646374cacf48e9981cf031191c494865192fc436d13667a2531fc5d1da3"}},
+    {name = "duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl",url = "https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl",hashes = {sha256 = "5a1261e90785e9d29953293e44f60fa073bd1137098924e8de21a037a861b051"}},
+    {name = "duckdb-1.5.6-cp313-cp313-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/d4/a0/bf87071170835ee4a34fe764fc11c1c6e7040a0e021b36c1b6f834a4c22f/duckdb-1.5.6-cp313-cp313-macosx_11_0_arm64.whl",hashes = {sha256 = "97dd7a555b8f5298b76bc7d48a11cb2c64336e8de9bfde783cffb86ea9f54807"}},
+    {name = "duckdb-1.5.6-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/31/e0/38095c8e140ecfbe847519ac07bcba94301b8fbb76b2870015e33e07f179/duckdb-1.5.6-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "364992ba1089a2b327391cfcb68fd0bd0ce9090cf293baef861a0ba6847abfee"}},
+    {name = "duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "644f54ce99b3b61844bc9a3fe80e0aecb1ea4084b1fffc4396d1569db6111679"}},
+    {name = "duckdb-1.5.6-cp313-cp313-win_amd64.whl",url = "https://files.pythonhosted.org/packages/4a/4a/100730e7785e85268be4d4d5bd62cfc8314e261d2f42efa208243eef35cb/duckdb-1.5.6-cp313-cp313-win_amd64.whl",hashes = {sha256 = "ced693d33ddcee2e5345f077d342c87d2aaa80e41c514e64c9ff2d4e5963c251"}},
+    {name = "duckdb-1.5.6-cp313-cp313-win_arm64.whl",url = "https://files.pythonhosted.org/packages/f3/2e/bc7f44eab4e89ee5c1cb427bb1168ad021d985042e6841ec0694c3d3d501/duckdb-1.5.6-cp313-cp313-win_arm64.whl",hashes = {sha256 = "41ecc75bb9328d72d154a705c1a653d2c5c60f686a5c0c6578aa80020753c884"}},
+    {name = "duckdb-1.5.6-cp312-cp312-macosx_10_13_universal2.whl",url = "https://files.pythonhosted.org/packages/d9/d5/d0ab77a0a1702a43171c93874f44c1f6481e30038bd3987df0d77a16a5c6/duckdb-1.5.6-cp312-cp312-macosx_10_13_universal2.whl",hashes = {sha256 = "48d07d0651aaeac2c3974afd37599970154b7b79b54c18f27c319c14ccf98d9d"}},
+    {name = "duckdb-1.5.6-cp312-cp312-macosx_10_13_x86_64.whl",url = "https://files.pythonhosted.org/packages/9f/cd/b22201de5377faa3be6c38d5f3eaa504cb480392a448bed6a4d2239469b4/duckdb-1.5.6-cp312-cp312-macosx_10_13_x86_64.whl",hashes = {sha256 = "79de3dfa8705b1ba0d59e7e3252e40ff399e0afd12f485502a6c7bf7c2fd809a"}},
+    {name = "duckdb-1.5.6-cp312-cp312-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/9c/6d/f9cfb1493bbdc2f095693a402e42dce1192077f9e11573f00baed6a748de/duckdb-1.5.6-cp312-cp312-macosx_11_0_arm64.whl",hashes = {sha256 = "dcccce20965e6986cd083fdf192c461685ad0b93cd1ccd0b2a8207f1185f078b"}},
+    {name = "duckdb-1.5.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/53/04/f65ccfaa5a833f2e570c4a140f03c8f95da416da9fe8ed08401f81f8242a/duckdb-1.5.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "ce89a1025a5317ebe9c520876c48032b5247ac574865486648b1a004f6009875"}},
+    {name = "duckdb-1.5.6-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/4c/99/be75c788a492f8d77b7a1cdc1b19939ae7be0007f2028691ad371a1a33ee/duckdb-1.5.6-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "bc9619ed7d4ffa117b5155d84b44794366bb6635178d78ed5e13a6024845c757"}},
+    {name = "duckdb-1.5.6-cp312-cp312-win_amd64.whl",url = "https://files.pythonhosted.org/packages/b5/95/889f8508960e47c0a7c75cc5bf57cde8512fc24f8db7b3129cca5388da42/duckdb-1.5.6-cp312-cp312-win_amd64.whl",hashes = {sha256 = "09ff51b230219f0d8b47fc8a1e17fb595ba9fab0c3d96a6de4d00b8ff86b3cf1"}},
+    {name = "duckdb-1.5.6-cp312-cp312-win_arm64.whl",url = "https://files.pythonhosted.org/packages/a4/c9/baab503364a68309f8368c88e77f5341e7d94927bdf3e6d703f0e5035f3e/duckdb-1.5.6-cp312-cp312-win_arm64.whl",hashes = {sha256 = "b8d795c8b2d5634b3269f974aa97f1fdf878f62f032317a52252a151b693fb1e"}},
+    {name = "duckdb-1.5.6-cp311-cp311-macosx_10_9_universal2.whl",url = "https://files.pythonhosted.org/packages/36/e5/01e03d30b7ba33a030a4269fdca16ce445ce10f9d29b84a10fdbe0636ad2/duckdb-1.5.6-cp311-cp311-macosx_10_9_universal2.whl",hashes = {sha256 = "c88700d0ee68ad149a0cc624df21b0f21efc136ea2449aaadd7cd0c9a564962a"}},
+    {name = "duckdb-1.5.6-cp311-cp311-macosx_10_9_x86_64.whl",url = "https://files.pythonhosted.org/packages/ba/4f/7f7be626a4649a3948ca646c84d6afc1a00121f292f98e6f0d9ed68330df/duckdb-1.5.6-cp311-cp311-macosx_10_9_x86_64.whl",hashes = {sha256 = "03e4f1b10a8b8ff476eb2b73955590fadbcef978da1167c593114c5edf763960"}},
+    {name = "duckdb-1.5.6-cp311-cp311-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/1a/66/9d57573729348d800a0eebdd508f1a833d3714f72e984fef79b47f0e6c45/duckdb-1.5.6-cp311-cp311-macosx_11_0_arm64.whl",hashes = {sha256 = "34623eaabd2c66ba5c20f1a39486321c3b7d32e4e0e001ced95f81e3372dd361"}},
+    {name = "duckdb-1.5.6-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/57/ec/97f595214b3a27b4ca42b8cab6d8121c06f3537dcc4d2da7bca0332de4c5/duckdb-1.5.6-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "56c0f71c6bee982e9c30568bb12371bf66b26bf129c75d8d7f60bc69d6590a2c"}},
+    {name = "duckdb-1.5.6-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/68/4a/ab59f4c1f76fb89e28d23f19b2729538e0723c8d328a07e1b8c37f9ee128/duckdb-1.5.6-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "73b108c04c932b36c2fa4e41110cc1c3c8cd510eb49f065f92d050be8e6929fd"}},
+    {name = "duckdb-1.5.6-cp311-cp311-win_amd64.whl",url = "https://files.pythonhosted.org/packages/31/4f/9306c442ecad76f2a4d19f249e7fc8861f139dcf748315102eb69de8ca56/duckdb-1.5.6-cp311-cp311-win_amd64.whl",hashes = {sha256 = "dda311932cf5aae955a53fe28a4fc1700c2ab5fa02dc1f165abdd5ec6c39141e"}},
+    {name = "duckdb-1.5.6-cp311-cp311-win_arm64.whl",url = "https://files.pythonhosted.org/packages/a0/40/8a370e998293d3ebbbac4d926db30bb4ac5f700851a06ac31e7093bee386/duckdb-1.5.6-cp311-cp311-win_arm64.whl",hashes = {sha256 = "df5ae02af278e084f54a9730a9f4f211ed736d0bd8f3bc12af925c2effb5b33d"}},
+    {name = "duckdb-1.5.6-cp310-cp310-macosx_10_9_universal2.whl",url = "https://files.pythonhosted.org/packages/58/e1/5d05ecb59e3fd401414dacc9c969a326fe3a0b1eb07920058b656fe728d6/duckdb-1.5.6-cp310-cp310-macosx_10_9_universal2.whl",hashes = {sha256 = "64db8a6700e81fe419fba130d8f1780686ad40fbf2eb69f78d2a1533728a0549"}},
+    {name = "duckdb-1.5.6-cp310-cp310-macosx_10_9_x86_64.whl",url = "https://files.pythonhosted.org/packages/0e/d0/a382d9677097a1493049ae38f8219d751db989bfc72bf3a3766dc5af038e/duckdb-1.5.6-cp310-cp310-macosx_10_9_x86_64.whl",hashes = {sha256 = "d6d1eac4de11779bb249b89b0544916ad65751da031df5c5f6d779c85b753109"}},
+    {name = "duckdb-1.5.6-cp310-cp310-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/5c/dc/76577ce6520db9e4e8b33f90ec2f503cbf79652a1fd34e391b8043f921f2/duckdb-1.5.6-cp310-cp310-macosx_11_0_arm64.whl",hashes = {sha256 = "56355a543a79c7f4d8576d27edcbd9aaed19a562a0901188b021c10f4c818800"}},
+    {name = "duckdb-1.5.6-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/e0/3e/eeeef69e0c3cf3bb463b544435695647a4802437cfcc2b94035026bf5f84/duckdb-1.5.6-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "95a6b91bb9149950baeb5d02466c006550d0ea98b9d10f15f7d614a8eb32e174"}},
+    {name = "duckdb-1.5.6-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/58/05/4ed0a651d55c8cbf9f7e826cfa95e67c9955a5db22a0c7c0cc5378f4a90c/duckdb-1.5.6-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "dbd348e9ebdc8b28f1f9930efb5a74a382063c35d9c43901075566fbae50ab5c"}},
+    {name = "duckdb-1.5.6-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/33/34/66f49f13f4286871e54b8d5478fb0b10e1f334f6ffe81536213e7fb55f09/duckdb-1.5.6-cp310-cp310-win_amd64.whl",hashes = {sha256 = "f14551eef9180fc72869e2d9a2896410a8826169e22495e98a825abaa0eac1a7"}},
+]
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = []
+
+[[packages]]
 name = "matplotlib"
 version = "3.10.3"
 requires-python = ">=3.10"
@@ -165,7 +211,7 @@ sdist = {name = "rich-14.0.0.tar.gz", url = "https://files.pythonhosted.org/pack
 wheels = [
     {name = "rich-14.0.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/0d/9b/63f4c7ebc259242c89b3acafdb37b41d1185c07ff0011164674e9076b491/rich-14.0.0-py3-none-any.whl",hashes = {sha256 = "1c9491e1951aac09caffd42f448ee3d04e58923ffe14993f6e83068dc395d7e0"}},
 ]
-marker = "\"default\" in dependency_groups or \"cli\" in extras or \"license\" in dependency_groups"
+marker = "\"default\" in dependency_groups or \"cli\" in extras or \"docs\" in dependency_groups or \"license\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = [
@@ -226,50 +272,23 @@ marker = "\"default\" in dependency_groups"
 dependencies = []
 
 [[packages]]
-name = "duckdb"
-version = "1.5.6"
-requires-python = ">=3.10.0"
-sdist = {name = "duckdb-1.5.6.tar.gz", url = "https://files.pythonhosted.org/packages/59/0b/d65ea3be00ea79aa276a8388bec588a9cbf409ce637c6d306e5316210d15/duckdb-1.5.6.tar.gz", hashes = {sha256 = "166a91dbfacfc0c9f08cc76c0243cb6d3d4296bfab5bad72a3cfb63140a5b7c8"}}
+name = "basemaplibre"
+version = "0.1.1"
+requires-python = ">=3.11"
+sdist = {name = "basemaplibre-0.1.1.tar.gz", url = "https://files.pythonhosted.org/packages/ad/9c/804e292fa9f372485bb626bee0ef579e35350f3fe8540cfb5be6c8284ab4/basemaplibre-0.1.1.tar.gz", hashes = {sha256 = "0c9deef243a4e38da6dafcf394e11c6e5077450b262b237b16826e68b6dcc600"}}
 wheels = [
-    {name = "duckdb-1.5.6-cp314-cp314-macosx_10_15_universal2.whl",url = "https://files.pythonhosted.org/packages/fb/62/a8a30a4c6b94c0861d348ed5633b963f6745a5525527530f02f3c1a7c931/duckdb-1.5.6-cp314-cp314-macosx_10_15_universal2.whl",hashes = {sha256 = "aa21d2ad803b2524326e8622d7d96b2bb1ff1d5b60368e1978ee805df9c21fb3"}},
-    {name = "duckdb-1.5.6-cp314-cp314-macosx_10_15_x86_64.whl",url = "https://files.pythonhosted.org/packages/71/b7/1dcca0005eb8c67adf9fc06bf0cbb1d2bf4ea1974cc89e7a7c2ad66aac28/duckdb-1.5.6-cp314-cp314-macosx_10_15_x86_64.whl",hashes = {sha256 = "8a1b2ad27d414068cbca06c55cfa802eece10f86ea4812ff082f8ab4cb25fc85"}},
-    {name = "duckdb-1.5.6-cp314-cp314-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/93/b0/e3ac175443550f3464f2d95731a8b0aae9b4dc3875c3a186c352262b43c2/duckdb-1.5.6-cp314-cp314-macosx_11_0_arm64.whl",hashes = {sha256 = "c79c6d222b1d015cde73b5139087186b00db65357fb4e2c94c2308fbbf465a72"}},
-    {name = "duckdb-1.5.6-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/9d/08/cc510a7952aba69d5cdca17f3ef61c95713d86143f2ee9aa3e097d38f50b/duckdb-1.5.6-cp314-cp314-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "1052b8050ef5696e2c0d8c836949c72f3dd11f0690466acbea739613e8e2750b"}},
-    {name = "duckdb-1.5.6-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/ef/a5/6f8099d9a5a02ddff89e5c85875df3465054845b0920fb0703fbdf8dd2ec/duckdb-1.5.6-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "19c5e485e59613b8878d1670bcaa7a010f53c5a4da5ae8e08863e5e529ca6182"}},
-    {name = "duckdb-1.5.6-cp314-cp314-win_amd64.whl",url = "https://files.pythonhosted.org/packages/9f/58/762f7159662d7859e201fa05ca29f306795daeabf84f3e087215a966b001/duckdb-1.5.6-cp314-cp314-win_amd64.whl",hashes = {sha256 = "ebcbd09cd8578ab1093393e9b16289cda0e8f1791ac595bf00eb5bad75c3cf00"}},
-    {name = "duckdb-1.5.6-cp314-cp314-win_arm64.whl",url = "https://files.pythonhosted.org/packages/46/69/64d165db322de13f5c3e75d377b6b9694df1821155ad1fa4b14b04601abc/duckdb-1.5.6-cp314-cp314-win_arm64.whl",hashes = {sha256 = "820a8384faef11cd86068ea48c5da57ce2d8f1c7b3d2bdb9be3398317a7c3728"}},
-    {name = "duckdb-1.5.6-cp313-cp313-macosx_10_13_universal2.whl",url = "https://files.pythonhosted.org/packages/b1/5e/a476197fcba557738a588ec844747a19bc0a24b0e6f1809e308f29d68c0e/duckdb-1.5.6-cp313-cp313-macosx_10_13_universal2.whl",hashes = {sha256 = "ae352646374cacf48e9981cf031191c494865192fc436d13667a2531fc5d1da3"}},
-    {name = "duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl",url = "https://files.pythonhosted.org/packages/0c/6d/5466a2b53ddd557644dfa47a763f68748efccdf282e6ae7c4f1bcfb3da69/duckdb-1.5.6-cp313-cp313-macosx_10_13_x86_64.whl",hashes = {sha256 = "5a1261e90785e9d29953293e44f60fa073bd1137098924e8de21a037a861b051"}},
-    {name = "duckdb-1.5.6-cp313-cp313-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/d4/a0/bf87071170835ee4a34fe764fc11c1c6e7040a0e021b36c1b6f834a4c22f/duckdb-1.5.6-cp313-cp313-macosx_11_0_arm64.whl",hashes = {sha256 = "97dd7a555b8f5298b76bc7d48a11cb2c64336e8de9bfde783cffb86ea9f54807"}},
-    {name = "duckdb-1.5.6-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/31/e0/38095c8e140ecfbe847519ac07bcba94301b8fbb76b2870015e33e07f179/duckdb-1.5.6-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "364992ba1089a2b327391cfcb68fd0bd0ce9090cf293baef861a0ba6847abfee"}},
-    {name = "duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/70/21/61dd2876bbaa69cf77d7b5c620e52e8b25faae7096f4d2e4a812b52095d7/duckdb-1.5.6-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "644f54ce99b3b61844bc9a3fe80e0aecb1ea4084b1fffc4396d1569db6111679"}},
-    {name = "duckdb-1.5.6-cp313-cp313-win_amd64.whl",url = "https://files.pythonhosted.org/packages/4a/4a/100730e7785e85268be4d4d5bd62cfc8314e261d2f42efa208243eef35cb/duckdb-1.5.6-cp313-cp313-win_amd64.whl",hashes = {sha256 = "ced693d33ddcee2e5345f077d342c87d2aaa80e41c514e64c9ff2d4e5963c251"}},
-    {name = "duckdb-1.5.6-cp313-cp313-win_arm64.whl",url = "https://files.pythonhosted.org/packages/f3/2e/bc7f44eab4e89ee5c1cb427bb1168ad021d985042e6841ec0694c3d3d501/duckdb-1.5.6-cp313-cp313-win_arm64.whl",hashes = {sha256 = "41ecc75bb9328d72d154a705c1a653d2c5c60f686a5c0c6578aa80020753c884"}},
-    {name = "duckdb-1.5.6-cp312-cp312-macosx_10_13_universal2.whl",url = "https://files.pythonhosted.org/packages/d9/d5/d0ab77a0a1702a43171c93874f44c1f6481e30038bd3987df0d77a16a5c6/duckdb-1.5.6-cp312-cp312-macosx_10_13_universal2.whl",hashes = {sha256 = "48d07d0651aaeac2c3974afd37599970154b7b79b54c18f27c319c14ccf98d9d"}},
-    {name = "duckdb-1.5.6-cp312-cp312-macosx_10_13_x86_64.whl",url = "https://files.pythonhosted.org/packages/9f/cd/b22201de5377faa3be6c38d5f3eaa504cb480392a448bed6a4d2239469b4/duckdb-1.5.6-cp312-cp312-macosx_10_13_x86_64.whl",hashes = {sha256 = "79de3dfa8705b1ba0d59e7e3252e40ff399e0afd12f485502a6c7bf7c2fd809a"}},
-    {name = "duckdb-1.5.6-cp312-cp312-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/9c/6d/f9cfb1493bbdc2f095693a402e42dce1192077f9e11573f00baed6a748de/duckdb-1.5.6-cp312-cp312-macosx_11_0_arm64.whl",hashes = {sha256 = "dcccce20965e6986cd083fdf192c461685ad0b93cd1ccd0b2a8207f1185f078b"}},
-    {name = "duckdb-1.5.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/53/04/f65ccfaa5a833f2e570c4a140f03c8f95da416da9fe8ed08401f81f8242a/duckdb-1.5.6-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "ce89a1025a5317ebe9c520876c48032b5247ac574865486648b1a004f6009875"}},
-    {name = "duckdb-1.5.6-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/4c/99/be75c788a492f8d77b7a1cdc1b19939ae7be0007f2028691ad371a1a33ee/duckdb-1.5.6-cp312-cp312-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "bc9619ed7d4ffa117b5155d84b44794366bb6635178d78ed5e13a6024845c757"}},
-    {name = "duckdb-1.5.6-cp312-cp312-win_amd64.whl",url = "https://files.pythonhosted.org/packages/b5/95/889f8508960e47c0a7c75cc5bf57cde8512fc24f8db7b3129cca5388da42/duckdb-1.5.6-cp312-cp312-win_amd64.whl",hashes = {sha256 = "09ff51b230219f0d8b47fc8a1e17fb595ba9fab0c3d96a6de4d00b8ff86b3cf1"}},
-    {name = "duckdb-1.5.6-cp312-cp312-win_arm64.whl",url = "https://files.pythonhosted.org/packages/a4/c9/baab503364a68309f8368c88e77f5341e7d94927bdf3e6d703f0e5035f3e/duckdb-1.5.6-cp312-cp312-win_arm64.whl",hashes = {sha256 = "b8d795c8b2d5634b3269f974aa97f1fdf878f62f032317a52252a151b693fb1e"}},
-    {name = "duckdb-1.5.6-cp311-cp311-macosx_10_9_universal2.whl",url = "https://files.pythonhosted.org/packages/36/e5/01e03d30b7ba33a030a4269fdca16ce445ce10f9d29b84a10fdbe0636ad2/duckdb-1.5.6-cp311-cp311-macosx_10_9_universal2.whl",hashes = {sha256 = "c88700d0ee68ad149a0cc624df21b0f21efc136ea2449aaadd7cd0c9a564962a"}},
-    {name = "duckdb-1.5.6-cp311-cp311-macosx_10_9_x86_64.whl",url = "https://files.pythonhosted.org/packages/ba/4f/7f7be626a4649a3948ca646c84d6afc1a00121f292f98e6f0d9ed68330df/duckdb-1.5.6-cp311-cp311-macosx_10_9_x86_64.whl",hashes = {sha256 = "03e4f1b10a8b8ff476eb2b73955590fadbcef978da1167c593114c5edf763960"}},
-    {name = "duckdb-1.5.6-cp311-cp311-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/1a/66/9d57573729348d800a0eebdd508f1a833d3714f72e984fef79b47f0e6c45/duckdb-1.5.6-cp311-cp311-macosx_11_0_arm64.whl",hashes = {sha256 = "34623eaabd2c66ba5c20f1a39486321c3b7d32e4e0e001ced95f81e3372dd361"}},
-    {name = "duckdb-1.5.6-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/57/ec/97f595214b3a27b4ca42b8cab6d8121c06f3537dcc4d2da7bca0332de4c5/duckdb-1.5.6-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "56c0f71c6bee982e9c30568bb12371bf66b26bf129c75d8d7f60bc69d6590a2c"}},
-    {name = "duckdb-1.5.6-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/68/4a/ab59f4c1f76fb89e28d23f19b2729538e0723c8d328a07e1b8c37f9ee128/duckdb-1.5.6-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "73b108c04c932b36c2fa4e41110cc1c3c8cd510eb49f065f92d050be8e6929fd"}},
-    {name = "duckdb-1.5.6-cp311-cp311-win_amd64.whl",url = "https://files.pythonhosted.org/packages/31/4f/9306c442ecad76f2a4d19f249e7fc8861f139dcf748315102eb69de8ca56/duckdb-1.5.6-cp311-cp311-win_amd64.whl",hashes = {sha256 = "dda311932cf5aae955a53fe28a4fc1700c2ab5fa02dc1f165abdd5ec6c39141e"}},
-    {name = "duckdb-1.5.6-cp311-cp311-win_arm64.whl",url = "https://files.pythonhosted.org/packages/a0/40/8a370e998293d3ebbbac4d926db30bb4ac5f700851a06ac31e7093bee386/duckdb-1.5.6-cp311-cp311-win_arm64.whl",hashes = {sha256 = "df5ae02af278e084f54a9730a9f4f211ed736d0bd8f3bc12af925c2effb5b33d"}},
-    {name = "duckdb-1.5.6-cp310-cp310-macosx_10_9_universal2.whl",url = "https://files.pythonhosted.org/packages/58/e1/5d05ecb59e3fd401414dacc9c969a326fe3a0b1eb07920058b656fe728d6/duckdb-1.5.6-cp310-cp310-macosx_10_9_universal2.whl",hashes = {sha256 = "64db8a6700e81fe419fba130d8f1780686ad40fbf2eb69f78d2a1533728a0549"}},
-    {name = "duckdb-1.5.6-cp310-cp310-macosx_10_9_x86_64.whl",url = "https://files.pythonhosted.org/packages/0e/d0/a382d9677097a1493049ae38f8219d751db989bfc72bf3a3766dc5af038e/duckdb-1.5.6-cp310-cp310-macosx_10_9_x86_64.whl",hashes = {sha256 = "d6d1eac4de11779bb249b89b0544916ad65751da031df5c5f6d779c85b753109"}},
-    {name = "duckdb-1.5.6-cp310-cp310-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/5c/dc/76577ce6520db9e4e8b33f90ec2f503cbf79652a1fd34e391b8043f921f2/duckdb-1.5.6-cp310-cp310-macosx_11_0_arm64.whl",hashes = {sha256 = "56355a543a79c7f4d8576d27edcbd9aaed19a562a0901188b021c10f4c818800"}},
-    {name = "duckdb-1.5.6-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",url = "https://files.pythonhosted.org/packages/e0/3e/eeeef69e0c3cf3bb463b544435695647a4802437cfcc2b94035026bf5f84/duckdb-1.5.6-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",hashes = {sha256 = "95a6b91bb9149950baeb5d02466c006550d0ea98b9d10f15f7d614a8eb32e174"}},
-    {name = "duckdb-1.5.6-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/58/05/4ed0a651d55c8cbf9f7e826cfa95e67c9955a5db22a0c7c0cc5378f4a90c/duckdb-1.5.6-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl",hashes = {sha256 = "dbd348e9ebdc8b28f1f9930efb5a74a382063c35d9c43901075566fbae50ab5c"}},
-    {name = "duckdb-1.5.6-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/33/34/66f49f13f4286871e54b8d5478fb0b10e1f334f6ffe81536213e7fb55f09/duckdb-1.5.6-cp310-cp310-win_amd64.whl",hashes = {sha256 = "f14551eef9180fc72869e2d9a2896410a8826169e22495e98a825abaa0eac1a7"}},
+    {name = "basemaplibre-0.1.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/d0/42/18afe90c849c2ff162c7b9149d5b1c2344a71d8327053c16a8d86d8d7277/basemaplibre-0.1.1-py3-none-any.whl",hashes = {sha256 = "6dd6f2611692a8e688cb5adb5adf38e846b768f22074cb9f2e90242ab2a4f822"}},
 ]
-marker = "\"default\" in dependency_groups"
+marker = "python_version >= \"3.11\" and \"docs\" in dependency_groups"
 
 [packages.tool.pdm]
-dependencies = []
+dependencies = [
+    "ml2drender>=0.4.3",
+    "httpx<1,>=0.28.1",
+    "matplotlib>=3.9.1",
+    "numpy>=1.26",
+    "pyproj>=3.6",
+]
 
 [[packages]]
 name = "geoarrow-pyarrow"
@@ -330,7 +349,7 @@ wheels = [
     {name = "pyarrow-21.0.0-cp310-cp310-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/a6/3e/99473332ac40278f196e105ce30b79ab8affab12f6194802f2593d6b0be2/pyarrow-21.0.0-cp310-cp310-musllinux_1_2_x86_64.whl",hashes = {sha256 = "9b0b14b49ac10654332a805aedfc0147fb3469cbf8ea951b3d040dab12372594"}},
     {name = "pyarrow-21.0.0-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/7b/f5/c372ef60593d713e8bfbb7e0c743501605f0ad00719146dc075faf11172b/pyarrow-21.0.0-cp310-cp310-win_amd64.whl",hashes = {sha256 = "9d9f8bcb4c3be7738add259738abdeddc363de1b80e3310e04067aa1ca596634"}},
 ]
-marker = "\"default\" in dependency_groups"
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -343,7 +362,7 @@ sdist = {name = "geopandas-1.1.1.tar.gz", url = "https://files.pythonhosted.org/
 wheels = [
     {name = "geopandas-1.1.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/0b/70/d5cd0696eff08e62fdbdebe5b46527facb4e7220eabe0ac6225efab50168/geopandas-1.1.1-py3-none-any.whl",hashes = {sha256 = "589e61aaf39b19828843df16cb90234e72897e2579be236f10eee0d052ad98e8"}},
 ]
-marker = "\"default\" in dependency_groups or \"test\" in dependency_groups"
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups or \"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = [
@@ -402,7 +421,7 @@ wheels = [
     {name = "shapely-2.1.1-cp310-cp310-win32.whl",url = "https://files.pythonhosted.org/packages/43/cc/eec3c01f754f5b3e0c47574b198f9deb70465579ad0dad0e1cef2ce9e103/shapely-2.1.1-cp310-cp310-win32.whl",hashes = {sha256 = "23b8772c3b815e7790fb2eab75a0b3951f435bc0fce7bb146cb064f17d35ab4f"}},
     {name = "shapely-2.1.1-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/50/fc/a7187e6dadb10b91e66a9e715d28105cde6489e1017cce476876185a43da/shapely-2.1.1-cp310-cp310-win_amd64.whl",hashes = {sha256 = "2c7b2b6143abf4fa77851cef8ef690e03feade9a0d48acd6dc41d9e0e78d7ca6"}},
 ]
-marker = "\"default\" in dependency_groups or \"test\" in dependency_groups"
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups or \"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = [
@@ -765,24 +784,43 @@ dependencies = [
 
 [[packages]]
 name = "rq-geo-toolkit"
-version = "2026.10.1"
+version = "2026.11.3"
 requires-python = ">=3.10"
-sdist = {name = "rq_geo_toolkit-2026.10.1.tar.gz", url = "https://files.pythonhosted.org/packages/e7/90/03bb4a4a52161cdbea3df53e0ab524b78d86042d47ec7c06ee2e3e49e4c1/rq_geo_toolkit-2026.10.1.tar.gz", hashes = {sha256 = "781a8a2ffac31dbaa4f32745edc0c8b33ba8244f1d8d46f5d4c2543749c9c2c0"}}
+sdist = {name = "rq_geo_toolkit-2026.11.3.tar.gz", url = "https://files.pythonhosted.org/packages/11/ce/254644e7ca4d1abcedaa6ee9db05917eaac829dd8f01b363884770d39c2e/rq_geo_toolkit-2026.11.3.tar.gz", hashes = {sha256 = "abdec0690e2641671998c7c9522fa438b9e23fb83b53e6e7b63f5a68a40f78b8"}}
 wheels = [
-    {name = "rq_geo_toolkit-2026.10.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/c9/d3/fd2f1b68b4c3c458ef6ca422a5522021e6fd0173015fbc91cea0bdf04412/rq_geo_toolkit-2026.10.1-py3-none-any.whl",hashes = {sha256 = "57bdf0d260e40ec76be9d2d491b884b4af2bc4d3247fe243a478f2098163b6e9"}},
+    {name = "rq_geo_toolkit-2026.11.3-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/b1/11/da3fa4bbf30969da2ea4754f103659f5ae303c5d3d56fde1e405b819429c/rq_geo_toolkit-2026.11.3-py3-none-any.whl",hashes = {sha256 = "45087d5eb147b6f6d518ac89ca5ff0943d7fcefdeda1d89625df1a289b1b6e63"}},
 ]
-marker = "\"default\" in dependency_groups"
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = [
     "geopandas>=1.0",
     "shapely>=2.0.6",
     "pyarrow>=16.0.0",
-    "rich>=12.0.0",
+    "rich>=12.3.0",
     "geopy>=2.0.0",
     "duckdb>=1.1.2",
     "psutil>=5.6.2",
     "packaging>=17.0",
+]
+
+[[packages]]
+name = "folium"
+version = "0.20.0"
+requires-python = ">=3.9"
+sdist = {name = "folium-0.20.0.tar.gz", url = "https://files.pythonhosted.org/packages/c7/76/84a1b1b00ce71f9c0c44af7d80f310c02e2e583591fe7d4cb03baecd0d3f/folium-0.20.0.tar.gz", hashes = {sha256 = "a0d78b9d5a36ba7589ca9aedbd433e84e9fcab79cd6ac213adbcff922e454cb9"}}
+wheels = [
+    {name = "folium-0.20.0-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/b5/a8/5f764f333204db0390362a4356d03a43626997f26818a0e9396f1b3bd8c9/folium-0.20.0-py2.py3-none-any.whl",hashes = {sha256 = "f0bc2a92acde20bca56367aa5c1c376c433f450608d058daebab2fc9bf8198bf"}},
+]
+marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "branca>=0.6.0",
+    "jinja2>=2.9",
+    "numpy",
+    "requests",
+    "xyzservices",
 ]
 
 [[packages]]
@@ -967,47 +1005,6 @@ dependencies = [
     "typing; python_version < \"3.5\"",
     "click<8.0; python_version < \"3.6\"",
     "click; python_version >= \"3.6\"",
-]
-
-[[packages]]
-name = "contextily"
-version = "1.6.2"
-requires-python = ">=3.9"
-sdist = {name = "contextily-1.6.2.tar.gz", url = "https://files.pythonhosted.org/packages/85/5c/67e809b32a8e4017a2dbfea90d4401167b087fc0cab88e82c7abc4da91d6/contextily-1.6.2.tar.gz", hashes = {sha256 = "3c747925269be248a9b1a761859e05d1681286e04d5d0796bdaf1de3409474bb"}}
-wheels = [
-    {name = "contextily-1.6.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/fb/46/07a029b73f9a5c7bbf9b538e6441c42014a448f335a1cc780616f2594bad/contextily-1.6.2-py3-none-any.whl",hashes = {sha256 = "b06ead7258b34e73db2e318e33554f54a22d207b3c272b74d8b64801773b3fc3"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "geopy",
-    "matplotlib",
-    "mercantile",
-    "pillow",
-    "rasterio",
-    "requests",
-    "joblib",
-    "xyzservices",
-]
-
-[[packages]]
-name = "folium"
-version = "0.20.0"
-requires-python = ">=3.9"
-sdist = {name = "folium-0.20.0.tar.gz", url = "https://files.pythonhosted.org/packages/c7/76/84a1b1b00ce71f9c0c44af7d80f310c02e2e583591fe7d4cb03baecd0d3f/folium-0.20.0.tar.gz", hashes = {sha256 = "a0d78b9d5a36ba7589ca9aedbd433e84e9fcab79cd6ac213adbcff922e454cb9"}}
-wheels = [
-    {name = "folium-0.20.0-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/b5/a8/5f764f333204db0390362a4356d03a43626997f26818a0e9396f1b3bd8c9/folium-0.20.0-py2.py3-none-any.whl",hashes = {sha256 = "f0bc2a92acde20bca56367aa5c1c376c433f450608d058daebab2fc9bf8198bf"}},
-]
-marker = "\"cli-dev\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "branca>=0.6.0",
-    "jinja2>=2.9",
-    "numpy",
-    "requests",
-    "xyzservices",
 ]
 
 [[packages]]
@@ -1856,6 +1853,40 @@ marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [[packages]]
+name = "httpx"
+version = "0.28.1"
+requires-python = ">=3.8"
+sdist = {name = "httpx-0.28.1.tar.gz", url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hashes = {sha256 = "75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc"}}
+wheels = [
+    {name = "httpx-0.28.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl",hashes = {sha256 = "d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad"}},
+]
+marker = "\"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "anyio",
+    "certifi",
+    "httpcore==1.*",
+    "idna",
+]
+
+[[packages]]
+name = "httpcore"
+version = "1.0.9"
+requires-python = ">=3.8"
+sdist = {name = "httpcore-1.0.9.tar.gz", url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hashes = {sha256 = "6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8"}}
+wheels = [
+    {name = "httpcore-1.0.9-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl",hashes = {sha256 = "2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55"}},
+]
+marker = "\"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "certifi",
+    "h11>=0.16",
+]
+
+[[packages]]
 name = "idna"
 version = "3.10"
 requires-python = ">=3.6"
@@ -2299,6 +2330,52 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [[packages]]
+name = "pyproj"
+version = "3.7.1"
+requires-python = ">=3.10"
+sdist = {name = "pyproj-3.7.1.tar.gz", url = "https://files.pythonhosted.org/packages/67/10/a8480ea27ea4bbe896c168808854d00f2a9b49f95c0319ddcbba693c8a90/pyproj-3.7.1.tar.gz", hashes = {sha256 = "60d72facd7b6b79853f19744779abcd3f804c4e0d4fa8815469db20c9f640a47"}}
+wheels = [
+    {name = "pyproj-3.7.1-cp313-cp313-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/ef/01/984828464c9960036c602753fc0f21f24f0aa9043c18fa3f2f2b66a86340/pyproj-3.7.1-cp313-cp313-macosx_13_0_x86_64.whl",hashes = {sha256 = "5f8d02ef4431dee414d1753d13fa82a21a2f61494737b5f642ea668d76164d6d"}},
+    {name = "pyproj-3.7.1-cp313-cp313-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/68/65/6ecdcdc829811a2c160cdfe2f068a009fc572fd4349664f758ccb0853a7c/pyproj-3.7.1-cp313-cp313-macosx_14_0_arm64.whl",hashes = {sha256 = "0b853ae99bda66cbe24b4ccfe26d70601d84375940a47f553413d9df570065e0"}},
+    {name = "pyproj-3.7.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/67/da/dda94c4490803679230ba4c17a12f151b307a0d58e8110820405ca2d98db/pyproj-3.7.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "83db380c52087f9e9bdd8a527943b2e7324f275881125e39475c4f9277bdeec4"}},
+    {name = "pyproj-3.7.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/6f/57/f61b7d22c91ae1d12ee00ac4c0038714e774ebcd851b9133e5f4f930dd40/pyproj-3.7.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "b35ed213892e211a3ce2bea002aa1183e1a2a9b79e51bb3c6b15549a831ae528"}},
+    {name = "pyproj-3.7.1-cp313-cp313-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/b7/f6/932128236f79d2ac7d39fe1a19667fdf7155d9a81d31fb9472a7a497790f/pyproj-3.7.1-cp313-cp313-musllinux_1_2_aarch64.whl",hashes = {sha256 = "a8b15b0463d1303bab113d1a6af2860a0d79013c3a66fcc5475ce26ef717fd4f"}},
+    {name = "pyproj-3.7.1-cp313-cp313-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/1d/0d/07ac7712994454a254c383c0d08aff9916a2851e6512d59da8dc369b1b02/pyproj-3.7.1-cp313-cp313-musllinux_1_2_x86_64.whl",hashes = {sha256 = "87229e42b75e89f4dad6459200f92988c5998dfb093c7c631fb48524c86cd5dc"}},
+    {name = "pyproj-3.7.1-cp313-cp313-win32.whl",url = "https://files.pythonhosted.org/packages/b0/d0/9c604bc72c37ba69b867b6df724d6a5af6789e8c375022c952f65b2af558/pyproj-3.7.1-cp313-cp313-win32.whl",hashes = {sha256 = "d666c3a3faaf3b1d7fc4a544059c4eab9d06f84a604b070b7aa2f318e227798e"}},
+    {name = "pyproj-3.7.1-cp313-cp313-win_amd64.whl",url = "https://files.pythonhosted.org/packages/98/df/68a2b7f5fb6400c64aad82d72bcc4bc531775e62eedff993a77c780defd0/pyproj-3.7.1-cp313-cp313-win_amd64.whl",hashes = {sha256 = "d3caac7473be22b6d6e102dde6c46de73b96bc98334e577dfaee9886f102ea2e"}},
+    {name = "pyproj-3.7.1-cp312-cp312-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/e6/c9/876d4345b8d17f37ac59ebd39f8fa52fc6a6a9891a420f72d050edb6b899/pyproj-3.7.1-cp312-cp312-macosx_13_0_x86_64.whl",hashes = {sha256 = "2781029d90df7f8d431e29562a3f2d8eafdf233c4010d6fc0381858dc7373217"}},
+    {name = "pyproj-3.7.1-cp312-cp312-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/ff/e6/5f8691f8c90e7f402cc80a6276eb19d2ec1faa150d5ae2dd9c7b0a254da8/pyproj-3.7.1-cp312-cp312-macosx_14_0_arm64.whl",hashes = {sha256 = "d61bf8ab04c73c1da08eedaf21a103b72fa5b0a9b854762905f65ff8b375d394"}},
+    {name = "pyproj-3.7.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/42/ec/16475bbb79c1c68845c0a0d9c60c4fb31e61b8a2a20bc18b1a81e81c7f68/pyproj-3.7.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "04abc517a8555d1b05fcee768db3280143fe42ec39fdd926a2feef31631a1f2f"}},
+    {name = "pyproj-3.7.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/b3/a3/448f05b15e318bd6bea9a32cfaf11e886c4ae61fa3eee6e09ed5c3b74bb2/pyproj-3.7.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "084c0a475688f934d386c2ab3b6ce03398a473cd48adfda70d9ab8f87f2394a0"}},
+    {name = "pyproj-3.7.1-cp312-cp312-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/6a/ae/bd15fe8d8bd914ead6d60bca7f895a4e6f8ef7e3928295134ff9a7dad14c/pyproj-3.7.1-cp312-cp312-musllinux_1_2_aarch64.whl",hashes = {sha256 = "a20727a23b1e49c7dc7fe3c3df8e56a8a7acdade80ac2f5cca29d7ca5564c145"}},
+    {name = "pyproj-3.7.1-cp312-cp312-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/9d/d9/5ccefb8bca925f44256b188a91c31238cae29ab6ee7f53661ecc04616146/pyproj-3.7.1-cp312-cp312-musllinux_1_2_x86_64.whl",hashes = {sha256 = "bf84d766646f1ebd706d883755df4370aaf02b48187cedaa7e4239f16bc8213d"}},
+    {name = "pyproj-3.7.1-cp312-cp312-win32.whl",url = "https://files.pythonhosted.org/packages/2a/7d/31dedff9c35fa703162f922eeb0baa6c44a3288469a5fd88d209e2892f9e/pyproj-3.7.1-cp312-cp312-win32.whl",hashes = {sha256 = "5f0da2711364d7cb9f115b52289d4a9b61e8bca0da57f44a3a9d6fc9bdeb7274"}},
+    {name = "pyproj-3.7.1-cp312-cp312-win_amd64.whl",url = "https://files.pythonhosted.org/packages/3e/47/c6ab03d6564a7c937590cff81a2742b5990f096cce7c1a622d325be340ee/pyproj-3.7.1-cp312-cp312-win_amd64.whl",hashes = {sha256 = "aee664a9d806612af30a19dba49e55a7a78ebfec3e9d198f6a6176e1d140ec98"}},
+    {name = "pyproj-3.7.1-cp311-cp311-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/ab/0d/63670fc527e664068b70b7cab599aa38b7420dd009bdc29ea257e7f3dfb3/pyproj-3.7.1-cp311-cp311-macosx_13_0_x86_64.whl",hashes = {sha256 = "a94e26c1a4950cea40116775588a2ca7cf56f1f434ff54ee35a84718f3841a3d"}},
+    {name = "pyproj-3.7.1-cp311-cp311-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/25/9d/cbaf82cfb290d1f1fa42feb9ba9464013bb3891e40c4199f8072112e4589/pyproj-3.7.1-cp311-cp311-macosx_14_0_arm64.whl",hashes = {sha256 = "263b54ba5004b6b957d55757d846fc5081bc02980caa0279c4fc95fa0fff6067"}},
+    {name = "pyproj-3.7.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/79/53/24f9f9b8918c0550f3ff49ad5de4cf3f0688c9f91ff191476db8979146fe/pyproj-3.7.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "f6d6a2ccd5607cd15ef990c51e6f2dd27ec0a741e72069c387088bba3aab60fa"}},
+    {name = "pyproj-3.7.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/3c/ac/12fab74a908d40b63174dc704587febd0729414804bbfd873cabe504ff2d/pyproj-3.7.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "8c5dcf24ede53d8abab7d8a77f69ff1936c6a8843ef4fcc574646e4be66e5739"}},
+    {name = "pyproj-3.7.1-cp311-cp311-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/c4/45/26311d6437135da2153a178125db5dfb6abce831ce04d10ec207eabac70a/pyproj-3.7.1-cp311-cp311-musllinux_1_2_aarch64.whl",hashes = {sha256 = "3c2e7449840a44ce860d8bea2c6c1c4bc63fa07cba801dcce581d14dcb031a02"}},
+    {name = "pyproj-3.7.1-cp311-cp311-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/99/52/4ecd0986f27d0e6c8ee3a7bc5c63da15acd30ac23034f871325b297e61fd/pyproj-3.7.1-cp311-cp311-musllinux_1_2_x86_64.whl",hashes = {sha256 = "0829865c1d3a3543f918b3919dc601eea572d6091c0dd175e1a054db9c109274"}},
+    {name = "pyproj-3.7.1-cp311-cp311-win32.whl",url = "https://files.pythonhosted.org/packages/3f/a5/d3bfc018fc92195a000d1d28acc1f3f1df15ff9f09ece68f45a2636c0134/pyproj-3.7.1-cp311-cp311-win32.whl",hashes = {sha256 = "6181960b4b812e82e588407fe5c9c68ada267c3b084db078f248db5d7f45d18a"}},
+    {name = "pyproj-3.7.1-cp311-cp311-win_amd64.whl",url = "https://files.pythonhosted.org/packages/92/39/ef6f06a5b223dbea308cfcbb7a0f72e7b506aef1850e061b2c73b0818715/pyproj-3.7.1-cp311-cp311-win_amd64.whl",hashes = {sha256 = "5ad0ff443a785d84e2b380869fdd82e6bfc11eba6057d25b4409a9bbfa867970"}},
+    {name = "pyproj-3.7.1-cp310-cp310-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/25/a3/c4cd4bba5b336075f145fe784fcaf4ef56ffbc979833303303e7a659dda2/pyproj-3.7.1-cp310-cp310-macosx_13_0_x86_64.whl",hashes = {sha256 = "bf09dbeb333c34e9c546364e7df1ff40474f9fddf9e70657ecb0e4f670ff0b0e"}},
+    {name = "pyproj-3.7.1-cp310-cp310-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/40/45/4fdf18f4cc1995f1992771d2a51cf186a9d7a8ec973c9693f8453850c707/pyproj-3.7.1-cp310-cp310-macosx_14_0_arm64.whl",hashes = {sha256 = "6575b2e53cc9e3e461ad6f0692a5564b96e7782c28631c7771c668770915e169"}},
+    {name = "pyproj-3.7.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/0c/d2/360eb127380106cee83569954ae696b88a891c804d7a93abe3fbc15f5976/pyproj-3.7.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "8cb516ee35ed57789b46b96080edf4e503fdb62dbb2e3c6581e0d6c83fca014b"}},
+    {name = "pyproj-3.7.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/76/a5/c6e11b9a99ce146741fb4d184d5c468446c6d6015b183cae82ac822a6cfa/pyproj-3.7.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "1e47c4e93b88d99dd118875ee3ca0171932444cdc0b52d493371b5d98d0f30ee"}},
+    {name = "pyproj-3.7.1-cp310-cp310-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/41/56/a3c15c42145797a99363fa0fdb4e9805dccb8b4a76a6d7b2cdf36ebcc2a1/pyproj-3.7.1-cp310-cp310-musllinux_1_2_aarch64.whl",hashes = {sha256 = "3e8d276caeae34fcbe4813855d0d97b9b825bab8d7a8b86d859c24a6213a5a0d"}},
+    {name = "pyproj-3.7.1-cp310-cp310-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/ef/73/c9194c2802fefe2a4fd4230bdd5ab083e7604e93c64d0356fa49c363bad6/pyproj-3.7.1-cp310-cp310-musllinux_1_2_x86_64.whl",hashes = {sha256 = "f173f851ee75e54acdaa053382b6825b400cb2085663a9bb073728a59c60aebb"}},
+    {name = "pyproj-3.7.1-cp310-cp310-win32.whl",url = "https://files.pythonhosted.org/packages/c5/1d/ce8bb5b9251b04d7c22d63619bb3db3d2397f79000a9ae05b3fd86a5837e/pyproj-3.7.1-cp310-cp310-win32.whl",hashes = {sha256 = "f550281ed6e5ea88fcf04a7c6154e246d5714be495c50c9e8e6b12d3fb63e158"}},
+    {name = "pyproj-3.7.1-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/09/6a/ca145467fd2e5b21e3d5b8c2b9645dcfb3b68f08b62417699a1f5689008e/pyproj-3.7.1-cp310-cp310-win_amd64.whl",hashes = {sha256 = "3537668992a709a2e7f068069192138618c00d0ba113572fdd5ee5ffde8222f3"}},
+]
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups or \"test\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "certifi",
+]
+
+[[packages]]
 name = "virtualenv"
 version = "20.31.2"
 requires-python = ">=3.8"
@@ -2644,7 +2721,7 @@ sdist = {name = "branca-0.8.1.tar.gz", url = "https://files.pythonhosted.org/pac
 wheels = [
     {name = "branca-0.8.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/f8/9d/91cddd38bd00170aad1a4b198c47b4ed716be45c234e09b835af41f4e717/branca-0.8.1-py3-none-any.whl",hashes = {sha256 = "d29c5fab31f7c21a92e34bf3f854234e29fecdcf5d2df306b616f20d816be425"}},
 ]
-marker = "\"cli-dev\" in dependency_groups"
+marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = [
@@ -2685,11 +2762,11 @@ dependencies = [
 
 [[packages]]
 name = "certifi"
-version = "2025.7.14"
+version = "2026.11.20"
 requires-python = ">=3.7"
-sdist = {name = "certifi-2025.7.14.tar.gz", url = "https://files.pythonhosted.org/packages/b3/76/52c535bcebe74590f296d6c77c86dabf761c41980e1347a2422e4aa2ae41/certifi-2025.7.14.tar.gz", hashes = {sha256 = "8ea99dbdfaaf2ba2f9bac77b9249ef62ec5218e7c2b2e903378ed5fccf765995"}}
+sdist = {name = "certifi-2026.11.20.tar.gz", url = "https://files.pythonhosted.org/packages/51/33/4cd27639502f010084bcef7a2036391dd637439901341ce1a530f36f6e51/certifi-2026.11.20.tar.gz", hashes = {sha256 = "af1cb240a8133f105aa52684a3a3258339d7f2fd0bd4e2812698ff5cf5588c4e"}}
 wheels = [
-    {name = "certifi-2025.7.14-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/4f/52/34c6cf5bb9285074dc3531c437b3919e825d976fde097a7a73f79e726d03/certifi-2025.7.14-py3-none-any.whl",hashes = {sha256 = "6b31f564a415d79ee77df69d757bb49a5bb53bd9f756cbbe24394ffd6fc1f4b2"}},
+    {name = "certifi-2026.11.20-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/6d/39/5eec3296860b94ac20bb8ed807725b88f6adfab3f343df592afd975f5f86/certifi-2026.11.20-py3-none-any.whl",hashes = {sha256 = "7422df25243767b9877031a2248cb14d09ddac9beee846f4cef3d5c9191d488f"}},
 ]
 marker = "\"default\" in dependency_groups or \"cli-dev\" in dependency_groups or \"docs\" in dependency_groups or \"license\" in dependency_groups or \"test\" in dependency_groups"
 
@@ -3032,40 +3109,6 @@ marker = "\"docs\" in dependency_groups"
 [packages.tool.pdm]
 dependencies = [
     "python-dateutil>=2.8.1",
-]
-
-[[packages]]
-name = "httpx"
-version = "0.28.1"
-requires-python = ">=3.8"
-sdist = {name = "httpx-0.28.1.tar.gz", url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hashes = {sha256 = "75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc"}}
-wheels = [
-    {name = "httpx-0.28.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl",hashes = {sha256 = "d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "anyio",
-    "certifi",
-    "httpcore==1.*",
-    "idna",
-]
-
-[[packages]]
-name = "httpcore"
-version = "1.0.9"
-requires-python = ">=3.8"
-sdist = {name = "httpcore-1.0.9.tar.gz", url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hashes = {sha256 = "6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8"}}
-wheels = [
-    {name = "httpcore-1.0.9-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl",hashes = {sha256 = "2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "certifi",
-    "h11>=0.16",
 ]
 
 [[packages]]
@@ -3695,6 +3738,25 @@ dependencies = [
 ]
 
 [[packages]]
+name = "ml2drender"
+version = "0.4.3"
+requires-python = ">=3.11"
+wheels = [
+    {name = "ml2drender-0.4.3-cp311-abi3-macosx_10_12_x86_64.whl",url = "https://files.pythonhosted.org/packages/b9/9b/9593997ad1b59ab34e8230f52cd40dfc80df21d2de81e6d43a5dcc516861/ml2drender-0.4.3-cp311-abi3-macosx_10_12_x86_64.whl",hashes = {sha256 = "c38cc9fa2250048d551078564bcf2ab7b93f6d7734fce0263baa38c0816dcf07"}},
+    {name = "ml2drender-0.4.3-cp311-abi3-macosx_11_0_arm64.whl",url = "https://files.pythonhosted.org/packages/3c/92/d260ea6ccfcd21cd5e5ba85c0ad8f24084c1dc1e86b9d8d420823c03c576/ml2drender-0.4.3-cp311-abi3-macosx_11_0_arm64.whl",hashes = {sha256 = "c08835ddac4c37590121fd7ed1fcee2d07ad2415044f5bb729e541ccbd72d46d"}},
+    {name = "ml2drender-0.4.3-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",url = "https://files.pythonhosted.org/packages/01/9e/b42e06cc8e2e87363271bb77defa70ccf38f330a42d468bb2087afbea8b1/ml2drender-0.4.3-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl",hashes = {sha256 = "1a64e952f8e0f1c241723c474d7e29fb5046136816c2704647fddaf8cbaab240"}},
+    {name = "ml2drender-0.4.3-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",url = "https://files.pythonhosted.org/packages/6d/71/b956f6be36c7baaee45f1cc4b68487d6045f5b5d554dd97834188157c2c2/ml2drender-0.4.3-cp311-abi3-manylinux2014_x86_64.manylinux_2_17_x86_64.whl",hashes = {sha256 = "d23d80701cb6ad0904a3cae88ecd89a6702832933bc4a66c579676233d45238b"}},
+    {name = "ml2drender-0.4.3-cp311-abi3-win_amd64.whl",url = "https://files.pythonhosted.org/packages/b8/3a/828eb6216d5d122e97942b1be98e706ccc9eb05dfc618e5e8a71bec344e2/ml2drender-0.4.3-cp311-abi3-win_amd64.whl",hashes = {sha256 = "c8022d6b29c15c25b39e72dcf75949008b3c13ae20ce4ea2c69daaa07b008d6d"}},
+]
+marker = "python_version >= \"3.11\" and \"docs\" in dependency_groups"
+
+[packages.tool.pdm]
+dependencies = [
+    "httpx<1,>=0.28.1",
+    "certifi>=2026.10.19",
+]
+
+[[packages]]
 name = "natsort"
 version = "8.4.0"
 requires-python = ">=3.7"
@@ -3861,59 +3923,13 @@ wheels = [
     {name = "pyogrio-0.11.0-cp310-cp310-manylinux_2_28_x86_64.whl",url = "https://files.pythonhosted.org/packages/76/04/5e5fd9ab3f84c030785de7f572c5a526f6bb3b261efe769ee911e04d98ff/pyogrio-0.11.0-cp310-cp310-manylinux_2_28_x86_64.whl",hashes = {sha256 = "6013501408a0f676ffb9758e83b4e06ef869885d6315417e098c4d3737ba1e39"}},
     {name = "pyogrio-0.11.0-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/13/6d/88a501f8a2481a6c8d825d91705e74df018614c8a13040af3b3f02503ddc/pyogrio-0.11.0-cp310-cp310-win_amd64.whl",hashes = {sha256 = "2b6f2c56f01ea552480e6f7d3deb1228e3babd35a0f314aa076505e2c4f55711"}},
 ]
-marker = "\"default\" in dependency_groups or \"test\" in dependency_groups"
+marker = "\"default\" in dependency_groups or \"docs\" in dependency_groups or \"test\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = [
     "certifi",
     "numpy",
     "packaging",
-]
-
-[[packages]]
-name = "pyproj"
-version = "3.7.1"
-requires-python = ">=3.10"
-sdist = {name = "pyproj-3.7.1.tar.gz", url = "https://files.pythonhosted.org/packages/67/10/a8480ea27ea4bbe896c168808854d00f2a9b49f95c0319ddcbba693c8a90/pyproj-3.7.1.tar.gz", hashes = {sha256 = "60d72facd7b6b79853f19744779abcd3f804c4e0d4fa8815469db20c9f640a47"}}
-wheels = [
-    {name = "pyproj-3.7.1-cp313-cp313-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/ef/01/984828464c9960036c602753fc0f21f24f0aa9043c18fa3f2f2b66a86340/pyproj-3.7.1-cp313-cp313-macosx_13_0_x86_64.whl",hashes = {sha256 = "5f8d02ef4431dee414d1753d13fa82a21a2f61494737b5f642ea668d76164d6d"}},
-    {name = "pyproj-3.7.1-cp313-cp313-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/68/65/6ecdcdc829811a2c160cdfe2f068a009fc572fd4349664f758ccb0853a7c/pyproj-3.7.1-cp313-cp313-macosx_14_0_arm64.whl",hashes = {sha256 = "0b853ae99bda66cbe24b4ccfe26d70601d84375940a47f553413d9df570065e0"}},
-    {name = "pyproj-3.7.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/67/da/dda94c4490803679230ba4c17a12f151b307a0d58e8110820405ca2d98db/pyproj-3.7.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "83db380c52087f9e9bdd8a527943b2e7324f275881125e39475c4f9277bdeec4"}},
-    {name = "pyproj-3.7.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/6f/57/f61b7d22c91ae1d12ee00ac4c0038714e774ebcd851b9133e5f4f930dd40/pyproj-3.7.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "b35ed213892e211a3ce2bea002aa1183e1a2a9b79e51bb3c6b15549a831ae528"}},
-    {name = "pyproj-3.7.1-cp313-cp313-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/b7/f6/932128236f79d2ac7d39fe1a19667fdf7155d9a81d31fb9472a7a497790f/pyproj-3.7.1-cp313-cp313-musllinux_1_2_aarch64.whl",hashes = {sha256 = "a8b15b0463d1303bab113d1a6af2860a0d79013c3a66fcc5475ce26ef717fd4f"}},
-    {name = "pyproj-3.7.1-cp313-cp313-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/1d/0d/07ac7712994454a254c383c0d08aff9916a2851e6512d59da8dc369b1b02/pyproj-3.7.1-cp313-cp313-musllinux_1_2_x86_64.whl",hashes = {sha256 = "87229e42b75e89f4dad6459200f92988c5998dfb093c7c631fb48524c86cd5dc"}},
-    {name = "pyproj-3.7.1-cp313-cp313-win32.whl",url = "https://files.pythonhosted.org/packages/b0/d0/9c604bc72c37ba69b867b6df724d6a5af6789e8c375022c952f65b2af558/pyproj-3.7.1-cp313-cp313-win32.whl",hashes = {sha256 = "d666c3a3faaf3b1d7fc4a544059c4eab9d06f84a604b070b7aa2f318e227798e"}},
-    {name = "pyproj-3.7.1-cp313-cp313-win_amd64.whl",url = "https://files.pythonhosted.org/packages/98/df/68a2b7f5fb6400c64aad82d72bcc4bc531775e62eedff993a77c780defd0/pyproj-3.7.1-cp313-cp313-win_amd64.whl",hashes = {sha256 = "d3caac7473be22b6d6e102dde6c46de73b96bc98334e577dfaee9886f102ea2e"}},
-    {name = "pyproj-3.7.1-cp312-cp312-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/e6/c9/876d4345b8d17f37ac59ebd39f8fa52fc6a6a9891a420f72d050edb6b899/pyproj-3.7.1-cp312-cp312-macosx_13_0_x86_64.whl",hashes = {sha256 = "2781029d90df7f8d431e29562a3f2d8eafdf233c4010d6fc0381858dc7373217"}},
-    {name = "pyproj-3.7.1-cp312-cp312-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/ff/e6/5f8691f8c90e7f402cc80a6276eb19d2ec1faa150d5ae2dd9c7b0a254da8/pyproj-3.7.1-cp312-cp312-macosx_14_0_arm64.whl",hashes = {sha256 = "d61bf8ab04c73c1da08eedaf21a103b72fa5b0a9b854762905f65ff8b375d394"}},
-    {name = "pyproj-3.7.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/42/ec/16475bbb79c1c68845c0a0d9c60c4fb31e61b8a2a20bc18b1a81e81c7f68/pyproj-3.7.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "04abc517a8555d1b05fcee768db3280143fe42ec39fdd926a2feef31631a1f2f"}},
-    {name = "pyproj-3.7.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/b3/a3/448f05b15e318bd6bea9a32cfaf11e886c4ae61fa3eee6e09ed5c3b74bb2/pyproj-3.7.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "084c0a475688f934d386c2ab3b6ce03398a473cd48adfda70d9ab8f87f2394a0"}},
-    {name = "pyproj-3.7.1-cp312-cp312-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/6a/ae/bd15fe8d8bd914ead6d60bca7f895a4e6f8ef7e3928295134ff9a7dad14c/pyproj-3.7.1-cp312-cp312-musllinux_1_2_aarch64.whl",hashes = {sha256 = "a20727a23b1e49c7dc7fe3c3df8e56a8a7acdade80ac2f5cca29d7ca5564c145"}},
-    {name = "pyproj-3.7.1-cp312-cp312-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/9d/d9/5ccefb8bca925f44256b188a91c31238cae29ab6ee7f53661ecc04616146/pyproj-3.7.1-cp312-cp312-musllinux_1_2_x86_64.whl",hashes = {sha256 = "bf84d766646f1ebd706d883755df4370aaf02b48187cedaa7e4239f16bc8213d"}},
-    {name = "pyproj-3.7.1-cp312-cp312-win32.whl",url = "https://files.pythonhosted.org/packages/2a/7d/31dedff9c35fa703162f922eeb0baa6c44a3288469a5fd88d209e2892f9e/pyproj-3.7.1-cp312-cp312-win32.whl",hashes = {sha256 = "5f0da2711364d7cb9f115b52289d4a9b61e8bca0da57f44a3a9d6fc9bdeb7274"}},
-    {name = "pyproj-3.7.1-cp312-cp312-win_amd64.whl",url = "https://files.pythonhosted.org/packages/3e/47/c6ab03d6564a7c937590cff81a2742b5990f096cce7c1a622d325be340ee/pyproj-3.7.1-cp312-cp312-win_amd64.whl",hashes = {sha256 = "aee664a9d806612af30a19dba49e55a7a78ebfec3e9d198f6a6176e1d140ec98"}},
-    {name = "pyproj-3.7.1-cp311-cp311-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/ab/0d/63670fc527e664068b70b7cab599aa38b7420dd009bdc29ea257e7f3dfb3/pyproj-3.7.1-cp311-cp311-macosx_13_0_x86_64.whl",hashes = {sha256 = "a94e26c1a4950cea40116775588a2ca7cf56f1f434ff54ee35a84718f3841a3d"}},
-    {name = "pyproj-3.7.1-cp311-cp311-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/25/9d/cbaf82cfb290d1f1fa42feb9ba9464013bb3891e40c4199f8072112e4589/pyproj-3.7.1-cp311-cp311-macosx_14_0_arm64.whl",hashes = {sha256 = "263b54ba5004b6b957d55757d846fc5081bc02980caa0279c4fc95fa0fff6067"}},
-    {name = "pyproj-3.7.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/79/53/24f9f9b8918c0550f3ff49ad5de4cf3f0688c9f91ff191476db8979146fe/pyproj-3.7.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "f6d6a2ccd5607cd15ef990c51e6f2dd27ec0a741e72069c387088bba3aab60fa"}},
-    {name = "pyproj-3.7.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/3c/ac/12fab74a908d40b63174dc704587febd0729414804bbfd873cabe504ff2d/pyproj-3.7.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "8c5dcf24ede53d8abab7d8a77f69ff1936c6a8843ef4fcc574646e4be66e5739"}},
-    {name = "pyproj-3.7.1-cp311-cp311-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/c4/45/26311d6437135da2153a178125db5dfb6abce831ce04d10ec207eabac70a/pyproj-3.7.1-cp311-cp311-musllinux_1_2_aarch64.whl",hashes = {sha256 = "3c2e7449840a44ce860d8bea2c6c1c4bc63fa07cba801dcce581d14dcb031a02"}},
-    {name = "pyproj-3.7.1-cp311-cp311-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/99/52/4ecd0986f27d0e6c8ee3a7bc5c63da15acd30ac23034f871325b297e61fd/pyproj-3.7.1-cp311-cp311-musllinux_1_2_x86_64.whl",hashes = {sha256 = "0829865c1d3a3543f918b3919dc601eea572d6091c0dd175e1a054db9c109274"}},
-    {name = "pyproj-3.7.1-cp311-cp311-win32.whl",url = "https://files.pythonhosted.org/packages/3f/a5/d3bfc018fc92195a000d1d28acc1f3f1df15ff9f09ece68f45a2636c0134/pyproj-3.7.1-cp311-cp311-win32.whl",hashes = {sha256 = "6181960b4b812e82e588407fe5c9c68ada267c3b084db078f248db5d7f45d18a"}},
-    {name = "pyproj-3.7.1-cp311-cp311-win_amd64.whl",url = "https://files.pythonhosted.org/packages/92/39/ef6f06a5b223dbea308cfcbb7a0f72e7b506aef1850e061b2c73b0818715/pyproj-3.7.1-cp311-cp311-win_amd64.whl",hashes = {sha256 = "5ad0ff443a785d84e2b380869fdd82e6bfc11eba6057d25b4409a9bbfa867970"}},
-    {name = "pyproj-3.7.1-cp310-cp310-macosx_13_0_x86_64.whl",url = "https://files.pythonhosted.org/packages/25/a3/c4cd4bba5b336075f145fe784fcaf4ef56ffbc979833303303e7a659dda2/pyproj-3.7.1-cp310-cp310-macosx_13_0_x86_64.whl",hashes = {sha256 = "bf09dbeb333c34e9c546364e7df1ff40474f9fddf9e70657ecb0e4f670ff0b0e"}},
-    {name = "pyproj-3.7.1-cp310-cp310-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/40/45/4fdf18f4cc1995f1992771d2a51cf186a9d7a8ec973c9693f8453850c707/pyproj-3.7.1-cp310-cp310-macosx_14_0_arm64.whl",hashes = {sha256 = "6575b2e53cc9e3e461ad6f0692a5564b96e7782c28631c7771c668770915e169"}},
-    {name = "pyproj-3.7.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",url = "https://files.pythonhosted.org/packages/0c/d2/360eb127380106cee83569954ae696b88a891c804d7a93abe3fbc15f5976/pyproj-3.7.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl",hashes = {sha256 = "8cb516ee35ed57789b46b96080edf4e503fdb62dbb2e3c6581e0d6c83fca014b"}},
-    {name = "pyproj-3.7.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/76/a5/c6e11b9a99ce146741fb4d184d5c468446c6d6015b183cae82ac822a6cfa/pyproj-3.7.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "1e47c4e93b88d99dd118875ee3ca0171932444cdc0b52d493371b5d98d0f30ee"}},
-    {name = "pyproj-3.7.1-cp310-cp310-musllinux_1_2_aarch64.whl",url = "https://files.pythonhosted.org/packages/41/56/a3c15c42145797a99363fa0fdb4e9805dccb8b4a76a6d7b2cdf36ebcc2a1/pyproj-3.7.1-cp310-cp310-musllinux_1_2_aarch64.whl",hashes = {sha256 = "3e8d276caeae34fcbe4813855d0d97b9b825bab8d7a8b86d859c24a6213a5a0d"}},
-    {name = "pyproj-3.7.1-cp310-cp310-musllinux_1_2_x86_64.whl",url = "https://files.pythonhosted.org/packages/ef/73/c9194c2802fefe2a4fd4230bdd5ab083e7604e93c64d0356fa49c363bad6/pyproj-3.7.1-cp310-cp310-musllinux_1_2_x86_64.whl",hashes = {sha256 = "f173f851ee75e54acdaa053382b6825b400cb2085663a9bb073728a59c60aebb"}},
-    {name = "pyproj-3.7.1-cp310-cp310-win32.whl",url = "https://files.pythonhosted.org/packages/c5/1d/ce8bb5b9251b04d7c22d63619bb3db3d2397f79000a9ae05b3fd86a5837e/pyproj-3.7.1-cp310-cp310-win32.whl",hashes = {sha256 = "f550281ed6e5ea88fcf04a7c6154e246d5714be495c50c9e8e6b12d3fb63e158"}},
-    {name = "pyproj-3.7.1-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/09/6a/ca145467fd2e5b21e3d5b8c2b9645dcfb3b68f08b62417699a1f5689008e/pyproj-3.7.1-cp310-cp310-win_amd64.whl",hashes = {sha256 = "3537668992a709a2e7f068069192138618c00d0ba113572fdd5ee5ffde8222f3"}},
-]
-marker = "\"default\" in dependency_groups or \"test\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "certifi",
 ]
 
 [[packages]]
@@ -4188,7 +4204,7 @@ sdist = {name = "joblib-1.5.1.tar.gz", url = "https://files.pythonhosted.org/pac
 wheels = [
     {name = "joblib-1.5.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/7d/4f/1195bbac8e0c2acc5f740661631d8d750dc38d4a32b23ee5df3cde6f4e0d/joblib-1.5.1-py3-none-any.whl",hashes = {sha256 = "4719a31f054c7d766948dcd83e9613686b27114f190f717cec7eaa2084f8a74a"}},
 ]
-marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
+marker = "\"cli-dev\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
@@ -4809,20 +4825,6 @@ dependencies = [
 ]
 
 [[packages]]
-name = "mercantile"
-version = "1.2.1"
-sdist = {name = "mercantile-1.2.1.tar.gz", url = "https://files.pythonhosted.org/packages/d2/c6/87409bcb26fb68c393fa8cf58ba09363aa7298cfb438a0109b5cb14bc98b/mercantile-1.2.1.tar.gz", hashes = {sha256 = "fa3c6db15daffd58454ac198b31887519a19caccee3f9d63d17ae7ff61b3b56b"}}
-wheels = [
-    {name = "mercantile-1.2.1-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/b2/d6/de0cc74f8d36976aeca0dd2e9cbf711882ff8e177495115fd82459afdc4d/mercantile-1.2.1-py3-none-any.whl",hashes = {sha256 = "30f457a73ee88261aab787b7069d85961a5703bb09dc57a170190bc042cd023f"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "click>=3.0",
-]
-
-[[packages]]
 name = "nest-asyncio"
 version = "1.6.0"
 requires-python = ">=3.5"
@@ -4847,86 +4849,6 @@ marker = "\"docs\" in dependency_groups"
 
 [packages.tool.pdm]
 dependencies = []
-
-[[packages]]
-name = "rasterio"
-version = "1.4.3"
-requires-python = ">=3.9"
-sdist = {name = "rasterio-1.4.3.tar.gz", url = "https://files.pythonhosted.org/packages/de/19/ab4326e419b543da623ce4191f68e3f36a4d9adc64f3df5c78f044d8d9ca/rasterio-1.4.3.tar.gz", hashes = {sha256 = "201f05dbc7c4739dacb2c78a1cf4e09c0b7265b0a4d16ccbd1753ce4f2af350a"}}
-wheels = [
-    {name = "rasterio-1.4.3-cp313-cp313-macosx_10_15_x86_64.whl",url = "https://files.pythonhosted.org/packages/2e/e0/718c06b825d1f62077913e5bff1e70b71ac673718b135d55a0256d88d4ba/rasterio-1.4.3-cp313-cp313-macosx_10_15_x86_64.whl",hashes = {sha256 = "5d4fcb635379b3d7b2f5e944c153849e3d27e93f35ad73ad4d3f0b8a580f0c8e"}},
-    {name = "rasterio-1.4.3-cp313-cp313-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/bb/a8/3b6b11923300d6835453d1157fabb518338067a67366c5c52e9df9a2314f/rasterio-1.4.3-cp313-cp313-macosx_14_0_arm64.whl",hashes = {sha256 = "98a9c89eade8c779e8ac1e525269faaa18c6b9818fc3c72cfc4627df71c66d0d"}},
-    {name = "rasterio-1.4.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/05/19/94d6c66184c7d0f9374330c714f62c147dbb53eda9efdcc8fc6e2ac454c5/rasterio-1.4.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "d9bab1a0bb22b8bed1db34b5258db93d790ed4e61ef21ac055a7c6933c8d5e84"}},
-    {name = "rasterio-1.4.3-cp313-cp313-win_amd64.whl",url = "https://files.pythonhosted.org/packages/df/88/9db5f49ebfdd9c12365e4cac76c34ccb1a642b1c8cbab4124b3c681495de/rasterio-1.4.3-cp313-cp313-win_amd64.whl",hashes = {sha256 = "1839960e2f3057a6daa323ccf67b330f8f2f0dbd4a50cc7031e88e649301c5c0"}},
-    {name = "rasterio-1.4.3-cp312-cp312-macosx_10_15_x86_64.whl",url = "https://files.pythonhosted.org/packages/5a/f2/b7417292ceace70d815760f7e41fe5b0244ebff78ede11b1ffa9ca01c370/rasterio-1.4.3-cp312-cp312-macosx_10_15_x86_64.whl",hashes = {sha256 = "e703e4b2c74c678786d5d110a3f30e26f3acfd65f09ccf35f69683a532f7a772"}},
-    {name = "rasterio-1.4.3-cp312-cp312-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/b2/ea/e21010457847b26bb4aea3983e9b44afbcefef07defc5e9a3285a8fe2f0c/rasterio-1.4.3-cp312-cp312-macosx_14_0_arm64.whl",hashes = {sha256 = "38a126f8dbf405cd3450b5bd10c6cc493a2e1be4cf83442d26f5e4f412372d36"}},
-    {name = "rasterio-1.4.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/67/72/331727423b28fffdfd8bf18bdc55c18d374c0fefd2dde390cd833f8f4477/rasterio-1.4.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "8e90c2c300294265c16becc9822337ded0f01fb8664500b4d77890d633d8cd0e"}},
-    {name = "rasterio-1.4.3-cp312-cp312-win_amd64.whl",url = "https://files.pythonhosted.org/packages/be/cc/453816b489af94b9a243eda889865973d518989ba6923b2381f6d6722b43/rasterio-1.4.3-cp312-cp312-win_amd64.whl",hashes = {sha256 = "a962ad4c29feaf38b1d7a94389313127de3646a5b9b734fbf9a04e16051a27ff"}},
-    {name = "rasterio-1.4.3-cp311-cp311-macosx_10_15_x86_64.whl",url = "https://files.pythonhosted.org/packages/f3/fd/ba3850e4cbccc47d03037f2c96889f7f221a674a7be6665c7da7cd483a07/rasterio-1.4.3-cp311-cp311-macosx_10_15_x86_64.whl",hashes = {sha256 = "9c30114d95ebba4ff49f078b3c193d29ff56d832588649400a3fa78f1dda1c96"}},
-    {name = "rasterio-1.4.3-cp311-cp311-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/b3/59/ca86697161206233eea6353237b0c0f02f6f70434144db162f964a7e1b19/rasterio-1.4.3-cp311-cp311-macosx_14_0_arm64.whl",hashes = {sha256 = "812c854e7177064aeb58def2d59752887ad6b3d39ff3f858ed9df3f2ddc95613"}},
-    {name = "rasterio-1.4.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/aa/fa/723fa6a48a419b044146cd92fa6a66ead8532d96c352fbc2f2a1546cb5b6/rasterio-1.4.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "54eef32d20a0dfbba59a8bb9828e562c3e9e97e2355b8dfe4a5274117976059f"}},
-    {name = "rasterio-1.4.3-cp311-cp311-win_amd64.whl",url = "https://files.pythonhosted.org/packages/7e/1f/56462740694de764fde264051224fcbf800dad43cac92a66753153128866/rasterio-1.4.3-cp311-cp311-win_amd64.whl",hashes = {sha256 = "4009f7ce4e0883d8e5b400970daa3f1ca309caac8916d955722ee4486654d452"}},
-    {name = "rasterio-1.4.3-cp310-cp310-macosx_10_15_x86_64.whl",url = "https://files.pythonhosted.org/packages/b6/1b/fbc6e3f11fe42898c787d27b6844f660bdd7081967d5f68b950c4bd9f043/rasterio-1.4.3-cp310-cp310-macosx_10_15_x86_64.whl",hashes = {sha256 = "80f994b92e5dda78f13291710bd5c43efcfd164f69a8a2c20489115df9d178c8"}},
-    {name = "rasterio-1.4.3-cp310-cp310-macosx_14_0_arm64.whl",url = "https://files.pythonhosted.org/packages/28/e6/97914b0c1824106ae9499446515915db3b4a8924d0568b6e888f4d305472/rasterio-1.4.3-cp310-cp310-macosx_14_0_arm64.whl",hashes = {sha256 = "1a6e6ca9ec361599b48c9918ce25adb1a9203b8c8ca9b34ad78dccb3aef7945a"}},
-    {name = "rasterio-1.4.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",url = "https://files.pythonhosted.org/packages/c1/f5/5cc3a8ee9deee2292432d69237ab4c5364f886844234d8e6dad29358aef0/rasterio-1.4.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",hashes = {sha256 = "5b8a4311582274de2346450e5361d092b80b8b5c7b02fda6203402ba101ffabf"}},
-    {name = "rasterio-1.4.3-cp310-cp310-win_amd64.whl",url = "https://files.pythonhosted.org/packages/51/2f/f72f77633aecba9afda903f9201c566520cc2dfeb0e1e0d36c102aa18189/rasterio-1.4.3-cp310-cp310-win_amd64.whl",hashes = {sha256 = "e79847a5a0e01399457a1e02d8c92040cb56729d054fe7796f0c17b246b18bf0"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "affine",
-    "attrs",
-    "certifi",
-    "click>=4.0",
-    "cligj>=0.5",
-    "importlib-metadata; python_version < \"3.10\"",
-    "numpy>=1.24",
-    "click-plugins",
-    "pyparsing",
-]
-
-[[packages]]
-name = "cligj"
-version = "0.7.2"
-requires-python = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, <4"
-sdist = {name = "cligj-0.7.2.tar.gz", url = "https://files.pythonhosted.org/packages/ea/0d/837dbd5d8430fd0f01ed72c4cfb2f548180f4c68c635df84ce87956cff32/cligj-0.7.2.tar.gz", hashes = {sha256 = "a4bc13d623356b373c2c27c53dbd9c68cae5d526270bfa71f6c6fa69669c6b27"}}
-wheels = [
-    {name = "cligj-0.7.2-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/73/86/43fa9f15c5b9fb6e82620428827cd3c284aa933431405d1bcf5231ae3d3e/cligj-0.7.2-py3-none-any.whl",hashes = {sha256 = "c1ca117dbce1fe20a5809dc96f01e1c2840f6dcc939b3ddbb1111bf330ba82df"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "click>=4.0",
-]
-
-[[packages]]
-name = "affine"
-version = "2.4.0"
-requires-python = ">=3.7"
-sdist = {name = "affine-2.4.0.tar.gz", url = "https://files.pythonhosted.org/packages/69/98/d2f0bb06385069e799fc7d2870d9e078cfa0fa396dc8a2b81227d0da08b9/affine-2.4.0.tar.gz", hashes = {sha256 = "a24d818d6a836c131976d22f8c27b8d3ca32d0af64c1d8d29deb7bafa4da1eea"}}
-wheels = [
-    {name = "affine-2.4.0-py3-none-any.whl",url = "https://files.pythonhosted.org/packages/0b/f7/85273299ab57117850cc0a936c64151171fac4da49bc6fba0dad984a7c5f/affine-2.4.0-py3-none-any.whl",hashes = {sha256 = "8a3df80e2b2378aef598a83c1392efd47967afec4242021a0b06b4c7cbc61a92"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = []
-
-[[packages]]
-name = "click-plugins"
-version = "1.1.1.2"
-sdist = {name = "click_plugins-1.1.1.2.tar.gz", url = "https://files.pythonhosted.org/packages/c3/a4/34847b59150da33690a36da3681d6bbc2ec14ee9a846bc30a6746e5984e4/click_plugins-1.1.1.2.tar.gz", hashes = {sha256 = "d7af3984a99d243c131aa1a828331e7630f4a88a9741fd05c927b204bcf92261"}}
-wheels = [
-    {name = "click_plugins-1.1.1.2-py2.py3-none-any.whl",url = "https://files.pythonhosted.org/packages/3d/9a/2abecb28ae875e39c8cad711eb1186d8d14eab564705325e77e4e6ab9ae5/click_plugins-1.1.1.2-py2.py3-none-any.whl",hashes = {sha256 = "008d65743833ffc1f5417bf0e78e8d2c23aab04d9745ba817bd3e71b0feb6aa6"}},
-]
-marker = "\"docs\" in dependency_groups"
-
-[packages.tool.pdm]
-dependencies = [
-    "click>=4.0",
-]
 
 [[packages]]
 name = "rfc3339-validator"
@@ -5063,7 +4985,7 @@ marker = "\"cli-dev\" in dependency_groups or \"docs\" in dependency_groups"
 dependencies = []
 
 [tool.pdm]
-hashes = {sha256 = "b25803e9bfc90d4b2a91abdd1214ad33950e544b0a72402cd4fc486cf660b9c7"}
+hashes = {sha256 = "66afdaa0bd2538637188587b6489252c2a20ee6d15d728b31e329b4966e97e77"}
 strategy = ["inherit_metadata", "static_urls"]
 
 [[tool.pdm.targets]]

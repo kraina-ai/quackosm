@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Install cells for Google Colab in the example notebooks, replaced by the "Open in Colab" badge in the documentation
+
 ### Changed
 
 - Bumped minimal `typer` version to `0.18.0`, since older versions mishandle CLI usage errors with `click>=8.2.0` (traceback instead of an error message, missing required arguments passed as `None`)
+- Replaced `contextily` with `basemaplibre` in the example notebooks
+- Replaced CARTO basemaps with OpenFreeMap styles in the interactive maps of the example notebooks
 
 ### Fixed
 
