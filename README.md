@@ -100,7 +100,7 @@ Required:
 
 Optional:
 
-- `typer (>=0.9.0)` (click, colorama, rich, shellingham): Required in CLI
+- `typer (>=0.18.0)` (colorama, rich, shellingham): Required in CLI
 
 - `h3` extension for `duckdb`: For transforming H3 indexes into geometries. Required in CLI
 
