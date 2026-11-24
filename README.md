@@ -6,7 +6,7 @@
 <p align="center">
     <img alt="GitHub" src="https://img.shields.io/github/license/kraina-ai/quackosm?logo=apache&logoColor=%23fff">
     <img src="https://img.shields.io/github/checks-status/kraina-ai/quackosm/main?logo=GitHubActions&logoColor=%23fff" alt="Checks">
-    <a href="https://github.com/kraina-ai/quackosm/actions/workflows/ci-dev.yml" target="_blank"><img alt="GitHub Workflow Status - DEV" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/quackosm/ci-dev.yml?label=build-dev&logo=GitHubActions&logoColor=%23fff"></a>
+    <a href="https://github.com/kraina-ai/quackosm/actions/workflows/test-dev.yml" target="_blank"><img alt="GitHub Workflow Status - DEV" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/quackosm/test-dev.yml?label=build-dev&logo=GitHubActions&logoColor=%23fff"></a>
     <a href="https://github.com/kraina-ai/quackosm/actions/workflows/ci-prod.yml" target="_blank"><img alt="GitHub Workflow Status - PROD" src="https://img.shields.io/github/actions/workflow/status/kraina-ai/quackosm/ci-prod.yml?label=build-prod&logo=GitHubActions&logoColor=%23fff"></a>
     <a href="https://results.pre-commit.ci/latest/github/kraina-ai/quackosm/main" target="_blank"><img src="https://results.pre-commit.ci/badge/github/kraina-ai/quackosm/main.svg" alt="pre-commit.ci status"></a>
     <a href="https://www.codefactor.io/repository/github/kraina-ai/quackosm"><img alt="CodeFactor Grade" src="https://img.shields.io/codefactor/grade/github/kraina-ai/quackosm?logo=codefactor&logoColor=%23fff"></a>

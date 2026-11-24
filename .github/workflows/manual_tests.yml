@@ -2,6 +2,9 @@ name: "Run tests with newest and oldest dependencies"
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      GOOGLE_SERVICE_ACCOUNT_CREDENTIALS:
+        required: false
   schedule:
     - cron: "0 4 * * 1" # every monday at 04:00 UTC
 
@@ -19,7 +22,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       COLUMNS: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Get Google access token
         id: google-access-token
         uses: playeveryware/action-google-access-token@v1
@@ -53,7 +56,7 @@ jobs:
                     each_file.rename(trg_path)
             Path('test_files.zip').unlink()
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install pdm
@@ -82,7 +85,7 @@ jobs:
       PYTHON: ${{ matrix.python-version }}
       COLUMNS: 120
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Get Google access token
         id: google-access-token
         uses: playeveryware/action-google-access-token@v1
@@ -116,7 +119,7 @@ jobs:
                     each_file.rename(trg_path)
             Path('test_files.zip').unlink()
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install pdm
@@ -138,9 +141,7 @@ jobs:
     env:
       FORCE_TERMINAL_MODE: true
     steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.CICD_PAT_TOKEN }}
+      - uses: actions/checkout@v6
       - name: Get Google access token
         id: google-access-token
         uses: playeveryware/action-google-access-token@v1
@@ -171,10 +172,10 @@ jobs:
                 each_file.rename(trg_path)
             Path('example_files.zip').unlink()
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - uses: actions/cache@v3
+      - uses: actions/cache@v5
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-dev-${{ hashFiles('**/pylock.toml') }}
@@ -189,7 +190,7 @@ jobs:
           pdm build -v -d dist
           uv pip install 'quackosm[cli] @ file://'"$(pwd)/$(find dist -name '*.whl')" --system
       - name: Cache Overpass data
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: "**/cache"
           key: mkdocs-overpass-dev-cache-${{ runner.os }}
